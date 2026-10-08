@@ -16,7 +16,7 @@ The PICKUPSAVE discs from the original script now save the game (`src/assets/scm
 
 ## Gaps
 
-- Only the Verdant Meadows disc (slot 2) is outside an interior, so it is the only one the playable world can reach; the other twelve sit in safehouse interiors, which are not streamed.
+- Only the Verdant Meadows disc (slot 2) is outside an interior; the other twelve sit in safehouse interiors. Interiors are now published (`gta_int.img` under `public/play/world/int/`, listed in the world manifest's `archives`) and entered through the entry-exit doors (`src/world/nativeEntryExits.ts`), but saving at the interior discs has not been verified.
 - Walking to that disc in game puts the player at height 15.56 where the disc sits at 9.51, so its 1-unit reach is never entered: the streamed airstrip ground there is about six units above the script's disc. Whether the original places it under a hangar floor that the browser does not stream is unresolved, so the flow is verified through the pickup system rather than in the running world.
 - There is no save menu, slot picker or "Game saved" front end: walking in saves at once. `CStats` safehouse visits, gang wars, ropes and `TidyUpMemory` have nothing to act on here.
 

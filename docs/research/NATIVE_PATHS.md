@@ -50,7 +50,7 @@ all-area audit below resolves them independently.
 ## Reproducible graph audit
 
 ```sh
-node scripts/content/audit-paths.mjs /Users/teo/Developer/web-gta-content
+node scripts/content/audit-paths.mjs $GTA_CONTENT_DIR
 ```
 
 The command reads the IMG locally, decodes the same reader used by the browser
@@ -168,7 +168,11 @@ offsets against the rendered districts, retain neighboring-area references durin
 connect native path selection to vehicle/pedestrian movement. Spawn eligibility,
 lane transitions, traffic signals, roadblocks, water navigation and unloaded
 area handling need their source behavior implemented and tested separately.
-The existing authored traffic system is unchanged.
+The authored traffic system of the time was unchanged by this commit. Traffic has
+since moved onto this graph: `src/simulation/WorldTraffic.ts` drives cars with a
+port of `CCarCtrl` (`src/vehicle/nativeCarCtrl.ts`), creates them on path nodes
+(`src/vehicle/nativeRandomCarSpawn.ts`) and stops them at signals
+(`nativeShouldStopForLight` in `src/world/nativeSignalStop.ts`).
 
 [Native graph routing](NATIVE_ROUTES.md) now resolves permitted routes between
 all nine content presets, retaining navigation addresses for future vehicle

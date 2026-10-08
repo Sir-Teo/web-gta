@@ -1,6 +1,6 @@
 # Native constellation rendering
 
-Research and implementation date: 2026-09-13. This replaces the random authored star field only when native lighting is active. It is partial source-based night-sky rendering, not original-platform pixel parity.
+Research and implementation date: 2026-09-13. This replaced the random authored star field, which has since been removed; the constellation draws outdoors while native lighting is active. It is partial source-based night-sky rendering, not original-platform pixel parity.
 
 ## Pinned source
 
@@ -14,7 +14,7 @@ Visibility is restricted to 22:00–06:00. Integer game minutes fade brightness 
 
 `nativeStars.ts` retains the source offsets/sizes with the native-to-browser axis conversion and minute-based brightness schedule. `NativeStars` projects the twelve screen quads with the existing native sprite metrics, bypassing far clipping while retaining the default near test. The shared projection helper keeps its previous default far-clipping behavior for existing callers.
 
-Native lighting hides the authored random field and activates the constellation outdoors. Clearing native lighting restores the authored field; interiors suppress the native constellation. The quads are additive, do not write depth, and use far-plane depth to let scene geometry occlude them. This is a browser ordering adaptation to the source's earlier background pass, not a bit-exact recreation of its sprite buffer.
+Native lighting activates the constellation outdoors and interiors suppress it. Without native lighting no stars draw: the authored random field this originally fell back to has been removed from `WorldLighting`. The quads are additive, do not write depth, and use far-plane depth to let scene geometry occlude them. This is a browser ordering adaptation to the source's earlier background pass, not a bit-exact recreation of its sprite buffer.
 
 When a local particle dictionary has supplied `coronastar`, stars borrow its current texture from `LocalSunTexture` alongside the sun. Replacing/clearing the texture is observed on the next update; star disposal never disposes the borrowed raster. Without a texture, the constellation remains visible using a provisional soft disc. This preserves placement/timing while exposing the missing original raster rather than retaining 260 unrelated authored stars.
 
@@ -24,4 +24,4 @@ Twinkle uses the source attenuation formulas with a seeded browser random sequen
 
 All 565 tests/117 files with native references and build pass. Unit checks cover midnight wrapping, fade boundaries, integer minutes, source offsets, mirrored points, large-star size and attenuation endpoints. GPU checks verify a borrowed solid raster, fallback output, foreground occlusion, short far clips, opposite viewing directions, paused twinkle and ownership cleanup. WorldLighting integration checks native/authored replacement, interior suppression and restoration. Existing sky, lighting picker and day/night save/driving checks pass: six browser tests in 15.6 seconds.
 
-Inspected `artifacts/native-night-sky.png`: a diagnostic dark native sky shows the fixed constellation with the fallback disc. It uses synthetic sky colors and no original particle texture; it is not a retail reference capture. Logs: `/tmp/web-gta-stars-{focused,unit,build,gpu,browser}.log`. Moon, clouds, streaks and complete weather-driven night rendering remain unfinished.
+Inspected `artifacts/native-night-sky.png`: a diagnostic dark native sky shows the fixed constellation with the fallback disc. It uses synthetic sky colors and no original particle texture; it is not a retail reference capture. Logs: `/tmp/web-gta-stars-{focused,unit,build,gpu,browser}.log`. The moon (`src/render/NativeMoon.ts`), clouds ([CLOUDS.md](CLOUDS.md)) and `CClouds::Render_MaybeRenderStreaks` (`src/render/NativeStreak.ts`) have since been added.

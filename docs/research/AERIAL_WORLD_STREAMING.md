@@ -1,7 +1,8 @@
 # Aerial world streaming
 
-Flight now selects nearby detailed scenery within 180 metres and terminal native
-big-building/LOD models out to 1,000 metres. The latter retain original geometry,
+Every exterior world request now selects nearby detailed scenery within 180 metres
+and terminal native big-building/LOD models out to 1,000 metres (`radius: 180,
+lodRadius: 1000` in `src/main.ts`, flying or not); flight introduced this. The latter retain original geometry,
 placement, material sampling and draw-distance culling. Selection is further
 bounded by each model's draw distance plus the next prefetch displacement and a
 40-metre camera allowance. Intersecting source collision bounds and nearby LOD
@@ -19,8 +20,9 @@ measures retained scene arrays, not total browser or transient decode memory.
 
 The collision safety window remains 180 metres. The follower requests after 40%
 of that radius and pauses pending loads at 75%. Expanding distant scenery never
-expands collision support. Entering/leaving an aircraft changes the distant radius
-through the same matched-request commit protocol. The smaller detailed window can
+expands collision support. Entering or leaving an aircraft no longer changes the
+distant radius: the follower always keeps 180/1,000 (`setRadius(180,1000)` in
+`src/main.ts`), and interiors request 100 metres without distant LODs. The smaller detailed window can
 require more frequent loads during flight; asynchronous decoding, distant-model
 residency and native aerial streaming policy remain open performance work.
 

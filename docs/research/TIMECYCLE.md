@@ -20,7 +20,7 @@ The reader deliberately preserves numeric precision. The source loader converts 
 
 Original synthetic tables verify weather-major indexing, all 52 field positions, decimal precision, missing/shifted fields, integer scanning diagnostics, invalid input and nonuniform interpolation intervals. No retail timecycle file was bundled or used to claim compatibility. All 223 unit tests and the build pass.
 
-This module is not yet connected to a local file picker or the playable renderer. The existing authored sky and ambient values remain in use. Next work must implement validated storage conversion and color-set interpolation, old/new weather blending, local import ownership and diagnostics, and routing to static/object ambient, sky, fog and post effects. Weather regions, altitude changes, timecycle boxes, tunnels, extra colors and original platform display conversion remain separate fidelity requirements. Retail malformed-row behavior and matched original-game captures remain unverified.
+At this step the module was not yet connected to a local file picker or the playable renderer. The sections below connect it, and the game now lights itself from the published `timecycp.dat` (`src/world/LocalTimecycle.ts`, loaded through `src/ui/loadSceneEnvironment.ts`), with old/new weather blending driven by `src/world/nativeWeather.ts`, [timecycle boxes](TIMECYCLE_BOXES.md) and the altitude far-clip adjustment below; the authored values remain only as the fallback without a table. Original platform display conversion, retail malformed-row behavior and matched original-game captures remain unverified.
 
 ## Prepared storage and base color-set sampling
 
@@ -30,7 +30,7 @@ The sampler first interpolates the two adjacent time samples separately for old 
 
 Results remain in CColourSet storage units. Ambient division by 255, stored-tenths interpretation by downstream consumers and final display conversion are not silently folded into this sampler. The unused directional RGB columns are omitted from prepared output. Directional multiplier/illumination is also deliberately absent pending resolution of the source's nested cast; its raw input remains available in the original table. Missing or shifted required fields prevent preparation instead of yielding fabricated lighting.
 
-All 227 unit tests and the build pass. New checks cover source-array preservation, storage/scaling boundaries, two-stage truncation, float-field interpolation, midnight wrapping and invalid controls. These are executable checks against the inspected transcription, not independent retail pixel or CPU-arithmetic verification. Altitude-dependent smog substitutions, boxes, tunnels, underwater/extra colors and other spatial adjustments are not applied. Local-file UI and renderer routing remain the next integration work; the playable lighting is still authored.
+All 227 unit tests and the build pass. New checks cover source-array preservation, storage/scaling boundaries, two-stage truncation, float-field interpolation, midnight wrapping and invalid controls. These are executable checks against the inspected transcription, not independent retail pixel or CPU-arithmetic verification. Altitude-dependent smog substitutions, boxes, tunnels, underwater/extra colors and other spatial adjustments were not applied at this step. Local-file UI and renderer routing followed in the next section; the playable lighting now comes from the published table.
 
 ## Playable local-file integration
 

@@ -68,7 +68,7 @@ The available `CastShadowEntityXY` and `CastShadowEntityXYZ` implementations are
 
 It transforms source triangles, rejects vertical/degenerate projected faces, reorients downward-wound faces, and clips each triangle against four footprint boundaries plus both height planes. Polygon triangulation preserves terrain slopes. UVs follow the original projection axes rather than stretching each clipped fragment. Output retains the original source face index and packed light byte per vertex, so receiver lighting can be evaluated independently of the character's foot-contact sample. Degenerate fragments are omitted. Invalid inputs and output-budget exhaustion throw before returning a partial result. Positions and UVs are converted to float32 for upload.
 
-This stage is not yet called by the game renderer. It does not create a shadow texture, apply blend modes, add depth bias, select scene candidates, select shadow versus ordinary COL meshes, handle primitives/water, or reproduce native real-time shadow quality levels. No new visible shadow is claimed by this commit.
+At this stage it was not yet called by the game renderer; [Playable imported-scene integration](#playable-imported-scene-integration) connects it (`src/simulation/nativeShadowReceivers.ts`). On its own it does not create a shadow texture, apply blend modes, add depth bias, select scene candidates, select shadow versus ordinary COL meshes, handle primitives/water, or reproduce native real-time shadow quality levels. No new visible shadow is claimed by this commit.
 
 ## Integration sequence
 
@@ -103,7 +103,7 @@ The pinned `CShadows::SetRenderModeForShadowType` selects source ZERO and destin
 
 Verification: 507 tests across 102 files with local references, build, and a GPU browser probe pass. Framebuffer checks cover day/night and zero-packed receiver lighting, partial strength, black mask, missing texture, explicit zero, footprint exclusion, colored terrain, foreground occlusion and retained framebuffer alpha. Unit checks cover capacity reuse, short upload ranges, atomic invalid updates, clearing and borrowed-texture ownership. An initial browser run caught a missing favicon in the probe page; the fixture now declares an inline icon and the final run has no console or page errors. Logs `/tmp/web-gta-shadow-pass-{unit,build,browser}.log`.
 
-This pass is verified in a standalone GPU fixture and is not yet instantiated in GameRenderer. Animated silhouette texture generation, native real-time projection/blur/intensity lifecycle and game submission remain to implement. No visible character shadow in Grove Street is claimed by this stage.
+This pass was first verified in a standalone GPU fixture. `GameRenderer` now instantiates it through `NativeCharacterShadow` (`src/render/NativeCharacterShadow.ts`), together with the silhouette raster, blur and intensity lifecycle of the sections below; see [Playable imported-scene integration](#playable-imported-scene-integration). No visible character shadow in Grove Street was claimed by this stage itself.
 
 ## Animated silhouette raster
 

@@ -1,13 +1,19 @@
 # San Andreas map and terrain: content first
 
+This guide covers the local content depot and the model workshop (`models.html`),
+whose region loading and terrain swaps are described below. The game itself streams
+the published static world as CJ moves; see [static world content](../static-world-content.md)
+for how it loads content.
+
 The [native vegetation content](VEGETATION_CONTENT.md) is now acquired: 68 grass
 cover records, 95 procedural-object rules, eight grass DFFs and their texture
 dictionary. Native `object.dat` is also acquired, with 994 parsed classification
 records. The depot now verifies 128 files. Native grass now renders in imported
 walking sessions and travels with terrain replacements. Its current PC
 compatibility policy still needs original-game random/update verification;
-calm-wind sway now follows pause-aware session time. Weather-driven wind and
-procedural-object rendering remain unfinished.
+sway now follows pause-aware session time and the weather's wind
+(`CWeather::WindClipped`, passed to the scene by `src/main.ts`), and procedural
+objects render through `src/world/WalkingVegetation.ts`.
 
 New source finding: the reversed native loader's [big-building classification](BIG_BUILDING_CONTENT.md)
 explains the unlinked Verdant Meadows trailer without editing its IPL. At the
@@ -45,8 +51,9 @@ verified counts and remaining limits.
 
 The archive also contains all 64 native exterior path files. See
 [native road and pedestrian paths](NATIVE_PATHS.md) for the verified 68,237-node
-graph, lane-navigation records and local audit command. Runtime traffic
-integration remains unfinished.
+graph, lane-navigation records and local audit command. Ambient traffic now
+drives this graph with a port of `CCarCtrl` (`src/vehicle/nativeCarCtrl.ts`,
+`src/simulation/WorldTraffic.ts`).
 
 Checked 2026-09-14. Start with the native world dataset below. Preserve original geometry, UVs, vertex colors, placement transforms, collision and LOD relationships before optimizing browser delivery.
 
@@ -72,10 +79,11 @@ Public hosting establishes accessibility, not an open-content license or certifi
 
 ## Acquisition available in this project
 
-The existing depot is `/Users/teo/Developer/web-gta-content`. This pass successfully ran:
+The depot lives outside the repository; below, `$GTA_CONTENT_DIR` stands for its
+absolute path (the variable the content tests read). This pass successfully ran:
 
 ```sh
-node scripts/content/acquire-world.mjs /Users/teo/Developer/web-gta-content --verify-only
+node scripts/content/acquire-world.mjs "$GTA_CONTENT_DIR" --verify-only
 ```
 
 Result: **128 files verified, no network requests**, rechecked after acquiring
@@ -88,7 +96,7 @@ node scripts/content/acquire-santa-maria.mjs /absolute/path/to/content-depot
 node scripts/content/audit-world.mjs /absolute/path/to/content-depot/gta3.img /absolute/path/to/content-depot
 ```
 
-The acquisition commands are preparation tools. Runtime can read a user-selected local folder and cache decoded assets entirely in the browser; static chunk hosting is an alternative requiring no application backend.
+The acquisition commands are preparation tools. The game reads the published static chunks, with no application backend ([static world content](../static-world-content.md)); the workshop can still read a user-selected local folder and cache decoded assets entirely in the browser.
 
 ## Content assembly design
 
@@ -97,6 +105,6 @@ The acquisition commands are preparation tools. Runtime can read a user-selected
 3. Include terrain that intersects a region even when its model origin lies outside the selection. Resolve cross-district dependencies and original LOD relationships.
 4. Retain source texture sampling, transparency, day/night vertex colors and time-dependent objects. Generic PBR conversion alone will change appearance.
 5. Package by spatial region with shared model/texture references. Keep raw native data as the reference; any GLB cache needs sidecar metadata for native properties it cannot express.
-6. Validate an urban district, mountain, coast and bridge region before scaling to continuous statewide streaming. Track unresolved textures, missing collision and omitted placements explicitly.
+6. Validate an urban district, mountain, coast and bridge region before scaling to continuous statewide streaming (the game now streams statewide; see [static world content](../static-world-content.md)). Track unresolved textures, missing collision and omitted placements explicitly.
 
-The project already has bounded-region content work for Grove Street, Mount Chiliad, Verdant Meadows, Doherty, Las Venturas, Chiliad's eastern approach, Gant Bridge and Santa Maria. This is not a claim of complete statewide gameplay or appearance parity. Current coverage and source gaps are in [WORLD_CONTENT.md](WORLD_CONTENT.md); the broader source survey, including unverified third-party mesh leads, is in [PUBLIC_WORLD_RESOURCES.md](PUBLIC_WORLD_RESOURCES.md).
+The workshop's bounded-region presets cover Grove Street, Mount Chiliad, Verdant Meadows, Doherty, Las Venturas, Chiliad's eastern approach, Gant Bridge and Santa Maria; the game streams the whole published world. This is not a claim of complete gameplay or appearance parity. Current coverage and source gaps are in [WORLD_CONTENT.md](WORLD_CONTENT.md); the broader source survey, including unverified third-party mesh leads, is in [PUBLIC_WORLD_RESOURCES.md](PUBLIC_WORLD_RESOURCES.md).

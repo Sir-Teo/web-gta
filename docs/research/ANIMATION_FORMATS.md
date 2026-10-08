@@ -28,7 +28,7 @@ The reader checks package and animation sizes, count budgets, type/flag consiste
 
 Tests verify translation scaling, absolute time, fixed-width names, bone bindings, both encodings, shortest-arc interpolation, endpoints, looping, duplicate timestamps, all truncated prefixes, archive padding, malformed counts/types/flags/keys and standalone/archive equivalence. A browser worker test verifies decoded values, unsupported-format errors and local-only requests.
 
-DFF skin/HAnim parsing and bind-pose rendering are now covered by the [skin pipeline](SKIN_FORMATS.md). Next: explicit animation-track matching, source-to-engine pose conversion, then synchronized clip playback on the diagnostic rig. Original character motion, deformation and timing require representative source files and reference captures before a fidelity claim. The game still uses its authored articulated character animation.
+DFF skin/HAnim parsing and bind-pose rendering are now covered by the [skin pipeline](SKIN_FORMATS.md). Track matching, pose conversion and clip playback followed in the sections below (`src/animation/bind.ts`). Original character motion, deformation and timing require representative source files and reference captures before a fidelity claim. The game's player is now the native skinned character (`src/render/NativeCharacter.ts`, installed by `GameRenderer.installCharacter`) playing the original IFP clips; the authored articulated character is gone.
 
 
 ## Track-to-rig binding

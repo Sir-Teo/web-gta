@@ -73,7 +73,7 @@ GTA_CONTENT_DIR=/absolute/depot node --test scripts/content/audit-big-buildings.
 An optional final argument selects the LOD multiplier. The report includes each
 affected model, draw distance, native collision availability, placement transform
 and source reference. Local measured report:
-`/Users/teo/Developer/web-gta-content/big-buildings.json`.
+`$GTA_CONTENT_DIR/big-buildings.json`.
 
 The runtime fixes the load-time camera LOD multiplier at the native default 1.
 The separate timecycle low-LOD render multiplier never changes collision as the

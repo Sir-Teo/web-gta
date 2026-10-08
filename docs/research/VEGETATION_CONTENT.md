@@ -4,8 +4,10 @@ Acquired and validated 2026-09-14. Native terrain requires two additional system
 `plants.dat` describes grass cover on collision surfaces, while `procobj.dat`
 describes generated objects such as bushes, cacti, rubble and underwater props.
 These records are not ordinary IPL placements. Grass now renders in imported
-walking sessions using the documented PC compatibility policy; procedural-object
-rendering and original-game appearance parity remain unfinished. Sections below
+walking sessions using the documented PC compatibility policy, and procedural
+objects render too (`src/world/WalkingVegetation.ts`, `src/render/NativeProcObjects.ts`),
+including in the game's streamed world (`src/assets/staticWorldSource.ts`).
+Original-game appearance parity remains unfinished. Sections below
 record the incremental implementation and its remaining fidelity questions.
 
 ## Public files now in the depot
@@ -19,7 +21,7 @@ record the incremental implementation and its remaining fidelity questions.
 
 All eleven files total **76,375 bytes**. URLs, sizes and SHA-256 hashes are pinned
 in `scripts/content/world-sources.json`; `acquire-world.mjs` now reproduces them.
-The local depot is `/Users/teo/Developer/web-gta-content`, with tables at its root
+The local depot is `$GTA_CONTENT_DIR`, with tables at its root
 and grass assets under `models/grass/`. All **127** locked world files pass offline
 verification. Native binaries remain outside the repository and normal build.
 
@@ -131,10 +133,12 @@ Likewise the source's radius is not guaranteed to enclose all three vertices.
 Regression cases preserve these behaviors, the exact boundary, float32 rounding,
 zero-area triangles and a sloped triangle's density-derived draw count.
 
-This helper does not yet scan scene entities, transform local COL vertices,
-apply face-group culling or the native eight-phase triangle scheduling, manage
-the local-triangle pool, or generate seeds/instances. Those caller rules remain
-necessary before renderer integration.
+At this step the helper did not yet scan scene entities, transform local COL
+vertices, apply face-group culling or the native eight-phase triangle scheduling,
+manage the local-triangle pool, or generate seeds/instances. Those caller rules
+were needed before renderer integration; later sections cover COL candidate
+extraction, the entity cache and collision processing, the persistent triangle
+allocation and the grass instance equations.
 
 ## Native COL candidate extraction
 
@@ -194,10 +198,12 @@ Both this file and `PPTriPlantBuffer.cpp` were byte-compared with the pinned
 public revision and match.
 
 Three regressions cover reflected positions, upright transforms, repeated
-samples, invalid inputs, intensity rounding and fade endpoints. These helpers
-are not yet connected to the grass renderer. Collision lighting, quality-level
-selection, near culling, pool lifetime and original seed sequencing remain
-unfinished.
+samples, invalid inputs, intensity rounding and fade endpoints. At this step
+these helpers were not yet connected to the grass renderer, and collision
+lighting, quality-level selection, near culling, pool lifetime and original seed
+sequencing were open. The [dedicated instanced grass pass](#dedicated-instanced-grass-pass)
+connects the helpers to a renderer, and the next sections take up collision
+lighting and the triangle pool.
 
 ## Packed collision lighting for grass
 
@@ -682,8 +688,8 @@ to pause-aware time, selected weather and an explicit seed owner is outstanding.
 
 Imported walking sessions now evaluate native calm-wind sway using the existing
 session elapsed-seconds counter converted to a wrapped uint32 millisecond timer.
-That counter advances only during unpaused play. The wind input is explicitly
-zero and the seed zero; the calm branch does not use the seed. This replaces the
+That counter advances only during unpaused play. At this step the wind input was
+explicitly zero and the seed zero; the calm branch does not use the seed. This replaces the
 previous constant zero *bending* without claiming that selected weather types
 have a verified wind-strength mapping.
 
@@ -698,8 +704,10 @@ The walking browser check verifies that the timer advances and bending becomes
 nonzero during play, freezes over repeated animation frames after the normal
 blur/pause event, and survives terrain replacement exactly while paused. This
 updates the preceding evaluator section's integration status. Native weather
-strength, weather transitions and original strong-wind seed refresh remain
-unfinished; the calm policy is provisional.
+strength has since reached it: the game passes `CWeather::WindClipped`
+(`src/world/nativeWeather.ts`) as the wind input to the scene's `updateView` in
+`src/main.ts`. The seed is still zero, so original strong-wind seed refresh
+remains unfinished, and the calm policy is provisional.
 
 ## Bend-only updates during animation
 

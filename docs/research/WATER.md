@@ -24,11 +24,11 @@ Run `node scripts/content/audit-water.mjs /absolute/content-directory` after acq
 - `water-inspection/water.obj`: static Y-up mesh for Blender/other geometry inspection; the JSON sidecar retains fields OBJ cannot represent.
 - `water-inspection/water.svg`: north-up plan of the acquired polygons. Blue means every vertex is within one unit of sea level; amber marks other heights. Background is unclassified, not generated land. It displays all recorded flags and heights, without claiming original visibility behavior.
 
-The current files are in `/Users/teo/Developer/web-gta-content/water-inspection`. Inspected the SVG rendered to `artifacts/native-water-atlas.png`: it reveals river/coastline polygon chains and separate elevated patches. It is a data diagnostic, not original radar art or a final game-water material.
+The current files are in `$GTA_CONTENT_DIR/water-inspection`. Inspected the SVG rendered to `artifacts/native-water-atlas.png`: it reveals river/coastline polygon chains and separate elevated patches. It is a data diagnostic, not original radar art or a final game-water material.
 
 Validation: three focused tests pass, including the actual acquired file. Synthetic coverage checks triangle/quad order, elevated/sloped coordinates, flow/wave retention, optional flags and malformed-row rejection. Build passes. Logs: `/tmp/web-gta-water-{audit,tests,build}.log`.
 
-Next integration requirements remain: limited-depth behavior, camera/spatial applicability, water texture selection and native material behavior, wave/flow animation, visibility/region composition, height queries, swimming/buoyancy and waterline collision behavior. No gameplay-water completeness claim follows from this topology export.
+The integration requirements listed at this step were limited-depth behavior, camera/spatial applicability, water texture selection and native material behavior, wave/flow animation, visibility/region composition, height queries, swimming/buoyancy and waterline collision behavior. Several have since landed: wave heights (`src/world/waterWaves.ts`), gameplay height queries that apply the limited-depth flag (`src/world/waterLevel.ts`), the textured water layer (later sections, `src/render/LocalWater.ts`), [swimming](PLAYABLE_SWIMMING.md) and boat buoyancy ([playable boats](PLAYABLE_BOATS.md)). No gameplay-water completeness claim follows from this topology export.
 
 
 ## Source visibility and interior classification
@@ -59,7 +59,7 @@ The particle decoder now optionally resolves `waterclear256` alongside the sun/s
 
 This is a **single static texture layer** through the existing Three material/color pipeline. It is not the complete native water shader: the second 12.5-unit layer, runtime texture shifts, original layer alpha values, 0.577 color modulation, display-space texture/color multiplication, high-detail waves and refraction remain unfinished. The borrowed raster preserves source sampler metadata; no smoothing override or texture upscaling is added.
 
-The content acquisition script now includes `models/particle.txd`, placing it at `/Users/teo/Developer/web-gta-content/particle.txd` with URL/hash provenance in the content report. In-game, load it under **Lighting → Sun texture → Local particle TXD** after loading `water.dat` and the timecycle. The status reports whether its water raster was found.
+The content acquisition script now includes `models/particle.txd`, placing it at `$GTA_CONTENT_DIR/particle.txd` with URL/hash provenance in the content report. In-game, load it under **Lighting → Sun texture → Local particle TXD** after loading `water.dat` and the timecycle. The status reports whether its water raster was found.
 
 Validation: the real dictionary passes through the particle worker, reports the actual 128×128 raster, and produces spatially varying GPU pixels on a test water surface. The diagnostic 50-unit square has UVs spanning 0–2, and clearing the owner restores its white untextured probe output. Inspected `artifacts/native-water-texture.png`; its grayscale ripples are the native raster under white diagnostic color, not calibrated gameplay lighting. Four targeted browser checks pass, all 587 unit tests/123 files pass, and production smoke passes. Logs: `/tmp/web-gta-water-texture-{unit,full-unit,browser,build,production,content}.log`.
 

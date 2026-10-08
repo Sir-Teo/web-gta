@@ -118,7 +118,13 @@ the full-archive test; production build passes. Logs:
 
 ## Remaining work
 
-Native autopilot route ownership and application of the stop decision, physical
-lamp materials/coronas, flashing pedestrian visuals and runtime spawning/driving
-remain separate implementation tasks. This change does not make imported-world
-traffic obey lights or claim original-game visual parity.
+At this change, native autopilot route ownership and application of the stop
+decision, physical lamp materials/coronas, flashing pedestrian visuals and runtime
+spawning/driving remained separate implementation tasks. They have since landed:
+traffic spawns and drives through `src/simulation/WorldTraffic.ts` with a port of
+`CCarCtrl` (`src/vehicle/nativeCarCtrl.ts`) and stops for the lights through
+`nativeShouldStopForLight` (`src/world/nativeSignalStop.ts`); lit lenses and
+coronas follow `CTrafficLights::DisplayActualLight`
+(`src/world/nativeTrafficLightCoronas.ts`); and the walk/don't-walk signs draw
+as `CShinyTexts` (`src/render/NativeShinyTexts.ts`). None of this is a claim of
+original-game visual parity.

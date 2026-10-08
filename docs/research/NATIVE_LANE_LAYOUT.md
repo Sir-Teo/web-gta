@@ -49,3 +49,8 @@ curves, or vehicle height. The related
 [Vice City CarCtrl implementation](https://ni.4a.si/anonymous/re3/tree/src/control/CarCtrl.cpp?h=miami&id=a43ca86542e904aa4f6a193ebda7d628c8015ab7)
 is a comparison lead, not evidence of San Andreas parity. No guessed lane-center
 geometry or native vehicle steering was added in this step.
+
+Traffic now steers along lanes with `src/vehicle/nativeCarCtrl.ts`, which follows
+those Vice City ancestors with SA's 5.4-unit lane width (`oneWayLaneOffset`,
+`lanePoint`); its half-lane two-way offset is Vice City's, since SA's function
+for it (0x44DB00) is not reversed.

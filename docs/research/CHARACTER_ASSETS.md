@@ -5,7 +5,7 @@ Inspected 2026-09-13. The public world archive and acquisition hashes are record
 ## Normal CJ movement package acquired and tested (2026-09-14)
 
 A public `ped.ifp` backup is now available locally at
-`/Users/teo/Developer/web-gta-content/animations/ped.ifp`. The source is the
+`$GTA_CONTENT_DIR/animations/ped.ifp`. The source is the
 [2015 original-mod backups forum post](https://forum.bugged.ro/topic/133882-moduri-originale-mafioti-pedpythonrifleifp/),
 which links to this [MediaFire download page](https://www.mediafire.com/file/gk2ga2uglnjr2hb/ped.ifp/file).
 The actual downloaded bytes, not the uploader's description, were inspected:
@@ -522,7 +522,7 @@ The Grove reference reports packed byte `0x35` at the sampled standing/walking l
 
 ## Acquired player body inputs
 
-A second public source now supplies actual player body components through [GTA Stuff](https://gtastuff.com/models/). Its viewer uses `/api/file?name=<filename>&source=player.img` for this archive. The project acquired **11 files / 1,404,928 bytes** into `/Users/teo/Developer/web-gta-content/player`: torso, head, legs, feet and vest DFF/TXD pairs, plus hands.dff. `sources.json` records each URL, response size and SHA-256 hash. These are public-source inputs, not a completed CJ character or a verified redistribution license.
+A second public source now supplies actual player body components through [GTA Stuff](https://gtastuff.com/models/). Its viewer uses `/api/file?name=<filename>&source=player.img` for this archive. The project acquired **11 files / 1,404,928 bytes** into `$GTA_CONTENT_DIR/player`: torso, head, legs, feet and vest DFF/TXD pairs, plus hands.dff. `sources.json` records each URL, response size and SHA-256 hash. These are public-source inputs, not a completed CJ character or a verified redistribution license.
 
 Reproduce with `node scripts/content/audit-player.mjs /absolute/content-directory`. The script validates cached hashes, fetches missing/changed files, parses every clump and dictionary with the project's native readers, and writes `inspection.json`. It neither changes the game character nor bundles/downloads native assets at runtime.
 

@@ -1,6 +1,6 @@
 # IPL placement reader
 
-The asset pipeline now reads San Andreas text `inst` records and binary `bnry` instance records. The local model preview accepts a separate IPL file and displays matching placements of the selected model. It does not yet assemble a complete district.
+The asset pipeline now reads San Andreas text `inst` records and binary `bnry` instance records. The local model preview accepts a separate IPL file and displays matching placements of the selected model. District assembly came in the later sections and the workshop's folder regions; the game itself streams the published world ([static world content](../static-world-content.md)).
 
 ## Evidence
 
@@ -22,7 +22,7 @@ The reader limits source files to 64 MiB and 200,000 instances. It rejects incom
 
 Five unit cases cover matching text/binary diagnostic records, retained flags and external LOD references, quarter-turn orientation on multiple axes, unit scale/handedness, malformed/truncated data, skipped-section notices and placement composed with the independently exported DFF's nested frames. The composed diagnostic top lands at the explicitly calculated runtime coordinate. Existing model browser scenarios verify that the optional adapter does not change unplaced previews.
 
-Next work includes explicit LOD-array ownership, collision import and streaming. Full original clump-root behavior, special object transforms and small-angle heading optimizations still need comparison with source assets and captures. No gameplay scene is replaced by this reader yet.
+Next work at this step was explicit LOD-array ownership, collision import and streaming; the later sections and the game's streamed world (which assembles its windows through `src/assets/scene.ts` and `src/assets/scenePlacements.ts`) have since taken them up. Full original clump-root behavior, special object transforms and small-angle heading optimizations still need comparison with source assets and captures.
 
 
 ## Placement preview
@@ -90,7 +90,7 @@ The workshop shows both source labels and scoped placement keys. **Remove static
 
 Unit coverage verifies equal numeric indices across namespaces within one model group, resolved static targets, incompatible formats and cyclic static links. The browser assembles two sources, inspects scoped metadata, removes the static source, checks that its geometry was released and clears the remainder. Production smoke resolves the same relationship using the emitted worker without development hooks. These are original diagnostic fixtures.
 
-The relationship follows the pinned `IplStore` static-array lookup described above; the user must choose the matching base file. Automatic discovery and multiple streamed files are not yet implemented. LOD render selection/fading, distance visibility, streaming residency and original LOD collision sharing remain unfinished. In particular, current raw scene rendering still treats loaded placements independently; collision now excludes resolved LOD targets as described below; successful link resolution does not prove correct visual replacement or collision ownership.
+The relationship follows the pinned `IplStore` static-array lookup described above; for a manual pairing the user must choose the matching base file. Automatic discovery (`src/assets/discoverDistricts.ts`) and multiple streamed files have since been implemented, as have LOD render selection, distance fading and visibility (`src/render/sceneVisibility.ts`) and the streamed world's residency. Original LOD collision sharing remains unfinished; collision now excludes resolved LOD targets as described below; successful link resolution does not prove correct visual replacement or collision ownership.
 
 
 ## Playable timed-object visibility

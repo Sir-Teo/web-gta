@@ -1,10 +1,12 @@
 # Public San Andreas world resources and acquisition design
 
+Note: the game now streams the published static world ([static world content](../static-world-content.md)); the "Recommended direction" and "Decision" sections below are the original 2026-09-13 rationale.
+
 Research date: 2026-09-13. Scope: original GTA San Andreas, personal educational browser project, no application backend. Public availability, advertised download availability, and verified file contents are recorded separately. This is a focused resource survey, not an exhaustive inventory of every mirror.
 
 ## Recommended direction
 
-Rechecked 2026-09-14: public HTTP HEAD requests returned 200 for the archive, `countryS.ide`, `countryS.ipl`, `water.dat`, `timecycp.dat` and `particle.txd`. The persistent local archive at `/Users/teo/Developer/web-gta-content/gta3.img` was independently re-indexed this pass: VER2, 937,680,896 bytes, 16,297 entries, with the extension counts below. This availability check does not establish retail byte identity or redistribution permission.
+Rechecked 2026-09-14: public HTTP HEAD requests returned 200 for the archive, `countryS.ide`, `countryS.ipl`, `water.dat`, `timecycp.dat` and `particle.txd`. The persistent local archive at `$GTA_CONTENT_DIR/gta3.img` was independently re-indexed this pass: VER2, 937,680,896 bytes, 16,297 entries, with the extension counts below. This availability check does not establish retail byte identity or redistribution permission.
 
 **Verified content source: Noclip's hosted native SA archive.** [Download `gta3.imgz`](https://z.noclip.website/GrandTheftAutoSanAndreas/models/gta3.imgz) (532,753,381 bytes, zlib compressed). A fresh HTTP HEAD returned 200. Re-reading the local inflated archive directory confirms 937,680,896 bytes and 16,297 entries: 12,955 DFF models, 2,750 TXD dictionaries, 216 COL collections, 164 binary IPL streams, 64 DAT entries and 148 IFP entries. These are archive-wide counts, not counts of terrain-only assets. The detailed acquisition evidence appears below; it supersedes the initial unverified-source notes in the historical survey.
 

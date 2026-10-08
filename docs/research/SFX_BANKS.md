@@ -3,7 +3,9 @@
 `src/assets/sfx.ts` provides local readers for `BankLkup.dat`, `PakFiles.dat`
 and individual PC SFX banks. The local content-folder path can now install the footstep banks for gameplay,
 as described below. The public FEET package and matching configuration files have now been inspected
-as described below; gameplay playback integration remains unfinished.
+as described below. Gameplay playback followed (see the footstep playback and combat
+audio sections below), and the game's ported sound manager now plays the published banks
+([native audio engine](NATIVE_AUDIO.md)).
 
 ## Reproduce the verified footstep content
 
@@ -161,7 +163,7 @@ Banks 0–6 occupy FEET contiguously with no leftover bytes:
 
 All 38 PCM buffers parse, retain finite normalized samples and exactly account
 for each bank's PCM byte extent. The local data lives under
-`/Users/teo/Developer/web-gta-content/audio/`, including `sources.json` and
+`$GTA_CONTENT_DIR/audio/`, including `sources.json` and
 `feet-inspection.json`. No native sound bytes enter the repository or production
 build. Six SFX tests pass with `GTA_CONTENT_DIR` set, including the new hash-locked
 real-package test. This proves extraction against acquired content; it does not

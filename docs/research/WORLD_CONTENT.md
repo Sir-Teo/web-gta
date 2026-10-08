@@ -17,8 +17,9 @@ Grove preset → custom (−1750, −1450), radius 450 → the four Chiliad/San 
 sources, 224 model types / 427 placements, complete playable collision and a
 grounded character. See [district discovery](DISTRICT_INDEX.md) for limits and
 validation. This removes the retained-preset source restriction when discovery
-is enabled; it does not yet stream around a moving player or choose native
-geographic weather.
+is enabled. Streaming around a moving player and native geographic weather came
+later: the game streams the published world ([static world content](../static-world-content.md))
+and picks weather by region (`nativeWeatherRegion`, [native weather](NATIVE_WEATHER.md)).
 
 ## Neighboring district coverage corrections
 
@@ -194,7 +195,7 @@ changed-cache repair and avoiding downloads for verified files.
 
 ## Load a region from the local content folder
 
-In the model workshop, choose `/Users/teo/Developer/web-gta-content` under
+In the model workshop, choose `$GTA_CONTENT_DIR` under
 **Local content folder**, select a named **Map region**, then click **Load region
 from folder**. This selects the depot's `gta3.img`, exact district IDE/static IPL
 paths, matching archived streams, shared definitions, texture-parent links and
@@ -331,7 +332,7 @@ Load the depot archive, SF/shared IDE files, `SFw.ipl` as the static source and
 its district streams, plus `SFn.ipl` under **Neighboring district static IPLs**.
 Enable all archived COL collections, choose the preset, assemble and select
 **Walk scene**. Reproduce the browser check with
-`GTA_CONTENT_DIR=/Users/teo/Developer/web-gta-content npx playwright test tests/browser/world-content.spec.ts -g gant-bridge`.
+`GTA_CONTENT_DIR=/absolute/content-depot npx playwright test tests/browser/world-content.spec.ts -g gant-bridge`.
 
 ### Gant texture provenance follow-up
 
@@ -373,7 +374,7 @@ append `--compare-public` to fetch the second source again. The depot's
 `texture-gaps-public.json` retains the public comparison evidence. No texture
 substitution or renderer behavior changed during this investigation.
 
-The project now has a persistent native-content depot at `/Users/teo/Developer/web-gta-content`, outside the game repository. This is actual downloaded map data, not placeholder geometry or a list of uninspected asset links.
+The project now has a persistent native-content depot at `$GTA_CONTENT_DIR`, outside the game repository. This is actual downloaded map data, not placeholder geometry or a list of uninspected asset links.
 
 ## Sources and coverage
 
@@ -392,7 +393,7 @@ The native-content audit and browser assembly both resolve **232 model types and
 
 The Playwright case `public world content assembles and supports walking: grove-street` verifies preset coordinates, scene counts, successful handoff into gameplay, grounded spawn and movement. Inspected captures are `artifacts/native-grove-street-content.png` and `artifacts/native-grove-street-walking.png`. Native houses, road, sidewalks and surrounding terrain render in the playable scene. The player in this test remains the authored placeholder; lighting is not a calibrated original-game comparison. This is bounded region loading, not continuous world streaming, and IPL gameplay sections such as entrances, garages and pickups remain unimplemented.
 
-Reproduce with `GTA_CONTENT_DIR=/Users/teo/Developer/web-gta-content npx playwright test tests/browser/world-content.spec.ts -g grove-street`.
+Reproduce with `GTA_CONTENT_DIR=/absolute/content-depot npx playwright test tests/browser/world-content.spec.ts -g grove-street`.
 
 ## Newly assembled regions
 
@@ -432,7 +433,7 @@ All three collision-complete presets now pass browser scene assembly, exact plac
 
 Verdant Meadows' missing `lod_airstrm_med_` is static `countn2.ipl` index 161, positioned at native `(540.6171875,2360.984375,29.859375)`. No placement in the loaded countn2 streams links to that static LOD. Other instances of the same model do have linked high-detail model 3175. This evidence does not justify excluding the unlinked instance from collision planning merely because its name starts with LOD. The region remains unavailable for walking until the content relationship or original behavior is resolved.
 
-A scan of all 2,750 archive TXDs found five exact-name `pierplanks_128` rasters: `cxref_desert.txd`, `laesmokecnthus.txd`, `santamonicalaw2.txd`, `pierc_law2.txd`, and `pierb_law2.txd`. All are 64×64, but sampler metadata differs (filter 2 in the desert dictionary, filter 6 in the others). No exact `ASJMSFSE2` or `striplights02` raster was found. No parent definitions connect the failing dictionaries in the supplied `txd.ide`. An arbitrary global texture fallback would hide the unresolved provenance, so none was added. This scan does not establish that external dictionaries or another source edition lack those textures. Candidate report: `/Users/teo/Developer/web-gta-content/missing-texture-search.json`.
+A scan of all 2,750 archive TXDs found five exact-name `pierplanks_128` rasters: `cxref_desert.txd`, `laesmokecnthus.txd`, `santamonicalaw2.txd`, `pierc_law2.txd`, and `pierb_law2.txd`. All are 64×64, but sampler metadata differs (filter 2 in the desert dictionary, filter 6 in the others). No exact `ASJMSFSE2` or `striplights02` raster was found. No parent definitions connect the failing dictionaries in the supplied `txd.ide`. An arbitrary global texture fallback would hide the unresolved provenance, so none was added. This scan does not establish that external dictionaries or another source edition lack those textures. Candidate report: `$GTA_CONTENT_DIR/missing-texture-search.json`.
 
 ## Optional Verdant Meadows placement repair
 
@@ -500,7 +501,7 @@ The six downloaded files for the three outstanding Doherty texture gaps are **by
 
 The driving-school LOD's only material is affected. The floodlight has four placements in the audited Doherty region. A fresh case-insensitive scan of all 2,750 archive dictionaries again found five exact-name `pierplanks_128` candidates and no exact match for the other two names, with zero candidate-dictionary parsing errors. Matching names in unrelated dictionaries do not establish the intended binding. No source data or runtime texture bindings were changed.
 
-Reproduce with `node scripts/content/audit-texture-gaps.mjs /absolute/content-directory --compare-public`. Without the flag, it performs only the local content audit. The script derives affected models from `world-content.json`, counts their material triangles and atomic references, scans candidate raster names, validates downloaded native files, and records archive/comparison SHA-256 hashes. Report: `/Users/teo/Developer/web-gta-content/texture-gaps-public.json`; downloaded comparison files: `comparison/gtastuff/` in that depot. The validated run found three affected models, five candidate rasters and six matching public files. Syntax validation and output assertions passed; no runtime code changed.
+Reproduce with `node scripts/content/audit-texture-gaps.mjs /absolute/content-directory --compare-public`. Without the flag, it performs only the local content audit. The script derives affected models from `world-content.json`, counts their material triangles and atomic references, scans candidate raster names, validates downloaded native files, and records archive/comparison SHA-256 hashes. Report: `$GTA_CONTENT_DIR/texture-gaps-public.json`; downloaded comparison files: `comparison/gtastuff/` in that depot. The validated run found three affected models, five candidate rasters and six matching public files. Syntax validation and output assertions passed; no runtime code changed.
 
 Direct comparison examples: [driving-school dictionary](https://gtastuff.com/api/file?name=drivingschool_sfse.txd), [San Fierro LOD dictionary](https://gtastuff.com/api/file?name=lod_sfse3.txd), [floodlight dictionary](https://gtastuff.com/api/file?name=docklight.txd).
 
@@ -694,8 +695,9 @@ while default/tarmac wet grip is -0.25. These raw values are not Rapier friction
 coefficients. The native loader's wet-grip byte conversion and missing-cell
 handling remain separate implementation questions.
 
-This step acquires and parses the tables; it does not yet automatically apply
-them to imported-scene movement. Surface flags describe sprint restrictions,
+This step acquired and parsed the tables without applying them to imported-scene
+movement; the sprint restriction is connected below, and car tyre grip now reads
+the adhesion and wet-grip tables (`src/simulation/nativeSurfaceGrip.ts`). Surface flags describe sprint restrictions,
 steep slopes, stairs, soft landing and other behavior that still needs source-
 matched integration. Validation: 681 tests / 143 files pass, including the real
 hash-locked data, complete ID coverage, category validation and explicit
@@ -745,8 +747,10 @@ Logs: `/tmp/web-gta-custom-region-unit.log`,
 `/tmp/web-gta-custom-region-final-browser.log`,
 `/tmp/web-gta-custom-region-production.log`.
 
-Continuous exploration remains unfinished: gameplay currently installs one
-bounded scene, and the loader does not automatically select new district
+At this step continuous exploration was unfinished: gameplay installed one
+bounded scene, and the loader did not automatically select new district
 sources, reconcile overlapping placements, or stream collision around a moving
-player. Custom-coordinate requests remove the preset-only loading restriction;
-they do not yet implement that streaming lifecycle.
+player. Custom-coordinate requests removed the preset-only loading restriction
+without implementing that streaming lifecycle. The game now streams the
+published world, collision included, around the moving player
+([static world content](../static-world-content.md)).

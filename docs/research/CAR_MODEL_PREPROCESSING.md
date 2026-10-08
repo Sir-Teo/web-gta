@@ -8,7 +8,7 @@ The public archive's `greenwoo.dff` has 54 frames and 24 atomics, including a si
 
 Validation includes source-preserving unit checks, damaged-name case sensitivity, invalid wheel layouts, actual Greenwood archive inspection, assembly rollback and a browser render. The browser diagnostic now selects high detail through the native distance-gating adapter, verifies that wheel visibility changes framebuffer output, checks shared geometry and releases GPU resources. Its screenshot is `artifacts/native-greenwood-prepared.png`. It now resolves the own and shared public texture dictionaries; it is not a retail appearance comparison. The preview now applies the first listed Greenwood CARCOLS combination; see CAR_COLORS.md.
 
-Unfinished native setup includes descriptor-driven dummy/extra/upgrade handling, damageable-component frame collapse, paired-wheel handling, component visibility flags and callback ordering, distance-based LOD, wheel scaling/rotation/suspension animation, textures, palette selection, material light/environment effects, and gameplay entry. Cars are not yet included in the published walking areas. This stage does not restore the old authored driving sandbox.
+This stage left descriptor-driven dummy handling, damageable-component frame collapse, paired-wheel handling, and component visibility flags and callback ordering open. Later work added distance-based LOD ([CAR_LOD.md](CAR_LOD.md), driven per frame from `src/main.ts`), extras (`src/vehicle/nativeVehicleExtras.ts`), wheel scaling (`src/vehicle/nativeWheelScale.ts`), wheel rotation, steering and suspension height (`src/render/nativeWheelAnimation.ts`), textures, palettes ([CAR_COLORS.md](CAR_COLORS.md)) and their per-vehicle choice (`src/vehicle/nativeVehicleColours.ts`), and gameplay entry; cars now drive in the published world. This stage does not restore the old authored driving sandbox.
 
 
 ## Per-instance paint materials
@@ -35,7 +35,7 @@ The shared dictionary contains 19 textures. All 12 Greenwood references decode: 
 
 Vehicle 492 identifies `greenwoo`, handling key `GREENWOO`, and front/rear wheel sizes 0.7. The complete handling file now parses into 210 base records and 79 specialized rows. TORNADO's `400220000` model-flags token at line 231 remains exact raw data with an explicit conversion issue; it is not dropped or truncated. Native preparation still rejects this out-of-range value. Native loader behavior for this oversized field remains unresolved. CARCOLS now supplies explicitly selected palette combinations; see CAR_COLORS.md.
 
-Validation: `GTA_CONTENT_DIR=/absolute/content-depot npx vitest run tests/native-vehicle-resources.test.ts` verifies all four hashes and the above associations; the existing native-car browser diagnostic verifies the textured render. The published walking areas do not yet load these vehicle resources.
+Validation: `GTA_CONTENT_DIR=/absolute/content-depot npx vitest run tests/native-vehicle-resources.test.ts` verifies all four hashes and the above associations; the existing native-car browser diagnostic verifies the textured render. The published world now carries these vehicle resources (`public/play/world/files/vehicles/`).
 
 ## Light-material marker removal
 
@@ -55,4 +55,4 @@ The assembly now initializes wheel-frame local Z from the verified `SetupSuspens
 
 For the public Greenwood, initial local wheel Z changes from about −0.35 m to −0.431818 m. At the measured resting chassis height, rendered wheel centers lie within 1 mm of the 0.35 m tire radius above the diagnostic road. The slight pitch permitted by its unequal front/rear axle offsets accounts for sub-millimeter differences. No handling values were tuned for this check. Unit tests also cover unequal rear dimensions, frame identity, matrix preservation and failed-update atomicity; the textured browser diagnostic uses the same native initialization.
 
-This is initial setup only. `UpdateWheelMatrix` at `0x6AA290` and `PreRender` at `0x6AAB50` remain delegated to the executable in the inspected source snapshot. Dynamic suspension visual updates, wheel spin, steering rotations, special wheel scaling and their timing still require verified implementation. The car is not yet integrated into the published walking areas.
+This is initial setup only. `UpdateWheelMatrix` at `0x6AA290` and `PreRender` at `0x6AAB50` remain delegated to the executable in the inspected source snapshot. Dynamic suspension height, wheel spin and steering rotation are now composed on each wheel frame by `src/render/nativeWheelAnimation.ts`, and wheel scaling follows the iOS executable's `CAutomobile::PreRender` (`src/vehicle/nativeWheelScale.ts`); cars drive in the published world.

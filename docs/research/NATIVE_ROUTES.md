@@ -43,6 +43,10 @@ stored byte length. Equal-cost alternatives retain first discovery order.
 Run expensive searches in a worker when connecting this to the game. The solver
 does not retain references after a call; a moving vehicle must resolve each
 step again as streamed areas change. It does not schedule streaming itself.
+Ambient traffic does not use this solver: it picks its next node as `CCarCtrl`
+does (`pickNextNodeRandomly` in `src/vehicle/nativeCarCtrl.ts`, driven by
+`src/simulation/WorldTraffic.ts`). The solver serves the workshop's route
+preview (`src/assets/regionRoute.ts`).
 
 ## Acquired-world verification
 

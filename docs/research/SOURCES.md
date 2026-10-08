@@ -49,7 +49,7 @@ Most entries are living documentation without a fixed publication date. The acce
 
 ## Conflicts and decisions
 
-**Original versus remastered references.** Some readily available documentation is for PC or later console releases. The PC manual is used only for the controls and settings it actually describes. PS2-specific lighting, presentation and timing still need a selected PS2 reference capture. A modern PC import is not assumed to be visually identical.
+**Original versus remastered references.** Some readily available documentation is for PC or later console releases. The PC manual is used only for the controls and settings it actually describes. The reference platform has since been settled as the original PC 1.0 release ([fidelity audit](../FIDELITY_AUDIT.md#reference-identity)), so PS2-specific lighting, presentation and timing are not the target; the executable hash and capture setup remain unverified. A modern PC import is not assumed to be visually identical.
 
 **Renderer capability versus quality.** Three.js documents backend fallback, but that does not prove every custom material can be moved unchanged. The design chooses a WebGL2 baseline and measures any later WebGPU path against the same content.
 
@@ -65,7 +65,7 @@ Most entries are living documentation without a fixed publication date. The acce
 
 | Open item | Why it matters | Concrete next evidence |
 |---|---|---|
-| Exact reference platform/build | Camera, controls, art and behavior vary between versions | Reference manifest plus capture settings |
+| Exact reference build (platform settled as original PC 1.0; see [fidelity audit](../FIDELITY_AUDIT.md#reference-identity)) | Camera, controls, art and behavior vary between versions | Executable hash, region and capture settings |
 | Asset availability and approved distribution | Determines achievable content identity | Representative source files or approved authored samples |
 | Original motion and camera response | No numeric baseline is established | Timed clips and input/event annotations |
 | Vehicle parameters and unit conversion | Handling data cannot be assumed to map directly into Rapier | Multi-class measured trials and conversion specification |
@@ -87,17 +87,17 @@ The available sources support the browser architecture and identify viable imple
 
 The [PC 1.0 reverse-engineered initialization](https://github.com/gta-reversed/gta-reversed/blob/master/source/game_sa/Game.cpp) passes 1000 milliseconds per game minute to the clock. [Clock.cpp](https://github.com/gta-reversed/gta-reversed/blob/master/source/game_sa/Clock.cpp) describes that interval and increments game minutes accordingly. The browser simulation now uses one game minute per simulation second, replacing the provisional 0.4 rate. This is PC-reference evidence, not a matched PS2 timing measurement.
 
-[TimeCycle.cpp](https://github.com/gta-reversed/gta-reversed/blob/master/source/game_sa/TimeCycle.cpp) samples hours 0, 5, 6, 7, 12, 19, 20 and 22, wrapping to midnight. The new local table follows those sample times. Its colors, intensities, fog, sun orbit and artificial-light fade are authored; no original TIMECYC.DAT is included, and weather interpolation, regional overrides and original post-effects remain unimplemented.
+[TimeCycle.cpp](https://github.com/gta-reversed/gta-reversed/blob/master/source/game_sa/TimeCycle.cpp) samples hours 0, 5, 6, 7, 12, 19, 20 and 22, wrapping to midnight. The authored table in `src/world/timecycle.ts` follows those sample times; it now serves only as the fallback. The game lights itself from the published original `timecycp.dat` through `src/world/LocalTimecycle.ts`, with weather interpolation and timecycle boxes ([timecycle](TIMECYCLE.md), [timecycle boxes](TIMECYCLE_BOXES.md)).
 
 ## Camera control implementation evidence — September 13, 2026
 
 Rockstar's [PC manual](https://cdn.akamai.steamstatic.com/steam/apps/12120/manuals/GTASA_PC_MANUAL_FINAL.pdf), PDF pages 5–6, provides the temporary-view bindings: middle mouse for rear view, Numpad 1 as the on-foot keyboard alternative, and vehicle Q/E side views with their combination selecting rear view. Direct PDF download and local text extraction were used because the web parser rejects this file's size. This supports the bindings; it does not establish measured camera distance, elevation, recenter delay, interpolation or collision response. Those remain authored in the prototype.
 
-The same PC manual, PDF page 5, assigns C to crouch. The prototype now uses this binding. Its crouch pose, movement speed, collider size and transition timing are authored and require original-game capture comparison.
+The same PC manual, PDF page 5, assigns C to crouch. The game binds it as `PED_DUCK` (`src/input/nativePadState.ts`); crouched movement follows `CTaskSimpleDuck` (`src/locomotion/nativeDuck.ts`) at the `ped.ifp` root-motion speed (`NATIVE_CROUCH_WALK_SPEED` in `src/simulation/Simulation.ts`).
 
 ## Follow distance modes — September 13, 2026
 
-The PC manual (PDF pages 5–6) assigns V/Home to camera changes. The current implementation cycles three authored follow distances and preserves distinct walking/driving preferences. Inspection of [Camera.cpp](https://github.com/gta-reversed/gta-reversed/blob/master/source/game_sa/Camera.cpp) also found script zoom values, but these are not treated as direct camera-to-target distances. The prototype's 2.8/4.8/6.4 metre on-foot and 5.2/7.2/9.4 metre vehicle baselines are provisional. They do not reproduce the full original sequence, first-person/bumper view or cinematic camera.
+The PC manual (PDF pages 5–6) assigns V/Home to camera changes. The game cycles three follow distances and keeps distinct walking/driving preferences (`src/render/cameraSettings.ts`). On foot they are 1.5/2.9/3.6 units, informed by [Camera.cpp](https://github.com/gta-reversed/gta-reversed/blob/master/source/game_sa/Camera.cpp)'s `CCamera::Init` ground zooms and script ped zooms, replacing the earlier authored 2.8/4.8/6.4 metres. In a vehicle the three zooms scale the per-vehicle chase distance by an authored 0.75/1/1.35 (the native distances live in the unreversed `Process_FollowCar_SA`) and are followed by the bumper view.
 
 
 ## Implemented local texture reader

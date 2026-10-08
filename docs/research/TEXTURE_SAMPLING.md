@@ -76,8 +76,8 @@ SHA-256 hashes match their sector-padded archive entries exactly. This compariso
 establishes identical public copies, not independent retail provenance.
 
 Reports remain external at
-`/Users/teo/Developer/web-gta-content/texture-sampling.json` and
-`/Users/teo/Developer/web-gta-content/texture-sampling-comparison.json`;
+`$GTA_CONTENT_DIR/texture-sampling.json` and
+`$GTA_CONTENT_DIR/texture-sampling-comparison.json`;
 comparison files are in `comparison/sampling/` and are not automatically loaded.
 
 ## Consequence for fidelity work
@@ -115,5 +115,5 @@ material classification. No alpha eligibility override was introduced. This
 check rules out disagreement between stored flags and decoded base pixels; it
 does not prove original-game blend ordering, alpha thresholds, decoder byte
 parity against an independent decoder, or sampling parity. Evidence:
-`/Users/teo/Developer/web-gta-content/texture-alpha.json` and
+`$GTA_CONTENT_DIR/texture-alpha.json` and
 `/tmp/web-gta-texture-alpha.log`.

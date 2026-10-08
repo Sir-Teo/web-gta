@@ -1,6 +1,6 @@
 # Original script initialization data
 
-The browser imports a bounded new-game zone profile from the original `MAIN.SCM`. This is data extraction, not a script VM: missions, control flow, pickups, shops and subsequent script-driven zone changes are not executed.
+The browser imports a bounded new-game zone profile from the original `MAIN.SCM` (`src/assets/scmZonePopulation.ts`). This document covers that data extraction. The script itself now runs as well: the SCM runtime (`src/engine/ScmRuntime.ts`) executes MAIN, its missions and the streamed scripts, including the zone commands (`INIT_ZONE_POPULATION_SETTINGS` and `SET_ZONE_POPULATION_TYPE` in `src/engine/ScmGameCommands.ts`); see the [porting pipeline](../port/README.md).
 
 ## Reproducible sources
 
@@ -21,7 +21,7 @@ The inspected main entry launches mission zero at byte 56,361; mission zero is n
 
 Native defaults are population type 5, ten zero gang strengths, zero dealer strength, race mask 15 and no-cops false. Assignments use exact normalized info labels and shared zone-info indices. Every source label resolves, including VERO2, whose ZON label has trailing whitespace. Unknown labels are retained as diagnostics and ignored without a guessed replacement.
 
-Grove Street GAN1 receives population type 7, San Fierro WESTP2 type 4, and Meadows MEAD retains default 5. The world worker attaches the profile to the continuous map; the fleet tracks the player's current population type. This does not yet enable ambient traffic or reproduce loaded-model population scheduling.
+Grove Street GAN1 receives population type 7, San Fierro WESTP2 type 4, and Meadows MEAD retains default 5. The world worker attaches the profile to the continuous map; the fleet tracks the player's current population type. This import alone did not enable ambient traffic or reproduce loaded-model population scheduling; ambient traffic now runs separately (`src/simulation/WorldTraffic.ts`).
 
 ## Verification
 

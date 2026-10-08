@@ -17,7 +17,7 @@ The first nine fields are native XYZ minimum and maximum bounds, signed far clip
 | `country/countryS.ipl` | 1 | Far clip 1000, strength 0%, falloff 100 |
 | `country/countrye.ipl` | 4 | Far clip 800/1000, strength 0%, LOD multiplier 0.9 |
 
-All coordinates and fields are recorded in `/Users/teo/Developer/web-gta-content/timecycle-boxes.json`; the refreshed `world-content.json` also contains per-district and per-scene records. These boxes cover specific locations, not the entire districts. In particular, the countryS box lies south of the current mountain presets.
+All coordinates and fields are recorded in `$GTA_CONTENT_DIR/timecycle-boxes.json`; the refreshed `world-content.json` also contains per-district and per-scene records. These boxes cover specific locations, not the entire districts. In particular, the countryS box lies south of the current mountain presets.
 
 ## Runtime work still required
 
@@ -40,7 +40,7 @@ The evaluator preserves the input color set and table. It operates in native XYZ
 
 Regression examples include: 15 units outside a box horizontally and 5 vertically both produce half strength with falloff 30; an authored LOD of 0.9 prepares as 28/32; and overlapping boxes with 0.5/0.6 strength, limits 800/600 and initial far clip 1000 produce approximately 720 when ordered by width. Applying the narrow box first would produce 760, so the ordering changes the result. Tests also cover interior ties, ignored boxes, zero falloff, unchanged values outside all boxes, extra-color table selection and sentinel groups.
 
-This evaluator is not yet connected to the playable-scene handoff, lighting cache or scene LOD selection. Consequently this commit does not change gameplay appearance. Integration must use the prepared evaluator rather than duplicating its rules in the renderer, and validate camera/position changes and scene lifecycle with browser tests.
+At this commit the evaluator was not yet connected to the playable-scene handoff, lighting cache or scene LOD selection, so it did not change gameplay appearance. The next sections connect it: `LocalTimecycle` applies the boxes (`src/world/LocalTimecycle.ts`), and `src/main.ts` prepares each streamed window's boxes with `prepareTimecycleBoxes`. Integration must use the prepared evaluator rather than duplicating its rules in the renderer, and validate camera/position changes and scene lifecycle with browser tests.
 
 Evaluator validation: 597 unit tests / 125 files pass; all four spatial tests pass after strengthening the color assertions; TypeScript and production build pass. Logs: `/tmp/web-gta-spatial-tcyc-{unit,tests,build}.log`.
 
@@ -53,7 +53,7 @@ The workshop now sends the parsed modifiers with its scene handoff. The receiver
 
 The source-backed sky, ambient/object ambient, water and fog channels now reach their existing render consumers. The diagnostic snapshot includes the installed modifier count and computed regional LOD multiplier. The calculated post-FX fields do not establish native post-processing parity; the renderer still has its existing post-FX limitations.
 
-Low-LOD distance application remains outstanding. Source `CRenderer::ConstructRenderList` multiplies `ms_lowLodDistScale` by the regional result (Renderer.cpp line 954 at the pinned revision); it does not uniformly multiply every object's draw distance. The current scene visibility adapter lacks that distinct native low-LOD classification/scale path. The multiplier is therefore exposed without changing general object draw distances. This supersedes the earlier statement that the evaluator is wholly disconnected from gameplay.
+Source `CRenderer::ConstructRenderList` multiplies `ms_lowLodDistScale` by the regional result (Renderer.cpp line 954 at the pinned revision); it does not uniformly multiply every object's draw distance. Low-LOD distance application has since followed that path: `WorldLighting` computes the scale with the regional multiplier (`nativeLowLodScale` in `src/world/nativeLowLod.ts`), and `src/render/sceneVisibility.ts` applies it only to the big-building LOD roots, leaving general object draw distances unchanged. This supersedes the earlier statement that the evaluator is wholly disconnected from gameplay.
 
 Validation: 598 unit tests / 125 files passed, including atomic modifier replacement, axis conversion, same-time position invalidation, cache reuse and table reload behavior. Browser tests verify parented world-space camera sampling, source regional ambient, regional-before-altitude clipping and authored fallback after clearing the table. An imported countryside test verifies the actual countryS modifier arrives in the game. Both browser tests pass. Build/production smoke also passes. Logs: `/tmp/web-gta-tcyc-runtime-{all-unit,browser,production}.log`.
 

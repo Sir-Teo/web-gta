@@ -28,7 +28,7 @@ This is a bounded browser lifecycle, not full retail generator parity:
 - Unspecified colors select the first original CARCOLS variation. Native RNG and population groups are not simulated.
 - Force-spawn and ignore-population-limit flags are preserved but not acted upon yet. Door locks roll the record's `doorLockChance` percentage at spawn; locked cars refuse entry and trip an 8 s alarm horn (break-in beyond the horn, including any police response, is unfinished).
 - Coordinate compression and exact float32/byte heading conversion are not claimed bit-identical. Spawn heading is quantized to the native 256 directions.
-- Special equipment, trailers, boats, bikes and aircraft are not passed through the ordinary-car controller. Aircraft resources and spawn records are imported; flight is still unfinished.
+- Special equipment, trailers, boats, bikes and aircraft are not passed through the ordinary-car controller. Aircraft resources and spawn records are imported; aircraft fly with the ported `FlyingControl` ([playable aircraft](PLAYABLE_AIRCRAFT.md), `src/simulation/nativeFlyingControl.ts`).
 - Collision response uses the existing Rapier adapter; source-based tire/suspension algorithms do not imply complete retail vehicle physics parity.
 
 ## Navigation

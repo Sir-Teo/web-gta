@@ -1,11 +1,13 @@
 # Native region placement overlap
 
 The content audit now identifies shared source placements across the nine native
-region presets. This is preparation for continuous world loading. The playable
-runtime supports manual replacement and opt-in movement-driven requests for its
-bounded scene, including collision reuse within one immutable folder session.
-Native GPU textures also survive matching-session swaps. Geometry/material reuse
-and seamless statewide streaming remain unfinished.
+region presets. This was preparation for continuous world loading, which the game
+now does: it streams the published static world around the player
+([static world content](../static-world-content.md)), keeping decoded geometry
+across windows in the worker (`src/assets/ModelGeometryCache.ts`). The workshop's
+walk sessions support manual replacement and opt-in movement-driven requests for
+their bounded scene, including collision reuse within one immutable folder session.
+Native GPU textures also survive matching-session swaps.
 
 ## Verified native content
 

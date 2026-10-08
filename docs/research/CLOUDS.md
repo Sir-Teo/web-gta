@@ -1,6 +1,6 @@
 # Low-cloud source and asset integration contract
 
-Research date: 2026-09-13. The source survey and initial integration contract are followed by the implemented low-cloud layer below. High clouds, moving fog and moon remain separate missing systems.
+Research date: 2026-09-13. The source survey and initial integration contract are followed by the implemented low-cloud layer below. High clouds, moving fog and the moon are separate systems, since added outside this document: `CClouds::VolumetricCloudsRender` (`src/render/NativeVolumetricClouds.ts`, `src/world/nativeVolumetricClouds.ts`), moving fog (`src/render/NativeMovingFog.ts`) and the moon (`src/render/NativeMoon.ts`).
 
 ## Source and verified raster
 

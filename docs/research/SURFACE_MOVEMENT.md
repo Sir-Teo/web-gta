@@ -25,8 +25,9 @@ The material query is the existing bounded support ray used for ground lighting.
 It is not the original CPed contact solver, and this change does not reproduce
 all original restrictions involving held entities, weapons, stamina or airborne
 contact retention. Steep-slope rules, stair handling, soft-land behavior and
-native adhesion integration remain unfinished. Running and sprinting still use
-their existing authored speeds unless native animation motion is installed.
+native adhesion integration remain unfinished. Running and sprinting now move at
+speeds measured from the `ped.ifp` clips' root motion (`NATIVE_RUN_SPEED` and
+`NATIVE_SPRINT_SPEED` in `src/simulation/Simulation.ts`).
 
 Validation uses two imported collision-floor browser fixtures with the same
 held Shift/W input and opposite source flags. Restricted contact reaches running

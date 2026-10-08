@@ -16,7 +16,7 @@ The 70 unique stunt jumps run in the playable world (`src/simulation/StuntJumps.
 ## Reconstructions
 
 - The script handler for 0x0814 is not reversed. The command passes a centre and a radius for each box (the second triple is smaller than the first in every jump), and `CBoundingBox::IsPointWithin` needs `min < max`, so the boxes are built as centre ± radius. Sampling the world confirms it: the ground under each ramp and landing sits inside centre ± radius and below the centre + radius corner, so a car on the ramp would fall outside a corner-and-size box.
-- Text and audio: the game's `USJ`, `USJ_ALL` and `REWARD` strings are shown as a big message (GXT is not in the local depot); the passenger's `CTX_GLOBAL_CAR_JUMP` line needs speech, which is not ported. `CStats` unique-jump counters are kept as the found/completed sets in the local save.
+- Text and audio: the game's `USJ` and `REWARD` strings are shown as big messages and `USJ_ALL` in the help box, read from the published `text/american.gxt` (`src/assets/gxt.ts`); the passenger's `CTX_GLOBAL_CAR_JUMP` line needs speech, which is not ported. `CStats` unique-jump counters are kept as the found/completed sets in the local save.
 - `CPhysical::m_nNumEntitiesCollided` becomes the count of bodies a car's colliders touch after a step, with resting wheels counted as the one entity they stand on.
 
 ## Verification
