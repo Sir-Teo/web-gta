@@ -35,7 +35,7 @@ function recording(){
   closestObjectOfTypeIsSmashedOrDamaged:method('closest',true),
   createFxSystem:method('fx',17),setPedIsTargetPriority:method('priority'),
   setScriptLimitToGangSize:method('gangLimit'),makeRoomInPlayerGangForMissionPeds:method('room'),
-  flushPatrolRoute:method('flushPatrol'),markRoadNodeAsDontWander:method('dontWander'),
+markRoadNodeAsDontWander:method('dontWander'),
   setRadioChannel:method('radio'),setNearClip:method('clip'),
   setTimeScale:method('timeScale'),
  } as unknown as Partial<ScmWorldCommands>;
@@ -65,7 +65,7 @@ describe('the last of the tasks',()=>{
   expect(tasks).toEqual([
    {kind:'kindaStayInSamePlace',state:true},
    {kind:'useMobilePhone',start:true},
-   {kind:'followPatrolRoute',speed:2,mode:1},
+   {kind:'followPatrolRoute',speed:2,mode:1,route:[]},
    {kind:'gotoPed',target:8,time:4000,radius:3},
    {kind:'carDriveWander',vehicle:CAR,speed:20,drivingMode:2},
    {kind:'goToCoordWhileShooting',x:1,y:2,z:3,speed:2,turnRadius:5,stopRadius:1,target:8},
@@ -140,7 +140,8 @@ describe('the vehicle, object and world commands of this batch',()=>{
 
  test('the world settings and the particle creation reach the host',()=>{
   const {world,calls}=recording();
-  const {readInt}=run(world,undefined,
+  const game=new ScmGameState();game.patrolRoute.push({x:1,y:2,z:3,animationName:'',animationFile:''});
+  const {readInt}=run(world,game,
    instruction(op('CREATE_FX_SYSTEM'),['smoke',float(1),float(2),float(3),int(1),gvar(40)]),
    instruction(op('SET_RADIO_CHANNEL'),[int(3)]),
    instruction(op('SET_NEAR_CLIP'),[float(0.5)]),
@@ -151,7 +152,8 @@ describe('the vehicle, object and world commands of this batch',()=>{
   expect(readInt(40)).toBe(17);
   expect(calls).toEqual([
    ['fx','smoke',1,2,3,true],['radio',3],['timeScale',0.25],
-   ['flushPatrol'],['dontWander',7,8,9],['gangLimit',4],
+   ['dontWander',7,8,9],['gangLimit',4],
   ]);
+  expect(game.patrolRoute).toEqual([]);
  });
 });

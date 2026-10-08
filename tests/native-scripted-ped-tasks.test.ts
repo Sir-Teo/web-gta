@@ -1,5 +1,5 @@
 import {describe,expect,test} from 'vitest';
-import {ACHIEVE_HEADING_TOLERANCE,achieveHeadingStep,goToPointArrived,goToPointMoveState,nativeHeadingDegrees,nextRoutePoint,scriptedPedOrder,slideToCoordStep,type ScriptedTaskWorld} from '../src/simulation/nativeScriptedPedTasks';
+import {ACHIEVE_HEADING_TOLERANCE,achieveHeadingStep,goToPointArrived,goToPointMoveState,nativeHeadingDegrees,nextRoutePoint,patrolRouteStart,scriptedPedOrder,slideToCoordStep,type ScriptedTaskWorld} from '../src/simulation/nativeScriptedPedTasks';
 import type {ScmScriptedTask} from '../src/engine/ScmThread';
 
 const world=(peds:Record<number,{x:number;y:number;z:number}>,self={x:0,y:0,z:0}):ScriptedTaskWorld=>
@@ -195,6 +195,24 @@ describe('the tasks a script gives a ped',()=>{
   expect(walk(1)).toEqual([0,1,2,2,1,0]);
   expect(walk(2).slice(0,9)).toEqual([0,1,2,2,1,0,0,1,2]);
   expect(walk(3).slice(0,7)).toEqual([0,1,2,0,1,2,0]);
+ });
+
+ test('a patrol route walks its points with a clip at some, from the leg the ped is beside (iOS 0x10040cd5c)',()=>{
+  const route=[{x:0,y:0,z:0,animationName:'',animationFile:''},{x:10,y:0,z:0,animationName:'ROADCROSS',animationFile:'PED'},{x:10,y:10,z:0,animationName:'',animationFile:''}];
+  expect(scriptedPedOrder({kind:'followPatrolRoute',speed:4,mode:3,route},world({}))).toEqual({kind:'followRoute',
+   points:[{x:0,y:0,z:0},{x:10,y:0,z:0},{x:10,y:10,z:0}],moveState:4,mode:3,anims:[undefined,{name:'ROADCROSS',file:'PED'},undefined],patrol:true});
+  // An empty route gives a task that ends at once.
+  expect(scriptedPedOrder({kind:'followPatrolRoute',speed:4,mode:3,route:[]},world({}))).toEqual({kind:'standStill',seconds:0});
+  // Beside the first leg: on to its far end. Beside the closing leg (last back to first): on to the first point.
+  expect(patrolRouteStart(route,{x:4,y:1,z:0})).toBe(1);
+  expect(patrolRouteStart(route,{x:4,y:6,z:0})).toBe(0);
+  // Beside no leg (behind the first point, past its legs' ends): the nearest point.
+  expect(patrolRouteStart(route,{x:-3,y:-2,z:0})).toBe(0);
+  expect(patrolRouteStart(route,{x:14,y:14,z:0})).toBe(2);
+  // The clips turn round with the points.
+  const r={points:[{x:0,y:0,z:0},{x:1,y:0,z:0}],anims:[undefined,{name:'A',file:'PED'}],at:0,mode:2,traversals:0};
+  nextRoutePoint(r);nextRoutePoint(r);
+  expect(r.points[0].x).toBe(1);expect(r.anims[0]).toEqual({name:'A',file:'PED'});
  });
 
  test('going to a ped, killing it for a time, and the short clips',()=>{

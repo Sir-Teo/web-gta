@@ -11352,3 +11352,12 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   units in the air and the other under the road, falling through the map. They now stand at the placements on the
   car's ground plane. A roadblock cop outside the pursuit also walked off as a wandering cop; GenerateRoadBlockPedsForCar
   gives him CTaskComplexWanderCop at PEDMOVE_STILL and bStayInSamePlace, so he now stands at his post.
+- TASK_FOLLOW_PATROL_ROUTE was a task the browser did not run, so MUSIC2's thread gave up when it sent its first guard
+  round Madd Dogg's mansion, and the mission ended there. CTaskComplexFollowPatrolRoute is decoded from iOS (unreversed
+  in gta-reversed): EXTEND_PATROL_ROUTE (0x1001f60a0) fills the static CPatrolRoute (0x1008e4e68) with up to eight
+  points and the clip played at each ("NONE" for none), FLUSH_PATROL_ROUTE empties it, and the task (0x1001fc3c4,
+  0x10040c49c) copies it as it is made. CreateFirstSubTask (0x10040cd5c) starts at the far end of the leg the ped is
+  beside (the closing leg back to the first point included), else at the nearest point; each point is walked to at the
+  task's move state and its clip, if any, played to its end (CTaskSimpleRunNamedAnim); at the end the modes are the
+  point route's (0 once, 1 there and back, 2 back and forth, 3 round again), the clips turning round with the points.
+  MUSIC2 now runs to its pass under the sweep's bot.

@@ -31,7 +31,6 @@ function recording(){
   startPedFacialTalk:method('startTalk'),stopPedFacialTalk:method('stopTalk'),
   hidePedWeaponForScriptedCutscene:method('hideWeapon'),setGroupMember:method('group'),
   setPedHasUsedEntryExit:method('entryExit'),clearPedDecisionMakerEventResponse:method('clearResponse'),
-  extendPatrolRoute:method('patrol'),
   isMessageBeingDisplayed:method('message',true),isHelpMessageBeingDisplayed:method('help',false),
  } as unknown as Partial<ScmWorldCommands>;
  return {world,calls,tasks};
@@ -95,20 +94,23 @@ describe('the vehicle setters and the world commands',()=>{
   expect(thread.condition).toBe(true);
  });
 
- test('the ped face, the group and the patrol route reach the host',()=>{
+ test('the ped face and the group reach the host, and the patrol route is the runtime’s own',()=>{
   const {world,calls}=recording();
-  run(world,undefined,
+  const {game}=run(world,undefined,
    instruction(op('START_CHAR_FACIAL_TALK'),[int(PED),int(3000)]),
    instruction(op('STOP_CHAR_FACIAL_TALK'),[int(PED)]),
    instruction(op('HIDE_CHAR_WEAPON_FOR_SCRIPTED_CUTSCENE'),[int(PED),int(1)]),
    instruction(op('SET_GROUP_MEMBER'),[int(3),int(PED)]),
    instruction(op('SET_CHAR_HAS_USED_ENTRY_EXIT'),[int(PED),float(10),float(20),float(3)]),
    instruction(op('CLEAR_CHAR_DECISION_MAKER_EVENT_RESPONSE'),[int(5),int(12)]),
-   instruction(op('EXTEND_PATROL_ROUTE'),[float(1),float(2),float(3),'IDLE','PED']));
+   instruction(op('EXTEND_PATROL_ROUTE'),[float(1),float(2),float(3),'IDLE','PED']),
+   instruction(op('EXTEND_PATROL_ROUTE'),[float(4),float(5),float(6),'NONE','NONE']));
   expect(calls).toEqual([
    ['startTalk',PED,3000],['stopTalk',PED],['hideWeapon',PED,true],['group',3,PED],
-   ['entryExit',PED,10,20,3],['clearResponse',5,12],['patrol',1,2,3,'IDLE','PED'],
+   ['entryExit',PED,10,20,3],['clearResponse',5,12],
   ]);
+  // CPatrolRoute (iOS 0x1001f60a0): a clip named NONE is none.
+  expect(game.patrolRoute).toEqual([{x:1,y:2,z:3,animationName:'IDLE',animationFile:'PED'},{x:4,y:5,z:6,animationName:'',animationFile:''}]);
  });
 
  test('the wanted multiplier and the special-character question are the runtime’s own',()=>{

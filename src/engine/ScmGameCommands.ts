@@ -1451,10 +1451,12 @@ const handlers:Record<string,ScmCommandHandler>={
  CLEAR_CHAR_DECISION_MAKER_EVENT_RESPONSE:(t,p,i)=>{
   world(t,i,'clearPedDecisionMakerEventResponse')(t.readInt(p[0]),t.readInt(p[1]));
  },
- // The patrol route, which carries an animation at each of its points unlike the plain one.
+ // The patrol route, which carries an animation at each of its points unlike the plain one (iOS 0x1001f60a0): a clip
+ // named "NONE" is none, and a ninth point is dropped.
  EXTEND_PATROL_ROUTE:(t,p,i)=>{
-  const point=vec(t,p,0);
-  world(t,i,'extendPatrolRoute')(point.x,point.y,point.z,t.text(p[3]),t.text(p[4]));
+  const route=game(t,i).patrolRoute,point=vec(t,p,0),name=t.text(p[3]),file=t.text(p[4]);
+  if(route.length>=8)return;
+  route.push({...point,animationName:name==='NONE'?'':name,animationFile:name==='NONE'?'':file});
  },
  // The retail handler is unreversed; the tune is a stream track the port does not package, so a host without it only
  // records the request and the mission script carries on to its pass.
@@ -1562,7 +1564,8 @@ const handlers:Record<string,ScmCommandHandler>={
  TASK_KINDA_STAY_IN_SAME_PLACE:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'kindaStayInSamePlace',state:bool(t,p[1])});},
  TASK_USE_MOBILE_PHONE:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'useMobilePhone',start:bool(t,p[1])});},
  TASK_FOLLOW_PATROL_ROUTE:(t,p,i)=>{
-  scriptedTask(t,i,t.readInt(p[0]),{kind:'followPatrolRoute',speed:t.readInt(p[1]),mode:t.readInt(p[2])});
+  // CTaskComplexFollowPatrolRoute (iOS 0x1001fc3c4) copies the patrol route as it is when the task is made.
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'followPatrolRoute',speed:t.readInt(p[1]),mode:t.readInt(p[2]),route:game(t,i).patrolRoute.map(point=>({...point}))});
  },
  TASK_GOTO_CHAR:(t,p,i)=>{
   scriptedTask(t,i,t.readInt(p[0]),{kind:'gotoPed',target:t.readInt(p[1]),time:t.readInt(p[2]),radius:t.readFloat(p[3])});
@@ -1633,7 +1636,7 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_SCRIPT_LIMIT_TO_GANG_SIZE:(t,p,i)=>{world(t,i,'setScriptLimitToGangSize')(t.readInt(p[0]));},
  MAKE_ROOM_IN_PLAYER_GANG_FOR_MISSION_PEDS:(t,p,i)=>{world(t,i,'makeRoomInPlayerGangForMissionPeds')(t.readInt(p[0]));},
  // The world settings.
- FLUSH_PATROL_ROUTE:(t,_p,i)=>{world(t,i,'flushPatrolRoute')();},
+ FLUSH_PATROL_ROUTE:(t,_p,i)=>{game(t,i).patrolRoute.length=0;},
  MARK_ROAD_NODE_AS_DONT_WANDER:(t,p,i)=>{
   const point=vec(t,p,0);world(t,i,'markRoadNodeAsDontWander')(point.x,point.y,point.z);
  },

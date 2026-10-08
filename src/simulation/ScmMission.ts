@@ -1851,7 +1851,6 @@ export class ScmMission {
    // CPathFind::MarkRoadNodeAsDontWander and UnMarkAllRoadNodesAsDontWander on the loaded car nodes.
    markRoadNodeAsDontWander:(x,y,z)=>{this.world.markRoadNodeAsDontWander?.({x,y,z});},
    unmarkAllRoadNodesAsDontWander:()=>{this.world.unmarkAllRoadNodesAsDontWander?.();},
-   flushPatrolRoute:()=>{this.patrolRoute.length=0;},
    forceVehicleLights:(handle,lights)=>{this.host('setScriptVehicleOverrideLights','FORCE_CAR_LIGHTS')(this.liveVehicle(handle),lights);},
    // SET_CAR_LIGHTS_ON (iOS 0x100201284): vehicleFlags.bLightsOn, bit 6 of the flags. DoVehicleLights rewrites it from
    // GetVehicleLightsStatus for a car with a driver; a parked car keeps it.
@@ -2087,11 +2086,6 @@ export class ScmMission {
    // IS_CHAR_RESPONDING_TO_EVENT. The command's own dispatch is not reversed; what it reads is CPedIntelligence's
    // event group, which for a browser ped is the one event it is answering and whether it still is.
    pedIsRespondingToEvent:(handle,event)=>this.world.scriptPedRespondingTo(this.livePed(handle),event),
-   // EXTEND_PATROL_ROUTE builds the route CTaskComplexFollowPatrolRoute walks. The task is not one the browser
-   // runs, so the points are kept in the order the script gave them and nothing walks them yet.
-   extendPatrolRoute:(x,y,z,animationName,animationFile)=>{
-    this.patrolRoute.push({position:{x,y,z},animationName,animationFile});
-   },
    // CStreaming's own answer, which is a model the browser has built a car from.
    randomVehicleModelInMemory:()=>{
     const chosen=this.world.randomVehicleInMemory();
@@ -3779,7 +3773,6 @@ export class ScmMission {
   * chances go into them in order and nothing here depends on what they are called. */
  readonly scriptDecisions=new Map<number,Map<number,DecisionChoice[]>>();
  /** The patrol route a script has built, a point and an animation at a time. */
- readonly patrolRoute:{position:{x:number;y:number;z:number};animationName:string;animationFile:string}[]=[];
  /* The particle systems a script makes. CREATE_FX_SYSTEM hands back a handle the script plays, stops and
   * kills; the ones made on a car, a ped or an object hang from it and are given its matrix again each step,
   * which is what FxSystem_c::SetMatrix is for. The systems themselves are the host's. */
@@ -4231,7 +4224,7 @@ export class ScmMission {
    playerControl:this.playerControl,
    scriptVehicles:this.vehicles.count,
    scriptPeds:this.peds.count,
-   patrolRoute:this.patrolRoute.length,
+   patrolRoute:game.patrolRoute.length,
    groups:[...this.groups.values()].filter(group=>group.countMembers()>0).length,
    missionText:this.missionText??null,
    cutscenes:this.cutscenes.length,

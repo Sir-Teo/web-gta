@@ -27,7 +27,7 @@ import {WALK_ROUND_PAD,walkRoundCar} from '../ped/nativeWalkRoundCar';
 import {WalkRoundBuildingRoute,buildingCollisionFacing,type V3 as NativeV3} from '../ped/nativeWalkRoundBuilding';
 import {followersToRemove} from '../ped/nativePedGroup';
 import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARGET_TOLERANCE,cornerMoveRatio,cornerSlowing,planFollowNodeRoute,type CornerSlowing,type NodeRouteOptions} from './nativeFollowNodeRoute';
-import {GO_STRAIGHT_MOVE_STATE_RADIUS,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,type ScriptedPedOrder,slideToCoordStep,SLIDE_HEADING_TOLERANCE} from './nativeScriptedPedTasks';
+import {GO_STRAIGHT_MOVE_STATE_RADIUS,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,patrolRouteStart,type ScriptedPedOrder,slideToCoordStep,SLIDE_HEADING_TOLERANCE} from './nativeScriptedPedTasks';
 import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NATIVE_PED_TYPES,NativeAcquaintance,nativePedType} from '../ped/nativeAcquaintance';
 import {characterMovement} from './characterMovement';
 import {ANIM_ID,NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
@@ -173,12 +173,15 @@ export interface Pedestrian {
   /** CTaskComplexKillPedOnFoot: the retaliation combat held on a foe (undefined for the player) until it dies. */
   |{kind:'killPed';foe?:Pedestrian;remaining:number}
   /** CTaskSimpleRunNamedAnim: the clip (by its lower-case name) once its block has loaded, and how long it has run. */
-  |{kind:'playAnim';clip:string;loop:boolean;hold:boolean;release:boolean;remaining:number;started:boolean;elapsed:number}
+  |{kind:'playAnim';clip:string;loop:boolean;hold:boolean;release:boolean;remaining:number;started:boolean;elapsed:number;
+   /** A patrol's clip at a point: the route goes on from the next point when it is over. */
+   resume?:Extract<NonNullable<Pedestrian['order']>,{kind:'followRoute'}>}
   /** CTaskComplexEnterCar(…Timed): the car's script handle and seat, the time left before the ped is set in the seat,
    * and CTaskComplexGoToCarDoorAndStandStill's 30 s of seeking the door. */
   |{kind:'enterCar';vehicle:number;seat:'driver'|number;remaining:number;seek:number;moveState:number}
   /** CTaskComplexFollowPointRoute over renderer points (x, z, and the origin height y). */
-  |{kind:'followRoute';points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number;moveState:number}
+  |{kind:'followRoute';points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number;moveState:number;
+   anims?:({name:string;file:string}|undefined)[]}
   /** CTaskComplexSeekEntity after a ped (undefined for the player), to within the radius. */
   |{kind:'gotoPed';target?:Pedestrian;radius:number;remaining:number;offset?:{radius:number;angle:number};follow?:boolean;sprint?:boolean;giveUp?:number}
   /** TASK_DIVE_AND_GET_UP: over when the evasive dive it started is. */
@@ -1853,6 +1856,9 @@ export class WorldPedestrians {
  /** Begin the sequence's next task, skipping past the ones that are over as soon as they start. A repeating
   * sequence of nothing but those would never yield, so it is given one pass through its tasks. */
  private startNextOrder(ped:Pedestrian){
+  // A patrol's clip at a point is over: on to the route's next point, or past its end to the sequence.
+  const resume=ped.order?.kind==='playAnim'?ped.order.resume:undefined;
+  if(resume&&nextRoutePoint(resume)){ped.order=resume;return;}
   for(let step=0,steps=ped.sequence?.orders.length??0;step<=steps;step++){
    const sequence=ped.sequence;
    if(!sequence){ped.order=this.defaultOrder(ped);return;}
@@ -2024,9 +2030,11 @@ export class WorldPedestrians {
     ped.order.corner=this.routeCorner(ped,ped.order);ped.flee=0;ped.loiter=false;
     break;
    }
-   case 'followRoute':
-    ped.order={kind:'followRoute',points:order.points.map(q=>({x:q.x,y:q.z,z:-q.y})),at:0,mode:order.mode,traversals:0,moveState:order.moveState};ped.flee=0;ped.loiter=false;
+   case 'followRoute':{
+    const q=ped.actor.player.position,at=order.patrol?patrolRouteStart(order.points,{x:q.x,y:-q.z,z:q.y+PED_ORIGIN_HEIGHT}):0;
+    ped.order={kind:'followRoute',points:order.points.map(q=>({x:q.x,y:q.z,z:-q.y})),at,mode:order.mode,traversals:0,moveState:order.moveState,anims:order.anims?.slice()};ped.flee=0;ped.loiter=false;
     break;
+   }
    case 'gotoPed':{
     const target=this.resolveScriptPed?.(order.target);if(!target)break;
     ped.order={kind:'gotoPed',target:target==='player'?undefined:target,radius:order.radius,remaining:order.seconds,offset:order.offset,follow:order.follow,sprint:order.sprint,giveUp:order.giveUp};ped.flee=0;ped.loiter=false;
@@ -3738,7 +3746,13 @@ export class WorldPedestrians {
      // CTaskSimpleGoToPoint to each point at a 0.5 radius (no stand at the last: standStillAfterMove is false).
      const o=p.order,q=p.actor.player.position,point=o.points[o.at];dx=0;dz=0;
      const gx=point.x-q.x,gz=point.z-q.z,distance=Math.hypot(gx,gz);
-     if(goToPointArrived(distance,point.y>MAP_Z_LOW_LIMIT?q.y+PED_ORIGIN_HEIGHT-point.y:undefined,GO_TO_POINT_RADIUS,state.speed*dt)){if(!nextRoutePoint(o))this.startNextOrder(p);}
+     if(goToPointArrived(distance,point.y>MAP_Z_LOW_LIMIT?q.y+PED_ORIGIN_HEIGHT-point.y:undefined,GO_TO_POINT_RADIUS,state.speed*dt)){
+      // CTaskComplexFollowPatrolRoute::CreateNextSubTask (iOS 0x10040cca4): a point with a clip plays it (a
+      // CTaskSimpleRunNamedAnim to its end) before the route goes on.
+      const anim=o.anims?.[o.at];
+      if(anim){this.applyOrder(p,{kind:'playAnim',file:anim.file,name:anim.name,loop:false,keepLastFrame:false,seconds:Number.POSITIVE_INFINITY});const now=p.order as Pedestrian['order'];if(now?.kind==='playAnim')now.resume=o;else if(!nextRoutePoint(o))this.startNextOrder(p);}
+      else if(!nextRoutePoint(o))this.startNextOrder(p);
+     }
      else{({x:dx,z:dz}=this.roundCars(p,point,cars));orderSpeed=o.moveState>=7?p.sprintSpeed:o.moveState>=5?p.runSpeed:p.walkSpeed;}
     }else if(p.order.kind==='chat'){
      // CTaskComplexChat::ControlSubTask. A partner that is gone ends it, as does a finish flagged last frame. Either

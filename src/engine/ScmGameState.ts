@@ -302,6 +302,9 @@ export class ScmGameState {
  readonly onscreenTimer=new ScmOnscreenTimer();
  /** The route a task follows, which EXTEND_ROUTE builds a point at a time and FLUSH_ROUTE empties. */
  readonly route:{x:number;y:number;z:number}[]=[];
+ /** CTaskComplexFollowPatrolRoute's static CPatrolRoute (iOS 0x1008e4e68): EXTEND_PATROL_ROUTE adds a point and the clip
+  * played there (none for "NONE"), at most eight; FLUSH_PATROL_ROUTE empties it. */
+ readonly patrolRoute:{x:number;y:number;z:number;animationName:string;animationFile:string}[]=[];
  /** CCarCtrl::CarDensityMultiplier, beside the ped one. */
  carDensityMultiplier=1;
  /** CCarCtrl::bAllowEmergencyServicesToBeCreated, true from CCarCtrl::Init. */

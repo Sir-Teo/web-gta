@@ -48,7 +48,10 @@ export type ScriptedPedOrder=
   moveState?:number}
  /** CTaskComplexFollowPointRoute: the points in order at eMoveState, each arrived at inside 0.5, then per its mode
   * (0 once, 1 there and back, 2 back and forth for ever, 3 round again for ever). */
- |{kind:'followRoute';points:readonly {x:number;y:number;z:number}[];moveState:number;mode:number}
+ |{kind:'followRoute';points:readonly {x:number;y:number;z:number}[];moveState:number;mode:number;
+  /** CTaskComplexFollowPatrolRoute: the clip played on reaching each point (CTaskSimpleRunNamedAnim), none where
+   * undefined, and the patrol's own start (patrolRouteStart) rather than the first point. */
+  anims?:readonly ({name:string;file:string}|undefined)[];patrol?:boolean}
  /** CTaskComplexSeekEntity for TASK_GOTO_CHAR: to within `radius` of a ped (a handle, the player's included), for
   * `seconds`. */
  |{kind:'gotoPed';target:number;radius:number;seconds:number;
@@ -214,6 +217,9 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'enterCarAsDriver':return world.vehicle?.(task.vehicle)?{kind:'enterCar',vehicle:task.vehicle,seat:'driver',seconds:seconds(task.time),...moveStateOf(task)}:undefined;
   case 'enterCarAsPassenger':return world.vehicle?.(task.vehicle)?{kind:'enterCar',vehicle:task.vehicle,seat:task.seat,seconds:seconds(task.time),...moveStateOf(task)}:undefined;
   case 'followPointRoute':return task.route&&task.route.length?{kind:'followRoute',points:task.route.map(p=>({...p})),moveState:task.speed,mode:task.mode}:undefined;
+  // CTaskComplexFollowPatrolRoute (iOS 0x10040c49c): an empty route's first subtask is one that ends at once.
+  case 'followPatrolRoute':return task.route&&task.route.length?{kind:'followRoute',points:task.route.map(p=>({x:p.x,y:p.y,z:p.z})),moveState:task.speed,mode:task.mode,
+   anims:task.route.map(p=>p.animationName?{name:p.animationName,file:p.animationFile}:undefined),patrol:true}:{kind:'standStill',seconds:0};
   // CTaskComplexGoToPointAnyMeans on foot: the vehicle it would take for a long way is not modelled.
   // TASK_CHAT_WITH_CHAR (unreversed) builds CTaskComplexChat from the lead-speaker flag and its last operand (1 in
   // every mission), taken here as the task's stage, with no speech context: nothing is said.
@@ -317,16 +323,34 @@ export function goToPointArrived(distance:number,heightGap:number|undefined,radi
 }
 /** CTaskComplexFollowPointRoute::GetSubTaskType once a point is reached: the next index, or the route's turn at its
  * end by mode (reversing the points for RETURN's first pass and BACK_AND_FORTH), or nothing when it is over. */
-export function nextRoutePoint(route:{points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number}){
+export function nextRoutePoint(route:{points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number;anims?:unknown[]}){
  route.at++;
  if(route.at<route.points.length)return true;
  route.traversals++;
+ // A patrol route turns its clips round with its points (iOS 0x10040c7f8 swaps whole records).
  switch(route.mode){
-  case 1:if(route.traversals!==1)return false;route.points.reverse();route.at=0;return true;
-  case 2:route.points.reverse();route.at=0;return true;
+  case 1:if(route.traversals!==1)return false;route.points.reverse();route.anims?.reverse();route.at=0;return true;
+  case 2:route.points.reverse();route.anims?.reverse();route.at=0;return true;
   case 3:route.at=0;return true;
   default:return false;
  }
+}
+/** CTaskComplexFollowPatrolRoute::CreateFirstSubTask (iOS 0x10040cd5c): the patrol starts at the far end of the leg
+ * (the last wrapping round to the first point) whose line the ped stands nearest to, measured where it is beside the
+ * leg; beside none of them, at the nearest point. Native points and position. */
+export function patrolRouteStart(points:readonly {x:number;y:number;z:number}[],at:{x:number;y:number;z:number}){
+ let best=-1,bestD2=Number.MAX_VALUE;
+ for(let i=0;i<points.length;i++){
+  const next=i+1===points.length?0:i+1,a=points[i],b=points[next];
+  const lx=b.x-a.x,ly=b.y-a.y,lz=b.z-a.z,length=Math.hypot(lx,ly,lz);if(!length)continue;
+  const along=((at.x-a.x)*lx+(at.y-a.y)*ly+(at.z-a.z)*lz)/length;
+  if(!(along>0&&along<length))continue;
+  const k=along/length,d2=(at.x-a.x-lx*k)**2+(at.y-a.y-ly*k)**2+(at.z-a.z-lz*k)**2;
+  if(d2<bestD2){bestD2=d2;best=next;}
+ }
+ if(best>=0)return best;
+ for(let i=0;i<points.length;i++){const p=points[i],d2=(at.x-p.x)**2+(at.y-p.y)**2+(at.z-p.z)**2;if(d2<bestD2){bestD2=d2;best=i;}}
+ return Math.max(0,best);
 }
 /** CTaskSimpleSlideToCoord's reach, 0.05 squared ([0x100592d64]), and the heading it must be turned to within, 0.1 rad
  * ([0x10058cb80]). */

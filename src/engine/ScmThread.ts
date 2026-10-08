@@ -77,7 +77,9 @@ export type ScmScriptedTask=
   * (the iOS handler hands operands 5 and 6 to the constructor in that order). */
  |{kind:'goToCoordWhileShooting';x:number;y:number;z:number;speed:number;turnRadius:number;stopRadius:number;target:number}
  |{kind:'carDriveWander';vehicle:number;speed:number;drivingMode:number}
- |{kind:'followPatrolRoute';speed:number;mode:number}
+ |{kind:'followPatrolRoute';speed:number;mode:number;
+  /** The CPatrolRoute the task copies when it is made: each point with the clip played there ('' for none). */
+  route?:readonly {x:number;y:number;z:number;animationName:string;animationFile:string}[]}
  |{kind:'gotoPed';target:number;time:number;radius:number}
  |{kind:'togglePedThreatScanner';onFoot:boolean;inCar:boolean;duringScriptTask:boolean}
  |{kind:'destroyCar';vehicle:number}
@@ -502,8 +504,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setPedHasUsedEntryExit?(handle:number,x:number,y:number,radius:number):void;
  /** The decision-maker event response a script clears. */
  clearPedDecisionMakerEventResponse?(decisionMaker:number,event:number):void;
- /** The patrol route a task follows, built a point at a time with an animation at each. */
- extendPatrolRoute?(x:number,y:number,z:number,animationName:string,animationFile:string):void;
  /** The two message questions the HUD answers. */
  isMessageBeingDisplayed?():boolean;
  isHelpMessageBeingDisplayed?():boolean;
@@ -556,8 +556,7 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setPedIsTargetPriority?(handle:number,state:boolean):void;
  setScriptLimitToGangSize?(maxSize:number):void;
  makeRoomInPlayerGangForMissionPeds?(count:number):void;
- /** The patrol route this batch flushes, the road node it marks, and the radio, radar, clip and time scale. */
- flushPatrolRoute?():void;
+ /** The road node this batch marks, and the radio, radar, clip and time scale. */
  markRoadNodeAsDontWander?(x:number,y:number,z:number):void;
  setRadioChannel?(channel:number):void;
  setRadarZoom?(zoom:number):void;
