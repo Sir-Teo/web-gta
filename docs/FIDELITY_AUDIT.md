@@ -11328,3 +11328,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   frozen, at the offset in the object's frame each step, facing the object's heading turned by the side (0 ahead, 1
   left, 2 behind, 3 right) as the car form's PositionAttachedPed has it, with the named weapon given; DETACH_CHAR_FROM_CAR
   lets it go where it stands.
+- TASK_CHAR_SLIDE_TO_COORD (iOS 0x1001f8c54) is a script task: a sequence of CTaskComplexGoToPointAndStandStill at a
+  walk to the point (radius 0.5) and CTaskSimpleSlideToCoord to the heading. The port's handler asked an adapter that
+  did not exist, so SCRASH2 and two other scripts skipped it; it now runs as the walk and the turn, the slide over the
+  last half unit being the turn alone (as the AND_PLAY_ANIM form's stand-in has it).

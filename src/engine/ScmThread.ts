@@ -95,6 +95,7 @@ export type ScmScriptedTask=
  |{kind:'shootAtPed';target:number;time:number}
  |{kind:'leaveCarImmediately';vehicle:number}
  |{kind:'dieNamedAnim';animationName:string;animationFile:string;blendSpeed:number;time:number}
+ |{kind:'slideToCoord';x:number;y:number;z:number;heading:number;slideSpeed:number}
  |{kind:'slideToCoordAndPlayAnim';x:number;y:number;z:number;heading:number;slideSpeed:number;animationName:string;animationFile:string;blendSpeed:number;loop:boolean;lockX:boolean;lockY:boolean;keepLastFrame:boolean;time:number}
  |{kind:'fleePed';threat:number;radius:number;time:number}
  |{kind:'fleePoint';x:number;y:number;z:number;radius:number;time:number}
@@ -830,7 +831,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  fireSingleBullet?(fromX:number,fromY:number,fromZ:number,toX:number,toY:number,toZ:number,damage:number):void;
  giveVehiclePaintjob?(handle:number,paintjobId:number):void;
  setDrunkInputDelay?(pad:number,delay:number):void;
- taskCharSlideToCoord?(handle:number,x:number,y:number,z:number,angle:number,slideSpeed:number):void;
  getCharHighestPriorityEvent?(handle:number):number;
  attachCarToObject?(handle:number,handle2:number,xOffset:number,yOffset:number,zOffset:number,xRotation:number,yRotation:number,zRotation:number):void;
  fixCarTyre?(handle:number,tireId:number):void;

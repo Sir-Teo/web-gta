@@ -214,3 +214,13 @@ test('SET_RADIO_TO_PLAYERS_FAVOURITE_STATION asks the adapter (iOS 0x1002067a8)'
  run({setRadioToPlayersFavouriteStation:()=>{tuned++;}},undefined,instruction(op('SET_RADIO_TO_PLAYERS_FAVOURITE_STATION'),[]));
  expect(tuned).toBe(1);
 });
+
+test('TASK_CHAR_SLIDE_TO_COORD is a script task the ped is given, as iOS gives it (0x1001f8c54)',()=>{
+ const given:unknown[]=[];
+ run({givePedScriptedTask:(handle:number,task:unknown,opcode:number)=>{given.push([handle,task,opcode]);}} as never,undefined,
+  instruction(op('TASK_CHAR_SLIDE_TO_COORD'),[int(PED),float(1),float(2),float(3),float(90),float(.2)]));
+ expect(given).toHaveLength(1);
+ const [handle,task,opcode]=given[0] as [number,{kind:string;heading:number;slideSpeed:number},number];
+ expect(handle).toBe(PED);expect(task.kind).toBe('slideToCoord');expect(task.heading).toBe(90);expect(task.slideSpeed).toBeCloseTo(.2,6);
+ expect(opcode).toBe(op('TASK_CHAR_SLIDE_TO_COORD'));
+});

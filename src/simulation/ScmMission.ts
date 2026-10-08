@@ -3575,11 +3575,15 @@ export class ScmMission {
  /** AUTHORED stand-ins for tasks the browser has no order of its own for, as the orders it does run:
   * - TASK_CHAR_SLIDE_TO_COORD_AND_PLAY_ANIM (CTaskComplexSlideToCoord then the named clip): the ped walks to the
   *   point, turns to the heading and plays the clip.
+  * - TASK_CHAR_SLIDE_TO_COORD (iOS 0x1001f8c54): CTaskComplexGoToPointAndStandStill at a walk to the point (radius 0.5,
+  *   as TASK_GO_STRAIGHT_TO_COORD's untimed form) and CTaskSimpleSlideToCoord, whose last slide over the remaining half
+  *   unit, a share of the way each frame, is the turn to the heading alone.
   * - TASK_PICK_UP_OBJECT as a step of a sequence: the object is in the hand from when the sequence is given, and the
   *   step plays the clip the command names.
   * - TASK_HAND_GESTURE: see handGestureOrders. */
  private standInOrders(handle:number,task:ScmScriptedTask,world:Parameters<typeof scriptedPedOrder>[1]):ScriptedPedOrder[]|undefined{
   const built=(tasks:ScmScriptedTask[])=>{const orders=tasks.map(t=>scriptedPedOrder(t,world));return orders.every(o=>!!o)?orders as ScriptedPedOrder[]:undefined;};
+  if(task.kind==='slideToCoord')return built([{kind:'goStraightToCoord',x:task.x,y:task.y,z:task.z,speed:4,time:-2},{kind:'achieveHeading',heading:task.heading}]);
   if(task.kind==='slideToCoordAndPlayAnim')return built([
    {kind:'goStraightToCoord',x:task.x,y:task.y,z:task.z,speed:4,time:3000},{kind:'achieveHeading',heading:task.heading},
    {kind:'playAnim',animationName:task.animationName,animationFile:task.animationFile,blendSpeed:task.blendSpeed,loop:task.loop,lockX:task.lockX,lockY:task.lockY,keepLastFrame:task.keepLastFrame,time:task.time,interruptable:false}]);

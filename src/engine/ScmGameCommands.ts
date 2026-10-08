@@ -2451,7 +2451,11 @@ const handlers:Record<string,ScmCommandHandler>={
  FIRE_SINGLE_BULLET:(t,p,i)=>{world(t,i,'fireSingleBullet')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readInt(p[6]));},
  GIVE_VEHICLE_PAINTJOB:(t,p,i)=>{world(t,i,'giveVehiclePaintjob')(t.readInt(p[0]),t.readInt(p[1]));},
  SET_DRUNK_INPUT_DELAY:(t,p,i)=>{world(t,i,'setDrunkInputDelay')(t.readInt(p[0]),t.readInt(p[1]));},
- TASK_CHAR_SLIDE_TO_COORD:(t,p,i)=>{world(t,i,'taskCharSlideToCoord')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]));},
+ // iOS 0x1001f8c54: a script task, the sequence of CTaskComplexGoToPointAndStandStill at a walk and CTaskSimpleSlideToCoord.
+ TASK_CHAR_SLIDE_TO_COORD:(t,p,i)=>{
+  const point=vec(t,p,1);
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'slideToCoord',...point,heading:t.readFloat(p[4]),slideSpeed:t.readFloat(p[5])});
+ },
  GET_CHAR_HIGHEST_PRIORITY_EVENT:(t,p,i)=>{t.writeInt(p[1],world(t,i,'getCharHighestPriorityEvent')(t.readInt(p[0])));},
  ATTACH_CAR_TO_OBJECT:(t,p,i)=>{world(t,i,'attachCarToObject')(t.readInt(p[0]),t.readInt(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readFloat(p[6]),t.readFloat(p[7]));},
  FIX_CAR_TYRE:(t,p,i)=>{world(t,i,'fixCarTyre')(t.readInt(p[0]),t.readInt(p[1]));},
