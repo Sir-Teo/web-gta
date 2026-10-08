@@ -9,11 +9,11 @@ test('a street ped off the ground falls under gravity, glides then falls, and la
   const crowd=new WorldPedestrians(sim,scene,base,()=>undefined,new WantedSystem()) as any;
   crowd.pedTargets=()=>({dealers:0,gangs:0,cops:0,other:6,gangStrengths:Array(10).fill(0)});
   try{
-   for(let i=0;i<300&&!crowd.snapshot().people.length;i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
-   const p=crowd.people.find((p:any)=>!p.officer&&p.health>0);if(!p)throw new Error('no ped');
-   const tick=()=>{crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();p.view.update(p.actor,1);};
+   for(let i=0;i<300&&crowd.snapshot().people.length<2;i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
+   const [p,q]=crowd.people.filter((p:any)=>!p.officer&&p.health>0);if(!p||!q)throw new Error('no peds');
+   const tick=()=>{crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();p.view.update(p.actor,1);q.view.update(q.actor,1);};
    for(let i=0;i<10;i++)tick();
-   const drop=(height:number)=>{
+   const drop=(height:number,p:any)=>{
     const t=p.body.translation(),at={x:t.x,y:12.55+.9+height,z:t.z};
     p.body.setTranslation(at,true);p.body.setNextKinematicTranslation(at);p.collider.setTranslation(at);p.actor.player.position={x:at.x,y:at.y-.9,z:at.z};
     const clips:string[]=[];let peakFall=0,airSeconds=0,landed=-1,tookOff=false;
@@ -26,10 +26,12 @@ test('a street ped off the ground falls under gravity, glides then falls, and la
     }
     return {clips,peakFall:+peakFall.toFixed(2),airSeconds:+airSeconds.toFixed(2),landed,health:p.health,down:p.down,y:+p.actor.player.position.y.toFixed(2)};
    };
-   const low=drop(.5),rest=p.actor.player.position.y;for(let i=0;i<60;i++)tick();
-   const mid=drop(2);for(let i=0;i<60;i++)tick();
-   const high=drop(12);
-   return {low,mid,high,rest};
+   const low=drop(.5,p),rest=p.actor.player.position.y;for(let i=0;i<60;i++)tick();
+   const mid=drop(2,p);for(let i=0;i<60;i++)tick();
+   const high=drop(12,p);
+   // A second ped for the five metres, so its injury does not colour the first one's falls.
+   const five=drop(5,q);
+   return {low,mid,five,high,rest};
   }finally{crowd.dispose();sim.dispose();}
  });
  // Half a metre: a glide under 0.1 units a frame, a soft FALL_land, no damage; the fall's speed is gravity's.
@@ -37,11 +39,16 @@ test('a street ped off the ground falls under gravity, glides then falls, and la
  expect(result.low.peakFall).toBeLessThan(-3.5);expect(result.low.peakFall).toBeGreaterThan(-5);
  expect(result.low.health).toBe(100);expect(result.low.down).toBe(0);
  expect(Math.abs(result.low.y-result.rest)).toBeLessThan(0.05);
- // Two metres: past 0.1 units a frame the glide turns into FALL_fall and the landing is a collapse, still unhurt.
- // Once he is up again an idle may follow; the fall itself is the first three.
- expect(result.mid.clips.slice(0,3)).toEqual(['fall_glide','fall_fall','fall_collapse']);
+ // Two metres: past 0.1 units a frame, but CTaskSimpleInAir's vertical line (4 units down) still finds the ground, so
+ // the glide never turns into FALL_fall and he lands softly, unhurt.
+ expect(result.mid.clips.slice(0,2)).toEqual(['fall_glide','fall_land']);
  expect(result.mid.peakFall).toBeLessThan(-8);expect(result.mid.peakFall).toBeGreaterThan(-10);
  expect(result.mid.health).toBe(100);expect(result.mid.down).toBe(0);
+ // Five metres: the line finds nothing once he is past 0.1 units a frame, so the glide turns into FALL_fall; landing
+ // past 10 m/s (but under 0.4 units a frame, no knockdown) costs a little health.
+ expect(result.five.clips.slice(0,2)).toEqual(['fall_glide','fall_fall']);
+ expect(result.five.peakFall).toBeLessThan(-10);expect(result.five.peakFall).toBeGreaterThan(-20);
+ expect(result.five.health).toBeLessThan(100);expect(result.five.health).toBeGreaterThan(50);
  // Twelve metres: over 0.4 units a frame the impact knocks him down (KO_skid_back) and costs (speed − 10) × 8 health.
  expect(result.high.clips.slice(0,3)).toEqual(['fall_glide','fall_fall','ko_skid_back']);
  expect(result.high.peakFall).toBeLessThan(-20);

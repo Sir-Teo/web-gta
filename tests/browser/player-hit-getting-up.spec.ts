@@ -21,7 +21,10 @@ test('a shot while CJ gets up gets its own reaction; one while he lies there doe
  const seen=await page.evaluate(()=>new Promise<string[]>(resolve=>{const g=(window as any).__game,s=g.sim,p=s.player.position,h=s.player.heading,out:string[]=[];
   s.damagePlayer(5,true,{weapon:22,from:{x:p.x+Math.sin(h)*5,z:p.z+Math.cos(h)*5}});
   const t=performance.now(),f=()=>{out.push(g.state().nativeCharacter?.reaction??'');if(performance.now()-t<3000)requestAnimationFrame(f);else resolve(out);};requestAnimationFrame(f);}));
- expect(seen.some(r=>/^(hit_|shot_)/.test(r))).toBe(true);
- expect(seen.some(r=>/^getup/.test(r))).toBe(false);
+ // The first frame may come before the step that takes the shot, still on the get-up; from the reaction on, the get-up
+ // never comes back.
+ const reacted=seen.findIndex(r=>/^(hit_|shot_)/.test(r));
+ expect(reacted).toBeGreaterThanOrEqual(0);
+ expect(seen.slice(reacted).some(r=>/^getup/.test(r))).toBe(false);
  expect(errors).toEqual([]);
 });
