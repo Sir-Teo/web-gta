@@ -11680,3 +11680,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   other story contact. Where the script wants an icon alone it says so: INITIAL sets each property blip to
   CHANGE_BLIP_DISPLAY 2 right after making it. The race tournaments' points (also contact points) now show their
   cylinders too, as natively.
+- TASK_TIRED (CASINO4, TRIA; iOS handler 0x1001e63c4) is CTaskSimpleTired: the ped stands still on the default
+  group's IDLE_tired, blended in at 4, for the time given in ms, then blends it out. It goes through the scripted
+  play-anim task, so GET_SCRIPT_TASK_STATUS and sequences see it as they see any task; the command had no handler. (The
+  handler change itself went in with a9ea4218.)

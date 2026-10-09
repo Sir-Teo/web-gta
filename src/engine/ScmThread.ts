@@ -800,7 +800,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  isVehicleAttached?(handle:number):boolean;
  activateMenuItem?(handle:number,row:number,state:boolean):void;
  attachTrailerToCab?(handle:number,cab:number):void;
- taskTired?(handle:number,time:number):void;
  winchCanPickVehicleUp?(handle:number,state:boolean):void;
  setNightVision?(state:boolean):void;
  setAircraftCarrierSamSite?(state:boolean):void;
