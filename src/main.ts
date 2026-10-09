@@ -3456,7 +3456,7 @@ async function boot() {
     // clears the lock) a melee weapon, a thrown one or a used one (goggles, detonator, parachute) sets lookAtTarget and the
     // follow camera stays.
     const aimCamera=weapons.aiming&&(!!firstPerson||(f=>f==='instant'||f==='area')(weapons.inventory.info()?.fire));
-    render.aiming=aimCamera;render.firstPerson=firstPerson;weapons.firstPerson=firstPerson;
+    render.aiming=aimCamera;render.targetHeld=weapons.aiming;render.firstPerson=firstPerson;weapons.firstPerson=firstPerson;
     // PED_SNIPER_ZOOM_IN and ZOOM_OUT held: PgUp and PgDn, with the optional X and Z.
     render.zoomInput.held=input.down('PageUp')||input.down('KeyX')?1:input.down('PageDown')||input.down('KeyZ')?-1:0;
     exitJustDown=false;

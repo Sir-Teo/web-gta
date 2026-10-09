@@ -1,10 +1,14 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** Targeting with a melee weapon: CTaskSimpleFight's stance (FIGHTIDLE), and the stick shuffles CJ on the FightSh
  * clips while he keeps facing where the camera looks. He moves by the shuffle's own root travel, not at a run. */
 test('a targeted melee weapon holds the fight stance and shuffles sideways on the FightSh clips',async({page})=>{
  test.setTimeout(120000);await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:45000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
+ // Off the opening, whose script holds the camera and the controls.
+ await expect.poll(()=>page.evaluate(()=>!!(window as any).__game.missionForProfiling()),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  await page.keyboard.press('Backquote');await page.locator('[data-weapon="5"]').click();
  await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  const probe=()=>page.evaluate(()=>{const g=(window as any).__game,st=g.state(),nc=g.render().nativeCharacter;

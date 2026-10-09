@@ -11717,3 +11717,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   and [0x4b] for mega punch (weapons 0, 1, 46). iOS indexes the cheats 8 above PC's enum (mega punch is 67), so 0x45 is
   CHEAT_INFINITE_HEALTH (61); gta-reversed names it CHEAT_NO_ONE_CAN_STOP_US (77), which would sit 10 below mega punch,
   not 6. Explosions, cars, drowning and falls still hurt, as BAGUVIX is known to leave them (playerWeaponProofCheat).
+- The follow camera's string holds while the target button is held. In a melee weapon's fight stance CJ faces where the
+  camera looks (m_fAimingRotation from the camera), and the authored string camera (9a324304) dragged the camera after
+  his sideways shuffle, so he turned with it, about 70 degrees in a second and a half, and strafed in a circle. An aimed
+  gun already held it (render.aiming); now the target button with any weapon does (render.targetHeld).
+  native-fight-stance.spec.ts runs off the opening and passes every time (it failed every run off it, half under it).

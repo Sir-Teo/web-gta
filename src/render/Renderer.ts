@@ -26,6 +26,9 @@ export class GameRenderer {
   /** Links new objects' shader programs beside the frames instead of in the one they first draw in. */
   readonly programWarmer: ProgramWarmer;
   aiming=false;
+  /** The target button held with a weapon the follow camera stays for (a melee weapon's fight stance, a thrown one):
+   * CJ faces where the camera looks, so the string must not drag it after him. */
+  targetHeld=false;
   /** The touch controls' aim assist (input/aimAssist): the point the aimed follow camera eases the crosshair onto. */
   aimAssist?:{x:number;y:number;z:number};
   private assistPoint=new THREE.Vector3();
@@ -230,7 +233,9 @@ export class GameRenderer {
     // Process_FollowPed_SA is a retail stub too. The follow camera hangs on a string: it keeps its place while the ped
     // moves, so walking away trails it behind him and walking past it swings it round. The string is the line from
     // the ped to where the camera was last frame; the yaw eases onto it while he moves and nobody is looking round.
-    else if(!this.vehicleView&&!fp&&!this.aiming&&this.glance==='none'&&elapsed-this.lastLook>1&&p.speed>.5&&this.cameraReady){
+    // Not while the target button is held: CJ faces the camera then, and the string would turn him with it, round and
+    // round as he shuffles sideways in a fight stance.
+    else if(!this.vehicleView&&!fp&&!this.aiming&&!this.targetHeld&&this.glance==='none'&&elapsed-this.lastLook>1&&p.speed>.5&&this.cameraReady){
       // The follow camera's own place, not a fixed script camera's or the first-person head that may have replaced it.
       const dx=this.followPosition.x-p.position.x,dz=this.followPosition.z-p.position.z;
       if(Math.hypot(dx,dz)>.5)this.yaw+=angleDelta(this.yaw,Math.atan2(dx,dz))*(1-Math.exp(-6*dt));
