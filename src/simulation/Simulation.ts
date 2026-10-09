@@ -270,6 +270,7 @@ export class Simulation {
   /** CPed::Say of a pain context for the player (the host plays it in CJ's PAIN_A voice). */
   onPlayerPain?: (context: PlayerPainContext) => void;
   damagePlayer(amount: number, bypassArmour = false, event?: { weapon: number; from?: { x: number; z: number }; fall?: boolean; fight?: { move: number }; piece?: number;
+    /** The damager is a ped CJ is friendly with (CPedIntelligence::IsFriendlyWith, either way round). */ friendly?: boolean;
     /** CTaskSimplePlayerOnFire's ComputeFireDamage: health only, a CEventDamage only once it kills. */ burning?: boolean }) {
     // CEventDamage::AffectsPed rejects damage to a dead ped. Repeated hazards
     // must not re-arm the death timer while the player is waiting to respawn.
@@ -285,6 +286,9 @@ export class Simulation {
     if(event&&this.playerProofs&&!physicalCanBeDamaged(this.playerProofs,event.weapon))return;
     if(event&&event.weapon<47&&this.playerWeaponProof?.())return;
     amount *= NATIVE_PLAYER_DAMAGE_MULT;
+    // AccountForPedDamageStats again (0x10028a114..0x10028a144): from a ped CJ is friendly with, whatever the weapon, a
+    // tenth of it and 12.5 at most.
+    if (event?.friendly) amount = Math.min(amount * Math.fround(.1), 12.5);
     let armour = 0;
     if (!bypassArmour && this.player.armour > 0) { const absorbed = Math.min(this.player.armour, amount); this.player.armour -= absorbed; amount -= absorbed; armour = absorbed; }
     if (event && megaPunchBlow(event.weapon)) amount = this.player.health;

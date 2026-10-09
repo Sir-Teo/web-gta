@@ -11739,5 +11739,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   member 1.0). Then (0x10028a0c4..0x10028a1a4) the player's blow on a member of his own group, short of a flamethrower
   (37) or a blast (51), is cut to a tenth (0x10058cb80) and to 12.5 at most; so is any hit on CJ from a ped he is
   friendly with (CPedIntelligence::IsFriendlyWith 0x10035c58c: respect or like for its type, or the same type), and a
-  mission ped's from its own group. The last two are not wired yet (damagePlayer has no attacker; script groups).
+  mission ped's from its own group. A street ped's fists or gun on CJ now carry IsFriendlyWith (friendlyWithPlayer:
+  either way round, respect or like for the other's type, or one type) into damagePlayer, which cuts it after the 0.33
+  whatever the weapon; a script rider's drive-by and a mission ped hit by its own group are not wired.
   tests/browser/ped-damage-stats.spec.ts. SMOKE2 (28) passes on the branch.

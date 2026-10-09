@@ -27,3 +27,12 @@ test('under BAGUVIX CJ takes no gunfire, but a fall or a blast still hurts',asyn
   expect(hit(51)).toBeGreaterThan(0);expect(hit(54)).toBeGreaterThan(0);
  }finally{CHEATS.reset();}
 });
+
+// AccountForPedDamageStats: from a ped CJ is friendly with, a tenth of the scaled damage, 12.5 at most, any weapon.
+test('a friend\'s hit on CJ is cut to a tenth, 12.5 at most',async()=>{
+ const {NATIVE_PLAYER_DAMAGE_MULT}=await import('../src/simulation/Simulation');
+ const hit=(amount:number,friendly:boolean,weapon=22)=>{const sim=new Simulation();sim.player.health=100;sim.damagePlayer(amount,false,{weapon,friendly});return 100-sim.player.health;};
+ expect(hit(30,false)).toBeCloseTo(30*NATIVE_PLAYER_DAMAGE_MULT,4);
+ expect(hit(30,true)).toBeCloseTo(30*NATIVE_PLAYER_DAMAGE_MULT*Math.fround(.1),4);
+ expect(hit(1000,true,51)).toBeCloseTo(12.5,4);
+});

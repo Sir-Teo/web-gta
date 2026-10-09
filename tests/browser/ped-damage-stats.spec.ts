@@ -22,7 +22,11 @@ test('a ped takes damage by its defend weakness, and a recruit a tenth of the pl
    const recruitHard=shoot(200,22);
    p.health=1000;p.follow=true;
    const recruitFlame=shoot(10,37);
-   return {tourist,recruit,recruitHard,recruitFlame};
+   // IsFriendlyWith, either way round: a Families member whose table respects PLAYER1 (MAIN sets it), not a civilian.
+   const {NativeAcquaintance}=await import('/src/ped/nativeAcquaintance.ts' as string);
+   const respects=new NativeAcquaintance();respects.setAs(0,1<<0);
+   const friends={homie:crowd.friendlyWithPlayer({pedType:'GANG2',acquaintance:respects}),stranger:crowd.friendlyWithPlayer({pedType:'CIVMALE',acquaintance:new NativeAcquaintance()})};
+   return {tourist,recruit,recruitHard,recruitFlame,friends};
   }finally{crowd.dispose();sim.dispose();}
  });
  // A tourist's 1.8.
@@ -31,4 +35,5 @@ test('a ped takes damage by its defend weakness, and a recruit a tenth of the pl
  expect(result.recruit).toBeCloseTo(1,3);
  expect(result.recruitHard).toBeCloseTo(12.5,3);
  expect(result.recruitFlame).toBeCloseTo(10,3);
+ expect(result.friends).toEqual({homie:true,stranger:false});
 });

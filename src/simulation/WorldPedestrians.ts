@@ -2289,6 +2289,14 @@ export class WorldPedestrians {
  /** The acquaintance a ped holds the player in (PLAYER1): its own table once a command gave it one, else its type's
   * as ped.dat and the script's SET_RELATIONSHIP left it. */
  regardForPlayer(ped:Pedestrian){return (ped.acquaintance??this.pedTypeTable(pedTypeName(ped))).idFor(0);}
+ /** CPedIntelligence::IsFriendlyWith (iOS 0x10035c58c) between the player and a ped, either way round: one respects or
+  * likes the other's ped type, or they are of one type. */
+ friendlyWithPlayer(ped:Acquainted){
+  const type=nativePedType(pedTypeName(ped)),mine=this.playerAcquaintance;
+  if(type===PED_TYPE_PLAYER1||type!==undefined&&((mine.get(ACQUAINTANCE_RESPECT)|mine.get(ACQUAINTANCE_LIKE))&(1<<type))!==0)return true;
+  const theirs=ped.acquaintance??this.pedTypeTable(pedTypeName(ped));
+  return ((theirs.get(ACQUAINTANCE_RESPECT)|theirs.get(ACQUAINTANCE_LIKE))&(1<<PED_TYPE_PLAYER1))!==0;
+ }
  /** Whether a street gang's ped type (CGangs index) hates the player, as ped.dat and the script's relationships stand. */
  gangHatesPlayer(gang:number){const type=NATIVE_PED_TYPES[gangPedType(gang)];return !!type&&this.pedTypeTable(type).idFor(0)===ACQUAINTANCE_HATE;}
  acquaintanceOf(ped:Acquainted){
@@ -3338,7 +3346,7 @@ export class WorldPedestrians {
    return this.stepFight(p,fists.combo,fists.clips,target,canReach,dt,(stage,damage)=>{
     const q=p.actor.player.position,from={x:q.x,z:q.z};this.onThreat?.(p,{...q});
     if(foe){this.strikeFoe(p,foe,stage,damage);return;}
-    if(this.damagesPlayer(p,WEAPON.unarmed)){this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.unarmed,from,fall:meleeAttackFalls(fists.combo,stage),fight:{move:stage}});this.defendPlayer(p);}
+    if(this.damagesPlayer(p,WEAPON.unarmed)){this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.unarmed,from,fall:meleeAttackFalls(fists.combo,stage),fight:{move:stage},friendly:this.friendlyWithPlayer(p)});this.defendPlayer(p);}
     this.onMeleeHit?.({...this.sim.player.position},false);
    });
   }
@@ -3462,7 +3470,7 @@ export class WorldPedestrians {
     const shotDamage=weapon.info.damage*pellets;
     this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre,{id:`ped:${p.id}`,position:()=>p.health>0||this.people.includes(p)?{...p.actor.player.position,y:p.actor.player.position.y+1}:undefined});this.gunShot({...state.position,y:state.position.y+1},false,p.id);
     if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
-    else if(riderHit||shot?.collider.handle===this.sim.playerCollider.handle){if(this.damagesPlayer(p,weapon.info.type)){this.sim.damagePlayer(shotDamage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z},piece:pedPieceAt(this.sim.player.position,this.sim.player.heading,end)});this.defendPlayer(p);}}
+    else if(riderHit||shot?.collider.handle===this.sim.playerCollider.handle){if(this.damagesPlayer(p,weapon.info.type)){this.sim.damagePlayer(shotDamage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z},piece:pedPieceAt(this.sim.player.position,this.sim.player.heading,end),friendly:this.friendlyWithPlayer(p)});this.defendPlayer(p);}}
     else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer){car.damage(shotDamage,undefined,false,undefined,{weapon:weapon.info.type,by:{ped:p}});
      // InflictDamage's random tyre burst: (rand() & 0x7f) under the weapon's chance.
      const chance=aiTyreBurstChance(weapon.info.type);if(chance&&!car.wrecked&&Math.floor(Math.random()*128)<chance)car.burstTyreAt(end);}}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')&&npcDamageReaches(victim,p,weapon.info.type,true,this.hitPiece(victim,end))){victim.lastDamagedBy={ped:p};victim.health=healthAfter(victim.health,shotDamage);if(shotDamage>0)victim.lastWeaponDamage=weapon.info.type;if(!victim.health)this.onKill?.({id:victim.id,officer:victim.officer,gang:victim.gang,pedType:victim.pedType,recruit:!!victim.follow,byPlayer:false});const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,shotDamage,vfrom,end,false),vfrom);}}}
