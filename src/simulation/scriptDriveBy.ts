@@ -29,6 +29,9 @@ export interface ScriptDriveByWorld {
  targetPosition:(target:DriveByTarget)=>{x:number;y:number;z:number}|undefined;
  hitPed:(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3)=>boolean;
  onShot?:(from:Vector3,to:Vector3,weapon:number,hit:boolean)=>void;
+ /** A ped seated in another car whose own collision the line enters within `range` (the windows are open in the native
+  * COL, closed in the browser's): how far along, and the hit to apply to it. `own` is the shooter's car. */
+ seatedShot?:(from:Vector3,direction:Vector3,range:number,own:WorldCar)=>{t:number;hit:(damage:number,weapon:number)=>void}|undefined;
  random:()=>number;
 }
 /** The task as given; its magazine fills at the first step, once the weapon is known. */
@@ -44,7 +47,9 @@ export function stepScriptDriveBy(d:ScriptDriveBy,car:WorldCar,info:NativeWeapon
  const heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y));
  const right={x:Math.cos(heading),z:-Math.sin(heading)},side=d.side==='right'?1:-1;
  const muzzle=new Vector3(p.x+right.x*side,p.y+.75,p.z+right.z*side);
- const aim={x:target.x,y:target.y+(d.target.kind==='point'?0:1),z:target.z};
+ // CTaskSimpleGangDriveBy::FireGun (iOS 0x1003b83c4) hands CWeapon::Fire the target entity and, with no offset given,
+ // no point: a car is shot at where it is (its matrix's origin), a ped a unit over its feet.
+ const aim={x:target.x,y:target.y+(d.target.kind==='point'||d.target.kind==='vehicle'?0:1),z:target.z};
  const toAim=new Vector3(aim.x-muzzle.x,aim.y-muzzle.y,aim.z-muzzle.z),dist=toAim.length();
  const inRange=dist<=Math.min(d.radius,info.weaponRange);
  // A burst starts only when the fire rate lets it.
@@ -60,6 +65,13 @@ export function stepScriptDriveBy(d:ScriptDriveBy,car:WorldCar,info:NativeWeapon
   const shot=world.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),lineLength,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
   const cars=[...world.cars()].filter(c=>c!==car);
   const reach=shot?.timeOfImpact??lineLength,tyre=bulletTyreHit(cars,muzzle,direction,reach);
+  // Through a window to the ped in the seat, before the bodywork: a unit past the shell, as the player's shot.
+  const seated=tyre?undefined:world.seatedShot?.(muzzle,direction,reach+1,car);
+  if(seated&&seated.t<=lineLength){
+   const at=muzzle.clone().addScaledVector(direction,seated.t);d.shots++;world.onShot?.(muzzle,at,info.type,true);seated.hit(info.damage,info.type);
+   if(d.gun.active&&d.gun.time<oldTime)d.aimPoint={...aim};
+   return;
+  }
   const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:reach);d.shots++;
   world.onShot?.(muzzle,end,info.type,!!shot||!!tyre);
   if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');

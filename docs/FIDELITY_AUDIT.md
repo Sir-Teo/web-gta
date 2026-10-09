@@ -11531,3 +11531,17 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   safe-for-cutscene bit and ms_cutsceneProcessing, and calls CPlayerInfo::MakePlayerSafe(false, 10000), which gives the
   player control back. The port did only the densities. SWEET3 sets no player control after SWEET2B, so the chase
   after the drive-thru began with CJ unable to move.
+- A script's ped seated in a car could not be shot. Script riders were not among the seated targets that the player's
+  bullets and the drive-by's test, so SWEET3's Ballas fled untouched by Sweet and Smoke's TASK_DRIVE_BY and the
+  mission failed at Grove Street. CWeapon::CheckForShootingVehicleOccupant (iOS 0x100498190) passes a bullet that
+  reaches a car to an occupant whose bCanBeShotInVehicle is on, as every ped's is. The script's front-seat riders are
+  now seated targets, with SET_CHAR_CAN_BE_SHOT_IN_VEHICLE honoured. One the script made only damaged by the player
+  takes no harm from anyone else, and one shot dead stays slumped in the seat (CAR_dead_LHS/RHS).
+  - The port still tests the seated ped's ms_colModelPed1 spheres at the seat. On iOS, ProcessLineOfSightSectorList
+    (0x100270868) skips a ped with no collision unless it is attached, dead (bIncludeDeadPeds), or flagged at +0x592
+    bit 4 under bIncludeBikers. The occupant check is then one sphere of 0.2 at the head node + 0.1 (piece 9), tested
+    only when the line reaches that car. That refactor is queued.
+- TASK_DRIVE_BY at a car aimed a unit over its middle. CTaskSimpleGangDriveBy::FireGun (iOS 0x1003b83c4) hands
+  CWeapon::Fire the target entity and, with no offset given, no point, so a car is shot at where it is.
+- A script ped that dies has its script tasks flushed for CTaskComplexDie. A driver's car stops (MISSION_NONE, its
+  brakes on) rather than driving the rest of the sequence with him dead at the wheel.

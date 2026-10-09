@@ -3277,8 +3277,12 @@ export class ScmMission {
  /** Each runner's task, a frame on: over when the ped no longer holds it, its wait is out, or the ped it waits for is
   * built. A task the browser cannot begin ends the runner, and the thread is told nothing (it has moved on). */
  private processRunners(dt:number){
+  // A dead ped's tasks are flushed for CTaskComplexDie (a driver shot at the wheel: PreparePedVehicleForPedDeath leaves
+  // his car with no mission, its brakes on), so its sequence goes no further.
+  for(const handle of this.drivingTasks)if(this.peds.exists(handle)&&this.peds.isDead(handle))this.dropRunner(handle);
   for(const [handle,r] of this.runners){
    if(!this.peds.exists(handle)){this.runners.delete(handle);continue;}
+   if(this.peds.isDead(handle)){this.dropRunner(handle);continue;}
    try{
     const step=r.step,entity=this.peds.entity(handle);
     if(!step){this.advanceRunner(handle);continue;}

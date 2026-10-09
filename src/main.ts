@@ -39,6 +39,10 @@ interface ScriptRider{rider:true;model:number|string;car:import('./simulation/Wo
  /** TASK_DRIVE_BY: the rider leans out and fires (scriptDriveBy). */
  driveBy?:import('./simulation/scriptDriveBy').ScriptDriveBy;
  seat:number|'driver';health:number;heading:number;accuracy:number;invulnerable:boolean;gone:boolean;
+ /** Shot dead where it sat (CTaskSimpleDieInCar): held slumped in the seat, CAR_dead_LHS/RHS on its last frame. */
+ diedInSeat?:boolean;
+ /** bCanBeShotInVehicle (SET_CHAR_CAN_BE_SHOT_IN_VEHICLE), on unless a script turns it off. */
+ canBeShotInVehicle?:boolean;
  /** The drive-by is the group's answer to a threat (CTaskAllocatorKillThreatsDriveby), not the script's, and on whom. */
  groupDriveBy?:string;
  /** Where on the car the ped hangs, in the car's own axes, for one attached rather than seated. */
@@ -49,6 +53,15 @@ interface ScriptRider{rider:true;model:number|string;car:import('./simulation/Wo
  clip?:{name:string;animation?:import('./assets/ifp').NativeAnimation;started:number;loop:boolean;hold:boolean;seconds:number;failed?:boolean}}
 const scriptRiders=new Set<ScriptRider>();
 const asRider=(entity:unknown)=>(entity as ScriptRider|undefined)?.rider?entity as ScriptRider:undefined;
+/** A bullet into a script's ped in its seat (CWeapon::CheckForShootingVehicleOccupant, iOS 0x100498190, hands the hit from
+ * the car to the occupant): the weapon's damage off its health, none from anyone but the player for one the script made
+ * only damaged by him (its `invulnerable`). At no health it dies where it sits, and the script sees it dead. */
+function scriptRiderShot(rider:ScriptRider,damage:number,_weapon:number,byPlayer:boolean):'hit'|'killed'{
+ if(rider.health<=0||rider.invulnerable&&!byPlayer)return 'hit';
+ rider.health=Math.max(0,rider.health-damage);
+ if(rider.health>0)return 'hit';
+ rider.diedInSeat=true;return 'killed';
+}
 /** A script vehicle that is a car (WorldCar) rather than a bike, boat, aircraft or train carriage. */
 const isScriptCar=(v:unknown):v is import('./simulation/WorldCar').WorldCar=>!!v&&typeof (v as {setPedInAsDriver?:unknown}).setPedInAsDriver==='function';
 /** A script vehicle CAutoPilot drives: a car, or a bike, whose rider takes the autopilot's pedals. */
@@ -61,7 +74,7 @@ function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp'
  bikeClip?:(block:string,name:string)=>import('./assets/ifp').NativeAnimation|undefined,nowMs=0){
  const poses:import('./render/VehicleOccupants').OccupantPose[]=[];
  for(const rider of scriptRiders){
-  if(rider.gone||rider.car.disposed||rider.health<=0){scriptRiders.delete(rider);continue;}
+  if(rider.gone||rider.car.disposed||rider.health<=0&&!rider.diedInSeat){scriptRiders.delete(rider);continue;}
   // A clip the script plays on the seated rider takes the place of the seat's own pose: looped, or held at its end.
   const own=rider.clip?.animation,played=own&&rider.clip?{clip:rider.clip.name,animation:own,seconds:own.duration>0?(rider.clip.loop?((nowMs-rider.clip.started)/1000)%own.duration:Math.min((nowMs-rider.clip.started)/1000,own.duration)):0}:undefined;
   // A bike's rider sits on the saddle with the ride group's clip, as the player does: still, riding or pedalling by
@@ -86,6 +99,7 @@ function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp'
   // seat point, and the browser's cars carry one on each side.
   const seat=rider.offset??rider.car.seat(rider.seat==='driver'?'left':'right');
   if(!seat||!rider.offset&&typeof rider.seat==='number'&&rider.seat!==0)continue;
+  if(rider.diedInSeat&&!rider.offset){poses.push({key:`script:${rider.car.car.body.handle}:${rider.seat}`,car:rider.car,model:rider.model,local:seat,clip:rider.seat==='driver'?'car_dead_lhs':'car_dead_rhs',seconds:1e6});continue;}
   // A drive-by rider plays GANG_DRIVEBYLHS/RHS on the window it fires from, the gun in its hand.
   const d=rider.driveBy,clipName=d&&`gang_driveby${d.side==='left'?'lhs':'rhs'}`,clip=clipName?driveBy?.clip(clipName):undefined;
   if(d&&clip&&clip.duration>0&&!rider.offset){
@@ -549,6 +563,11 @@ async function boot() {
     return at&&{x:at.x,y:at.z-(target.kind==='ped'?PED_ORIGIN_HEIGHT:0),z:-at.y};
    },
    hitPed:(collider,damage,weapon,direction,end)=>!!pedestrians?.bulletHit(collider,damage,weapon,direction,end),
+   // A script's ped seated in the car the line reaches (SWEET3's Ballas, shot by Sweet and Smoke from CJ's Greenwood).
+   seatedShot:(from,direction,range,own)=>{
+    const seated=weapons.seatedHit(from,direction,range,own);if(!seated||seated.target.kind!=='script')return undefined;
+    const rider=seated.target.rider as ScriptRider;return {t:seated.t,hit:(damage,weapon)=>{scriptRiderShot(rider,damage,weapon,false);}};
+   },
    onShot:(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');}};
   /** CTaskAllocatorKillThreatsDriveby (reversed) for CJ's group while he drives: every member riding his car (not
    * driving it) gets CTaskSimpleGangDriveBy on the threat, abort range 60, frequency 90, all directions.
@@ -5118,8 +5137,15 @@ async function boot() {
              for(const car of fleet?.cars??[]){if(!car.autopilot||car.occupied||car.driverOut||car.wrecked||policeCars.has(car)||driveby?.covers(car)||emergency?.covers(car))continue;const seat=car.seat('left');if(seat)out.push({car,seat:0,local:seat,kind:'traffic'});}
              for(const c of police?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'police'});
              for(const c of driveby?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'driveby'});
+             // A script's peds in the front seats of its cars (the occupant renderer's two seat points), not of the car the
+             // player is in.
+             for(const r of scriptRiders){
+              if(r.gone||r.health<=0||r.offset||r.canBeShotInVehicle===false||!isScriptCar(r.car)||r.car.wrecked||r.car.disposed||r.car===fleet?.occupied||r.car===carEntry.car)continue;
+              if(r.seat!=='driver'&&r.seat!==0)continue;
+              const local=r.car.seat(r.seat==='driver'?'left':'right');if(local)out.push({car:r.car,seat:r.seat==='driver'?0:1,local,kind:'script',rider:r});
+             }
              return out;};
-            weapons.onSeatedShot=(target,damage)=>target.kind==='police'?police?.crewShot(target.car,target.seat,damage):target.kind==='driveby'?driveby?.crewShot(target.car,target.seat,damage):traffic?.driverShot(target.car,damage);
+            weapons.onSeatedShot=(target,damage,weapon)=>target.kind==='script'?scriptRiderShot(target.rider as ScriptRider,damage,weapon,true):target.kind==='police'?police?.crewShot(target.car,target.seat,damage):target.kind==='driveby'?driveby?.crewShot(target.car,target.seat,damage):traffic?.driverShot(target.car,damage);
             if(driveby)driveby.onCrewDiesOut=(car,model)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading,car.gang))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading(),car.gang);}};
             if(police)police.onCrewDiesOut=(car,model)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading());}};
             // CTaskComplexLeaveCarAndFlee (a tyre shot out, R_Weak.ped): CTaskComplexLeaveCar without waiting for the car to
@@ -5516,7 +5542,7 @@ async function boot() {
                  clearScriptPedRelationship:(ped,relationship,pedType)=>{const p=onFoot(ped);if(p)pedestrians?.clearRelationship(p,relationship,pedType);},
                  // CLEAR_ALL_CHAR_RELATIONSHIPS empties one acquaintance, which is the list it names.
                  clearScriptPedRelationships:(ped,relationship)=>{const p=onFoot(ped);if(p&&pedestrians)pedestrians.acquaintanceOf(p).clear(relationship);},
-                 setScriptPedFlag:(ped,flag,value)=>{const p=onFoot(ped);if(p)pedestrians?.setFlag(p,flag,value);},
+                 setScriptPedFlag:(ped,flag,value)=>{const p=onFoot(ped);if(p)pedestrians?.setFlag(p,flag,value);else{const r=asRider(ped);if(r&&flag==='canBeShotInVehicle')r.canBeShotInVehicle=value;}},
                  setScriptPickupMoneyPerDay:(handle,money)=>{pickups.patchGenerated(`script:${handle}`,{revenueRate:money});},
                  // bNoCriticalHits is the command's own value inverted.
                  setScriptPedCriticalHits:(ped,suffers)=>{const p=onFoot(ped);if(p)p.noCriticalHits=!suffers;},

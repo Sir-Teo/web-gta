@@ -3,7 +3,9 @@ import {THROW_START_CLIP,THROW_CLIP,THROW_UP_CLIP,THROW_FORCE_PER_COUNTER,throwC
 import {Vector3,Quaternion} from 'three';
 import {SEATED_PED_SPHERE_OFFSETS,seatedPedHit} from '../vehicle/nativeDieInCar';
 /** A seated NPC a bullet can reach: its car, seat index and seat local (native car space). */
-export interface SeatedTarget {car:import('../simulation/WorldCar').WorldCar;seat:number;local:Vec3;kind:'traffic'|'police'|'driveby'}
+export interface SeatedTarget {car:import('../simulation/WorldCar').WorldCar;seat:number;local:Vec3;kind:'traffic'|'police'|'driveby'|'script';
+ /** A script's ped in its seat: the host's own record of it. */
+ rider?:unknown}
 import type {WorldPlane} from '../simulation/WorldPlane';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {WeaponInventory} from './Inventory';
@@ -154,11 +156,12 @@ export class WeaponSystem {
  /** A seated ped hit through the window: the host applies CPed damage and CTaskComplexDieInCar. */
  onSeatedShot?:(target:SeatedTarget,damage:number,weapon:number)=>'hit'|'killed'|undefined;
  /** CWorld::ProcessLineOfSight against seated peds: the nearest seated NPC whose ms_colModelPed1 spheres (at the seat
-  * dummy) the shot line enters within `range`, with the entry distance. */
- private seatedHit(source:Vec3,direction:Vec3,range:number){
+  * dummy) the shot line enters within `range`, with the entry distance. A shooter in a car (a drive-by) passes it, so its
+  * own crew is not in the line. */
+ seatedHit(source:Vec3,direction:Vec3,range:number,except?:unknown){
   let best:{target:SeatedTarget;t:number}|undefined;
   for(const target of this.seatedPeds?.()??[]){
-   const seat=target.local,car=target.car;
+   const seat=target.local,car=target.car;if(car===except)continue;
    const centers=SEATED_PED_SPHERE_OFFSETS.map(z=>car.worldPoint({x:seat.x,y:seat.y,z:seat.z+z}));
    const t=seatedPedHit(source,direction,centers,range);
    if(t!==undefined&&(!best||t<best.t))best={target,t};
