@@ -17,9 +17,12 @@ test('a pistol through the patrol car window wounds the cop at the wheel and the
  const unit=async()=>(await state()).police.units.find((u:any)=>u.handle===target);
  const shoot=()=>page.evaluate((handle:number)=>{const g=(window as any).__game;const head=g.driverHead(handle);const s=g.state();const p=s.player.position;
   const eye={x:head.x-3,y:head.y,z:head.z};g.placePlayer(eye.x,p.y,eye.z);g.turnPlayer(Math.PI/2);
-  return g.weapons().fire({origin:{x:eye.x,y:head.y,z:eye.z},direction:{x:1,y:0,z:0}});},target);
- await shoot();await page.waitForTimeout(200);
- await expect.poll(async()=>(await unit())?.health[0],{timeout:5000}).toBeLessThan(100);
+  // The bullet leaves the muzzle for the point the crosshair line first meets (Find3rdPersonCamTargetVector): the
+  // crosshair laid along the muzzle-to-head line puts the shot through the head sphere.
+  const m=g.weapons().muzzle?.()??{x:eye.x,y:p.y+1.3,z:eye.z},d={x:head.x-m.x,y:head.y-m.y,z:head.z-m.z},l=Math.hypot(d.x,d.y,d.z);
+  return g.weapons().fire({origin:{...m},direction:{x:d.x/l,y:d.y/l,z:d.z/l}});},target);
+ // The free-aim spread can carry a shot off the 0.2 head sphere: a few, as a player fires.
+ await expect.poll(async()=>{await shoot();await page.waitForTimeout(200);return (await unit())?.health[0];},{timeout:10000,intervals:[0]}).toBeLessThan(100);
  // (The pistol fires about every other try at this pace, and on a loaded machine the game runs slower than the clock.)
  for(let i=0;i<40;i++){const u=await unit();if(!u||u.dying||u.dead[0]||u.crew===0)break;await shoot();await page.waitForTimeout(250);}
  const dying=await unit();expect(dying.dying||dying.dead[0]||dying.crew===0).toBe(true);

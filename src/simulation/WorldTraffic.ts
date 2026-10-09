@@ -156,7 +156,7 @@ export class WorldTraffic {
  snapshot(){return {ready:!!this.paths,pending:this.busy,error:this.error??null,cars:this.drivers.filter(d=>!d.car.disposed).map(d=>{
   const p=d.car.car.body.translation(),here=lanePoint(travel(d.current),d.currentLane),t=travel(d.current),n=toNative(p);
   const r=d.car.car.body.rotation(),f=toNative(new Vector3(0,0,-1).applyQuaternion(new Quaternion(r.x,r.y,r.z,r.w))),fl=Math.hypot(f.x,f.y)||1,tl=Math.hypot(t.forward.x,t.forward.y)||1;
-  return {modelId:d.car.modelId,position:{...p},speed:Math.hypot(d.car.car.body.linvel().x,d.car.car.body.linvel().z),cruiseSpeed:d.cruiseSpeed,lane:d.currentLane,raged:!!d.raged,fleeScene:!!d.fleeScene,fled:!!d.fled,health:d.health,dying:!!d.dying,dead:!!d.dead,deadInSeat:!!d.deadInSeat,
+  return {handle:d.car.car.body.handle,modelId:d.car.modelId,position:{...p},speed:Math.hypot(d.car.car.body.linvel().x,d.car.car.body.linvel().z),cruiseSpeed:d.cruiseSpeed,lane:d.currentLane,raged:!!d.raged,fleeScene:!!d.fleeScene,fled:!!d.fled,health:d.health,dying:!!d.dying,dead:!!d.dead,deadInSeat:!!d.deadInSeat,
    laneError:Math.abs((n.x-here.x)*t.forward.y-(n.y-here.y)*t.forward.x),
    /** Cosine between the car's heading and its link's direction of travel. */
    alignment:+((f.x*t.forward.x+f.y*t.forward.y)/(fl*tl)).toFixed(3),stopped:d.stopped,temp:d.temp?.action??null,avoidCars:d.avoidCars,honk:{car:d.car.honkAtCar,ped:d.car.honkAtPed,counter:d.car.horn.counter},

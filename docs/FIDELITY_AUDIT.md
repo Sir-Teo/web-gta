@@ -11577,3 +11577,19 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   the nearest node. SWEET4 makes two of its last Ballas under an overhang of Glen Park's COL (laemacpark01 has no floor
   there in the original either), and the port held them in the air for good. The 16th kill never came, so the drive
   never ended. One put down at FindGroundZForCoord's fallback still waits.
+- A bullet reaches a car's occupant through CWeapon::CheckForShootingVehicleOccupant (iOS 0x100498190) alone. When the
+  line's first hit is a car, each occupant with bCanBeShotInVehicle on is one sphere of 0.2 about its head node lifted
+  0.1 (piece 9), tested along the whole line, and the nearest takes the hit. ProcessLineOfSightSectorList (iOS
+  0x100270868, gta-reversed World.cpp, the two agreeing branch for branch) tests a ped without collision, as every
+  seated one is, only when it is attached, dead under bIncludeDeadPeds, or bTestForShotInVehicle under
+  bIncludeBikers. The writer of that flag is not found. That SET_CHAR_CAN_BE_SHOT_IN_VEHICLE protects at all is what
+  settles that car occupants have no other path. The port had read gta-reversed as testing the seated ped's own three
+  ms_colModelPed1 spheres of 0.35 about the seat on any line within a unit of the shell, which made drivers easy to hit.
+  - The head is the drawn occupant's head node. Undrawn, it is the seat point plus (0, −0.23, 0.64) in the car's axes,
+    measured from the drawn CAR_sit pose.
+  - It is a head hit: an instant-hit gun kills outright (ComputeWillForceDeath) unless the ped is spared critical
+    hits. SWEET3 spares its Ballas, who take the drive-by's 20 a hit.
+  - The shooter's own car is passed by the shot, not left out for everyone, so a drive-by at CJ's car can hit script
+    peds riding with him.
+  - Bike riders (the bTestForShotInVehicle path) are as they were. The windscreen smash on a front hit (automobiles,
+    +0x734) is not ported.

@@ -1,12 +1,16 @@
-/* A ped shot in a car (gta-reversed ead3051). CWorld::ProcessLineOfSight tests the seated ped's own collision, the
- * three CTempColModels::ms_colModelPed1 spheres of radius 0.35 at z −0.2, 0.2 and 0.6 about the ped origin, which
- * sits at the seat dummy, so a bullet through the open window reaches the driver. CTaskComplexDie then runs
- * CTaskComplexDieInCar: death by explosion, in an aircraft, or with the car already still (CVehicle::CanPedStepOutCar)
- * ends in the seat or straight out of the door; otherwise PreparePedVehicleForPedDeath drops the cruise speed to zero,
- * the driver keeps the wheel for 2000 ms, and then he leaves and dies (CTaskComplexLeaveCarAndDie) if the car can be
- * stepped out of, or dies in the seat (CTaskSimpleDieInCar, CAR_dead_LHS) if it is still moving. Native units. */
+/* A ped shot in a car. A seated ped has no collision of its own (CCarEnterExit::SetPedInCarDirect turns it off), and
+ * CWorld::ProcessLineOfSightSectorList (iOS 0x100270868, gta-reversed World.cpp) tests a ped without collision only when
+ * it is attached, dead under bIncludeDeadPeds, or flagged bTestForShotInVehicle under bIncludeBikers. A bullet reaches a
+ * car's occupant through CWeapon::CheckForShootingVehicleOccupant (iOS 0x100498190) alone: when the line's first hit is
+ * the car, each occupant with bCanBeShotInVehicle on is one sphere of 0.2 about its head node lifted 0.1 (piece 9, the
+ * head), tested along the whole line, and the nearest takes the hit. CTaskComplexDie then runs CTaskComplexDieInCar:
+ * death by explosion, in an aircraft, or with the car already still (CVehicle::CanPedStepOutCar) ends in the seat or
+ * straight out of the door; otherwise PreparePedVehicleForPedDeath drops the cruise speed to zero, the driver keeps the
+ * wheel for 2000 ms, and then he leaves and dies (CTaskComplexLeaveCarAndDie) if the car can be stepped out of, or dies
+ * in the seat (CTaskSimpleDieInCar, CAR_dead_LHS) if it is still moving. */
 export type V3={x:number;y:number;z:number};
-export const SEATED_PED_SPHERE_RADIUS=0.35,SEATED_PED_SPHERE_OFFSETS=[-0.2,0.2,0.6] as const;
+/** The occupant's sphere: its radius (iOS 0x10058ca0c) and the lift over the head node (0x10058cb80). */
+export const OCCUPANT_HEAD_RADIUS=0.2,OCCUPANT_HEAD_LIFT=0.1;
 export const DIE_IN_CAR_OFFSET_MS=2000;
 /** The entry distance of a ray into a sphere, or undefined. */
 export function raySphere(origin:V3,direction:V3,center:V3,radius:number){
@@ -15,10 +19,10 @@ export function raySphere(origin:V3,direction:V3,center:V3,radius:number){
  const disc=b*b-c;if(disc<0)return undefined;
  const t=-b-Math.sqrt(disc);return t>=0?t:c<=0?0:undefined;
 }
-/** The nearest hit among the seated ped's spheres (world centres), within `range`. */
-export function seatedPedHit(origin:V3,direction:V3,centers:readonly V3[],range:number){
- let best:number|undefined;
- for(const c of centers){const t=raySphere(origin,direction,c,SEATED_PED_SPHERE_RADIUS);if(t!==undefined&&t<=range&&(best===undefined||t<best))best=t;}
+/** The nearest of the occupants' head spheres (centres already lifted) the line enters within `range`, with its index. */
+export function occupantHeadHit(origin:V3,direction:V3,heads:readonly V3[],range:number){
+ let best:{t:number;index:number}|undefined;
+ heads.forEach((c,index)=>{const t=raySphere(origin,direction,c,OCCUPANT_HEAD_RADIUS);if(t!==undefined&&t<=range&&(!best||t<best.t))best={t,index};});
  return best;
 }
 /** CVehicle::CanPedStepOutCar(false): still (speed under 0.01 a step in the plane, 0.05 vertically, turning under

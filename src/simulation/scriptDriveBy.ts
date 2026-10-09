@@ -29,9 +29,9 @@ export interface ScriptDriveByWorld {
  targetPosition:(target:DriveByTarget)=>{x:number;y:number;z:number}|undefined;
  hitPed:(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3)=>boolean;
  onShot?:(from:Vector3,to:Vector3,weapon:number,hit:boolean)=>void;
- /** A ped seated in another car whose own collision the line enters within `range` (the windows are open in the native
-  * COL, closed in the browser's): how far along, and the hit to apply to it. `own` is the shooter's car. */
- seatedShot?:(from:Vector3,direction:Vector3,range:number,own:WorldCar)=>{t:number;hit:(damage:number,weapon:number)=>void}|undefined;
+ /** CheckForShootingVehicleOccupant for a line whose first hit is `hitBody`: the occupant of that car whose head sphere
+  * the line enters within `range`, how far along, and the hit to apply to it. `own` is the shooter's car. */
+ seatedShot?:(from:Vector3,direction:Vector3,range:number,own:WorldCar,hitBody:unknown)=>{t:number;hit:(damage:number,weapon:number)=>void}|undefined;
  random:()=>number;
 }
 /** The task as given; its magazine fills at the first step, once the weapon is known. */
@@ -65,8 +65,8 @@ export function stepScriptDriveBy(d:ScriptDriveBy,car:WorldCar,info:NativeWeapon
   const shot=world.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),lineLength,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
   const cars=[...world.cars()].filter(c=>c!==car);
   const reach=shot?.timeOfImpact??lineLength,tyre=bulletTyreHit(cars,muzzle,direction,reach);
-  // Through a window to the ped in the seat, before the bodywork: a unit past the shell, as the player's shot.
-  const seated=tyre?undefined:world.seatedShot?.(muzzle,direction,reach+1,car);
+  // A line whose first hit is a car may hand the hit on to one of its occupants, along the whole line.
+  const seated=tyre||!shot?undefined:world.seatedShot?.(muzzle,direction,lineLength,car,shot.collider.parent());
   if(seated&&seated.t<=lineLength){
    const at=muzzle.clone().addScaledVector(direction,seated.t);d.shots++;world.onShot?.(muzzle,at,info.type,true);seated.hit(info.damage,info.type);
    if(d.gun.active&&d.gun.time<oldTime)d.aimPoint={...aim};

@@ -43,6 +43,8 @@ interface ScriptRider{rider:true;model:number|string;car:import('./simulation/Wo
  diedInSeat?:boolean;
  /** bCanBeShotInVehicle (SET_CHAR_CAN_BE_SHOT_IN_VEHICLE), on unless a script turns it off. */
  canBeShotInVehicle?:boolean;
+ /** bNoCriticalHits (SET_CHAR_SUFFERS_CRITICAL_HITS off). */
+ noCriticalHits?:boolean;
  /** The drive-by is the group's answer to a threat (CTaskAllocatorKillThreatsDriveby), not the script's, and on whom. */
  groupDriveBy?:string;
  /** Where on the car the ped hangs, in the car's own axes, for one attached rather than seated. */
@@ -158,7 +160,7 @@ import {WantedHud} from './ui/WantedHud';
 import {hudAmmoText} from './ui/nativeAmmoText';
 import {radarRange} from './ui/nativeRadar';
 import {carsStrikePlayer} from './simulation/playerCarHit';
-import {WeaponSystem,playerAimReach} from './weapons/WeaponSystem';
+import {WeaponSystem,playerAimReach,SEATED_HEAD_OFFSET} from './weapons/WeaponSystem';
 import {AIM_CROSSHAIR_NDC,pickAimTarget} from './input/aimAssist';
 import {WeaponView} from './weapons/WeaponView';
 import {WorldFx} from './simulation/fx/WorldFx';
@@ -568,9 +570,10 @@ async function boot() {
    },
    hitPed:(collider,damage,weapon,direction,end)=>!!pedestrians?.bulletHit(collider,damage,weapon,direction,end),
    // A script's ped seated in the car the line reaches (SWEET3's Ballas, shot by Sweet and Smoke from CJ's Greenwood).
-   seatedShot:(from,direction,range,own)=>{
-    const seated=weapons.seatedHit(from,direction,range,own);if(!seated||seated.target.kind!=='script')return undefined;
-    const rider=seated.target.rider as ScriptRider;return {t:seated.t,hit:(damage,weapon)=>{scriptRiderShot(rider,damage,weapon,false);}};
+   seatedShot:(from,direction,range,own,hitBody)=>{
+    const seated=weapons.seatedHit(from,direction,range,hitBody,own);if(!seated||seated.target.kind!=='script')return undefined;
+    const target=seated.target,rider=target.rider as ScriptRider;
+    return {t:seated.t,hit:(damage,weapon)=>{scriptRiderShot(rider,WeaponSystem.occupantDamage(target,damage,weapon),weapon,false);}};
    },
    onShot:(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');}};
   /** CTaskAllocatorKillThreatsDriveby (reversed) for CJ's group while he drives: every member riding his car (not
@@ -3032,7 +3035,11 @@ async function boot() {
     /** Dev: the traffic, weapons and occupants. */
     traffic:()=>traffic,weapons:()=>weapons,occupants:()=>occupants,
     /** Dev: the world head-sphere centre of a car's seated driver (renderer frame), by body handle. */
-    driverHead:(handle:number)=>{const car=fleet?.carById(`handle:${handle}`);const seat=car?.seat('left');return car&&seat?car.worldPoint({x:seat.x,y:seat.y,z:seat.z+.6}):null;},
+    /** The centre of a traffic driver's head sphere (CheckForShootingVehicleOccupant): his drawn head node, or the seat's
+     * measured head offset, lifted 0.1. Renderer axes. */
+    driverHead:(handle:number)=>{const car=fleet?.carById(`handle:${handle}`);const seat=car?.seat('left');if(!car||!seat)return null;
+     const head=occupants.headOf(`driver:${handle}`)??car.worldPoint({x:seat.x+SEATED_HEAD_OFFSET.x,y:seat.y+SEATED_HEAD_OFFSET.y,z:seat.z+SEATED_HEAD_OFFSET.z});
+     return {x:head.x,y:head.y+.1,z:head.z};},
     /** Dev: the world effects. */
     fx:()=>worldFx,
     /** Dev: the renderer (scene, camera, three.js renderer). */
@@ -5169,15 +5176,16 @@ async function boot() {
             traffic.onDriverDeadInSeat=car=>occupants.markDeadInSeat(car);
             // The seated peds a bullet can reach: traffic drivers and police crews (drive-by crews stay with their own module).
             weapons.seatedPeds=()=>{const policeCars=new Set(police?.units.map(u=>u.car));const out:import('./weapons/WeaponSystem').SeatedTarget[]=[];
-             for(const car of fleet?.cars??[]){if(!car.autopilot||car.occupied||car.driverOut||car.wrecked||policeCars.has(car)||driveby?.covers(car)||emergency?.covers(car))continue;const seat=car.seat('left');if(seat)out.push({car,seat:0,local:seat,kind:'traffic'});}
-             for(const c of police?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'police'});
-             for(const c of driveby?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'driveby'});
-             // A script's peds in the front seats of its cars (the occupant renderer's two seat points), not of the car the
-             // player is in.
+             for(const car of fleet?.cars??[]){if(!car.autopilot||car.occupied||car.driverOut||car.wrecked||policeCars.has(car)||driveby?.covers(car)||emergency?.covers(car))continue;const seat=car.seat('left');if(seat)out.push({car,seat:0,local:seat,kind:'traffic',head:occupants.headOf(`driver:${car.car.body.handle}`)});}
+             for(const c of police?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'police',head:occupants.headOf(`police:${c.car.car.body.handle}:${c.seat}`)});
+             for(const c of driveby?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'driveby',head:occupants.headOf(`driveby-${c.seat===0?'driver':'shooter'}:${c.car.car.body.handle}`)});
+             // A script's peds in the front seats of its cars (the occupant renderer's two seat points). The shooter's own
+             // car is left out by the shot, not here: a drive-by at CJ's car can hit the homies riding with him.
              for(const r of scriptRiders){
-              if(r.gone||r.health<=0||r.offset||r.canBeShotInVehicle===false||!isScriptCar(r.car)||r.car.wrecked||r.car.disposed||r.car===fleet?.occupied||r.car===carEntry.car)continue;
+              if(r.gone||r.health<=0||r.offset||r.canBeShotInVehicle===false||!isScriptCar(r.car)||r.car.wrecked||r.car.disposed)continue;
               if(r.seat!=='driver'&&r.seat!==0)continue;
-              const local=r.car.seat(r.seat==='driver'?'left':'right');if(local)out.push({car:r.car,seat:r.seat==='driver'?0:1,local,kind:'script',rider:r});
+              const local=r.car.seat(r.seat==='driver'?'left':'right');
+              if(local)out.push({car:r.car,seat:r.seat==='driver'?0:1,local,kind:'script',rider:r,noCriticalHits:r.noCriticalHits,head:occupants.headOf(`script:${r.car.car.body.handle}:${r.seat}`)});
              }
              return out;};
             weapons.onSeatedShot=(target,damage,weapon)=>target.kind==='script'?scriptRiderShot(target.rider as ScriptRider,damage,weapon,true):target.kind==='police'?police?.crewShot(target.car,target.seat,damage):target.kind==='driveby'?driveby?.crewShot(target.car,target.seat,damage):traffic?.driverShot(target.car,damage);
@@ -5580,7 +5588,7 @@ async function boot() {
                  setScriptPedFlag:(ped,flag,value)=>{const p=onFoot(ped);if(p)pedestrians?.setFlag(p,flag,value);else{const r=asRider(ped);if(r&&flag==='canBeShotInVehicle')r.canBeShotInVehicle=value;}},
                  setScriptPickupMoneyPerDay:(handle,money)=>{pickups.patchGenerated(`script:${handle}`,{revenueRate:money});},
                  // bNoCriticalHits is the command's own value inverted.
-                 setScriptPedCriticalHits:(ped,suffers)=>{const p=onFoot(ped);if(p)p.noCriticalHits=!suffers;},
+                 setScriptPedCriticalHits:(ped,suffers)=>{const p=onFoot(ped);if(p)p.noCriticalHits=!suffers;else{const r=asRider(ped);if(r)r.noCriticalHits=!suffers;}},
                  recolourScriptVehicleExtras:(car,tertiary,quaternary)=>{if(isScriptCar(car))fleet?.recolourCar(car,tertiary,quaternary,2);},
                  setScriptVehicleFreebies:(car,on)=>{if(isScriptCar(car))car.freebies=on;},
                  setScriptVehicleCarCheats:(car,on)=>{if(isScriptCar(car))car.useCarCheats=on;},

@@ -1,11 +1,21 @@
 import {PLANE_GUN_SHAKE,ROCKET_SHAKE} from '../engine/nativePadShakes';
 import {THROW_START_CLIP,THROW_CLIP,THROW_UP_CLIP,THROW_FORCE_PER_COUNTER,throwClip,throwFireTime,throwFiresNow,throwButtonCounter,type ThrowClip} from './nativeThrowProjectile';
 import {Vector3,Quaternion} from 'three';
-import {SEATED_PED_SPHERE_OFFSETS,seatedPedHit} from '../vehicle/nativeDieInCar';
+import {OCCUPANT_HEAD_LIFT,occupantHeadHit} from '../vehicle/nativeDieInCar';
+import {isInstantHitGun} from '../simulation/WorldPedestrians';
 /** A seated NPC a bullet can reach: its car, seat index and seat local (native car space). */
 export interface SeatedTarget {car:import('../simulation/WorldCar').WorldCar;seat:number;local:Vec3;kind:'traffic'|'police'|'driveby'|'script';
  /** A script's ped in its seat: the host's own record of it. */
- rider?:unknown}
+ rider?:unknown;
+ /** Its head node in the world (renderer axes), where its view is drawn; else it is taken to be SEATED_HEAD_OFFSET from
+  * the seat point. */
+ head?:Vec3;
+ /** bNoCriticalHits (SET_CHAR_SUFFERS_CRITICAL_HITS off): a head hit does no more than the weapon's damage. */
+ noCriticalHits?:boolean}
+/** Where a seated ped's head node sits from its seat point (the car's ped_frontseat), in the car's native axes, for an
+ * occupant whose view is not drawn: measured from the drawn CAR_sit pose (0.23 back and 0.62 to 0.70 up across the
+ * Landstalker, Greenwood, Voodoo and Sultan). */
+export const SEATED_HEAD_OFFSET={x:0,y:-.23,z:.64} as const;
 import type {WorldPlane} from '../simulation/WorldPlane';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {WeaponInventory} from './Inventory';
@@ -155,19 +165,21 @@ export class WeaponSystem {
  seatedPeds?:()=>readonly SeatedTarget[];
  /** A seated ped hit through the window: the host applies CPed damage and CTaskComplexDieInCar. */
  onSeatedShot?:(target:SeatedTarget,damage:number,weapon:number)=>'hit'|'killed'|undefined;
- /** CWorld::ProcessLineOfSight against seated peds: the nearest seated NPC whose ms_colModelPed1 spheres (at the seat
-  * dummy) the shot line enters within `range`, with the entry distance. A shooter in a car (a drive-by) passes it, so its
-  * own crew is not in the line. */
- seatedHit(source:Vec3,direction:Vec3,range:number,except?:unknown){
-  let best:{target:SeatedTarget;t:number}|undefined;
-  for(const target of this.seatedPeds?.()??[]){
-   const seat=target.local,car=target.car;if(car===except)continue;
-   const centers=SEATED_PED_SPHERE_OFFSETS.map(z=>car.worldPoint({x:seat.x,y:seat.y,z:seat.z+z}));
-   const t=seatedPedHit(source,direction,centers,range);
-   if(t!==undefined&&(!best||t<best.t))best={target,t};
-  }
-  return best;
+ /** CWeapon::CheckForShootingVehicleOccupant (iOS 0x100498190): with the line's first hit a car (`hitBody`), the
+  * nearest of that car's occupants whose head sphere the line enters within `range`, with the entry distance. The
+  * shooter's own car (`except`) is never one. */
+ seatedHit(source:Vec3,direction:Vec3,range:number,hitBody:unknown,except?:unknown){
+  // Bodies by handle: Rapier's collider.parent() may hand back a fresh wrapper for the same body.
+  const hit=(hitBody as {handle?:number}|undefined)?.handle;if(hit===undefined)return undefined;
+  const own=(except as {handle?:number;car?:{body?:{handle:number}}}|undefined);const ownHandle=own?.car?.body?.handle??own?.handle;
+  const targets=(this.seatedPeds?.()??[]).filter(t=>t.car.car.body.handle===hit&&t.car.car.body.handle!==ownHandle);
+  const heads=targets.map(t=>{const h=t.head??t.car.worldPoint({x:t.local.x+SEATED_HEAD_OFFSET.x,y:t.local.y+SEATED_HEAD_OFFSET.y,z:t.local.z+SEATED_HEAD_OFFSET.z});return {x:h.x,y:h.y+OCCUPANT_HEAD_LIFT,z:h.z};});
+  const found=occupantHeadHit(source,direction,heads,range);
+  return found&&{target:targets[found.index],t:found.t};
  }
+ /** The damage a head hit on an occupant does: CPedDamageResponseCalculator::ComputeWillForceDeath kills outright with an
+  * instant-hit gun unless the ped is spared critical hits. */
+ static occupantDamage(target:SeatedTarget,damage:number,weapon:number){return !target.noCriticalHits&&isInstantHitGun(weapon)?Math.max(damage,1000):damage;}
  /** CAECollisionAudioEntity::ReportBulletHit: the struck collider, the hit point and asin(-dir·normal) in degrees. */
  onBulletHit?:(hit:RAPIER.RayColliderIntersection,point:Vec3,angle:number)=>void;
  onSound?:(event:import('../assets/nativeCombatAudio').CombatSound,weapon:number,position:Vec3,source?:'player'|'npc'|'aircraft'|'stealth')=>void;
@@ -810,14 +822,12 @@ export class WeaponSystem {
    if(tyre.car.burstTyre(tyre.wheel,true,'player'))this.onHit?.(w.id);
    return true;
   }
-  // The seated driver's own collision comes before the car's shell when the line reaches it first (the windows are
-  // open in the collision model); a hit reaches the driver, not the bodywork.
-  // The browser's car colliders close the window openings the native COL leaves open, so the seated ped may lie up to
-  // a unit past the shell hit (the cabin's width from the door skin to the seat).
-  const seated=this.onSeatedShot?this.seatedHit(source,direction,(hit?.timeOfImpact??reach)+1):undefined;
+  // A line whose first hit is a car may hand the hit on to one of its occupants (CheckForShootingVehicleOccupant): the
+  // nearest head sphere along the whole line, whatever bodywork lies before it.
+  const seated=this.onSeatedShot&&hit?this.seatedHit(source,direction,reach,hit.collider.parent(),exclude):undefined;
   if(seated){
    const at=add(source,direction,seated.t);this.tracer(source,at,'player',.065);this.fx?.gunshot(source,direction,w.id,false);this.effect('impact',at);
-   const result=this.onSeatedShot!(seated.target,info.damage,w.id);
+   const result=this.onSeatedShot!(seated.target,WeaponSystem.occupantDamage(seated.target,info.damage,w.id),w.id);
    if(result){this.hits++;this.onCrime?.(seated.target.kind==='police'?CRIME.damagedCop:CRIME.damagedPed,`car:${seated.target.car.car.body.handle}`);this.onHit?.(w.id);}
    return true;
   }

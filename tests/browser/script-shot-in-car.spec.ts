@@ -1,29 +1,43 @@
 import {test,expect} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 
-/** CWeapon::CheckForShootingVehicleOccupant (iOS 0x100498190): a bullet that reaches a car reaches the ped seated in it,
- * one whose bCanBeShotInVehicle is on (as every ped's is). SWEET3's Ballas fled in their Voodoo untouched by Sweet and
- * Smoke's drive-by, reached Grove Street and failed the mission: a script's ped in a car took no bullets at all. */
-test('a script drive-by kills the script ped seated in the car it fires at, who dies in his seat',async({page})=>{
+/** CWeapon::CheckForShootingVehicleOccupant (iOS 0x100498190): a bullet whose first hit is a car is handed to the
+ * occupant whose head sphere (0.2 about the head node, lifted 0.1) the line passes nearest, one with
+ * bCanBeShotInVehicle on. It is a head hit (piece 9): an instant-hit gun kills outright unless the ped is spared
+ * critical hits. A script's ped in a car once took no bullets at all (SWEET3's Ballas drove off untouched). */
+test('a shot through a script driver\'s head kills him in his seat; one into the door does not touch him',async({page})=>{
  test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
  await endStoryMission(page);
- // Sweet's Greenwood and the Ballas' Voodoo side by side, both facing north, the Voodoo on the Greenwood's right.
- const [greenwood,voodoo]=await page.evaluate(()=>{const w=(window as any).__game.missionForProfiling().runtime.world,p=w.pedPosition(1);
-  const a=w.createCar(492,p.x+12,p.y+4,p.z),b=w.createCar(412,p.x+18,p.y+4,p.z);w.setCarHeading?.(a,0);w.setCarHeading?.(b,0);return [a,b];});
- await page.waitForFunction(([a,b])=>{const m=(window as any).__game.missionForProfiling();return !!m.vehicles.entity(a)&&!!m.vehicles.entity(b);},[greenwood,voodoo],{timeout:60000});
- const [ballas,homie]=await page.evaluate(([a,b])=>{const w=(window as any).__game.missionForProfiling().runtime.world;
-  return [w.createCharInsideCar(b,25,103,'driver'),w.createCharInsideCar(a,24,106,0)];},[greenwood,voodoo]);
- await page.waitForFunction(([x,y])=>{const m=(window as any).__game.missionForProfiling();return m.peds.entity(x)!==undefined&&m.peds.entity(y)!==undefined;},[ballas,homie],{timeout:60000});
- const health=()=>page.evaluate(h=>(window as any).__game.missionForProfiling().runtime.world.pedHealth(h),ballas);
+ const w=(fn:string,...args:unknown[])=>page.evaluate(({fn,args})=>(window as any).__game.missionForProfiling().runtime.world[fn](...args),{fn,args});
+ const p=await w('pedPosition',1) as {x:number;y:number;z:number};
+ // A Voodoo three units off CJ's side, facing north, its driver's side toward him.
+ const car=await w('createCar',412,p.x+3.5,p.y,p.z) as number;
+ await page.waitForFunction((h:number)=>!!(window as any).__game.missionForProfiling().vehicles.entity(h),car,{timeout:60000});
+ await w('setCarHeading',car,0).catch(()=>{});
+ const driver=await w('createCharInsideCar',car,25,103,'driver') as number;
+ await page.waitForFunction((h:number)=>(window as any).__game.missionForProfiling().peds.entity(h)!==undefined,driver,{timeout:60000});
+ await w('givePedWeapon',1,31,500);await w('setPedCurrentWeapon',1,31);
+ await page.waitForTimeout(2500);
+ const health=()=>w('pedHealth',driver) as Promise<number>;
+ // The driver's head sphere where the occupant renderer draws him (renderer axes), and his car's lower door.
+ const aims=()=>page.evaluate((h:number)=>{const g=(window as any).__game,e=g.missionForProfiling().vehicles.entity(h);
+  const t=g.weapons().seatedPeds().find((s:any)=>s.car===e&&s.seat===0);const c=e.car.body.translation();
+  return t?.head?{head:{x:t.head.x,y:t.head.y+.1,z:t.head.z},door:{x:c.x-.9,y:c.y-.3,z:c.z}}:null;},car) as Promise<{head:{x:number;y:number;z:number};door:{x:number;y:number;z:number}}|null>;
+ await expect.poll(async()=>!!(await aims()),{timeout:20000}).toBe(true);
+ const fire=(at:{x:number;y:number;z:number})=>page.evaluate(a=>(window as any).__game.fireAt(a.x,a.y,a.z),at);
+ // Into the door, under the window: the bodywork takes it, the driver does not.
+ for(let i=0;i<3;i++){await fire((await aims())!.door);await page.waitForTimeout(400);}
  expect(await health()).toBe(100);
- // Smoke's TASK_DRIVE_BY: out of the right-hand window at the Voodoo, every burst taken.
- await page.evaluate(([h,v])=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(h,{kind:'driveBy',targetPed:-1,targetVehicle:v,x:0,y:0,z:0,radius:5000,type:8,rightHandCarSeat:true,fireRate:100},0x0713),[homie,voodoo]);
- await expect.poll(health,{timeout:30000,intervals:[500]}).toBeLessThan(100);
- await expect.poll(()=>page.evaluate(h=>(window as any).__game.missionForProfiling().runtime.world.pedIsDeadForScript(h),ballas),{timeout:60000,intervals:[500]}).toBe(true);
- // Dead where he sat: the rider stays in the seat, slumped, rather than vanishing.
- expect(await page.evaluate(h=>{const e=(window as any).__game.missionForProfiling().peds.entity(h);return {seat:e?.seat,inSeat:!!e?.diedInSeat};},ballas)).toEqual({seat:'driver',inSeat:true});
+ // Spared critical hits, a head hit is the weapon's damage alone.
+ await w('setPedSuffersCriticalHits',driver,false);
+ await expect.poll(async()=>{await fire((await aims())!.head);await page.waitForTimeout(250);return health();},{timeout:20000,intervals:[0]}).toBeLessThan(100);
+ expect(await w('pedIsDeadForScript',driver)).toBe(false);
+ // Suffering them again, the next one in the head kills him where he sits.
+ await w('setPedSuffersCriticalHits',driver,true);
+ await expect.poll(async()=>{await fire((await aims())!.head);await page.waitForTimeout(250);return w('pedIsDeadForScript',driver);},{timeout:20000,intervals:[0]}).toBe(true);
+ expect(await page.evaluate(h=>{const e=(window as any).__game.missionForProfiling().peds.entity(h);return {seat:e?.seat,inSeat:!!e?.diedInSeat};},driver)).toEqual({seat:'driver',inSeat:true});
  expect(errors).toEqual([]);
 });
