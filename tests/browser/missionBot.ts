@@ -410,7 +410,10 @@ export function missionBotTick(dtSeconds:number){
  // driver), and his group gets in with him.
  // Kept to for half a minute once begun, through the brief's swaps between "drive her home" and "you left her behind".
  if(vehicle)mem.carHunt=undefined;
- if(!vehicle&&me.z<500&&/\bdrive\b|take (her|him|them) home/i.test(objective)&&!mem.carHunt)mem.carHunt={since:performance.now()};
+ // So too on foot with the place over 250 units off (CRASH1 and CRASH2 from the donut shop to Idlewood): a player does
+ // not walk across town. Not with a group homie following, whom the script's own car above is for.
+ const farPlace=places.length&&distance(nearest(places).position)>250&&!members.length;
+ if(!vehicle&&me.z<500&&(/\bdrive\b|take (her|him|them) home/i.test(objective)||farPlace)&&!mem.carHunt)mem.carHunt={since:performance.now()};
  if(mem.carHunt&&performance.now()-mem.carHunt.since>30000)mem.carHunt=undefined;
  if(!vehicle&&me.z<500&&mem.carHunt){
   const near=[...(g.fleet?.()?.cars??[])].filter((c:any)=>!c.disposed&&!c.wrecked&&c.car?.body?.isValid?.())

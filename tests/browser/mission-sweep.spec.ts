@@ -105,7 +105,9 @@ test('mission sweep',async({page})=>{
     // The autopilot. Its candidates are the locate and area tests with literal coordinates round where the thread
     // waits, nearest ahead first; while the thread stays put it moves on to the next every fifteen seconds, since
     // the loop's own exit test and the triggers inside it look alike from here.
-    const near=block.instructions.filter((x:any)=>Math.abs(x.offset-fileOffset)<900&&/^(LOCATE_(CHAR|PLAYER)_|IS_CHAR_IN_AREA|IS_PLAYER_IN_AREA)/.test(x.name)&&x.parameters.filter((p:any)=>p.type===6).length>=2);
+    // Only a test whose point is written into it: one asking about a point in variables (SWEET4's 54@ 55@ 56@) has
+    // only its radii as numbers, and those were taken for the point (CJ's car set down at (8, 8)).
+    const near=block.instructions.filter((x:any)=>Math.abs(x.offset-fileOffset)<900&&/^(LOCATE_(CHAR|PLAYER)_|IS_CHAR_IN_AREA|IS_PLAYER_IN_AREA)/.test(x.name)&&x.parameters[1]?.type===6&&x.parameters[2]?.type===6);
     near.sort((a:any,b:any)=>(a.offset<fileOffset?1:0)-(b.offset<fileOffset?1:0)||Math.abs(a.offset-fileOffset)-Math.abs(b.offset-fileOffset));
     const state=sweep.pilot??={offset:-1,since:performance.now(),turn:0,lastKey:'',lastAt:0},now=performance.now();
     if(Math.abs(state.offset-offset)>40){state.offset=offset;state.since=now;state.turn=0;}
