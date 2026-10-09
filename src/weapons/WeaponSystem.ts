@@ -3,8 +3,11 @@ import {THROW_START_CLIP,THROW_CLIP,THROW_UP_CLIP,THROW_FORCE_PER_COUNTER,throwC
 import {Vector3,Quaternion} from 'three';
 import {OCCUPANT_HEAD_LIFT,occupantHeadHit} from '../vehicle/nativeDieInCar';
 import {isInstantHitGun} from '../simulation/WorldPedestrians';
-/** A seated NPC a bullet can reach: its car, seat index and seat local (native car space). */
-export interface SeatedTarget {car:import('../simulation/WorldCar').WorldCar;seat:number;local:Vec3;kind:'traffic'|'police'|'driveby'|'script';
+/** What a seated target rides, by its body: a car, or a script's boat or aircraft (CheckForShootingVehicleOccupant
+ * asks only that the line's first hit be a vehicle). */
+export interface SeatedVehicle {car:{body:{handle:number;translation():Vec3;rotation():{x:number;y:number;z:number;w:number}}}}
+/** A seated NPC a bullet can reach: its vehicle, seat index and seat local (native vehicle space). */
+export interface SeatedTarget<V extends SeatedVehicle=import('../simulation/WorldCar').WorldCar> {car:V;seat:number;local:Vec3;kind:'traffic'|'police'|'driveby'|'script';
  /** A script's ped in its seat: the host's own record of it. */
  rider?:unknown;
  /** Its head node in the world (renderer axes), where its view is drawn; else it is taken to be SEATED_HEAD_OFFSET from
@@ -16,6 +19,11 @@ export interface SeatedTarget {car:import('../simulation/WorldCar').WorldCar;sea
  * occupant whose view is not drawn: measured from the drawn CAR_sit pose (0.23 back and 0.62 to 0.70 up across the
  * Landstalker, Greenwood, Voodoo and Sultan). */
 export const SEATED_HEAD_OFFSET={x:0,y:-.23,z:.64} as const;
+/** A point in a vehicle's native space (x right, y forward, z up) in the world (renderer axes), from its body. */
+function seatWorldPoint(vehicle:SeatedVehicle,local:Vec3){
+ const b=vehicle.car.body,q=b.rotation(),p=b.translation();
+ return new Vector3(local.x,local.z,-local.y).applyQuaternion(new Quaternion(q.x,q.y,q.z,q.w)).add(p as Vector3);
+}
 import type {WorldPlane} from '../simulation/WorldPlane';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {WeaponInventory} from './Inventory';
@@ -162,9 +170,9 @@ export class WeaponSystem {
  leftHand=false;lastHand:'right'|'left'='right';
  muzzle?:(left?:boolean)=>Vec3|undefined;
  /** The seated NPCs a bullet line can reach (traffic drivers, police crews): seat locals in car space. */
- seatedPeds?:()=>readonly SeatedTarget[];
+ seatedPeds?:()=>readonly SeatedTarget<SeatedVehicle>[];
  /** A seated ped hit through the window: the host applies CPed damage and CTaskComplexDieInCar. */
- onSeatedShot?:(target:SeatedTarget,damage:number,weapon:number)=>'hit'|'killed'|undefined;
+ onSeatedShot?:(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number)=>'hit'|'killed'|undefined;
  /** CWeapon::CheckForShootingVehicleOccupant (iOS 0x100498190): with the line's first hit a car (`hitBody`), the
   * nearest of that car's occupants whose head sphere the line enters within `range`, with the entry distance. The
   * shooter's own car (`except`) is never one. */
@@ -173,13 +181,13 @@ export class WeaponSystem {
   const hit=(hitBody as {handle?:number}|undefined)?.handle;if(hit===undefined)return undefined;
   const own=(except as {handle?:number;car?:{body?:{handle:number}}}|undefined);const ownHandle=own?.car?.body?.handle??own?.handle;
   const targets=(this.seatedPeds?.()??[]).filter(t=>t.car.car.body.handle===hit&&t.car.car.body.handle!==ownHandle);
-  const heads=targets.map(t=>{const h=t.head??t.car.worldPoint({x:t.local.x+SEATED_HEAD_OFFSET.x,y:t.local.y+SEATED_HEAD_OFFSET.y,z:t.local.z+SEATED_HEAD_OFFSET.z});return {x:h.x,y:h.y+OCCUPANT_HEAD_LIFT,z:h.z};});
+  const heads=targets.map(t=>{const h=t.head??seatWorldPoint(t.car,{x:t.local.x+SEATED_HEAD_OFFSET.x,y:t.local.y+SEATED_HEAD_OFFSET.y,z:t.local.z+SEATED_HEAD_OFFSET.z});return {x:h.x,y:h.y+OCCUPANT_HEAD_LIFT,z:h.z};});
   const found=occupantHeadHit(source,direction,heads,range);
   return found&&{target:targets[found.index],t:found.t};
  }
  /** The damage a head hit on an occupant does: CPedDamageResponseCalculator::ComputeWillForceDeath kills outright with an
   * instant-hit gun unless the ped is spared critical hits. */
- static occupantDamage(target:SeatedTarget,damage:number,weapon:number){return !target.noCriticalHits&&isInstantHitGun(weapon)?Math.max(damage,1000):damage;}
+ static occupantDamage(target:Pick<SeatedTarget<SeatedVehicle>,'noCriticalHits'>,damage:number,weapon:number){return !target.noCriticalHits&&isInstantHitGun(weapon)?Math.max(damage,1000):damage;}
  /** CAECollisionAudioEntity::ReportBulletHit: the struck collider, the hit point and asin(-dir·normal) in degrees. */
  onBulletHit?:(hit:RAPIER.RayColliderIntersection,point:Vec3,angle:number)=>void;
  onSound?:(event:import('../assets/nativeCombatAudio').CombatSound,weapon:number,position:Vec3,source?:'player'|'npc'|'aircraft'|'stealth')=>void;

@@ -11620,5 +11620,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   seat, a missing dummy the origin) in AddInCarAnim's clip (iOS 0x1003e9754): a boat's driver DRIVE_BOAT, or CAR_SIT in
   one with m_bSitInBoat; any other driver CAR_SIT (CAR_LSIT low), a passenger CAR_SITP (CAR_SITPLO low). A boat's
   first passenger takes the same point as its driver, as the binary has it. They rode unseen before.
-  - Still open: a bullet into such a rider (CheckForShootingVehicleOccupant) is tested for cars only, and a ped on a
-    train carriage still rides unseen. The Nevada's ped_frontseat hangs off a child frame and is read as its own matrix.
+  - A bullet reaches them as it does a car's riders: CheckForShootingVehicleOccupant (iOS 0x100498190) asks only that
+    the line's first hit be a vehicle (entity type 2 at +0x5a) and walks the driver and passengers whatever its type;
+    only the windscreen smash after it is for automobiles (+0x734 = 0). Every seat of a boat or an aircraft counts.
+  - Still open: a ped on a train carriage rides unseen, and the Nevada's ped_frontseat hangs off a child frame and is
+    read as its own matrix.
