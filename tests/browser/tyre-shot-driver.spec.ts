@@ -14,7 +14,7 @@ test('a tyre shot out makes the driver flee the scene at 40, or a weak driver le
    for(let i=0;i<300&&(traffic.snapshot().cars.length<2||!crowd.snapshot().ready);i++){traffic.update(i*2100);crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
    if(fleet.cars.size<2)throw new Error(JSON.stringify(traffic.snapshot()));
    const [first,second]=traffic.drivers;const car=first.car,other=second.car;await entry.clips.load(other.animGroup);
-   const tick=()=>{crowd.update(performance.now());const at=other.car.body.translation();sim.player.position={x:at.x+10,y:at.y,z:at.z+10};traffic.beforeStep(1/60);entry.step(1/60,{pedal:false,moving:false});crowd.beforeStep(1/60,[...fleet.cars]);for(const c of fleet.cars)c.beforeStep(1/60,{x:0,y:0},false);sim.world.step();for(const c of fleet.cars)c.afterStep(1/60);crowd.afterStep();};
+   let watched:any;const tick=()=>{crowd.update(performance.now());const at=watched?watched.actor.player.position:other.car.body.translation();sim.player.position={x:at.x+10,y:at.y,z:at.z+10};traffic.beforeStep(1/60);entry.step(1/60,{pedal:false,moving:false});crowd.beforeStep(1/60,[...fleet.cars]);for(const c of fleet.cars)c.beforeStep(1/60,{x:0,y:0},false);sim.world.step();for(const c of fleet.cars)c.afterStep(1/60);crowd.afterStep();};
    for(let i=0;i<60;i++)tick();
    // A normal driver's front tyre shot by the player: flee the scene (the draw at .5).
    traffic.driverDecisionMaker=(c:any)=>c===car?2:4;traffic.random=()=>.5;
@@ -29,6 +29,8 @@ test('a tyre shot out makes the driver flee the scene at 40, or a weak driver le
    let exitFrames=0;for(let i=0;i<300;i++){tick();if(i%20===0)await new Promise(r=>setTimeout(r,40));if(entry.npcPoses().length)exitFrames++;if(exitFrames&&!entry.npcPoses().length&&i>30)break;}
    for(let i=0;i<10;i++){tick();await new Promise(r=>setTimeout(r,40));}
    const runner=crowd.people.find((p:any)=>p.fleePlayer?.point);
+   // The player keeps up with him: CPopulation would remove a street ped left 25 units behind out of view.
+   watched=runner;
    const runnerStart={flee:runner?.flee??null,safe:runner?.fleePlayer?.safe??null};
    let ended=-1;for(let i=0;i<900;i++){tick();if(runner&&runner.flee<=0){ended=i;break;}}
    const dist=runner?Math.hypot(runner.actor.player.position.x-firePoint.x,runner.actor.player.position.z-firePoint.z):null;
