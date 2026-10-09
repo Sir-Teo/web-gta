@@ -613,6 +613,9 @@ export class WorldBike {
   if(change<.5)return;
   this.lastCollisionSeconds=0;
   const hit=this.strongestCollision();
+  // CBike::VehicleDamage (iOS 0x100450e04): a collision of 1 or more, which ScalePlayerVehicleDamage leaves as it is for
+  // any bike but the player's own, knocks the bike off its side stand past 20, and it goes over.
+  if(hit&&this.onSideStand&&hit.intensity>=1&&(this.occupied?playerVehicleDamage(hit.intensity):hit.intensity)>20)this.onSideStand=false;
   // CBike::DamageKnockOffRider: a rider the script keeps on (CANT_BE_KNOCKED_OFF_NEVER) is never thrown, and the
   // force is zeroed for the player on stairs (CamStairsForPlayer and a stairs zone holding him).
   const mass=this.assets.handling.values.mass;let knocked=false;

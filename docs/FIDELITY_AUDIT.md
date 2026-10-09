@@ -11668,3 +11668,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   which the steering reads each frame (a drive task sets the cruise speed once, as it starts); the port kept them
   aside for the next mission only, so MUSIC3's SET_CAR_CRUISE_SPEED 15 after the follow, and any chase that speeds a
   car up or slows it down, changed nothing.
+- A bike on its side stand is knocked off it by a collision of more than 20. CBike::VehicleDamage (iOS 0x100450e04),
+  for a collision of 1 or more on a bike that can be damaged, takes m_fDamageIntensity through ScalePlayerVehicleDamage
+  (which leaves any bike but the player's own as it is) and clears bOnSideStand (+0x800 bit 4) past 20; the bike then
+  goes over. A car driven into a parked PCJ-600 now topples it; a nudge leaves it on its stand.
