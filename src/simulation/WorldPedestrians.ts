@@ -91,7 +91,10 @@ const GET_UP_PROBE=new RAPIER.Ball(GET_UP_CLEAR_RADIUS),NO_ROTATION={x:0,y:0,z:0
 export interface MeleeFight {move:number;group?:string;hits?:readonly import('../assets/ifp').NativeAnimation[]}
 /** What CPed's acquaintance routines need of a ped: its type and the table a script has given it. A script's rider
  * holds them as a walker does. */
-export interface Acquainted {pedType?:string;acquaintance?:NativeAcquaintance}
+export interface Acquainted {pedType?:string;scriptPedType?:number;acquaintance?:NativeAcquaintance}
+/** CPed::m_nPedType by name: a script ped's CREATE_CHAR type (TWAR7's Freddy is MISSION1 though his model is a
+ * Vagos'), else the peds.ide type its model came with. */
+export const pedTypeName=(p:Acquainted)=>p.scriptPedType!==undefined?NATIVE_PED_TYPES[p.scriptPedType]??p.pedType:p.pedType;
 export interface Pedestrian {
  /** peds.ide ped type. */
  pedType?:string;
@@ -113,7 +116,7 @@ export interface Pedestrian {
  /** bNeverEverTargetThisPed, which SET_CHAR_NEVER_TARGETTED sets: the player's lock-on passes it by. */
  neverTargeted?:boolean;
  /** CREATE_CHAR's ePedType, the m_nPedType a script ped has whatever its model's peds.ide type (`pedType`) says. Only
-  * the recruit test reads it so far. */
+  * the recruit test and the acquaintance routines (pedTypeName) read it so far. */
  scriptPedType?:number;
  /** CEntity::m_nAreaCode, which SET_CHAR_AREA_VISIBLE sets: the ped is drawn only in the area it belongs to.
   * A ped with no area of its own belongs wherever it stands, as a street ped does. */
@@ -659,8 +662,9 @@ export class WorldPedestrians {
   // A relationship a script set on this ped answers first: CPed's own acquaintance table is consulted before
   // the one its ped type came with. Respect and like are a friend, dislike and hate a threat, and a type in
   // no list at all falls back to the table from ped.dat.
-  const table=p.acquaintance??(p.pedType&&this.editedTypes.has(p.pedType)?this.typeTables.get(p.pedType):undefined);
-  const own=table&&nativePedType(source?source.pedType:'PLAYER1');
+  const type=pedTypeName(p),sourceType=source&&pedTypeName(source);
+  const table=p.acquaintance??(type&&this.editedTypes.has(type)?this.typeTables.get(type):undefined);
+  const own=table&&nativePedType(source?sourceType:'PLAYER1');
   if(table&&own!==undefined){
    const id=table.idFor(own);
    if(id===ACQUAINTANCE_RESPECT||id===ACQUAINTANCE_LIKE)return RELATIONSHIP.friend;
@@ -668,7 +672,7 @@ export class WorldPedestrians {
    if(id===ACQUAINTANCE_IGNORE)return RELATIONSHIP.neutral;
   }
   if(!source&&p.gang===1)return RELATIONSHIP.friend;
-  return sourceRelationship(this.catalog?.acquaintances,p.pedType,source?source.pedType:'PLAYER');
+  return sourceRelationship(this.catalog?.acquaintances,type,source?sourceType:'PLAYER');
  }
  /** CEventDamage::AffectsPed for a street ped's blow on the player: none from the player's own group (his recruits)
   * short of an explosion, and none from a Grove Street Families member (PED_TYPE_GANG2) with a grenade or anything
@@ -2273,11 +2277,11 @@ export class WorldPedestrians {
   * commands then edit. The copy is made when a command first needs it. */
  /** The acquaintance a ped holds the player in (PLAYER1): its own table once a command gave it one, else its type's
   * as ped.dat and the script's SET_RELATIONSHIP left it. */
- regardForPlayer(ped:Pedestrian){return (ped.acquaintance??this.pedTypeTable(ped.pedType)).idFor(0);}
+ regardForPlayer(ped:Pedestrian){return (ped.acquaintance??this.pedTypeTable(pedTypeName(ped))).idFor(0);}
  /** Whether a street gang's ped type (CGangs index) hates the player, as ped.dat and the script's relationships stand. */
  gangHatesPlayer(gang:number){const type=NATIVE_PED_TYPES[gangPedType(gang)];return !!type&&this.pedTypeTable(type).idFor(0)===ACQUAINTANCE_HATE;}
  acquaintanceOf(ped:Acquainted){
-  return ped.acquaintance??=this.copyOf(this.pedTypeTable(ped.pedType));
+  return ped.acquaintance??=this.copyOf(this.pedTypeTable(pedTypeName(ped)));
  }
  /** CPedType::ms_apPedTypes: each ped type's CAcquaintance, from ped.dat, which SET_RELATIONSHIP and CLEAR_RELATIONSHIP
   * edit. A ped copies its type's table when it is made (here, when a command first needs its own). */

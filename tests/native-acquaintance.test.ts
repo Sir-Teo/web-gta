@@ -48,3 +48,12 @@ test('a mask can carry several ped types at once, as the command’s own bit num
  expect(table.idFor(31)).toBe(ACQUAINTANCE_HATE);
  expect(table.get(ACQUAINTANCE_HATE)).toBe(0x80000000);
 });
+
+test('a script ped\'s acquaintances go by CREATE_CHAR\'s ped type, not its model\'s peds.ide type',async()=>{
+ const {pedTypeName}=await import('../src/simulation/WorldPedestrians');
+ // TWAR7's Freddy: CREATE_CHAR 24 (MISSION1) with a Vagos model; OG Loc hates MISSION1.
+ expect(pedTypeName({pedType:'GANG8',scriptPedType:24})).toBe('MISSION1');
+ // A street ped, or a script's rider that holds its type by name.
+ expect(pedTypeName({pedType:'GANG8'})).toBe('GANG8');
+ expect(pedTypeName({})).toBeUndefined();
+});

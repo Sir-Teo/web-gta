@@ -11696,3 +11696,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   maker and bNoCriticalHits now go with it, and a rider holds them while it rides. TWAR7 gives OG Loc decision maker
   148@ (EVENT_ACQUAINTANCE_PED_HATE -> TASK_SIMPLE_GANG_DRIVEBY) after warping him onto the bike, and his hate for
   Freddy's ped type (MISSION1) with him on CJ's bike. tests/browser/script-ped-keeps-relationships.spec.ts.
+- A script ped's acquaintances go by CREATE_CHAR's ped type (CPed::m_nPedType), not its model's peds.ide type
+  (pedTypeName): the table a ped copies, the regard it holds the player in and the type others' tables are looked up
+  by. TWAR7's Freddy is CREATE_CHAR 24 (MISSION1) with a Vagos model, and OG Loc's SET_CHAR_RELATIONSHIP hate is for
+  MISSION1; special characters (OG Loc, Sweet), whose models have no peds.ide type, had none at all. The other readers of
+  `pedType` (same-type friendly fire, pain voice, kill stats) are left as they were.

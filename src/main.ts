@@ -230,7 +230,7 @@ import {HUD_COLOURS} from './ui/nativeHudColours';
 import {PICKUP_TYPE} from './assets/scmPickups';
 import {Arsenal} from './weapons/Arsenal';
 import {WorldTraffic} from './simulation/WorldTraffic';
-import {WorldPedestrians,setCharacterAnim,type Pedestrian} from './simulation/WorldPedestrians';
+import {WorldPedestrians,pedTypeName,setCharacterAnim,type Pedestrian} from './simulation/WorldPedestrians';
 import {PlayerScriptTasks} from './simulation/playerScriptTasks';
 import {PlayerPhone} from './simulation/PlayerPhone';
 import {ScriptCarMissions} from './simulation/ScriptCarMissions';
@@ -5420,7 +5420,7 @@ async function boot() {
                   scriptRiders.add(rider);
                   return rider;
                  },
-                 spawnScriptPedOnCar:async(_pedType,id,car,offset,turret)=>{
+                 spawnScriptPedOnCar:async(pedType,id,car,offset,turret)=>{
                   const model=await pedestrians?.scriptPedModel(id)??id;
                   const target=car as ScriptCar|undefined;
                   if(!target||target.disposed)return undefined;
@@ -5429,17 +5429,17 @@ async function boot() {
                   // ahead, 1 left +π/2, 2 behind +π, 3 right −π/2) and held there by a heading limit of 0. It plays
                   // CTaskSimpleStandStill's idle_stance, the stand-still task every ped is made with (AttachPedToEntity
                   // 0x10032c398 gives no task or clip).
-                  const rider:ScriptRider={rider:true,model,car:target,seat:0,offset:{...offset},health:100,pedType:NATIVE_PED_TYPES[_pedType],
+                  const rider:ScriptRider={rider:true,model,car:target,seat:0,offset:{...offset},health:100,pedType:NATIVE_PED_TYPES[pedType],
                    heading:target.heading(),accuracy:60,invulnerable:false,gone:false,...(turret!==undefined?{stand:true,facing:turret*Math.PI/2}:{})};
                   scriptRiders.add(rider);
                   return rider;
                  },
-                 spawnScriptPedInCar:async(_pedType,id,car,seat)=>{
+                 spawnScriptPedInCar:async(pedType,id,car,seat)=>{
                   const model=await pedestrians?.scriptPedModel(id)??id;
                   const target=car as ScriptCar|undefined;
                   if(!target||target.disposed)return undefined;
                   const rider:ScriptRider={rider:true,model,car:target,seat,health:100,heading:target.heading(),
-                   accuracy:60,invulnerable:false,gone:false,pedType:NATIVE_PED_TYPES[_pedType]};
+                   accuracy:60,invulnerable:false,gone:false,pedType:NATIVE_PED_TYPES[pedType]};
                   scriptRiders.add(rider);
                   return rider;
                  },
@@ -5638,7 +5638,7 @@ async function boot() {
                  // CLEAR_ALL_CHAR_RELATIONSHIPS empties one acquaintance, which is the list it names.
                  clearScriptPedRelationships:(ped,relationship)=>{const p=onFoot(ped)??asRider(ped);if(p&&pedestrians)pedestrians.acquaintanceOf(p).clear(relationship);},
                  // What CPed keeps whichever body the browser builds it as: read off the old as it gets in or out of a car.
-                 scriptPedCarried:ped=>{const p=onFoot(ped)??asRider(ped);return p&&{pedType:p.pedType,acquaintance:p.acquaintance,decisionMaker:p.decisionMaker,noCriticalHits:p.noCriticalHits};},
+                 scriptPedCarried:ped=>{const p=onFoot(ped)??asRider(ped);return p&&{pedType:pedTypeName(p),acquaintance:p.acquaintance,decisionMaker:p.decisionMaker,noCriticalHits:p.noCriticalHits};},
                  carryScriptPed:(ped,carried)=>{
                   const kept=carried as {pedType?:string;acquaintance?:NativeAcquaintance;decisionMaker?:number;noCriticalHits?:boolean};
                   const r=asRider(ped);if(r){r.pedType=kept.pedType??r.pedType;r.acquaintance=kept.acquaintance;r.decisionMaker=kept.decisionMaker;r.noCriticalHits=kept.noCriticalHits;return;}
