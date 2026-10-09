@@ -9,6 +9,10 @@ test('the enter button passes over a bike a script ped rides for the free one be
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
  await endStoryMission(page);
+ // On Grove Street's open road (native 2475, -1660): where a new game sets CJ down is against a yard fence, and the row
+ // east of him stood behind it.
+ await page.evaluate(()=>{const g=(window as any).__game,x=2475,z=1660;g.placePlayer(x,g.groundAt(x,z,20)+.05,z);});
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.sim.player.grounded),{timeout:15000}).toBe(true);
  const start=await page.evaluate(()=>({...(window as any).__game.sim.player.position}));
  const made=await page.evaluate(()=>{
   const g=(window as any).__game,m=g.missionForProfiling(),p=g.state().player.position;
