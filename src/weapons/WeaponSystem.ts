@@ -490,7 +490,7 @@ export class WeaponSystem {
    this.onSound?.('fire',w.id,{...p});
    const range=w.range,sight=this.ray(camera.origin,dir,range,vehicle.body),target=add(camera.origin,dir,sight?.timeOfImpact??range);
    const resolved=normalize(add(target,source,-1));
-   this.pedestrians()?.gunShot?.(source,false);
+   this.pedestrians()?.gunShot?.(source,false,undefined,target);
    this.onCrime?.(CRIME.fireWeapon,'player');
   const info=this.inventory.info();
   if(info&&(w.kind==='bullet'||w.kind==='shotgun'))return this.fireInstantHit(w,info,source,resolved,vehicle.body);
@@ -716,8 +716,8 @@ export class WeaponSystem {
    this.onMeleeSwing?.(w,{kind:'attack',stage:0});
    return true;
   }
-  // CEventGunShot, with bHasNoSound for the silenced pistol.
-  this.pedestrians()?.gunShot?.(source,w.id===23);
+  // CEventGunShot, with bHasNoSound for the silenced pistol, and its CEventGunShotWhizzedBy along the aim.
+  this.pedestrians()?.gunShot?.(source,w.id===23,undefined,add(source,direction,range));
   // FIRE_WEAPON for each shot (FireSniper, DoBulletImpact) and EXPLOSION for CWeapon::FireProjectile; FireAreaEffect
   // (flamethrower, spray can, extinguisher) reports with no victim, which CCrime::ReportCrime ignores.
   if(!['flame','spray','extinguisher'].includes(w.kind))this.onCrime?.(['rocket','guided','grenade','molotov','satchel'].includes(w.kind)?CRIME.explosion:CRIME.fireWeapon,'player');

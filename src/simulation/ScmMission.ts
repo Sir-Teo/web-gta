@@ -373,6 +373,10 @@ export interface ScmMissionWorld {
  giveScriptPedSequence(ped:unknown,orders:readonly ScriptedPedOrder[],repeat:boolean,start?:number):void;
  /** Whether a script's ped is still carrying out the order or sequence it was given (CTaskManager still holds it). */
  scriptPedHasOrder?(ped:unknown):boolean;
+ /** CPedIntelligence's highest-priority event since the scripts last ran (0 for none), and the clearing of every
+  * mission ped's once they have. */
+ scriptPedHighestEvent?(ped:unknown):number;
+ clearScriptPedEvents?():void;
  /** TASK_COMPLEX_ENTER_CAR_AS_DRIVER/_AS_PASSENGER or GO_TO_CAR_DOOR_AND_STAND_STILL active: a script ped's, or the player's
   * (undefined ped). */
  pedEnteringCar?(ped:unknown|undefined):boolean;
@@ -1612,6 +1616,8 @@ export class ScmMission {
    setObjectAsStealable:(handle,state)=>{this.runtime.game.objects.at(handle).stealable=state;if(state)this.world.preloadAnimationBlock?.('CARRY');},
    // CEventGlobalGroup::GetSoundLevel (reversed) over the last frame's quiet sounds: every source's for -1, else the
    // ped's own (only CJ's footsteps are reported yet).
+   // GET_CHAR_HIGHEST_PRIORITY_EVENT (iOS 0x1001fb880): the event type the ped's intelligence holds at +0x17d.
+   getCharHighestPriorityEvent:handle=>handle===PLAYER_PED_HANDLE?0:this.world.scriptPedHighestEvent?.(this.livePed(handle))??0,
    getSoundLevelAtCoords:(handle,x,y,z)=>globalSoundLevel(this.soundEvents,handle===-1?undefined:handle===PLAYER_PED_HANDLE?'player':this.livePed(handle),{x,y,z}),
    pedIsHoldingObject:(handle,object)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);return this.heldObjectOf(handle)?.handle===object||this.heldObjectOf(handle,true)?.handle===object;},
    // TASK_PICK_UP_SECOND_OBJECT and DROP_SECOND_OBJECT: CTaskSimpleHoldEntity on the ped's second partial slot, so a
@@ -4293,7 +4299,7 @@ export class ScmMission {
   // CPad::Update for pad 0 before the scripts run: a PRINT of WUZ1_DA or GAR2_10 (iOS) clears DisablePlayerControls,
   // the script's player-safe bit with it; the CPlayerInfo half of MakePlayerSafe is left as it was.
   {const pads=this.runtime.game.pads;if(pads.releaseControls[0]){pads.releaseControls[0]=false;pads.setPlayerSafe(0,false);this.playerControl=true;}}
-  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();this.processObjectBrains(nowMs);this.processPedBrains(nowMs);this.processGarageDoors(nowMs);this.liftCreatedObjects();this.updateConversations(nowMs);this.settlePutDown();if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.runtime.game.objects.advanceFades(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
+  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.world.clearScriptPedEvents?.();if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();this.processObjectBrains(nowMs);this.processPedBrains(nowMs);this.processGarageDoors(nowMs);this.liftCreatedObjects();this.updateConversations(nowMs);this.settlePutDown();if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.runtime.game.objects.advanceFades(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
    this.processRunners(timeStepMs/1000);
    this.drownRiders(timeStepMs);

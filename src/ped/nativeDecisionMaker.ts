@@ -17,7 +17,7 @@
 export const EVENT={draggedOutCar:7,knockOffBike:8,damage:9,deadPed:11,potentialGetRunOver:12,potentialWalkIntoPed:13,shotFired:15,
  pedEnteredMyVehicle:17,sexyPed:20,attractor:27,vehicleThreat:30,gunAimedAt:31,acquaintancePedHate:36,acquaintancePedDislike:37,acquaintancePedLike:38,
  acquaintancePedRespect:39,vehicleDamageWeapon:41,gotKnockedOverByCar:43,shotFiredWhizzedBy:49,lowAngerAtPlayer:50,highAngerAtPlayer:51,
- seenPanickedPed:65,seenCop:72,vehicleDamageCollision:73,danger:75,vehicleOnFire:79} as const;
+ soundQuiet:62,seenPanickedPed:65,seenCop:72,vehicleDamageCollision:73,danger:75,vehicleOnFire:79} as const;
 /** CEvent::GetEventPriority of those events (Events/*.h). */
 export const EVENT_PRIORITY:Readonly<Record<number,number>>={[EVENT.damage]:65,[EVENT.potentialGetRunOver]:51,[EVENT.gunAimedAt]:50,[EVENT.shotFired]:35,[EVENT.seenPanickedPed]:13,[EVENT.danger]:20,[EVENT.deadPed]:15,[EVENT.vehicleOnFire]:54};
 /** eTaskType values the responses use (Enums/eTaskType.h). */

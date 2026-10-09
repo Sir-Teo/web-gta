@@ -48,6 +48,7 @@ import { decideDamageResponse, applyDamageResponse } from '../ped/brain';
 import { playerPunchDamage, scaleBlow, npcPunchDamage } from '../ped/damage';
 import {ARREST_DOWN_TIME,copCanArrest,policePursuitWeapon,type CopWeapon} from '../police/nativeArrest';
 import {ReactToGunAimedAt,GANG_SEEING_RANGE,gunAimedAtAffects,gunAimedAtResponse} from '../ped/nativeGunAimedAt';
+import {eventSoundLevel} from '../ped/nativeSoundEvents';
 import {EVENT,RELATIONSHIP,TASK,isKillTaskAppropriate,makeDecision,sourceRelationship,takesPriorityOverCurrentEvent,type DecisionMaker,type Relationship} from '../ped/nativeDecisionMaker';
 import {potentialGetRunOver,vehiclePotentialCollisionResponse,type GetRunOverVehicle} from '../ped/nativeGetRunOver';
 import {deadPedTyreBlood} from './nativeTyreBlood';
@@ -394,6 +395,8 @@ export interface Pedestrian {
   /** A gang party (CPedGroup): its leader and members; `hangout` on the leader is CTaskComplexGangLeader's subtask
    * (stand 5 s, turn to face a member, or a 0 to 15 s walk that ends the party). */
   party?:{leader:Pedestrian;members:Pedestrian[]};
+ /** CPedIntelligence +0x17d/+0x17e: the highest-priority event received since a script last looked (noteEvent). */
+ highestEvent?:{type:number;priority:number};
   hangout?:{phase:'stand'|'face'|'wander';time:number;facing?:Pedestrian};
  /** CTaskComplexStareAtPed: the whole party turns on whoever walks up to its leader. */
  stare?:StareState;
@@ -424,6 +427,11 @@ export const NATIVE_PED_WALK_SPEED = 1.522;
 export const NATIVE_PED_RUN_SPEED = 4.304;
 export const NATIVE_PED_SPRINT_SPEED = 5.903;
 export const NATIVE_PLAYER_DEFEND_MULT = 0.4;
+/** EVENT_SCRIPT_COMMAND, which the event record passes by. */
+const EVENT_SCRIPT_COMMAND=32;
+/** GetEventPriority of the events the record keeps (Events/*.h): damage 65, a shot whizzing by 36, a shot heard 35, a
+ * quiet sound 8. */
+const RECORDED_EVENT_PRIORITY:Readonly<Record<number,number>>={[EVENT.damage]:65,[EVENT.shotFiredWhizzedBy]:36,[EVENT.shotFired]:35,[EVENT.soundQuiet]:8};
 /** AccountForPedDamageStats' cut for a blow between friends (0x10028a18c): a tenth (0x10058cb80), at most 12.5. */
 const FRIENDLY_DAMAGE_FACTOR=Math.fround(.1),FRIENDLY_DAMAGE_CAP=12.5;
 /** How long a dragged-out driver stays on the ground before his get-up (authored: the stand-up task is unreversed). */
@@ -824,6 +832,7 @@ export class WorldPedestrians {
     const proofed=hit?.weapon===WEAPON.drowning?false:hit?.weapon===WEAPON.fall?!!p.proofs?.collision:pedProofedAgainst(p,kind);
     if(!ignoreProofs&&proofed)return false;
     if(kind==='bullet'&&bulletProofVestStops(p,hit?.weapon,this.hitPiece(p,hit?.point)))return false;
+    this.noteEvent(p,EVENT.damage);
     // CPed::m_pLastEntityDamage: the player, unless nobody did it (`noSource`: drowning, a fall, the script's TASK_DIE)
     // or someone else did (`byPlayer` false: a blast or a fire he did not start).
     const byPlayer=!hit?.noSource&&hit?.byPlayer!==false;
@@ -947,9 +956,19 @@ export class WorldPedestrians {
   /** CEventGunShot::AffectsPed: street peds within 45 units of the shooter hear a shot, and a
    * silenced shot only reaches peds facing the muzzle with a clear line of sight. They answer from their decision
    * maker; without the decision files they flee as frighten() makes them. */
-  gunShot(start:{x:number;y:number;z:number},silent:boolean,shooter?:number){
+  gunShot(start:{x:number;y:number;z:number},silent:boolean,shooter?:number,end?:{x:number;y:number;z:number}){
    this.onGunShot?.(start,silent,shooter===undefined);
    const source=shooter===undefined?undefined:this.people.find(o=>o.id===shooter);
+   // CWeapon::DoBulletImpact's CEventGunShotWhizzedBy beside the CEventGunShot: AffectsPed (0x4B5120) for a living ped
+   // other than the player whose position lies within 2 of the line, ahead of the shooter (on the ground plane).
+   if(end){
+    const dx=end.x-start.x,dz=end.z-start.z,length=Math.hypot(dx,dz);
+    if(length>1e-3)for(const p of this.people){
+     if(p.health<=0||p.id===shooter)continue;const q=p.actor.player.position;
+     const t=((q.x-start.x)*dx+(q.z-start.z)*dz)/length;if(t<=0)continue;
+     if(Math.hypot(start.x+dx/length*t-q.x,start.z+dz/length*t-q.z)<2)this.noteEvent(p,EVENT.shotFiredWhizzedBy);
+    }
+   }
    for(const p of this.people){
     // Not the shooter itself, nor anyone in its group (the player's recruits when the player fires).
     if(p.officer||p.health<=0||p.id===shooter||shooter===undefined&&p.follow)continue;
@@ -962,6 +981,7 @@ export class WorldPedestrians {
      const eye={x:q.x,y:q.y+1,z:q.z},length=Math.hypot(d.x,d.y,d.z);
      if(length>1e-3&&this.sim.world.castRay(new RAPIER.Ray(eye,{x:d.x/length,y:d.y/length,z:d.z/length}),length,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS|RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC,undefined,p.collider,p.body))continue;
     }
+    this.noteEvent(p,EVENT.shotFired);
     // Peds answering shots, an aimed gun or damage keep at it.
     if(!this.takesPriority(p,EVENT.shotFired,source))continue;
     if(this.shotFiredResponse(p,source))continue;
@@ -2289,6 +2309,24 @@ export class WorldPedestrians {
  /** The acquaintance a ped holds the player in (PLAYER1): its own table once a command gave it one, else its type's
   * as ped.dat and the script's SET_RELATIONSHIP left it. */
  regardForPlayer(ped:Pedestrian){return (ped.acquaintance??this.pedTypeTable(pedTypeName(ped))).idFor(0);}
+ /** CEventGroup::Add's record of what the ped received (iOS 0x100285d4c calls 0x10035ca24 with the event's type and
+  * GetEventPriority): kept when its priority is above the one held; a script command's (32) never is.
+  * GET_CHAR_HIGHEST_PRIORITY_EVENT reads it (iOS 0x1001fb880), and the script loop clears a mission ped's once the
+  * scripts have run (0x1001cdfd0). */
+ noteEvent(p:Pedestrian,type:number){
+  if(type===EVENT_SCRIPT_COMMAND)return;
+  const priority=RECORDED_EVENT_PRIORITY[type]??0;
+  if(!p.highestEvent||priority>p.highestEvent.priority)p.highestEvent={type,priority};
+ }
+ clearMissionEvents(){for(const p of this.people)if(p.mission)p.highestEvent=undefined;}
+ /** CEventSoundQuiet::AffectsPed for a quiet sound in the global group (the player's footsteps): a living ped where it
+  * is heard at 30 or more (native axes). */
+ hearSoundQuiet(event:import('../ped/nativeSoundEvents').SoundQuietEvent){
+  for(const p of this.people){
+   if(p.health<=0)continue;const q=p.actor.player.position;
+   if(eventSoundLevel(event,{x:q.x,y:-q.z,z:q.y+PED_ORIGIN_HEIGHT})>=30)this.noteEvent(p,EVENT.soundQuiet);
+  }
+ }
  /** AccountForPedDamageStats (iOS 0x10028a070) for one ped's damage on another: times the victim's pedstats defend
   * weakness, then for a mission ped hit by a member of its own group (short of a flamethrower or a blast) a tenth,
   * 12.5 at most. */
@@ -3479,12 +3517,12 @@ export class WorldPedestrians {
      }
     }
     const shotDamage=weapon.info.damage*pellets;
-    this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre,{id:`ped:${p.id}`,position:()=>p.health>0||this.people.includes(p)?{...p.actor.player.position,y:p.actor.player.position.y+1}:undefined});this.gunShot({...state.position,y:state.position.y+1},false,p.id);
+    this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre,{id:`ped:${p.id}`,position:()=>p.health>0||this.people.includes(p)?{...p.actor.player.position,y:p.actor.player.position.y+1}:undefined});this.gunShot({...state.position,y:state.position.y+1},false,p.id,end);
     if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
     else if(riderHit||shot?.collider.handle===this.sim.playerCollider.handle){if(this.damagesPlayer(p,weapon.info.type)){this.sim.damagePlayer(shotDamage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z},piece:pedPieceAt(this.sim.player.position,this.sim.player.heading,end),friendly:this.friendlyWithPlayer(p)});this.defendPlayer(p);}}
     else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer){car.damage(shotDamage,undefined,false,undefined,{weapon:weapon.info.type,by:{ped:p}});
      // InflictDamage's random tyre burst: (rand() & 0x7f) under the weapon's chance.
-     const chance=aiTyreBurstChance(weapon.info.type);if(chance&&!car.wrecked&&Math.floor(Math.random()*128)<chance)car.burstTyreAt(end);}}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')&&npcDamageReaches(victim,p,weapon.info.type,true,this.hitPiece(victim,end))){victim.lastDamagedBy={ped:p};const dealt=this.pedOnPedDamage(victim,p,shotDamage,weapon.info.type);victim.health=healthAfter(victim.health,dealt);if(dealt>0)victim.lastWeaponDamage=weapon.info.type;if(!victim.health)this.onKill?.({id:victim.id,officer:victim.officer,gang:victim.gang,pedType:victim.pedType,recruit:!!victim.follow,byPlayer:false});const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,shotDamage,vfrom,end,false),vfrom);}}}
+     const chance=aiTyreBurstChance(weapon.info.type);if(chance&&!car.wrecked&&Math.floor(Math.random()*128)<chance)car.burstTyreAt(end);}}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')&&npcDamageReaches(victim,p,weapon.info.type,true,this.hitPiece(victim,end))){victim.lastDamagedBy={ped:p};this.noteEvent(victim,EVENT.damage);const dealt=this.pedOnPedDamage(victim,p,shotDamage,weapon.info.type);victim.health=healthAfter(victim.health,dealt);if(dealt>0)victim.lastWeaponDamage=weapon.info.type;if(!victim.health)this.onKill?.({id:victim.id,officer:victim.officer,gang:victim.gang,pedType:victim.pedType,recruit:!!victim.follow,byPlayer:false});const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,shotDamage,vfrom,end,false),vfrom);}}}
     }
    }
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}

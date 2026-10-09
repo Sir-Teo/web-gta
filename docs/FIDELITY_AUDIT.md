@@ -11745,3 +11745,10 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   hit by a member of its own group (the player's followers, a street gang's party, or a script group) is cut the same
   way short of a flamethrower or blast (pedOnPedDamage). A script rider's drive-by at CJ is not wired.
   tests/browser/ped-damage-stats.spec.ts. SMOKE2 (28) passes on the branch.
+- GET_CHAR_HIGHEST_PRIORITY_EVENT had no world adapter (impound.scm's guards, SYN3, SYND4, DRIV2). iOS 0x1001fb880 reads
+  CPedIntelligence +0x17d, which CEventGroup::Add (0x100285d4c) sets through 0x10035ca24 with each received event's type
+  and GetEventPriority, keeping it only when the priority is higher and never for a script command (32); after the
+  scripts run, the loop clears every mission ped's (0x1001cdfd0). The port records damage (65, once proofs pass), a shot
+  heard (35), a shot whizzing by (36: CEventGunShotWhizzedBy::AffectsPed, within 2 of the shot's line ahead of the
+  shooter; the player's shots, his car's and the peds' now give gunShot the line's end) and the player's footsteps where
+  heard at 30 or more (CEventSoundQuiet::AffectsPed, 8). tests/browser/ped-highest-event.spec.ts.

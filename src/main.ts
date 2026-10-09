@@ -4452,7 +4452,9 @@ async function boot() {
       // CPed's footsteps for the player: the CEventSoundQuiet his last frame's move made, which the script reads before
       // CWorld::Process flushes the global group (GUNS1's noise bar). Walking and standing make none.
       {const level=sim.player.grounded?playerFootstepSoundLevel(sim.footMove==='sprint'?'sprint':sim.footMove==='run'?'run':sim.player.moveBlend>0?'walk':'still',sim.player.moveBlend):0,p=sim.player.position;
-       mission.soundEvents=level>0?[{source:'player',level,position:{x:p.x,y:-p.z,z:p.y+1}}]:[];}
+       mission.soundEvents=level>0?[{source:'player',level,position:{x:p.x,y:-p.z,z:p.y+1}}]:[];
+       // The peds who hear it record it before the scripts look (GET_CHAR_HIGHEST_PRIORITY_EVENT, impound's guards).
+       for(const event of mission.soundEvents)pedestrians?.hearSoundQuiet(event);}
       // The script's FORCE_WEATHER, FORCE_WEATHER_NOW and RELEASE_WEATHER reach the one CWeather, as the cheats' do.
       mission.runtime.game.weatherHost??={forceWeather:w=>weather.forceWeather(w),forceWeatherNow:w=>weather.forceWeatherNow(w),releaseWeather:()=>weather.releaseWeather()};
       const clock=mission.runtime.game.clock;if(clock.follow(sim.timeMinutes,sim.weekDay))mission.runtime.game.stats.increment(STAT_DAYS_PASSED_IN_GAME,1);
@@ -5551,6 +5553,8 @@ async function boot() {
                  // A ped in a car holds no on-foot order the browser tracks, so its record is left as it is.
                  // A ped riding in a car runs none of the tasks the browser carries out on foot.
                  // A ped riding in a car holds a task only while it drives the car on a CCarAI mission.
+                 scriptPedHighestEvent:ped=>onFoot(ped)?.highestEvent?.type??0,
+                 clearScriptPedEvents:()=>{pedestrians?.clearMissionEvents();},
                  scriptPedHasOrder:ped=>{const p=onFoot(ped);if(p)return pedestrians?.hasScriptTask(p)??false;const r=asRider(ped);return !!r&&r.seat==='driver'&&(scriptCars.driving(r.car)||scriptCars.inTempAction(r.car));},
                  // CWorld::ClearExcitingStuffFromArea: the deletable peds and cars in the radius go, and the
                  // fires in it are put out, which is CFireManager::ExtinguishPoint and the car-fire pass.
