@@ -8,12 +8,12 @@ test('default world keeps walking across the first streamed terrain replacement'
  // MAIN turns CJ to its own start heading (SET_CHAR_HEADING scplayer 262) once the script is running: face north after it.
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
  await endStoryMission(page);
- await page.waitForTimeout(500);
- await page.evaluate(()=>(window as any).__game.turnPlayer(Math.PI));
+ // Out in Grove Street's road (the helper leaves CJ by the kerbside fences), facing west down it, and run forward: the
+ // follow camera hangs on a string, so a held sideways key would circle him round it.
+ await page.evaluate(()=>(window as any).__game.placePlayer(2495,13.5,1665));
+ await page.waitForTimeout(800);
+ await page.evaluate(()=>(window as any).__game.turnPlayer(-Math.PI/2));
  await page.keyboard.down('KeyW');await page.keyboard.down('ShiftLeft');
- await expect.poll(async()=>{const s=await state();return s.player.position.z;},{timeout:40000}).toBeLessThan(1665);await page.keyboard.up('KeyW');
- // The follow camera hangs on a string, so a held sideways key circles CJ round it: face west and run forward.
- await page.evaluate(()=>(window as any).__game.turnPlayer(Math.PI/2));await page.keyboard.down('KeyW');
  try{
   // The spawn's own window is asked for at start; the walk must move the region itself.
   await expect.poll(async()=>{const s=await state();return s.following.requests>0&&s.following.region.x!==2495;},{timeout:60000,intervals:[2000]}).toBe(true);
