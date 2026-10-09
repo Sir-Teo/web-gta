@@ -816,7 +816,7 @@ export interface ScmMissionWorld {
  /** CPed::AttachPedToEntity and DettachPedFromEntity for the player on a vehicle; false when he cannot be attached. */
  attachPlayerToVehicle?(car:unknown,offset:{x:number;y:number;z:number},side:number,limit:number,weapon:number):boolean;
  detachPlayerFromVehicle?():void;playerAttachedVehicle?():unknown;
- setAttachedPlayerHeading?(heading:number,range:number):boolean;
+ setAttachedPlayerHeading?(heading:number,speed:number):boolean;
  attachPlayerToObject?(object:number,offset:{x:number;y:number;z:number},side:number,limit:number,weapon:number):boolean;playerAttachedObject?():number|undefined;
  /** The player's health (SET_CHAR_HEALTH), and his death at none. */
  setPlayerHealth?(health:number):void;killPlayer?():void;
@@ -1400,8 +1400,8 @@ export class ScmMission {
     if(handle===PLAYER_PED_HANDLE){this.host('attachPlayerToVehicle','ATTACH_CHAR_TO_CAR')(this.liveVehicle(vehicle),offset,position,angleLimit,weapon);return;}
     this.peds.attachToCar(handle,vehicle,offset);
    },
-   // SET_HEADING_FOR_ATTACHED_PLAYER: a player not attached to anything is left alone.
-   setHeadingForAttachedPlayer:(_player,heading,range)=>{this.world.setAttachedPlayerHeading?.(heading,range);},
+   // SET_HEADING_FOR_ATTACHED_PLAYER: the angle and the turn a frame, in degrees; the camera swings while he hangs.
+   setHeadingForAttachedPlayer:(_player,heading,speed)=>{this.world.setAttachedPlayerHeading?.(heading,speed);},
    // ATTACH_CHAR_TO_OBJECT: CPed::AttachPedToEntity on a script object. The player's attachment is the host's; a script
    // ped (SMOKE3, CASINO5) is kept at the offset in the object's frame each step (PositionAttachedPed, as the car form
    // has it: facing the object's heading turned by the side, 0 ahead, 1 left, 2 behind, 3 right), frozen, with the

@@ -411,7 +411,11 @@ async function boot() {
   /** CPed::m_pAttachedTo for the player (ATTACH_CHAR_TO_CAR): the vehicle, the offset in its axes (native), the side
    * he faces (m_fTurretAngleA: 0 ahead, 1 left, 2 behind, 3 right), the turn allowed either side of it (radians), and
    * the weapon and ammo he had before (m_nSavedWeapon, m_nTurretAmmo). */
-  let playerAttached:{car?:unknown;object?:number;offset:{x:number;y:number;z:number};side:number;limit:number;facing?:number;savedWeapon?:number;savedAmmo?:number}|undefined;
+  let playerAttached:{car?:unknown;object?:number;offset:{x:number;y:number;z:number};side:number;limit:number;savedWeapon?:number;savedAmmo?:number}|undefined;
+  /** SET_HEADING_FOR_ATTACHED_PLAYER's two globals (iOS 0x10079d20c and 0x10079d210): the first-person weapon camera's
+   * horizontal angle to swing to, held here as the heading it gives the player (Beta + π/2, which render.yaw is), and
+   * the turn a frame, both radians. The turn is spent once the camera is there. */
+  let attachedHeadingSwing:{yaw:number;step:number}|undefined;
   /** Where the thing the player hangs from is and how it is turned, renderer axes: a vehicle's body, or a script
    * object's drawn group (its record while the model loads). */
   const attachedFrame=(a:NonNullable<typeof playerAttached>):{t:{x:number;y:number;z:number};q:Quaternion}|undefined=>{
@@ -435,7 +439,7 @@ async function boot() {
     const {t,q}=frame;
     const off=new Vector3(a.offset.x,a.offset.z,-a.offset.y).applyQuaternion(q),forward=new Vector3(0,0,-1).applyQuaternion(q);
     const centre={x:t.x+off.x,y:t.y+off.y,z:t.z+off.z};
-    const base=Math.atan2(forward.x,forward.z)+(a.facing??a.side*Math.PI/2);
+    const base=Math.atan2(forward.x,forward.z)+a.side*Math.PI/2;
     let heading=render.yaw+Math.PI;
     if(a.limit<Math.PI){let d=Math.atan2(Math.sin(heading-base),Math.cos(heading-base));d=Math.max(-a.limit,Math.min(a.limit,d));heading=base+d;}
     const feet={x:centre.x,y:centre.y-1,z:centre.z};
@@ -3946,6 +3950,14 @@ async function boot() {
         for(const boat of fleet?.boats??[])if(boat.afterStep())weapons.vehicleExplosion(boat.body.translation(),'boat');
         for(const bike of fleet?.bikes??[]){bike.propFor??=scenePropFor;if(bike.afterStep())weapons.vehicleExplosion(bike.body.translation(),'bike');}
         carEntry.syncPlayer();
+        // The first-person weapon camera (iOS 0x100213714) swings its horizontal angle toward the angle
+        // SET_HEADING_FOR_ATTACHED_PLAYER set, while the player hangs from something: by the turn a frame (at 30 a
+        // second here) the shorter way round, onto it once within one turn, and the turn is spent.
+        if(playerAttached&&attachedHeadingSwing&&attachedHeadingSwing.step>0){
+         const s=attachedHeadingSwing,turn=s.step*step*30,full=2*Math.PI;
+         let d=(render.yaw-s.yaw)%full;if(d<0)d+=full;const other=full-d;
+         if(d<turn||other<turn){render.yaw=s.yaw;s.step=0;}else render.yaw+=d>other?turn:-turn;
+        }
         pinAttachedPlayer();
         for(const plane of fleet?.planes??[]){plane.onBurnExplosion??=at=>weapons.burningAircraftExplosion(at);if(plane.afterStep())weapons.vehicleExplosion(plane.body.translation(),'aircraft',()=>fleet?.planes.has(plane)?{...plane.body.translation()}:undefined);}
         if(stuntJumps){
@@ -6399,18 +6411,11 @@ async function boot() {
                   const v=vehicle?vehicle.linvel():sim.playerVelocity();return {x:v.x,y:-v.z,z:v.y};
                  },
                  playerAttachedObject:()=>playerAttached?.object,
-                 // SET_HEADING_FOR_ATTACHED_PLAYER (AUTHORED): the way he faces on the thing he hangs from (degrees
-                 // anticlockwise from its front, as the side's quarter turns are) and the turn allowed either side of it;
-                 // the view turns there. iOS's handler (0x1001fe4b4) only stores the angle and the second operand in
-                 // radians, which the attached-aim camera (0x1002136f8) takes as an absolute Beta to swing to, by that
-                 // much a frame, and then clears.
-                 setAttachedPlayerHeading:(heading,range)=>{
-                  const a=playerAttached;if(!a)return false;
-                  a.facing=heading*Math.PI/180;a.limit=range*Math.PI/180;
-                  const frame=attachedFrame(a);
-                  if(frame){const f=new Vector3(0,0,-1).applyQuaternion(frame.q);render.yaw=Math.atan2(f.x,f.z)+a.facing-Math.PI;}
-                  pinAttachedPlayer();return true;
-                 },
+                 // SET_HEADING_FOR_ATTACHED_PLAYER (iOS 0x1001fe4b4) stores the angle and the turn a frame, both made
+                 // radians, for the first-person weapon camera (0x100213300). It takes the angle as its absolute
+                 // horizontal angle, Beta, and the player's heading is Beta + π/2 (Process_Rocket's, gta-reversed).
+                 // The attachment's own turn limit is not touched.
+                 setAttachedPlayerHeading:(heading,speed)=>{attachedHeadingSwing={yaw:(heading+90)*Math.PI/180,step:speed*Math.PI/180};return true;},
                  playerAttachedVehicle:()=>playerAttached?.car,
                  setPlayerMaxArmour:maxArmour=>{sim.player.armour=maxArmour;},
                  // The script's native x and y become the browser's x and negated z.

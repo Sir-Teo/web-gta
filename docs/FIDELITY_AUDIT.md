@@ -11555,3 +11555,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   ProcessWeaponSwitch takes up only out of a vehicle. The port's exit restored the weapon from before the car on any
   exit, so SWEET2 warped CJ out at Emmet's with the pistol it had just chosen for him replaced by bare fists, and the
   bottles could not be shot.
+- SET_HEADING_FOR_ATTACHED_PLAYER (iOS 0x1001fe4b4) stores its angle and its second operand, both made radians, as a
+  horizontal angle and a turn a frame. The first-person weapon camera (0x100213300) swings its Beta to that angle by
+  the turn while the player hangs from something, snaps onto it within one turn, and spends the turn. Its heading is
+  Beta + π/2 (gta-reversed Process_Rocket). The port's stand-in took the angle as relative to the vehicle and the
+  second operand as a turn limit, and changed the attachment's limit. The attachment's own limit is untouched now.

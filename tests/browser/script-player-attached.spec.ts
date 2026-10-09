@@ -24,15 +24,13 @@ test('the player rides on a car at an offset with a given gun, and is let go wit
  const c0=await w('vehiclePosition',car);
  await w('setVehicleCoordinates',car,c0.x+20,c0.y,c0.z);
  await expect.poll(async()=>{const d=await where();return Math.hypot(d.dx,d.dy+1.5);},{timeout:15000}).toBeLessThan(.5);
- // SET_HEADING_FOR_ATTACHED_PLAYER: now facing a quarter turn anticlockwise from the car's front (its left), 10 degrees
- // either way; the view swings there and he keeps within it.
- await w('setHeadingForAttachedPlayer',0,90,10);
- const facing=()=>page.evaluate(h=>{const g=(window as any).__game,c=g.missionForProfiling().vehicles.entity(h).car.body.rotation();
-  // The car's front in renderer axes, and CJ's heading against it (anticlockwise seen from above is positive).
-  // The player's heading grows anticlockwise (forward (sin h, cos h) in renderer x and z), so his left is front + 90.
-  const x=2*(c.x*c.z+c.w*c.y)*-1,z=-(1-2*(c.x*c.x+c.y*c.y));const front=Math.atan2(x,z),d=g.state().player.heading-front;return Math.atan2(Math.sin(d),Math.cos(d))*180/Math.PI;},car);
- await expect.poll(facing,{timeout:5000}).toBeGreaterThan(79);
- expect(await facing()).toBeLessThan(101);
+ // SET_HEADING_FOR_ATTACHED_PLAYER 0, 10 a frame: the first-person camera's horizontal angle, which is world-absolute,
+ // swings to 0, and his heading is Beta + 90 degrees: west, whichever way the car points. His limit is a whole turn.
+ await w('setHeadingForAttachedPlayer',0,0,10);
+ // His native heading in degrees (the browser's heading is it plus a half turn), anticlockwise from north.
+ const heading=()=>page.evaluate(()=>{const h=(window as any).__game.state().player.heading-Math.PI;return Math.atan2(Math.sin(h),Math.cos(h))*180/Math.PI;});
+ await expect.poll(heading,{timeout:5000}).toBeGreaterThan(89);
+ expect(await heading()).toBeLessThan(91);
  await w('detachPedFromCar',1);
  expect(await w('isCharAttachedToAnyCar',1)).toBe(false);
  const back=await page.evaluate(()=>{const inv=(window as any).__game.weapons().inventory,a=inv.ammo.get(22),ak=inv.ammo.get(30);return {selected:inv.selected,pistol:a.clip+a.reserve,ak:ak.clip+ak.reserve};});
