@@ -9,7 +9,7 @@ import {NativeAngledRect} from './nativeAngledRect';
 import {requireAsset} from '../assets/binary';
 import {scmOpcode} from './scmOpcodes';
 import {USE_TEXT_DISABLE_NEXT_FRAME,USE_TEXT_ENABLED_BY_SCRIPT} from './ScmMessages';
-import {BLIP_CAR,BLIP_CHAR,BLIP_CONTACT_POINT,BLIP_COORD,BLIP_DISPLAY_BLIPONLY,BLIP_DISPLAY_BOTH,BLIP_OBJECT,BLIP_PICKUP,BLIP_SPOTLIGHT} from './ScmRadar';
+import {BLIP_CAR,BLIP_CHAR,BLIP_CONTACT_POINT,BLIP_COORD,BLIP_DISPLAY_BOTH,BLIP_OBJECT,BLIP_PICKUP,BLIP_SPOTLIGHT} from './ScmRadar';
 import {STAT_MISSION_ATTEMPTS,STAT_PROGRESS_MADE} from './ScmGameState';
 import {skipForwardInRecording,skipToEndAndStopPlaybackRecordedCar,startPlaybackRecordedCar,stopPlaybackRecordedCar} from './carRecordingPlayback';
 import {BUTTON,CONTROLLER_JOYPAD} from './ScmPads';
@@ -285,9 +285,13 @@ function blipPoint(t:ScmThread,p:ScmParameter[],at:number,i:ScmInstruction){
  const point=vec(t,p,at);if(point.z<=ScmCamera.MAP_Z_LOW_LIMIT)point.z=world(t,i,'groundZForCoord')(point.x,point.y);return point;
 }
 function entityBlip(type:number):ScmCommandHandler{return (t,p,i)=>{const {radar}=game(t,i),blip=radar.setEntityBlip(type,t.readInt(p[0]),BLIP_DISPLAY_BOTH);radar.changeScale(blip,3);t.writeInt(p[1],blip|0);};}
+/** The sprite blips (ADD_SPRITE_BLIP_FOR_CONTACT_POINT iOS 0x1001d55bc, _FOR_COORD 0x1001d5614, and their short-range
+ * forms 0x1001e5594 and 0x1001e34fc) are all made BLIP_DISPLAY_BOTH: blip and 3D marker. A story mission's contact point
+ * so stands as CRadar::Draw3dMarkers' red cylinder off a mission (Big Smoke's in front of CJ's house); where the script
+ * wants the icon alone, it says so (INITIAL's property blips, CHANGE_BLIP_DISPLAY 2). */
 function spriteBlip(type:number,shortRange:boolean):ScmCommandHandler{
  return (t,p,i)=>{
-  const {radar}=game(t,i),position=blipPoint(t,p,0,i),blip=shortRange?radar.setShortRangeCoordBlip(type,position,BLIP_DISPLAY_BLIPONLY):radar.setCoordBlip(type,position,BLIP_DISPLAY_BLIPONLY);
+  const {radar}=game(t,i),position=blipPoint(t,p,0,i),blip=shortRange?radar.setShortRangeCoordBlip(type,position,BLIP_DISPLAY_BOTH):radar.setCoordBlip(type,position,BLIP_DISPLAY_BOTH);
   radar.setSprite(blip,t.readInt(p[3]));t.writeInt(p[4],blip|0);
  };
 }
@@ -2422,7 +2426,12 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_VEHICLE_ATTACHED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isVehicleAttached')(t.readInt(p[0])),negated(i));},
  ACTIVATE_MENU_ITEM:(t,p,i)=>{game(t,i).menus.activateOneItem(t.readInt(p[0]),t.readInt(p[1]),bool(t,p[2]));},
  ATTACH_TRAILER_TO_CAB:(t,p,i)=>{world(t,i,'attachTrailerToCab')(t.readInt(p[0]),t.readInt(p[1]));},
- TASK_TIRED:(t,p,i)=>{world(t,i,'taskTired')(t.readInt(p[0]),t.readInt(p[1]));},
+ // CTaskSimpleTired (gta-reversed 0x637970; iOS handler 0x1001e63c4 makes it with the time): the ped stands still on
+ // ANIM_ID_IDLE_TIRED blended in at 4 from the default group, for the time in ms, then blends it out and is done.
+ // (The player in the fat motion group would take FAT_TIRED's.)
+ TASK_TIRED:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'playAnim',animationName:'IDLE_tired',animationFile:'PED',blendSpeed:4,loop:true,lockX:false,lockY:false,keepLastFrame:false,time:t.readInt(p[1]),interruptable:true});
+ },
  WINCH_CAN_PICK_VEHICLE_UP:(t,p,i)=>{world(t,i,'winchCanPickVehicleUp')(t.readInt(p[0]),bool(t,p[1]));},
  SET_NIGHT_VISION:(t,p,i)=>{world(t,i,'setNightVision')(bool(t,p[0]));},
  SET_AIRCRAFT_CARRIER_SAM_SITE:(t,p,i)=>{world(t,i,'setAircraftCarrierSamSite')(bool(t,p[0]));},

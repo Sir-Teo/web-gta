@@ -129,3 +129,22 @@ describe('the tail of vehicle, object and world commands',()=>{
   ]);
  });
 });
+
+describe('TASK_TIRED',()=>{
+ test('is CTaskSimpleTired: the default group\'s IDLE_tired, blended in at 4 and held for the time given',()=>{
+  const given:{ped:number;task:ScmScriptedTask;opcode:number}[]=[];
+  run({givePedScriptedTask:(ped:number,task:ScmScriptedTask,opcode:number)=>{given.push({ped,task,opcode});}},undefined,
+   instruction(op('TASK_TIRED'),[int(PED),int(4000)]));
+  expect(given).toEqual([{ped:PED,opcode:op('TASK_TIRED'),task:{kind:'playAnim',animationName:'IDLE_tired',animationFile:'PED',blendSpeed:4,loop:true,lockX:false,lockY:false,keepLastFrame:false,time:4000,interruptable:true}}]);
+ });
+});
+
+describe('sprite blips',()=>{
+ test('a contact point is made with its blip and its marker, as every iOS sprite blip handler makes it',()=>{
+  const game=new ScmGameState();
+  run({},game,instruction(op('ADD_SPRITE_BLIP_FOR_CONTACT_POINT'),[float(2495.214),float(-1687.03),float(12.514),int(0),gvar(40)]),
+   instruction(op('ADD_SHORT_RANGE_SPRITE_BLIP_FOR_CONTACT_POINT'),[float(426.5),float(2530.7),float(16.1),int(32),gvar(44)]));
+  const tracked=game.radar.traces.filter(t=>t.tracking);
+  expect(tracked.map(t=>({type:t.type,display:t.display}))).toEqual([{type:5,display:3},{type:5,display:3}]);
+ });
+});

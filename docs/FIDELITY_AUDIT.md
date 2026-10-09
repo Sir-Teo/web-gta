@@ -11672,3 +11672,11 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   for a collision of 1 or more on a bike that can be damaged, takes m_fDamageIntensity through ScalePlayerVehicleDamage
   (which leaves any bike but the player's own as it is) and clears bOnSideStand (+0x800 bit 4) past 20; the bike then
   goes over. A car driven into a parked PCJ-600 now topples it; a nudge leaves it on its stand.
+- A story mission's contact point stands as its red cylinder again. Every iOS sprite-blip handler
+  (ADD_SPRITE_BLIP_FOR_CONTACT_POINT 0x1001d55bc, _FOR_COORD 0x1001d5614, and the short-range forms 0x1001e5594 and
+  0x1001e34fc) calls CRadar::SetCoordBlip with BLIP_DISPLAY_BOTH; the port made them BLIP_DISPLAY_BLIPONLY, and
+  CRadar::Draw3dMarkers draws no marker for a blip-only trace. After INTRO, Big Smoke's point in front of CJ's house
+  showed only as the CJ icon on the radar, with nothing on the ground to walk into, and so did Ryder's, Sweet's and every
+  other story contact. Where the script wants an icon alone it says so: INITIAL sets each property blip to
+  CHANGE_BLIP_DISPLAY 2 right after making it. The race tournaments' points (also contact points) now show their
+  cylinders too, as natively.
