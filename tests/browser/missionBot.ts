@@ -422,6 +422,22 @@ export function missionBotTick(dtSeconds:number){
    return {action:'getting into a car'};
   }
  }
+ // A homie in CJ's group, the place far off and the script's own car standing empty beside him (SWEET1B's Greenwood at
+ // Sweet's door): a player drives there, his group getting in with him, rather than walk the homie through the
+ // back yards, where a follower seeking him straight is held by the first fence. Half a minute at it at most.
+ if(vehicle)mem.rideHunt=undefined;
+ if(!vehicle&&me.z<500&&members.length&&places.length&&distance(nearest(places).position)>80&&!mem.rideHunt){
+  const own=(m.vehicles?.handles??[]).map((h:number)=>m.vehicles.entity?.(h)).filter((c:any)=>c?.car?.body&&!c.wrecked&&!c.disposed&&!c.occupied&&!c.locked)
+   .map((c:any)=>{const t=c.car.body.translation();return {x:t.x,y:-t.z,z:t.y};}).filter((p:any)=>distance(p)<25).sort((a:any,b:any)=>distance(a)-distance(b))[0];
+  if(own)mem.rideHunt={since:performance.now(),at:own};
+ }
+ if(mem.rideHunt&&performance.now()-mem.rideHunt.since>30000)mem.rideHunt={...mem.rideHunt,gaveUp:true};
+ if(!vehicle&&me.z<500&&mem.rideHunt&&!mem.rideHunt.gaveUp){
+  const at=mem.rideHunt.at;
+  if(distance(at)>5&&glide(at,2.5))return {action:'go to the script car'};
+  const now=performance.now();if(now-(mem.enterKeyAt??0)>2500){mem.enterKeyAt=now;return {action:'press enter car'};}
+  return {action:'getting into the script car'};
+ }
  // "Shoot the switch" (RYDER2's docks gate and warehouse door): the script's object at the blipped place, not yet
  // damaged (HAS_OBJECT_BEEN_DAMAGED), is shot from wherever a player could see it: from here when the line is clear,
  // else from a spot with a floor beside it.
@@ -513,6 +529,16 @@ export function missionBotTick(dtSeconds:number){
   const outsideDoor=!vehicle&&p.entryExit!=null&&p.position.z<500&&me.z<500?g.entryExitEntrance?.(p.entryExit):null;
   if(outsideDoor&&Math.hypot(outsideDoor.x-p.position.x,outsideDoor.y-p.position.y)<6&&distance(p.position)<8){
    if(glide(outsideDoor,0))return {action:'go into door'};return {action:'in door'};
+  }
+  // A homie of CJ's group on foot left well behind (the bot's walk outpaced him, or went over a wall he cannot climb):
+  // a player waits for him, then walks back to him. SWEET1B drops Sweet from the group once he is 30 units off or 8
+  // up or down, and takes him back only within ten, so walking on leaves him standing. Twenty seconds at most each.
+  if(!vehicle&&!over){
+   const lag=members.map((h:number)=>{try{if(world.pedVehicle?.(h)>0)return undefined;const q=world.pedPosition(h);return {h,q,d:Math.hypot(q.x-me.x,q.y-me.y),dz:Math.abs(q.z-me.z)};}catch{return undefined;}})
+    .filter((x:any)=>x&&(x.d>12||x.dz>4)).sort((a:any,b:any)=>b.d-a.d)[0];
+   // The clock starts over only once every homie is beside him again, so twenty seconds of it is the most.
+   if(lag&&(mem.lagFor=(mem.lagFor??0)+dtSeconds)<20){if(mem.lagFor>4&&glide(lag.q,4))return {action:'back to homie',target:lag.h};return {action:'wait for homie',target:lag.h};}
+   if(!lag&&members.every((h:number)=>{try{const q=world.pedPosition(h);return Math.hypot(q.x-me.x,q.y-me.y)<6&&Math.abs(q.z-me.z)<2;}catch{return true;}}))mem.lagFor=0;
   }
   if(!over&&glide(p.position,1))return {action:'go to place'};
   // On a weapon pickup that stays (CJ holding another weapon of its slot: CPickup::Update's PU_CF1 gate), a player
