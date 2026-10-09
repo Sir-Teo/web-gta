@@ -80,7 +80,7 @@ function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp'
   // A clip the script plays on the seated rider takes the place of the seat's own pose: looped, or held at its end.
   const own=rider.clip?.animation,played=own&&rider.clip?{clip:rider.clip.name,animation:own,seconds:own.duration>0?(rider.clip.loop?((nowMs-rider.clip.started)/1000)%own.duration:Math.min((nowMs-rider.clip.started)/1000,own.duration)):0}:undefined;
   // A bike's rider sits on the saddle with the ride group's clip, as the player does: still, riding or pedalling by
-  // the bike's speed. Riders of boats and aircraft ride unseen for now.
+  // the bike's speed.
   const bike=rider.car as unknown as Partial<import('./simulation/WorldBike').WorldBike>;
   if(!isScriptCar(rider.car)&&typeof bike.riderPose==='function'&&bike.car&&!rider.offset&&rider.seat==='driver'){
    const pose=bike.riderPose(),clip=pose.seat&&bikeClip?.(pose.block,pose.idle);
@@ -95,7 +95,20 @@ function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp'
    if(seat&&(clip||played))poses.push({key:`script:${bike.car.body.handle}:pillion`,car:bike as import('./render/VehicleOccupants').OccupantVehicle,model:rider.model,local:seat,...(played??{clip:name,seconds:clip!.duration,animation:clip!})});
    continue;
   }
-  // The occupant renderer seats peds in cars; a rider on a script boat or aircraft rides unseen for now.
+  // A boat's or an aircraft's rider sits where GetSeatPositionInVehicle (iOS 0x10032bd40) puts him, in the clip
+  // AddInCarAnim (iOS 0x1003e9754) blends: a boat's driver stands in DRIVE_BOAT, or sits in CAR_SIT in a boat with
+  // m_bSitInBoat; anyone else sits in CAR_SIT, or CAR_SITP as a passenger (CAR_LSIT / CAR_SITPLO in a low one). Only
+  // the player's ride runs ProcessDrivingAnims over it. A boat's first passenger shares the driver's point, as natively.
+  const ridden:unknown=rider.car,vessel=ridden instanceof WorldBoat||ridden instanceof WorldPlane?ridden:undefined;
+  if(vessel&&!rider.offset){
+   const boat=vessel instanceof WorldBoat,frames=vessel.assets.model?.frames,driver=rider.seat==='driver';
+   const local=nativeSeatPosition({front:modelDummy(frames,'ped_frontseat'),back:modelDummy(frames,'ped_backseat'),boat},rider.seat);
+   const key=`script:${vessel.car.body.handle}:${rider.seat}`;
+   if(rider.diedInSeat)poses.push({key,car:vessel,model:rider.model,local,clip:driver?'car_dead_lhs':'car_dead_rhs',seconds:1e6});
+   else poses.push({key,car:vessel,model:rider.model,local,...(played??{clip:driver&&boat?(vessel.modelFlags&MODEL_FLAG.sitInBoat?'car_sit':'drive_boat'):sitClip(vessel.modelFlags,driver),seconds:0})});
+   continue;
+  }
+  // The occupant renderer seats peds in cars; a rider on a script train rides unseen for now.
   if(!isScriptCar(rider.car))continue;
   // A ped a script attached hangs where it said, in the car's own axes; a seated one sits at the car's own
   // seat point, and the browser's cars carry one on each side.
@@ -116,6 +129,7 @@ function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp'
 /** The browser's walking ped behind a script handle, or nothing when the handle names a ped that rides. */
 const onFoot=(entity:unknown)=>asRider(entity)?undefined:entity as import('./simulation/WorldPedestrians').Pedestrian|undefined;
 import {canPedStepOutCar} from './vehicle/nativeDieInCar';
+import {modelDummy,nativeSeatPosition} from './vehicle/nativeSeatPosition';
 import {VehicleOccupants} from './render/VehicleOccupants';
 import {SirenLights} from './render/SirenLights';
 import {Skidmarks} from './render/Skidmarks';

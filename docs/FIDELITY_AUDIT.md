@@ -11614,3 +11614,11 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   agrees with gta-reversed) then runs the DRIVE_BOAT set over a standing boat's driver and, in a boat he sits in, the
   car sets by driving skill and speed, so he steers with Drive_L/R as in a car. Before, he stood at the Squalo's helm
   chair in DRIVE_BOAT and never steered.
+- A script's peds riding a boat or an aircraft are drawn: a heli's pilot and co-pilot, a boat's driver. Each sits at
+  GetSeatPositionInVehicle's point (iOS 0x10032bd40, src/vehicle/nativeSeatPosition.ts: the driver's front seat
+  mirrored left except on a boat or a bike, passenger 0 the front seat unmirrored, 1 the back seat mirrored, 2 the back
+  seat, a missing dummy the origin) in AddInCarAnim's clip (iOS 0x1003e9754): a boat's driver DRIVE_BOAT, or CAR_SIT in
+  one with m_bSitInBoat; any other driver CAR_SIT (CAR_LSIT low), a passenger CAR_SITP (CAR_SITPLO low). A boat's
+  first passenger takes the same point as its driver, as the binary has it. They rode unseen before.
+  - Still open: a bullet into such a rider (CheckForShootingVehicleOccupant) is tested for cars only, and a ped on a
+    train carriage still rides unseen. The Nevada's ped_frontseat hangs off a child frame and is read as its own matrix.

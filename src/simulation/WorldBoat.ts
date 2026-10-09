@@ -117,7 +117,7 @@ export class WorldBoat {
   // CBoat's constructor: m_fTurnMass is half the handling's turn mass (0x6F2940), so the hull rolls and yaws twice as
   // readily as the rigid body its handling line describes.
   this.handling.values.turnMass=Math.fround(this.handling.values.turnMass*.5);
-  this.physical=installNativeVehicleBody(sim.world,assets.collision!,this.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:0});this.body=this.physical.body;this.car={body:this.body};
+  this.physical=installNativeVehicleBody(sim.world,assets.collision!,this.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:0});this.body=this.physical.body;this.car={body:this.body,root:this.root};
   if(assets.model&&!assets.missingTextures.length){
    try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);if(colors)bindNativeCarPaint(this.visual.materialBindings,assets.textures.find(t=>t.name==='vehiclelights128')).setColors(colors);this.root.add(this.visual.root);}catch{this.visual=undefined;}
   }
@@ -375,8 +375,8 @@ export class WorldBoat {
  setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(this.reflection)this.updateReflection(rgb);if(this.wrecked){this.visual?.setNight(night);return;}if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.visual?.setNight(night);}
   snapshot(){return {inWater:this.inWater,immersion:+this.immersion.toFixed(3),modelId:this.modelId,name:this.name,health:this.health,wrecked:this.wrecked,onFire:this.onFire,occupied:this.occupied,wake:this.wake.coords.length,splashes:this.splashes.length,position:{...this.body.translation()},velocity:{...this.body.linvel()}};}
  /** What the script's vehicle host reads of any vehicle: the body under `car`, the heading as WorldCar's (the
-  * body's yaw turned half round), and whether it has gone. */
- readonly car:{body:RAPIER.RigidBody};disposed=false;
+  * body's yaw turned half round), and whether it has gone. `car.root` is what the occupant renderer seats riders on. */
+ readonly car:{body:RAPIER.RigidBody;root:Group};disposed=false;
  /** A script's vehicle (CVehicle's MISSION_VEHICLE creation): the population never removes it; the script lets it go. */
  missionCar=false;
  /** CVehicle::bConsideredByPlayer, which SET_VEHICLE_IS_CONSIDERED_BY_PLAYER clears: the player's enter search passes it over. */
