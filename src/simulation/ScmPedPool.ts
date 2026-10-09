@@ -244,6 +244,8 @@ export class ScmPedPool<Ped>{
  /** GIVE_WEAPON_TO_CHAR, kept for the body built when the ped gets in or out of a car (SWEET1's Sweet takes his spray
   * can into the car and sprays with it once out). */
  setWeapon(handle:number,weaponType:number,ammo:number){const said=this.said.get(handle);if(said)said.weapon={type:weaponType,ammo};}
+ /** The weapon the script last gave the ped, which it holds in a car as out of it. */
+ weaponOf(handle:number){return this.said.get(handle)?.weapon;}
  /** REMOVE_WEAPON_FROM_CHAR (that weapon only) and REMOVE_ALL_CHAR_WEAPONS (none given). */
  clearWeapon(handle:number,weaponType?:number){const said=this.said.get(handle);if(said?.weapon&&(weaponType===undefined||said.weapon.type===weaponType))said.weapon=undefined;}
  setAccuracy(handle:number,accuracy:number){const said=this.said.get(handle);if(said)said.accuracy=accuracy;this.pool.apply(handle,ped=>{this.host.setAccuracy(ped,accuracy);});}

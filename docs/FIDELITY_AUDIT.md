@@ -11701,3 +11701,14 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   by. TWAR7's Freddy is CREATE_CHAR 24 (MISSION1) with a Vagos model, and OG Loc's SET_CHAR_RELATIONSHIP hate is for
   MISSION1; special characters (OG Loc, Sweet), whose models have no peds.ide type, had none at all. The other readers of
   `pedType` (same-type friendly fire, pain voice, kill stats) are left as they were.
+- A script's passenger drives by at a ped it hates when its decision maker says so (src/simulation/nativeRiderThreat.ts).
+  CPedAcquaintanceScanner runs for a mission ped by default (m_bScanAllowedScriptPed is 1 from CPedIntelligence's ctor,
+  iOS 0x10035aa7c): every 500 ms (3000 after raising), the nearest hated ped of the 16 within max(seeing, hearing) (15,
+  40 for a gang type, SET_SENSE_RANGE's both, iOS 0x1001e952c), no front test in a vehicle, within 40 and in clear view,
+  not of its own group. A group's decision maker answering TASK_GROUP_USE_MEMBER_DECISION (1510) hands it to the ped's
+  own; ComputePedThreatResponse's TASK_SIMPLE_GANG_DRIVEBY (iOS 0x1002a11d8, case 1022 at 0x1002a15d8) is for a
+  PASSENGER with an instant-hit gun (gta-reversed has the driver test inverted), abort range max(target range,
+  sense + 5), frequency 90. TWAR7's OG Loc (group 146@ 36->1510, own 148@ 36->1022, SET_SENSE_RANGE 80, a TEC-9,
+  hate for MISSION1) fired at Freddy only once Freddy fired at CJ (the group's authored threat); he now fires on sight.
+  SET_SENSE_RANGE on a rider is kept too. Not scanned: the respect/like/dislike events, the lighting test.
+  tests/browser/rider-threat-drive-by.spec.ts.

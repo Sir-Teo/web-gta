@@ -51,6 +51,12 @@ interface ScriptRider{rider:true;model:number|string;car:import('./simulation/Wo
   * edited it, and the decision maker a script gave it: CPed is one object in its car and out of it, so they are kept
   * while it rides and handed on to the body it gets out as. */
  pedType?:string;acquaintance?:NativeAcquaintance;decisionMaker?:number;
+ /** SET_SENSE_RANGE's seeing and hearing range, kept as the walker keeps it. */
+ ranges?:{informFriends?:number;followNodeThreshold?:number;sense?:number};
+ /** The hate it answers with CTaskSimpleGangDriveBy (nativeRiderThreat): the threat, the abort range, whether the
+  * threat has come within it, and the drive-by given; and when it next scans. */
+ threat?:{position:()=>{x:number;y:number;z:number}|undefined;range:number;cameWithin:boolean;driveBy:import('./simulation/scriptDriveBy').ScriptDriveBy};
+ threatScan?:number;
  /** Where on the car the ped hangs, in the car's own axes, for one attached rather than seated. */
  offset?:{x:number;y:number;z:number};
  /** An attached ped that stands (the hot-dog vendor) and the quarter turn he faces off the car's front. */
@@ -216,7 +222,7 @@ import {nativeContactBrightness} from './assets/collisionLighting';
 import {decodeNamedTextures} from './assets/modelTextures';
 import {NativeMovingFog} from './render/NativeMovingFog';
 import {playHornIfNecessary} from './simulation/nativeCarHorn';
-import {GANG_RIVALS,addRespect,maxGroupMembers} from './simulation/nativePopulation';
+import {ACQUAINTANCE_EYE_HEIGHT,GANG_RIVALS,addRespect,maxGroupMembers} from './simulation/nativePopulation';
 import {Frustum,Matrix4,Object3D,Quaternion,Sphere,Vector2,Vector3} from 'three';
 import {StuntJumps} from './simulation/StuntJumps';
 /** Reused aim-direction scratch: WeaponSystem.tick copies it, fire/driveby read it synchronously. */
@@ -254,7 +260,9 @@ import {SceneRegionFollower} from './assets/sceneRegionFollower';
 import {readSurfaceMovementFlags,steepSlopeRefusesJump,surfaceBlocksSprint} from './simulation/nativeSurfaceMovement';
 import {rapierClimbWorld} from './simulation/climbProbe';
 import {WEAPON_FLAG,nativeWeaponInfo,weaponUsedWithoutAmmo} from './weapons/weaponData';
-import {NATIVE_PED_TYPES,nativePedType,type NativeAcquaintance} from './ped/nativeAcquaintance';
+import {ACQUAINTANCE_HATE,NATIVE_PED_TYPES,nativePedType,type NativeAcquaintance} from './ped/nativeAcquaintance';
+import {ACQUAINTANCE_RAISED_SECONDS,ACQUAINTANCE_SCAN_SECONDS,THREAT_DRIVE_BY_FREQUENCY,answersHateWithDriveBy,closestHated,senseRange,threatDriveByRange} from './simulation/nativeRiderThreat';
+import {ScmDecisionMakers} from './engine/ScmDecisionMakers';
 import {firstPersonMode} from './weapons/nativeFirstPerson';
 import {loadHudSprites} from './ui/nativeHudSprites';
 import {PLAYER_IDLE_CLIPS,PlayerIdles,loadPlayerIdles} from './assets/playerIdles';
@@ -705,6 +713,60 @@ async function boot() {
     const at=target.position();if(!at)continue;
     const rightSide=(at.x-c.x)*Math.cos(heading)+(at.z-c.z)*-Math.sin(heading)>0;
     rider.driveBy=newScriptDriveBy({kind:'live',position:target.position},60,90,rightSide);rider.groupDriveBy=target.key;
+   }
+  };
+  /** CPedAcquaintanceScanner on a script's passenger and the drive-by its decision maker answers a hate with
+   * (nativeRiderThreat): TWAR7's OG Loc, on CJ's bike, at Freddy. The peds it scans are the player, the peds on foot
+   * and the script's other riders; one holding a drive-by of the script's or the group's is left to it. */
+  const riderThreatDriveBys=(dt:number)=>{
+   const m=mission,peds=pedestrians,data=weapons.native;if(!m||!peds||!data)return;
+   const entityOf=(h:number)=>{try{return m.peds.exists(h)?m.peds.entity(h):undefined;}catch{return undefined;}};
+   const groupOf=(h:number)=>{for(const g of m.groups.values())if(g.isMember(h))return g;return undefined;};
+   const riders=m.peds.handles.map(h=>({h,r:asRider(entityOf(h))})).filter((x):x is {h:number;r:ScriptRider}=>!!x.r&&!x.r.gone&&x.r.health>0&&!x.r.car.wrecked);
+   for(const {h,r} of riders){
+    const c=r.car.car.body.translation();
+    // CTaskSimpleGangDriveBy ends once the threat is dead or gone, or out past the abort range after coming within it;
+    // a drive-by the script gave meanwhile has displaced it.
+    if(r.threat){
+     const at=r.threat.position(),d=at&&Math.hypot(at.x-c.x,at.y-c.y,at.z-c.z);
+     if(d!==undefined&&d<r.threat.range)r.threat.cameWithin=true;
+     if(r.driveBy!==r.threat.driveBy||d===undefined||r.threat.cameWithin&&d>r.threat.range){if(r.driveBy===r.threat.driveBy)r.driveBy=undefined;r.threat=undefined;}
+     continue;
+    }
+    if(r.driveBy||r.offset||r.seat==='driver'||r.decisionMaker===undefined)continue;
+    if((r.threatScan=(r.threatScan??Math.random()*3)-dt)>0)continue;
+    r.threatScan=ACQUAINTANCE_SCAN_SECONDS;
+    const table=r.acquaintance??peds.pedTypeTable(r.pedType),hateMask=table.get(ACQUAINTANCE_HATE);if(!hateMask)continue;
+    const type=nativePedType(r.pedType),sense=senseRange(type,r.ranges?.sense),group=groupOf(h);
+    type Candidate={position:{x:number;y:number;z:number};pedType:number|undefined;sameGroup:boolean;eye:number;live:()=>{x:number;y:number;z:number}|undefined};
+    const candidates:Candidate[]=[];
+    if(sim.player.health>0)candidates.push({position:{...sim.player.position},pedType:0,sameGroup:!!group?.isMember(1),eye:PED_ORIGIN_HEIGHT,live:()=>sim.player.health>0?{...sim.player.position}:undefined});
+    for(const p of peds.livingNear(c,sense)){
+     const handle=m.peds.handleOf(p),sameGroup=handle!==undefined?!!group?.isMember(handle):p.follow&&!!group?.isMember(1);
+     candidates.push({position:{...p.actor.player.position},pedType:nativePedType(pedTypeName(p)),sameGroup,eye:PED_ORIGIN_HEIGHT,live:()=>p.health>0&&peds.hasPed(p)?p.actor.player.position:undefined});
+    }
+    for(const other of riders)if(other.r!==r&&!other.r.offset){
+     const o=other.r,q=o.car.car.body.translation();
+     candidates.push({position:{x:q.x,y:q.y,z:q.z},pedType:nativePedType(o.pedType),sameGroup:!!group?.isMember(other.h),eye:0,live:()=>o.gone||o.health<=0||o.car.wrecked?undefined:o.car.car.body.translation()});
+    }
+    // CPed::OurPedCanSeeThisOne: a clear line past buildings and objects, eye to eye.
+    const sees=(t:Candidate)=>{
+     const from={x:c.x,y:c.y+ACQUAINTANCE_EYE_HEIGHT,z:c.z},to={x:t.position.x,y:t.position.y+t.eye+ACQUAINTANCE_EYE_HEIGHT,z:t.position.z};
+     const dx=to.x-from.x,dy=to.y-from.y,dz=to.z-from.z,length=Math.hypot(dx,dy,dz);
+     return length<1e-3||!sim.world.castRay(new RAPIER.Ray(from,{x:dx/length,y:dy/length,z:dz/length}),length,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+    };
+    const threat=closestHated(c,t=>(hateMask&(1<<t))!==0,candidates,sense,sees);if(!threat)continue;
+    r.threatScan=ACQUAINTANCE_RAISED_SECONDS;
+    const decisions=(slot:number)=>m.scriptDecisions.get(slot);
+    const groupDecisions=group?{decisionMaker:group.decisionMaker>=0?decisions(ScmDecisionMakers.indexOf(group.decisionMaker)):undefined}:undefined;
+    if(!answersHateWithDriveBy(groupDecisions,decisions(r.decisionMaker)??peds.defaultDecisionMaker(r.decisionMaker),Math.random))continue;
+    // An instant-hit gun, and the threat within the range the drive-by is given.
+    const weapon=m.peds.weaponOf(h),info=weapon&&nativeWeaponInfo(data,weapon.type);if(!info||info.fire!=='instant')continue;
+    const range=threatDriveByRange(info.targetRange,sense),d=Math.hypot(threat.position.x-c.x,threat.position.y-c.y,threat.position.z-c.z);if(d>=range)continue;
+    const q=r.car.car.body.rotation(),heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y));
+    const rightSide=(threat.position.x-c.x)*Math.cos(heading)+(threat.position.z-c.z)*-Math.sin(heading)>0;
+    const driveBy=newScriptDriveBy({kind:'live',position:threat.live},range,THREAT_DRIVE_BY_FREQUENCY,rightSide);
+    r.driveBy=driveBy;r.threat={position:threat.live,range,cameWithin:true,driveBy};
    }
   };
   let pedestrians:WorldPedestrians|undefined;
@@ -3774,6 +3836,7 @@ async function boot() {
         }});
         guard('traffic.beforeStep',()=>traffic?.beforeStep(step));guard('scriptCars.step',()=>{scriptCars.step(step,sim.player.position);if(mission)scriptCars.pathAreas(sim.player.position);});guard('searchlights',()=>{searchlightBeams=mission?mission.stepSearchlights(step*30,searchlightLineOfSight):[];});guard('police.beforeStep',()=>police?.beforeStep(step,worldCar?.occupied&&!worldCar.disposed?worldCar:undefined));guard('emergency.update',()=>emergency?.update(step));guard('driveby.beforeStep',()=>driveby?.beforeStep(step,worldCar?.occupied?worldCar:undefined));
         guard('groupDriveBys',()=>groupThreatDriveBys(step));
+        guard('riderThreats',()=>riderThreatDriveBys(step));
         guard('scriptDriveBys',()=>{const gun=driveby?.gun;if(!gun)return;for(const rider of scriptRiders)if(rider.driveBy&&!rider.gone&&rider.health>0&&!rider.car.wrecked)stepScriptDriveBy(rider.driveBy,rider.car,gun.info,gun.reloadSeconds,step,scriptDriveByWorld);
           if(carEntry.seated&&carEntry.car&&!carEntry.car.wrecked)for(const p of carEntry.passengers)if(p.driveBy)stepScriptDriveBy(p.driveBy,carEntry.car,gun.info,gun.reloadSeconds,step,scriptDriveByWorld);});
         frameProfile.stepTraffic+=performance.now()-tTraffic;const tPeds=performance.now();
@@ -5638,15 +5701,16 @@ async function boot() {
                  // CLEAR_ALL_CHAR_RELATIONSHIPS empties one acquaintance, which is the list it names.
                  clearScriptPedRelationships:(ped,relationship)=>{const p=onFoot(ped)??asRider(ped);if(p&&pedestrians)pedestrians.acquaintanceOf(p).clear(relationship);},
                  // What CPed keeps whichever body the browser builds it as: read off the old as it gets in or out of a car.
-                 scriptPedCarried:ped=>{const p=onFoot(ped)??asRider(ped);return p&&{pedType:pedTypeName(p),acquaintance:p.acquaintance,decisionMaker:p.decisionMaker,noCriticalHits:p.noCriticalHits};},
+                 scriptPedCarried:ped=>{const p=onFoot(ped)??asRider(ped);return p&&{pedType:pedTypeName(p),acquaintance:p.acquaintance,decisionMaker:p.decisionMaker,noCriticalHits:p.noCriticalHits,ranges:p.ranges&&{...p.ranges}};},
                  carryScriptPed:(ped,carried)=>{
-                  const kept=carried as {pedType?:string;acquaintance?:NativeAcquaintance;decisionMaker?:number;noCriticalHits?:boolean};
-                  const r=asRider(ped);if(r){r.pedType=kept.pedType??r.pedType;r.acquaintance=kept.acquaintance;r.decisionMaker=kept.decisionMaker;r.noCriticalHits=kept.noCriticalHits;return;}
+                  const kept=carried as {pedType?:string;acquaintance?:NativeAcquaintance;decisionMaker?:number;noCriticalHits?:boolean;ranges?:ScriptRider['ranges']};
+                  const r=asRider(ped);if(r){r.pedType=kept.pedType??r.pedType;r.acquaintance=kept.acquaintance;r.decisionMaker=kept.decisionMaker;r.noCriticalHits=kept.noCriticalHits;r.ranges=kept.ranges;return;}
                   // A body on foot keeps the ped type its model gives it, as one the script made on foot has.
                   const p=onFoot(ped);if(!p)return;
                   if(kept.acquaintance)p.acquaintance=kept.acquaintance;
                   if(kept.decisionMaker!==undefined)p.decisionMaker=kept.decisionMaker;
                   if(kept.noCriticalHits!==undefined)p.noCriticalHits=kept.noCriticalHits;
+                  if(kept.ranges)p.ranges=kept.ranges;
                  },
                  setScriptPedFlag:(ped,flag,value)=>{const p=onFoot(ped);if(p)pedestrians?.setFlag(p,flag,value);else{const r=asRider(ped);if(r&&flag==='canBeShotInVehicle')r.canBeShotInVehicle=value;}},
                  setScriptPickupMoneyPerDay:(handle,money)=>{pickups.patchGenerated(`script:${handle}`,{revenueRate:money});},
@@ -5877,7 +5941,7 @@ async function boot() {
                  // IS_THIS_HELP_MESSAGE_BEING_DISPLAYED: the box is up with the script's own text for that key.
                  helpMessageShowingKey:key=>hud.helpShowing()&&shownScript.help.split('#')[0]===key,
                  randomCivilianModel:()=>pedestrians?.rosterCivilian(),
-                 setScriptPedRange:(ped,range,value)=>{const p=onFoot(ped);if(p)(p.ranges??={})[range]=value;},
+                 setScriptPedRange:(ped,range,value)=>{const p=onFoot(ped)??asRider(ped);if(p)(p.ranges??={})[range]=value;},
                  pointOnScreen:(position,radius)=>!populationOutsideView(render.camera,{x:position.x,y:position.z,z:-position.y},radius),
                  // Fx_c::CreateFx through the browser's own particle manager, which already speaks the native
                  // matrix: three rows of axes and a position, in the script's coordinates.

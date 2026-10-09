@@ -2209,6 +2209,10 @@ export class WorldPedestrians {
  }
  /** Whether a ped is still in the world. */
  hasPed(ped:Pedestrian){return this.people.includes(ped);}
+ /** The living peds within `radius` of `at` (renderer coordinates), as a ped's CPedScanner collects them. */
+ livingNear(at:{x:number;y:number;z:number},radius:number){
+  return this.people.filter(p=>{const q=p.actor.player.position;return p.health>0&&Math.hypot(q.x-at.x,q.y-at.y,q.z-at.z)<=radius;});
+ }
  /** Street peds (not a script's, the player's crew or cops) attacking the player or one of `members`: what the
   * player's group answers as a threat. */
  attackersOf(members:ReadonlySet<unknown>){return this.people.filter(p=>!p.mission&&p.health>0&&!p.follow&&!p.officer&&p.retaliate>0&&(!p.foe||members.has(p.foe)));}
