@@ -275,7 +275,7 @@ export class Simulation {
     // a safe player takes nothing from anything at all.
     if(!this.playerCanBeDamaged)return;
     // CEventDamage::AffectsPed: MAKE_PLAYER_FIRE_PROOF turns molotov and flamethrower damage away; ComputeWillKillPed:
-    // with CHEAT_NO_ONE_CAN_STOP_US the player takes nothing from a weapon (types below WEAPON_LAST_WEAPON, 47).
+    // with CHEAT_INFINITE_HEALTH the player takes nothing from a weapon (types below WEAPON_LAST_WEAPON, 47).
     if(event&&(event.weapon===18||event.weapon===37)&&this.playerFireProof?.())return;
     // SET_CHAR_PROOFS on the player: CEventDamage::AffectsPed asks CPhysical::CanPhysicalBeDamaged by the weapon type
     // alone (a landing is WEAPON_FALL, collision-proofed); a knockdown blow is still its fist or nightstick.
