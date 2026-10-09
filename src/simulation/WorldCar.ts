@@ -855,8 +855,10 @@ export class WorldCar {
   private fakeForce={x:0,y:0,z:0};private fakeTorque={x:0,y:0,z:0};private fakeFrames=0;
   private skipPhysics(seconds:number){
    const body=this.car.body;
-   // Parked and vacated cars are STATUS_ABANDONED; a car the game or the player drives never skips.
-   if(this.occupied||this.autopilot){this.fakeFrames=0;if(body.isSleeping())body.wakeUp();return false;}
+   // Parked and vacated cars are STATUS_ABANDONED; a car the game or the player drives never skips, nor one a script's
+   // ped sits at the wheel of with no drive task (STATUS_PHYSICS): LOWR's and SWEET6's lowriders slept, and the
+   // hydraulics CONTROL_CAR_HYDRAULICS worked moved lines under a body that did not step.
+   if(this.occupied||this.autopilot||WorldCar.hasDriverPed?.(this)){this.fakeFrames=0;if(body.isSleeping())body.wakeUp();return false;}
    if(body.isSleeping()){this.stepVelocity={x:0,y:0,z:0};this.stepTurn={x:0,y:0,z:0};return true;}
    const v=body.linvel(),w=body.angvel(),f=this.fakeForce,t=this.fakeTorque,ts=50/30;
    f.x=(f.x+v.x/50)/2;f.y=(f.y+v.y/50)/2;f.z=(f.z+v.z/50)/2;t.x=(t.x+w.x/50)/2;t.y=(t.y+w.y/50)/2;t.z=(t.z+w.z/50)/2;
@@ -1151,6 +1153,8 @@ export class WorldCar {
  }
  /** CVehicle::RemoveDriver's STATUS_ABANDONED: a car its driver left (stepped, jumped, crawled or was dragged out). */
  driverless=false;
+ /** Whether a script's ped sits at the car's wheel, which the host knows (its riders). */
+ static hasDriverPed?:(car:WorldCar)=>boolean;
  /** STATUS_ABANDONED: nobody drives it. CCarGenerator, CCheat::VehicleCheat and CCarCtrl::CreateCarForScript create cars
   * so, and CVehicle::RemoveDriver sets it whenever a driver gets out (driverless for the player's exits, driverOut for
   * a ped's). */

@@ -11650,3 +11650,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
 - A script rider's TASK_DRIVE_BY at a ped the script then deletes stops shooting at it; it threw "Script ped handle
   names nothing" every frame in the drive-by step (SWEET4 deletes its Ballas under Sweet's drive-by). Natively the
   task's target is a registered reference, which the deletion clears.
+- A car a script's ped sits at the wheel of, with no drive task, no longer goes to sleep. CAutomobile::ProcessControl
+  skips physics (m_nFakePhysics) only for STATUS_ABANDONED and STATUS_WRECKED, and a car with a driver is
+  STATUS_PHYSICS; the port rested every car without the player or an autopilot. LOWR's and SWEET6's lowriders, worked
+  by CONTROL_CAR_HYDRAULICS with a ped warped in, sat level: the lines moved under a body that did not step. The host
+  answers WorldCar.hasDriverPed from its riders, as it already did WorldBike.hasDriverPed for CBike's.
