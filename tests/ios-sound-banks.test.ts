@@ -11,7 +11,7 @@ test('the banks rebuilt from the iOS bundle are PC-format banks the PC list lack
  // BICYCLE_D/_P, BOAT_INBOARD_D, SND_BANK_GENRL_BULLET_PASS_1 to _4 (three whizzes each), the motorbike engines
  // COPBIKE_D/_P, SCOOTER_P, SPORTSBIKE_D/_P and VTWINBIKE_D/_P, FRONTEND_MENU, and TRAIN_D and TRAM_D.
  // And the 25 SCRIPT banks scripts load whole into a mission audio slot.
- expect(ios.banks.map(b=>b.id)).toEqual([18,19,21,28,29,30,31,40,41,44,51,60,119,124,125,131,133,139,140,...SCRIPT_BANKS_LOOKUP.filter(b=>b!==SCRIPT_BANK_NULL)].sort((a,b)=>a-b));
+ expect(ios.banks.map(b=>b.id)).toEqual([9,14,15,18,19,20,21,22,23,24,28,29,30,31,40,41,42,43,44,49,50,51,55,56,60,65,66,67,72,73,82,90,91,96,97,110,111,116,117,119,121,122,123,124,125,129,130,131,132,133,139,140,...SCRIPT_BANKS_LOOKUP.filter(b=>b!==SCRIPT_BANK_NULL)].sort((a,b)=>a-b));
  const have=new Set(pc.banks.map(b=>b.id));
  for(const bank of ios.banks){
   expect(have.has(bank.id)).toBe(false);

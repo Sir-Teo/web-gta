@@ -11,14 +11,15 @@ test('every shipped aircraft associates with its native flight table entry',()=>
  const vehicles=readVehicleIde(readFileSync('public/play/world/files/vehicles/vehicles.ide','utf8')).records.filter(v=>v.type==='plane'||v.type==='heli');expect(vehicles).toHaveLength(24);
  for(const vehicle of vehicles){const profile=profiles.get(vehicle.handling);expect(profile,vehicle.model).toBeDefined();expect(Object.keys(profile!.values)).toHaveLength(21);}
  expect(profiles.get('RUSTLER')!.handlingId).toBe(188);expect(profiles.get('DODO')!.handlingId).toBe(197);expect(profiles.get('RCRAIDER')!.handlingId).toBe(209);
- expect(profiles.get('RUSTLER')!.values).toMatchObject({thrust:.5,gearUpResistance:Math.fround(.2),gearDownLift:Math.fround(1.2),formLift:Math.fround(.008),speedResistanceZ:0});
+ expect(profiles.get('RUSTLER')!.values).toMatchObject({thrust:.5,gearUpResistance:Math.fround(.2),gearDownLift:Math.fround(1.2),formLift:Math.fround(.008),speedResistanceZ:10});
  expect(profiles.get('DODO')!.values.formLift).toBe(Math.fround(.02));
 });
-test('source float32 narrowing preserves signed stability and documented RCRAIDER spelling',()=>{
- const profile=profiles.get('RCRAIDER')!;expect(profile.values.windMultiplier).toBe(Math.fround(.1));expect(profile.sourceQuirks).toEqual(['Original windMultiplier suffix: 0.1s']);
- expect(profiles.get('RUSTLER')!.values.rollStabilization).toBe(Math.fround(-.002));
+test('source float32 narrowing preserves signed stability; the iOS file spells RCRAIDER\'s wind cleanly',()=>{
+ const profile=profiles.get('RCRAIDER')!;expect(profile.values.windMultiplier).toBe(Math.fround(.1));expect(profile.sourceQuirks).toEqual([]);
+ // The mobile file triples the planes' roll stabilisation (PC -0.002).
+ expect(profiles.get('RUSTLER')!.values.rollStabilization).toBe(Math.fround(-.006));
  const row=raw.supplements.find(r=>r.kind==='flying'&&r.tokens[0]==='RCRAIDER')!;
- expect(row.tokens[14]).toBe('0.1s');prepareFlyingHandling(row);expect(row.tokens[14]).toBe('0.1s');
+ expect(row.tokens[14]).toBe('0.1');prepareFlyingHandling(row);expect(row.tokens[14]).toBe('0.1');
 });
 test('malformed flight profiles never silently become partial or guessed data',()=>{
  const row=raw.supplements.find(r=>r.kind==='flying')!;

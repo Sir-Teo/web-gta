@@ -21,10 +21,10 @@
       "sha256": "2d70455cda1ed89da9cc1a995ccb2539899b84360a2411c887d88617365ead37"
     },
     {
-      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/handling.cfg",
+      "url": "https://raw.githubusercontent.com/Google61/gta3sa.app/67f70cb72eb207aeca650ea9e8c10b0e7dda166a/handling.cfg",
       "path": "vehicles/handling.cfg",
-      "bytes": 64532,
-      "sha256": "b6d06109441c342a000e8bec367ffac1bd949cd12690372dc01a2c025d6c0240"
+      "bytes": 64016,
+      "sha256": "a5ef88e13ae32fa3acfaaf57d60a5514a934ae3213fc3373fb3e10dfc4ae5c49"
     },
     {
       "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/carmods.dat",

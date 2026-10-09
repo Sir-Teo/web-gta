@@ -8,6 +8,45 @@
  "decoderDelay": 577,
  "banks": [
   {
+   "id": 9,
+   "path": "bank-9.bin",
+   "dataBytes": 97076,
+   "bytes": 101880,
+   "sounds": 4,
+   "sha256": "d7cd6444f08b57e5fae94ceab5af696bb76ce4c68c1d9054389cd5d93c11bfe6",
+   "from": {
+    "wav": 0,
+    "mp3": 4,
+    "empty": 0
+   }
+  },
+  {
+   "id": 14,
+   "path": "bank-14.bin",
+   "dataBytes": 43176,
+   "bytes": 47980,
+   "sounds": 2,
+   "sha256": "4dc3c906f7da7393f08ab13929e85f452516695e6584e553e67eb2c9d6b24ce7",
+   "from": {
+    "wav": 0,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 15,
+   "path": "bank-15.bin",
+   "dataBytes": 187496,
+   "bytes": 192300,
+   "sounds": 3,
+   "sha256": "8c753d10e5e3e887e03746221a282d1e23e9c94ccfe2bb552f3041d9fa8c7c53",
+   "from": {
+    "wav": 1,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
    "id": 18,
    "path": "bank-18.bin",
    "dataBytes": 61712,
@@ -34,12 +73,64 @@
    }
   },
   {
+   "id": 20,
+   "path": "bank-20.bin",
+   "dataBytes": 84896,
+   "bytes": 89700,
+   "sounds": 2,
+   "sha256": "cb7fde94bea84e226e0400d8df0e6b552ec183c55121d326ea262ff355d9ffcc",
+   "from": {
+    "wav": 0,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
    "id": 21,
    "path": "bank-21.bin",
    "dataBytes": 45976,
    "bytes": 50780,
    "sounds": 2,
    "sha256": "b3bd6c6684be8cc317c31a73f4543d87ae5ac6a9b731d85cfdcacfb5d20f084e",
+   "from": {
+    "wav": 0,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 22,
+   "path": "bank-22.bin",
+   "dataBytes": 62046,
+   "bytes": 66850,
+   "sounds": 1,
+   "sha256": "f66689d2b70c66c08cb5b6a77cd1bf235dc67d0777351d1bb9d614648355fa6e",
+   "from": {
+    "wav": 1,
+    "mp3": 0,
+    "empty": 0
+   }
+  },
+  {
+   "id": 23,
+   "path": "bank-23.bin",
+   "dataBytes": 49336,
+   "bytes": 54140,
+   "sounds": 1,
+   "sha256": "b52111a45d618dbbd2d2da6918ecc409bbaf7a49944706bd5b610d6a1e9c9f6a",
+   "from": {
+    "wav": 0,
+    "mp3": 1,
+    "empty": 0
+   }
+  },
+  {
+   "id": 24,
+   "path": "bank-24.bin",
+   "dataBytes": 91616,
+   "bytes": 96420,
+   "sounds": 2,
+   "sha256": "ba2c27a2492187eeabd46dd7ebc08024d31f7cc45181a7e6ce34db2509ef809c",
    "from": {
     "wav": 0,
     "mp3": 2,
@@ -125,6 +216,32 @@
    }
   },
   {
+   "id": 42,
+   "path": "bank-42.bin",
+   "dataBytes": 56168,
+   "bytes": 60972,
+   "sounds": 2,
+   "sha256": "a11b7693e5b4093afa9cfbc8d44f48816b23e59fd88636c291c297c297ef36a2",
+   "from": {
+    "wav": 0,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 43,
+   "path": "bank-43.bin",
+   "dataBytes": 193328,
+   "bytes": 198132,
+   "sounds": 3,
+   "sha256": "8c8a9e9d3ab14f8c602507166c13ebd73df9775683d2386a6e94afaefcfe8738",
+   "from": {
+    "wav": 1,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
    "id": 44,
    "path": "bank-44.bin",
    "dataBytes": 237744,
@@ -134,6 +251,32 @@
    "from": {
     "wav": 0,
     "mp3": 5,
+    "empty": 0
+   }
+  },
+  {
+   "id": 49,
+   "path": "bank-49.bin",
+   "dataBytes": 63000,
+   "bytes": 67804,
+   "sounds": 2,
+   "sha256": "605b0c7ae8503a44ce0ca8ac9209ee9cd5a3178f67010340a9727245179328cb",
+   "from": {
+    "wav": 0,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 50,
+   "path": "bank-50.bin",
+   "dataBytes": 243662,
+   "bytes": 248466,
+   "sounds": 3,
+   "sha256": "3aa1ea00e488f906cbcd4bc3cc4418fd02cb3891791efb20e68f640ca4649b49",
+   "from": {
+    "wav": 1,
+    "mp3": 2,
     "empty": 0
    }
   },
@@ -151,6 +294,32 @@
    }
   },
   {
+   "id": 55,
+   "path": "bank-55.bin",
+   "dataBytes": 63840,
+   "bytes": 68644,
+   "sounds": 2,
+   "sha256": "2b4d909d6224d754d17a635c410b1263b4523790a08ee1b071c358ed99725fc5",
+   "from": {
+    "wav": 0,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 56,
+   "path": "bank-56.bin",
+   "dataBytes": 245892,
+   "bytes": 250696,
+   "sounds": 3,
+   "sha256": "7c46c757116fab6bdaa0fcf40f6c26e07db1ce81290ee87918992bf728166b93",
+   "from": {
+    "wav": 1,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
    "id": 60,
    "path": "bank-60.bin",
    "dataBytes": 137316,
@@ -164,12 +333,233 @@
    }
   },
   {
+   "id": 65,
+   "path": "bank-65.bin",
+   "dataBytes": 203470,
+   "bytes": 208274,
+   "sounds": 2,
+   "sha256": "86ba5c8d4c81ffa39473533d28b9ebcec34e41295b21efff819baaf068248920",
+   "from": {
+    "wav": 1,
+    "mp3": 1,
+    "empty": 0
+   }
+  },
+  {
+   "id": 66,
+   "path": "bank-66.bin",
+   "dataBytes": 247020,
+   "bytes": 251824,
+   "sounds": 2,
+   "sha256": "acaee56b1449631ff88a8df98bbc0f1fdd5a396c31fb9bf0cfc8092d0c2293b5",
+   "from": {
+    "wav": 0,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 67,
+   "path": "bank-67.bin",
+   "dataBytes": 269438,
+   "bytes": 274242,
+   "sounds": 2,
+   "sha256": "1b278aedca9071fb15a034b870e9e3efb3f665301dda8280b758b7811e2afbae",
+   "from": {
+    "wav": 0,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 72,
+   "path": "bank-72.bin",
+   "dataBytes": 43120,
+   "bytes": 47924,
+   "sounds": 2,
+   "sha256": "b0b3b57e8bba941fc66d773e219b6ac8176dac79ecaf540760bf0c6a25039878",
+   "from": {
+    "wav": 0,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 73,
+   "path": "bank-73.bin",
+   "dataBytes": 185626,
+   "bytes": 190430,
+   "sounds": 3,
+   "sha256": "b44b255f67760d9be300263de056c0d6d48964b74c15f674f8fe29bb1b8db878",
+   "from": {
+    "wav": 1,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 82,
+   "path": "bank-82.bin",
+   "dataBytes": 4432400,
+   "bytes": 4437204,
+   "sounds": 8,
+   "sha256": "ac499ba52bb815f01a326e0f4770eef504cacf2968cb24a1063f07cc98d6e101",
+   "from": {
+    "wav": 0,
+    "mp3": 8,
+    "empty": 0
+   }
+  },
+  {
+   "id": 90,
+   "path": "bank-90.bin",
+   "dataBytes": 61880,
+   "bytes": 66684,
+   "sounds": 2,
+   "sha256": "e4e0a3a32cc001b947a7f5f351ed18b17bd09f5b21d6f19e4fb3c4c80f935c17",
+   "from": {
+    "wav": 0,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 91,
+   "path": "bank-91.bin",
+   "dataBytes": 186670,
+   "bytes": 191474,
+   "sounds": 3,
+   "sha256": "ec9cd8401656b487231880a873a99a4e4a212331c199adfc3323fad9a5779aae",
+   "from": {
+    "wav": 1,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 96,
+   "path": "bank-96.bin",
+   "dataBytes": 65016,
+   "bytes": 69820,
+   "sounds": 2,
+   "sha256": "6f2436a5359626d450ae2e503c94c253076eeee42bf9d4d2f2efebec09e1c243",
+   "from": {
+    "wav": 0,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 97,
+   "path": "bank-97.bin",
+   "dataBytes": 193422,
+   "bytes": 198226,
+   "sounds": 3,
+   "sha256": "1a8eec627f95b6fdc55145beb1e448c62a2f85bce6c9c2b19ed26fbaca9fa1df",
+   "from": {
+    "wav": 1,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 110,
+   "path": "bank-110.bin",
+   "dataBytes": 61096,
+   "bytes": 65900,
+   "sounds": 1,
+   "sha256": "860107b2bfa6363641870128079f726c5f2e9b570261e871bcaad9935fe4e649",
+   "from": {
+    "wav": 0,
+    "mp3": 1,
+    "empty": 0
+   }
+  },
+  {
+   "id": 111,
+   "path": "bank-111.bin",
+   "dataBytes": 243798,
+   "bytes": 248602,
+   "sounds": 3,
+   "sha256": "809bc36b74ec55f7b4f8f31d7dfbf6e16e401f5dfb24007a71cace2b3d2cf94a",
+   "from": {
+    "wav": 1,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 116,
+   "path": "bank-116.bin",
+   "dataBytes": 61994,
+   "bytes": 66798,
+   "sounds": 2,
+   "sha256": "8ae45bef8502e75e100941c2d1f71bd69fb73ba61d2fdade524b7acc0b57b7e1",
+   "from": {
+    "wav": 0,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 117,
+   "path": "bank-117.bin",
+   "dataBytes": 253566,
+   "bytes": 258370,
+   "sounds": 3,
+   "sha256": "66af27886d0316d0aa7d8a61bbff82b4262a4be0abf9e62a793e74a767f2f033",
+   "from": {
+    "wav": 1,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
    "id": 119,
    "path": "bank-119.bin",
    "dataBytes": 91578,
    "bytes": 96382,
    "sounds": 3,
    "sha256": "b1eec81e4c0a2cf7cdf3c40a95395403e9d8ad6d3ec17982c063a665406f9fc3",
+   "from": {
+    "wav": 1,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 121,
+   "path": "bank-121.bin",
+   "dataBytes": 88588,
+   "bytes": 93392,
+   "sounds": 6,
+   "sha256": "15b8f16963922db745c5b0927274f5b9318b9eb4461f3e7e2677a04d4bd1da6c",
+   "from": {
+    "wav": 0,
+    "mp3": 6,
+    "empty": 0
+   }
+  },
+  {
+   "id": 122,
+   "path": "bank-122.bin",
+   "dataBytes": 60424,
+   "bytes": 65228,
+   "sounds": 2,
+   "sha256": "9c01630eaf1d28eb5260fc27f0db629d0c6ad3d1609d387aaf65d2a0bf4f4511",
+   "from": {
+    "wav": 0,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 123,
+   "path": "bank-123.bin",
+   "dataBytes": 215066,
+   "bytes": 219870,
+   "sounds": 3,
+   "sha256": "5e87092ca2161b8f0a469d3defe1e1a57fdc93dcafc310c8584beb3a6536cc1f",
    "from": {
     "wav": 1,
     "mp3": 2,
@@ -203,6 +593,32 @@
    }
   },
   {
+   "id": 129,
+   "path": "bank-129.bin",
+   "dataBytes": 37072,
+   "bytes": 41876,
+   "sounds": 2,
+   "sha256": "be98f3666e6ae3696e175bca071fcfa93ad7cf1012c82972ca7eff0c23297fa3",
+   "from": {
+    "wav": 0,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 130,
+   "path": "bank-130.bin",
+   "dataBytes": 234798,
+   "bytes": 239602,
+   "sounds": 3,
+   "sha256": "7ef6ae86f41d3e39f00d6736c1670777718552f62cee0e9ab54cbb0472bf712d",
+   "from": {
+    "wav": 1,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
    "id": 131,
    "path": "bank-131.bin",
    "dataBytes": 62190,
@@ -212,6 +628,19 @@
    "from": {
     "wav": 0,
     "mp3": 6,
+    "empty": 0
+   }
+  },
+  {
+   "id": 132,
+   "path": "bank-132.bin",
+   "dataBytes": 179974,
+   "bytes": 184778,
+   "sounds": 10,
+   "sha256": "22bd7e51f532187046e80f64150bb6fb0df7101dba5695e984940030c4af9e2e",
+   "from": {
+    "wav": 0,
+    "mp3": 10,
     "empty": 0
    }
   },

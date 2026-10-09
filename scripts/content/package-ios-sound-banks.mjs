@@ -66,7 +66,10 @@ const GENRL_FIRST=7,GENRL_LAST=143,SCRIPT_FIRST=147,SCRIPT_LAST=364;
  *   22,050 Hz; no PC copy is on hand to align them against, and the same 577-sample trim is taken (their earliest
  *   onsets fall where the 32 kHz files' do, far before the 1,729 samples their total surplus would allow). */
 const MISSION_BANKS=[352,310,296,242,222,209,167,163,160,265,304,158,292,171,198,226,293,319,345,351,266,183,153,298,339];
-const BANKS=[18,19,21,28,29,30,31,40,41,44,51,60,119,124,125,131,133,139,140,...MISSION_BANKS].sort((a,b)=>a-b);
+/** The rest of GENRL, 7 to 143, that no PC bank on hand covers: the bundle's whole pack is taken, not only what the ported
+ * entities ask for today. */
+const REST_OF_GENRL=[9,14,15,20,22,23,24,42,43,49,50,55,56,65,66,67,72,73,82,90,91,96,97,110,111,116,117,121,122,123,129,130,132];
+const BANKS=[18,19,21,28,29,30,31,40,41,44,51,60,119,124,125,131,133,139,140,...REST_OF_GENRL,...MISSION_BANKS].sort((a,b)=>a-b);
 /** Samples the decoded 32 kHz MP3s start late by (see above). */
 const DECODER_DELAY=577;
 const OUTPUT='public/play/audio',MANIFEST='ios-banks.json';
