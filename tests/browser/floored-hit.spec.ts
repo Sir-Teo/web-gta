@@ -1,7 +1,9 @@
 import {test,expect} from '@playwright/test';
-// CEventDamage::ComputeDamageAnim on a floored ped gives KO_SKID (m_ucDirection + ANIM_ID_KO_SKID_FRONT) and the event
-// handler hands it a new CTaskComplexFallAndGetUp: a second shot while he lies there starts his time down again.
-test('a shot at a floored ped knocks him again and restarts his time down',async({page})=>{
+// CEventDamage::ComputeDamageAnim on a floored ped gives KO_SKID (m_ucDirection + ANIM_ID_KO_SKID_FRONT). While he falls
+// and lies there CTaskSimpleFall refuses the hit (MakeAbortable URGENT; floored-ped-hit.spec.ts for a blow); once he is
+// getting up, his head still under his root, a shot floors him again (KO_SKID by its direction, a new
+// CTaskComplexFallAndGetUp) and starts his time down again.
+test('a shot at a ped getting up knocks him again and restarts his time down',async({page})=>{
  test.setTimeout(180000);await page.goto('/models.html');
  const result=await page.evaluate(async()=>{
   const [{WorldPedestrians},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/simulation/WorldPedestrians.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
@@ -20,13 +22,21 @@ test('a shot at a floored ped knocks him again and restarts his time down',async
    crowd.damageCollider(p.collider.handle,10,{x:0,z:1},'explosion',{weapon:51,push:{x:0,z:2}});
    const firstDown=p.down;
    for(let i=0;i<60;i++)tick();
+   const lying=p.down;
+   crowd.damageCollider(p.collider.handle,1,{x:0,z:1},'bullet',{weapon:22,point:{x:at.x,y:at.y+.3,z:at.z}});
+   const lyingAfter=p.down;
+   const getUp=p.view.reactionDuration(p.fallClip==='ko_skid_back'?'getup':'getup_front')??1.37;
+   // Into CTaskSimpleGetUp, with his head still under his root (its first half): FLOOR_HIT, then KO_SKID by direction.
+   for(let i=0;i<600&&p.down>getUp*.9;i++)tick();
    const before=p.down;
    crowd.damageCollider(p.collider.handle,1,{x:0,z:1},'bullet',{weapon:22,point:{x:at.x,y:at.y+.3,z:at.z}});
-   return {firstDown,before,after:p.down,health:p.health,clip:p.fallClip,from};
+   return {firstDown,lying,lyingAfter,before,after:p.down,health:p.health,clip:p.fallClip,from};
   }finally{crowd.dispose();sim.dispose();}
  });
  expect(result.firstDown).toBeGreaterThan(0);
  expect(result.health).toBeGreaterThan(0);
+ // Lying there, the shot lands without a new fall.
+ expect(result.lyingAfter).toBeCloseTo(result.lying,5);
  expect(result.after).toBeGreaterThan(result.before+.5);
  expect(result.clip).toMatch(/^ko_skid|^ko_spin/);
 });
