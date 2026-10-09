@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 // CTagManager: Ganton's tag under the freeway starts as the Kilo Tray Ballas tag; spraying it paints CJ's Grove tag in
 // over it 8 alpha a shot (CWorld::SprayPaintWorld) and counts it once past 228.
 test('spraying a rival tag paints the Grove tag over it',async({page})=>{
@@ -6,6 +7,7 @@ test('spraying a rival tag paints the Grove tag over it',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  await expect.poll(async()=>(await state()).tags?.total,{timeout:30000}).toBe(100);
  expect((await state()).tags.tagged).toBe(0);
  // tag_kilo at native (2422.9, -1682.3, 14.0) faces west: stand 2.6 m west of it, facing east. A spray shot travels
