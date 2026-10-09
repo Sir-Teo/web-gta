@@ -36,6 +36,10 @@ export interface ScmPedPoolHost<Ped>{
  setProofs(ped:Ped,proofs:ScmPedProofs):void;
  /** CPed::GiveWeapon on a body built again (in or out of a car): the weapon the ped held. */
  giveWeapon?(ped:Ped,weaponType:number,ammo:number):void;
+ /** The rest of CPed the browser holds on the body, read off the old one and handed to the one built again: its
+  * m_acquaintance (SET_CHAR_RELATIONSHIP's edits) and its decision maker. */
+ carried?(ped:Ped):unknown;
+ carry?(ped:Ped,carried:unknown):void;
  /** Whether the browser still holds it, and how to let it go. */
  aliveOf(ped:Ped):boolean;
  remove(ped:Ped):void;
@@ -222,8 +226,10 @@ export class ScmPedPool<Ped>{
  private rebuild(handle:number,said:ScriptPed,spawn:()=>Promise<Ped|undefined>,then?:(ped:Ped)=>void){
   const health=this.pool.read(handle,ped=>this.host.healthOf(ped),()=>said.health);
   if(health>0)said.health=health;
+  const carried=this.pool.read(handle,ped=>this.host.carried?.(ped),()=>undefined);
   this.pool.replace(handle,()=>spawn().then(ped=>{
    if(ped===undefined)return ped;
+   if(carried!==undefined)this.host.carry?.(ped,carried);
    if(said.health>0&&!said.dead)this.host.setHealth(ped,said.health);
    if(said.accuracy!==undefined)this.host.setAccuracy(ped,said.accuracy);
    if(said.shootingRate!==undefined)this.host.setShootingRate?.(ped,said.shootingRate);

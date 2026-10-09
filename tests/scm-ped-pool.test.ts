@@ -3,7 +3,7 @@ import {ScmPedPool,type ScmPedPoolHost} from '../src/simulation/ScmPedPool';
 
 /** A ped the fake browser holds, with everything the script can say about one. */
 interface FakePed {id:number;position:{x:number;y:number;z:number};heading:number;health:number;accuracy:number;shootingRate?:number;
- invulnerable:boolean;proofs:string[];alive:boolean;scripted:boolean;animGroup?:string;weapon?:{type:number;ammo:number}}
+ invulnerable:boolean;proofs:string[];alive:boolean;scripted:boolean;animGroup?:string;weapon?:{type:number;ammo:number};kept?:unknown}
 /** A host whose spawning finishes only when the test says so, which is what the browser's really does. */
 function pool(options:{fails?:boolean}={}){
  let nextId=1;
@@ -40,6 +40,8 @@ function pool(options:{fails?:boolean}={}){
   setInvulnerable:(ped,enabled)=>{ped.invulnerable=enabled;},
   setAnimGroup:(ped,group)=>{ped.animGroup=group;return true;},
   giveWeapon:(ped,type,ammo)=>{ped.weapon={type,ammo};},
+  carried:ped=>ped.kept,
+  carry:(ped,kept)=>{ped.kept=kept;},
   setProofs:(ped,proofs)=>{ped.proofs=Object.entries(proofs).filter(([,on])=>on).map(([name])=>name);},
   aliveOf:ped=>ped.alive,
   remove:ped=>{ped.alive=false;},
@@ -298,4 +300,16 @@ test('a ped keeps the weapon a script gave it through getting in and out of a ca
  expect(spawned[3].weapon).toEqual({type:41,ammo:30000});
  peds.clearWeapon(handle);peds.detachFromCar(handle,{x:5,y:5,z:0});await settle();
  expect(spawned[4].weapon).toBeUndefined();
+});
+test('what else of CPed the body holds goes with the ped into a car and out of it',async()=>{
+ // TWAR7: OG Loc's hate for Freddy's ped type is set with him on CJ's bike, and his decision maker before that; he
+ // keeps both when he comes off it.
+ const {pool:peds,settle,spawned}=pool();
+ const handle=peds.create(4,'OGLOC',{x:0,y:0,z:0});await settle();
+ spawned[0].kept={decisionMaker:148};
+ peds.warpIntoCar(handle,1024,1);await settle();
+ expect(spawned[1].kept).toEqual({decisionMaker:148});
+ spawned[1].kept={decisionMaker:148,hates:24};
+ peds.detachFromCar(handle,{x:5,y:5,z:0});await settle();
+ expect(spawned[2].kept).toEqual({decisionMaker:148,hates:24});
 });

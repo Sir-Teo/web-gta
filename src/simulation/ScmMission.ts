@@ -808,6 +808,10 @@ export interface ScmMissionWorld {
  makeRoomInPlayerGang?(room:number,missionMembers:number):void;
  /** SET_ANIM_GROUP_FOR_CHAR on a ped the browser built; false for a group it cannot play. */
  setScriptPedAnimGroup?(ped:unknown,group:string):boolean;
+ /** What of CPed the browser keeps on a body (its acquaintance table and decision maker), read off the old body and
+  * handed to the one built as the ped gets in or out of a car. */
+ scriptPedCarried?(ped:unknown):unknown;
+ carryScriptPed?(ped:unknown,carried:unknown):void;
  /** CWaterLevel::SyncWater: restart the visual wave cycle now. */
  syncWater?():void;
  registerScriptRoadblock?(a:{x:number;y:number;z:number},b:{x:number;y:number;z:number},gang:boolean):void;
@@ -2778,6 +2782,8 @@ export class ScmMission {
    setAnimGroup:(ped,group)=>this.world.setScriptPedAnimGroup?.(ped,group)??false,
    setProofs:(ped,proofs)=>{this.world.setScriptPedProofs(ped,proofs);},
    giveWeapon:(ped,weaponType,ammo)=>{this.world.giveScriptPedWeapon(ped,weaponType,ammo);},
+   carried:ped=>this.world.scriptPedCarried?.(ped),
+   carry:(ped,carried)=>{this.world.carryScriptPed?.(ped,carried);},
    aliveOf:ped=>this.world.scriptPedAlive(ped),
    remove:ped=>{this.world.removeScriptPed(ped);},
    release:(ped,keepTask)=>{this.world.releaseScriptPed(ped,keepTask);},

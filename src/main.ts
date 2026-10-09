@@ -47,6 +47,10 @@ interface ScriptRider{rider:true;model:number|string;car:import('./simulation/Wo
  noCriticalHits?:boolean;
  /** The drive-by is the group's answer to a threat (CTaskAllocatorKillThreatsDriveby), not the script's, and on whom. */
  groupDriveBy?:string;
+ /** CPed's m_nPedType (CREATE_CHAR_INSIDE_CAR's, or that of the body it got in as), its m_acquaintance once a script has
+  * edited it, and the decision maker a script gave it: CPed is one object in its car and out of it, so they are kept
+  * while it rides and handed on to the body it gets out as. */
+ pedType?:string;acquaintance?:NativeAcquaintance;decisionMaker?:number;
  /** Where on the car the ped hangs, in the car's own axes, for one attached rather than seated. */
  offset?:{x:number;y:number;z:number};
  /** An attached ped that stands (the hot-dog vendor) and the quarter turn he faces off the car's front. */
@@ -250,7 +254,7 @@ import {SceneRegionFollower} from './assets/sceneRegionFollower';
 import {readSurfaceMovementFlags,steepSlopeRefusesJump,surfaceBlocksSprint} from './simulation/nativeSurfaceMovement';
 import {rapierClimbWorld} from './simulation/climbProbe';
 import {WEAPON_FLAG,nativeWeaponInfo,weaponUsedWithoutAmmo} from './weapons/weaponData';
-import {nativePedType} from './ped/nativeAcquaintance';
+import {NATIVE_PED_TYPES,nativePedType,type NativeAcquaintance} from './ped/nativeAcquaintance';
 import {firstPersonMode} from './weapons/nativeFirstPerson';
 import {loadHudSprites} from './ui/nativeHudSprites';
 import {PLAYER_IDLE_CLIPS,PlayerIdles,loadPlayerIdles} from './assets/playerIdles';
@@ -5425,7 +5429,7 @@ async function boot() {
                   // ahead, 1 left +π/2, 2 behind +π, 3 right −π/2) and held there by a heading limit of 0. It plays
                   // CTaskSimpleStandStill's idle_stance, the stand-still task every ped is made with (AttachPedToEntity
                   // 0x10032c398 gives no task or clip).
-                  const rider:ScriptRider={rider:true,model,car:target,seat:0,offset:{...offset},health:100,
+                  const rider:ScriptRider={rider:true,model,car:target,seat:0,offset:{...offset},health:100,pedType:NATIVE_PED_TYPES[_pedType],
                    heading:target.heading(),accuracy:60,invulnerable:false,gone:false,...(turret!==undefined?{stand:true,facing:turret*Math.PI/2}:{})};
                   scriptRiders.add(rider);
                   return rider;
@@ -5435,7 +5439,7 @@ async function boot() {
                   const target=car as ScriptCar|undefined;
                   if(!target||target.disposed)return undefined;
                   const rider:ScriptRider={rider:true,model,car:target,seat,health:100,heading:target.heading(),
-                   accuracy:60,invulnerable:false,gone:false};
+                   accuracy:60,invulnerable:false,gone:false,pedType:NATIVE_PED_TYPES[_pedType]};
                   scriptRiders.add(rider);
                   return rider;
                  },
@@ -5628,10 +5632,22 @@ async function boot() {
                  warpScriptPedToCoord:(ped,position)=>{const p=onFoot(ped);if(p)pedestrians?.warpToCoord(p,{x:position.x,y:position.z,z:-position.y});},
                  scriptPedIsPlayingAnim:(ped,animation)=>{const p=onFoot(ped);return !!p&&!!pedestrians?.isPlayingAnim(p,animation);},
                  setScriptPedArea:(ped,area)=>{const p=onFoot(ped);if(p)p.areaCode=area;},
-                 setScriptPedRelationship:(ped,relationship,pedType)=>{const p=onFoot(ped);if(p)pedestrians?.setRelationship(p,relationship,pedType);},
-                 clearScriptPedRelationship:(ped,relationship,pedType)=>{const p=onFoot(ped);if(p)pedestrians?.clearRelationship(p,relationship,pedType);},
+                 // A rider's table too (TWAR7 sets OG Loc's hate for Freddy's type with him on CJ's bike).
+                 setScriptPedRelationship:(ped,relationship,pedType)=>{const p=onFoot(ped)??asRider(ped);if(p)pedestrians?.setRelationship(p,relationship,pedType);},
+                 clearScriptPedRelationship:(ped,relationship,pedType)=>{const p=onFoot(ped)??asRider(ped);if(p)pedestrians?.clearRelationship(p,relationship,pedType);},
                  // CLEAR_ALL_CHAR_RELATIONSHIPS empties one acquaintance, which is the list it names.
-                 clearScriptPedRelationships:(ped,relationship)=>{const p=onFoot(ped);if(p&&pedestrians)pedestrians.acquaintanceOf(p).clear(relationship);},
+                 clearScriptPedRelationships:(ped,relationship)=>{const p=onFoot(ped)??asRider(ped);if(p&&pedestrians)pedestrians.acquaintanceOf(p).clear(relationship);},
+                 // What CPed keeps whichever body the browser builds it as: read off the old as it gets in or out of a car.
+                 scriptPedCarried:ped=>{const p=onFoot(ped)??asRider(ped);return p&&{pedType:p.pedType,acquaintance:p.acquaintance,decisionMaker:p.decisionMaker,noCriticalHits:p.noCriticalHits};},
+                 carryScriptPed:(ped,carried)=>{
+                  const kept=carried as {pedType?:string;acquaintance?:NativeAcquaintance;decisionMaker?:number;noCriticalHits?:boolean};
+                  const r=asRider(ped);if(r){r.pedType=kept.pedType??r.pedType;r.acquaintance=kept.acquaintance;r.decisionMaker=kept.decisionMaker;r.noCriticalHits=kept.noCriticalHits;return;}
+                  // A body on foot keeps the ped type its model gives it, as one the script made on foot has.
+                  const p=onFoot(ped);if(!p)return;
+                  if(kept.acquaintance)p.acquaintance=kept.acquaintance;
+                  if(kept.decisionMaker!==undefined)p.decisionMaker=kept.decisionMaker;
+                  if(kept.noCriticalHits!==undefined)p.noCriticalHits=kept.noCriticalHits;
+                 },
                  setScriptPedFlag:(ped,flag,value)=>{const p=onFoot(ped);if(p)pedestrians?.setFlag(p,flag,value);else{const r=asRider(ped);if(r&&flag==='canBeShotInVehicle')r.canBeShotInVehicle=value;}},
                  setScriptPickupMoneyPerDay:(handle,money)=>{pickups.patchGenerated(`script:${handle}`,{revenueRate:money});},
                  // bNoCriticalHits is the command's own value inverted.
@@ -5882,7 +5898,7 @@ async function boot() {
                   enteringCar:(['align','open','pullout','getIn','closeInside','shuffle'] as const).includes(carEntry.phase as never),
                   exitingCar:(['waitSlow','getOut','closeOutside','jumpOut','getUp','draggedOut'] as const).includes(carEntry.phase as never),
                  }),
-                 setScriptPedDecisionMaker:(ped,decisionMaker)=>{const p=onFoot(ped);if(p)p.decisionMaker=decisionMaker;},
+                 setScriptPedDecisionMaker:(ped,decisionMaker)=>{const p=onFoot(ped)??asRider(ped);if(p)p.decisionMaker=decisionMaker;},
                  setScriptPedNeverTargeted:(ped,enabled)=>{const p=onFoot(ped);if(p)p.neverTargeted=enabled;},
                  clearScriptPedLookAt:ped=>{const p=onFoot(ped);if(p)pedestrians?.clearLookAt(p);},
                  setScriptPedMoney:(ped,money)=>{const p=onFoot(ped);if(p){p.money=money<<16>>16;p.moneyByScript=true;}},

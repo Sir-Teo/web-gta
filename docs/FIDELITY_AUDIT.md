@@ -11689,3 +11689,10 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   clip by the target's heading against the bike's (atan2(-x, y)), wrapped, turned an eighth on and cut into quarters:
   Pass_Driveby_FWD, _LHS, _BWD, _RHS (pillionDriveByClip). The port drew the pillion in its passenger clip while it
   fired.
+- A script ped's decision maker and relationships survive a ride. The browser builds a new body as a script ped gets in or
+  out of a car (ScmPedPool.rebuild), and only health, accuracy, shoot rate, proofs, anim group and weapon were carried; and
+  SET_CHAR_RELATIONSHIP / CLEAR_CHAR_RELATIONSHIP / CLEAR_ALL_CHAR_RELATIONSHIPS / SET_CHAR_DECISION_MAKER on a seated ped
+  were dropped (onFoot answered nothing). CPed is one object in its car and out of it, so m_acquaintance, the decision
+  maker and bNoCriticalHits now go with it, and a rider holds them while it rides. TWAR7 gives OG Loc decision maker
+  148@ (EVENT_ACQUAINTANCE_PED_HATE -> TASK_SIMPLE_GANG_DRIVEBY) after warping him onto the bike, and his hate for
+  Freddy's ped type (MISSION1) with him on CJ's bike. tests/browser/script-ped-keeps-relationships.spec.ts.

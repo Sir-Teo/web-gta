@@ -89,6 +89,9 @@ const PED_STAND_PROBE = new RAPIER.Capsule(.6,.3);
 const GET_UP_PROBE=new RAPIER.Ball(GET_UP_CLEAR_RADIUS),NO_ROTATION={x:0,y:0,z:0,w:1};
 /** The attacker's CTaskSimpleFight move, with its combo group's victim clips (FIGHT_HIT_1..3). */
 export interface MeleeFight {move:number;group?:string;hits?:readonly import('../assets/ifp').NativeAnimation[]}
+/** What CPed's acquaintance routines need of a ped: its type and the table a script has given it. A script's rider
+ * holds them as a walker does. */
+export interface Acquainted {pedType?:string;acquaintance?:NativeAcquaintance}
 export interface Pedestrian {
  /** peds.ide ped type. */
  pedType?:string;
@@ -2262,10 +2265,10 @@ export class WorldPedestrians {
   }
  }
  /** SET_CHAR_RELATIONSHIP and its clearing forms, through CAcquaintance's own routines. */
- setRelationship(ped:Pedestrian,acquaintance:number,pedType:number){
+ setRelationship(ped:Acquainted,acquaintance:number,pedType:number){
   this.acquaintanceOf(ped).setAs(acquaintance,1<<pedType);
  }
- clearRelationship(ped:Pedestrian,acquaintance:number,pedType:number){this.acquaintanceOf(ped).clearAs(acquaintance,1<<pedType);}
+ clearRelationship(ped:Acquainted,acquaintance:number,pedType:number){this.acquaintanceOf(ped).clearAs(acquaintance,1<<pedType);}
  /** CPed's m_acquaintance: CPed's constructor copies its ped type's ped.dat table, which the script's relationship
   * commands then edit. The copy is made when a command first needs it. */
  /** The acquaintance a ped holds the player in (PLAYER1): its own table once a command gave it one, else its type's
@@ -2273,7 +2276,7 @@ export class WorldPedestrians {
  regardForPlayer(ped:Pedestrian){return (ped.acquaintance??this.pedTypeTable(ped.pedType)).idFor(0);}
  /** Whether a street gang's ped type (CGangs index) hates the player, as ped.dat and the script's relationships stand. */
  gangHatesPlayer(gang:number){const type=NATIVE_PED_TYPES[gangPedType(gang)];return !!type&&this.pedTypeTable(type).idFor(0)===ACQUAINTANCE_HATE;}
- acquaintanceOf(ped:Pedestrian){
+ acquaintanceOf(ped:Acquainted){
   return ped.acquaintance??=this.copyOf(this.pedTypeTable(ped.pedType));
  }
  /** CPedType::ms_apPedTypes: each ped type's CAcquaintance, from ped.dat, which SET_RELATIONSHIP and CLEAR_RELATIONSHIP
