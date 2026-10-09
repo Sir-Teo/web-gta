@@ -11572,7 +11572,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
     right after. INITIAL resumed in INITIL2's bytes and gave up (`Unsupported SCM parameter 43`), so Sweet's car
     point ($142), the car generators and the rest of its setup never ran. INTRO2 then made Sweet's car at the map's
     origin. An object whose COL is not in yet is made at the point and lifted when the COL arrives, unless something
-    has moved it by then.
+    has moved it by then. Moved means any change at all, so an object the host's physics has already nudged keeps
+    its unlifted point, as every object did before the lift was ported.
 - A script ped's collision wait (the browser's stand-in for CColStore keeping the collision round mission peds) took
   only live ones, so a dead one CJ left behind fell through the map once the terrain window moved off it, about five
   units a second. SWEET3's Ballas driver, shot at the drive-thru, was found under Willowfield. A dead script ped now
