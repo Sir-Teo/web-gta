@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 // CTaskSimpleInAir and CTaskComplexInAirAndLand for CJ: a long drop goes into FALL_FALL and, past 0.4 units a frame,
 // lands as a knockdown (KO_SKID_BACK for 700 ms) with a get-up after it; a shorter fall collapses.
 test('CJ dropped from a height falls in FALL_FALL, is knocked flat on landing and gets up',async({page})=>{
@@ -7,10 +8,16 @@ test('CJ dropped from a height falls in FALL_FALL, is knocked flat on landing an
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await expect.poll(async()=>(await state()).pedestrians?.people?.length??0,{timeout:30000}).toBeGreaterThan(0);
- await page.evaluate(()=>{const g=(window as any).__game;g.setCheat?.('infiniteHealth',true);g.placePlayer(2480,45,1676);});
+ // Off the opening's mission, whose script holds CJ.
+ await expect.poll(()=>page.evaluate(()=>!!(window as any).__game.missionForProfiling()),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
+ // Fourteen units up: fast enough to land as the knockdown, and under the 20 above the ground at which PLCHUTE
+ // (Explore's CJ carries the parachute) takes the fall over as a skydive.
+ await page.evaluate(()=>{(window as any).__game.placePlayer(2480,26.4,1676);});
  await expect.poll(async()=>(await state()).nativeCharacter?.reaction,{timeout:5000}).toBe('fall_fall');
  await expect.poll(async()=>(await state()).nativeCharacter?.reaction,{timeout:8000}).toBe('ko_skid_back');
  expect((await state()).knockdown).toBeGreaterThan(0);
+ expect((await state()).player.health).toBeGreaterThan(0);
  await expect.poll(async()=>(await state()).knockdown,{timeout:8000}).toBe(0);
  expect(errors).toEqual([]);
 });
