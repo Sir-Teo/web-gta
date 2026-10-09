@@ -131,6 +131,15 @@ import {playerBodyRatios,type PlayerBodyRatios} from './assets/blendPlayerBody';
 import {vehicleLightsStatus} from './simulation/nativeVehicleLights';
 /** aDriveAnimIdsBoat: the standing boat driver's idle, steering and look back. */
 const BOAT_RIDE={idle:'DRIVE_BOAT',left:'DRIVE_BOAT_L',right:'DRIVE_BOAT_R',back:'DRIVE_BOAT_back'};
+/** ProcessDrivingAnims' set in a boat (iOS 0x100480518): the DRIVE_BOAT set for one without m_bSitInBoat. One with it
+ * (the Speeder, Squalo, Tropic, Launch) falls through to the car sets by driving skill and speed: AddInCarAnim (iOS
+ * 0x1003e9754) sat its driver in CAR_SIT, and he steers as in a car. */
+function boatRideAnims(boat:{modelFlags:number;body:{linvel():{x:number;y:number;z:number}}},drivingSkill:number){
+ if(!(boat.modelFlags&MODEL_FLAG.sitInBoat))return BOAT_RIDE;
+ const v=boat.body.linvel();
+ // A boat's handling anim group is 0, neither kart nor truck.
+ return nativeRideAnims({low:!!(boat.modelFlags&MODEL_FLAG.low),kart:false,truck:false,drivingSkill,speed:Math.hypot(v.x,v.y,v.z)});
+}
 import {WorldPlane,advancePlaneEntry,planeEntrySlots} from './simulation/WorldPlane';
 import {WorldPolice,DEFAULT_COP_MODEL,DEFAULT_COP_CAR} from './simulation/WorldPolice';
 import {waitingCopSpot,waitingCoppers} from './police/waitingCoppers';
@@ -3874,8 +3883,8 @@ async function boot() {
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:yoke?-yokeCurve(yoke.y):Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:yoke?yokeCurve(yoke.x):Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const {phase,foot}=plane.entry;plane.entry=undefined;if(phase==='getin')plane.finishEnter();else plane.finishExit(foot);}
         for(const boat of fleet?.boats??[])boat.beforeStep(step,boat.occupied?{throttle:axes.y,steer:steerAxes.x,brake:input.down('Space')}:undefined);
-        // ProcessDrivingAnims in a boat: a boat without m_bSitInBoat uses the DRIVE_BOAT set, steering and looking back.
-        {const boat=fleet?.occupiedBoat;if(boat&&!(boat.modelFlags&MODEL_FLAG.sitInBoat))boat.driving.step(step,{steer:boat.steerAngle,reversing:boat.gasPedal<0&&!(boat.modelFlags&MODEL_FLAG.low),idleFull:true,ride:BOAT_RIDE,duration:name=>carEntry.clips.ped(name)?.duration});}
+        // ProcessDrivingAnims in a boat: the DRIVE_BOAT set, or a car's in a boat its driver sits in, steering and looking back.
+        {const boat=fleet?.occupiedBoat;if(boat)boat.driving.step(step,{steer:boat.steerAngle,reversing:boat.gasPedal<0&&!(boat.modelFlags&MODEL_FLAG.low),idleFull:true,ride:boatRideAnims(boat,carEntry.drivingSkill),duration:name=>carEntry.clips.ped(name)?.duration});}
         const bikeMotion=bikeMount.step(step);
         // While the rider waits or gets off, the bike only brakes.
         // DisablePlayerControls: no hop (CBmx refuses the press and drops the charge), gas off and the brakes on, as
@@ -4266,13 +4275,14 @@ async function boot() {
         render.vehiclePose={frame:{vehicle:plane.root,local:seat},pose:{clip:ride.idle.toLowerCase(),seconds:idle.duration,blend:1,overlay:nativeSteerOverlay(plane.steerAngle,ride)}};
       }else render.vehiclePose=undefined;
     }else if(fleet?.occupiedBoat&&render.nativeCharacter){
-      // CCarEnterExit::AddInCarAnim seats a boat's driver in DRIVE_BOAT: a boat with m_bSitInBoat keeps it (its car ride
-      // set is never found, so ProcessDrivingAnims returns), and one without runs the boat set's steering over it.
-      const boat=fleet.occupiedBoat,seat=boat.seat(),idle=carEntry.clips.ped('DRIVE_BOAT');
+      // CCarEnterExit::AddInCarAnim (iOS 0x1003e9754) stands a boat's driver in DRIVE_BOAT, or sits him in CAR_SIT in a
+      // boat with m_bSitInBoat; ProcessDrivingAnims then runs the boat set's or the car set's idle and steering over it.
+      // (gta-reversed has the m_bSitInBoat test the other way round.)
+      const boat=fleet.occupiedBoat,seat=boat.seat(),ride=boatRideAnims(boat,carEntry.drivingSkill),idle=carEntry.clips.ped(ride.idle);
       if(!idle)void carEntry.clips.block('ped').catch(()=>{});
       if(seat&&idle){
-        render.nativeCharacter.installVehicleClips(Object.fromEntries([BOAT_RIDE.idle,BOAT_RIDE.left,BOAT_RIDE.right,BOAT_RIDE.back].flatMap(name=>{const clip=carEntry.clips.ped(name);return clip?[[name.toLowerCase(),clip]]:[];})));
-        render.vehiclePose={frame:{vehicle:boat.root,local:seat},pose:{clip:'drive_boat',seconds:idle.duration,blend:1,overlays:boat.driving.overlays()}};
+        render.nativeCharacter.installVehicleClips(Object.fromEntries([ride.idle,ride.left,ride.right,ride.back].flatMap(name=>{const clip=carEntry.clips.ped(name);return clip?[[name.toLowerCase(),clip]]:[];})));
+        render.vehiclePose={frame:{vehicle:boat.root,local:seat},pose:{clip:ride.idle.toLowerCase(),seconds:idle.duration,blend:1,overlays:boat.driving.overlays()}};
       }else render.vehiclePose=undefined;
     }else if(fleet?.occupiedBike&&render.nativeCharacter){
       // Riding pillion-style: the class IFP's ride/pedal idle with a lean overlay at the ped_frontseat dummy.

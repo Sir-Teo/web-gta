@@ -11608,3 +11608,9 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   under 50, is not in the iOS table, and a new game's CJ no longer drives hunched over the wheel.
   - The scan behind the boat seat fix read every vehicle DFF's ped_frontseat: only boats (Coastguard, Jetmax, Tropic)
     have a negative x, so the port's −|x| for cars and aircraft is the native −x.
+- CJ sits in a boat with m_bSitInBoat (Speeder, Squalo, Tropic, Launch). The iOS AddInCarAnim (0x1003e9754) seats a
+  boat's driver in CAR_SIT when the flag is set (handling +0xcd bit 2) and stands him in DRIVE_BOAT when it is not;
+  gta-reversed has the test the other way round, and the port followed it. ProcessDrivingAnims (0x100480518, which
+  agrees with gta-reversed) then runs the DRIVE_BOAT set over a standing boat's driver and, in a boat he sits in, the
+  car sets by driving skill and speed, so he steers with Drive_L/R as in a car. Before, he stood at the Squalo's helm
+  chair in DRIVE_BOAT and never steered.
