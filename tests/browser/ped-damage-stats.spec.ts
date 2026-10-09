@@ -26,7 +26,14 @@ test('a ped takes damage by its defend weakness, and a recruit a tenth of the pl
    const {NativeAcquaintance}=await import('/src/ped/nativeAcquaintance.ts' as string);
    const respects=new NativeAcquaintance();respects.setAs(0,1<<0);
    const friends={homie:crowd.friendlyWithPlayer({pedType:'GANG2',acquaintance:respects}),stranger:crowd.friendlyWithPlayer({pedType:'CIVMALE',acquaintance:new NativeAcquaintance()})};
-   return {tourist,recruit,recruitHard,recruitFlame,friends};
+   // One ped's shot at another: the victim's defend weakness, and a mission ped's own group cut.
+   const victim={defendMult:1.5,mission:false} as any,damager={} as any;
+   const street=crowd.pedOnPedDamage(victim,damager,10,22);
+   victim.mission=true;victim.defendMult=1;crowd.sameScriptGroup=(a:any,b:any)=>a===victim&&b===damager;
+   const sameGroup=crowd.pedOnPedDamage(victim,damager,10,22),sameGroupBlast=crowd.pedOnPedDamage(victim,damager,10,51);
+   crowd.sameScriptGroup=()=>false;
+   const otherGroup=crowd.pedOnPedDamage(victim,damager,10,22);
+   return {tourist,recruit,recruitHard,recruitFlame,friends,pedOnPed:{street,sameGroup,sameGroupBlast,otherGroup}};
   }finally{crowd.dispose();sim.dispose();}
  });
  // A tourist's 1.8.
@@ -36,4 +43,8 @@ test('a ped takes damage by its defend weakness, and a recruit a tenth of the pl
  expect(result.recruitHard).toBeCloseTo(12.5,3);
  expect(result.recruitFlame).toBeCloseTo(10,3);
  expect(result.friends).toEqual({homie:true,stranger:false});
+ expect(result.pedOnPed.street).toBeCloseTo(15,3);
+ expect(result.pedOnPed.sameGroup).toBeCloseTo(1,3);
+ expect(result.pedOnPed.sameGroupBlast).toBeCloseTo(10,3);
+ expect(result.pedOnPed.otherGroup).toBeCloseTo(10,3);
 });

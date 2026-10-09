@@ -11741,5 +11741,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   friendly with (CPedIntelligence::IsFriendlyWith 0x10035c58c: respect or like for its type, or the same type), and a
   mission ped's from its own group. A street ped's fists or gun on CJ now carry IsFriendlyWith (friendlyWithPlayer:
   either way round, respect or like for the other's type, or one type) into damagePlayer, which cuts it after the 0.33
-  whatever the weapon; a script rider's drive-by and a mission ped hit by its own group are not wired.
+  whatever the weapon. One street ped's shot at another now takes the victim's defend weakness too, and a mission ped
+  hit by a member of its own group (the player's followers, a street gang's party, or a script group) is cut the same
+  way short of a flamethrower or blast (pedOnPedDamage). A script rider's drive-by at CJ is not wired.
   tests/browser/ped-damage-stats.spec.ts. SMOKE2 (28) passes on the branch.

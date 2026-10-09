@@ -2289,6 +2289,17 @@ export class WorldPedestrians {
  /** The acquaintance a ped holds the player in (PLAYER1): its own table once a command gave it one, else its type's
   * as ped.dat and the script's SET_RELATIONSHIP left it. */
  regardForPlayer(ped:Pedestrian){return (ped.acquaintance??this.pedTypeTable(pedTypeName(ped))).idFor(0);}
+ /** AccountForPedDamageStats (iOS 0x10028a070) for one ped's damage on another: times the victim's pedstats defend
+  * weakness, then for a mission ped hit by a member of its own group (short of a flamethrower or a blast) a tenth,
+  * 12.5 at most. */
+ private pedOnPedDamage(victim:Pedestrian,damager:Pedestrian,damage:number,weapon:number){
+  const scaled=damage*victim.defendMult;
+  if(!victim.mission||weapon===WEAPON.flamethrower||weapon===WEAPON.explosion)return scaled;
+  const sameGroup=victim.follow&&damager.follow||!!victim.party&&victim.party===damager.party||!!this.sameScriptGroup?.(victim,damager);
+  return sameGroup?Math.min(scaled*FRIENDLY_DAMAGE_FACTOR,FRIENDLY_DAMAGE_CAP):scaled;
+ }
+ /** CPedGroups::AreInSameGroup for two of a script's peds (its groups are the mission's). */
+ sameScriptGroup?:(a:Pedestrian,b:Pedestrian)=>boolean;
  /** CPedIntelligence::IsFriendlyWith (iOS 0x10035c58c) between the player and a ped, either way round: one respects or
   * likes the other's ped type, or they are of one type. */
  friendlyWithPlayer(ped:Acquainted){
@@ -3473,7 +3484,7 @@ export class WorldPedestrians {
     else if(riderHit||shot?.collider.handle===this.sim.playerCollider.handle){if(this.damagesPlayer(p,weapon.info.type)){this.sim.damagePlayer(shotDamage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z},piece:pedPieceAt(this.sim.player.position,this.sim.player.heading,end),friendly:this.friendlyWithPlayer(p)});this.defendPlayer(p);}}
     else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer){car.damage(shotDamage,undefined,false,undefined,{weapon:weapon.info.type,by:{ped:p}});
      // InflictDamage's random tyre burst: (rand() & 0x7f) under the weapon's chance.
-     const chance=aiTyreBurstChance(weapon.info.type);if(chance&&!car.wrecked&&Math.floor(Math.random()*128)<chance)car.burstTyreAt(end);}}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')&&npcDamageReaches(victim,p,weapon.info.type,true,this.hitPiece(victim,end))){victim.lastDamagedBy={ped:p};victim.health=healthAfter(victim.health,shotDamage);if(shotDamage>0)victim.lastWeaponDamage=weapon.info.type;if(!victim.health)this.onKill?.({id:victim.id,officer:victim.officer,gang:victim.gang,pedType:victim.pedType,recruit:!!victim.follow,byPlayer:false});const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,shotDamage,vfrom,end,false),vfrom);}}}
+     const chance=aiTyreBurstChance(weapon.info.type);if(chance&&!car.wrecked&&Math.floor(Math.random()*128)<chance)car.burstTyreAt(end);}}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')&&npcDamageReaches(victim,p,weapon.info.type,true,this.hitPiece(victim,end))){victim.lastDamagedBy={ped:p};const dealt=this.pedOnPedDamage(victim,p,shotDamage,weapon.info.type);victim.health=healthAfter(victim.health,dealt);if(dealt>0)victim.lastWeaponDamage=weapon.info.type;if(!victim.health)this.onKill?.({id:victim.id,officer:victim.officer,gang:victim.gang,pedType:victim.pedType,recruit:!!victim.follow,byPlayer:false});const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,shotDamage,vfrom,end,false),vfrom);}}}
     }
    }
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}
