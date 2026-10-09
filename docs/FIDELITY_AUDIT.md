@@ -11498,7 +11498,11 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   - The beam is drawn as the cone draws it: additive, from (200, 200, 255) × 0.25 at the bulb, brighter where the
     camera sees along an edge, to black on the ground.
   - The scripts' path speeds are taken as per frame at 30 a second.
-  - Not drawn yet: the corona at the bulb and the light pool on the ground (the shadow with m_bEnableShadow).
+  - The cone's corona (iOS 0x100466dbc) sits 15 units from the bulb toward the camera, 20 big and 255 bright times
+    how squarely the beam points at the camera, to the sixth power (CCoronas id 534 + the slot, range 100, near clip
+    1.5). Its ground light (iOS 0x100467360), with m_bEnableShadow and the camera within 25 of the spot, is an additive
+    shad_exp pool 5 over the spot: the ellipse's half axes × 1.2 (none past 100), at (1 − 0.04 × that distance) ÷ 2 of
+    (200, 200, 255) and 128.
 - ADD_BLIP_FOR_SEARCHLIGHT (iOS 0x1001f1858) is CRadar::SetEntityBlip with BLIP_SPOTLIGHT on the searchlight's handle,
   scale 3. The radar draws it at the searchlight's target (iOS 0x1002b9218). WUZI2 marks its searchlights so; the
   command had no world hook and wrote no blip.

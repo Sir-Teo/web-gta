@@ -64,7 +64,7 @@ export function searchlightCone(origin:V3,target:V3,targetRadius:number,baseRadi
   const reach=sub(g,n);if(len(reach)>100)g=add(n,norm(reach),100);
   near.push(n);ground.push(g);
  }
- return {spot,axisA,axisB,near,ground};
+ return {spot,axisA,axisB,near,ground,direction:dir};
 }
 /** IsEntityWithinSearchLight's test (iOS 0x1001ecfdc): inside the lit ellipse, each half axis scaled to one. */
 export function isPointWithinSearchlight(light:Pick<ScmSearchlight,'spot'|'axisA'|'axisB'>,point:V3){
