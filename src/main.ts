@@ -2959,6 +2959,8 @@ async function boot() {
     /** CBulletTraces::AddTrace for a weapon's streak (browser space), as an NPC's shot past the camera adds it. */
     traceBullet:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number})=>{bulletTraces.addTrace(from,to,.01,300,70);},
     fireAt:(x:number,y:number,z:number)=>{const p=sim.player.position,eye={x:p.x,y:p.y+1.3,z:p.z},d={x:x-eye.x,y:y-eye.y,z:z-eye.z},l=Math.hypot(d.x,d.y,d.z)||1;return weapons.fire({origin:eye,direction:{x:d.x/l,y:d.y/l,z:d.z/l}});},
+    /** The map model a collider of the installed terrain belongs to, with its kind and placement point (native). */
+    colliderModel:(handle:number)=>{const s=importedScene?.sources.get(handle);if(!s)return null;const p=(s as {placement?:{position?:number[]}}).placement?.position;return {model:s.modelName,kind:s.entityKind,at:p??null};},
     /** The group button (G) with the aim held and no gun's lock-on, as a player recruits the Families member he faces:
      * what CPlayerPed::ProcessGroupBehaviour answered. */
     groupButton:()=>pedestrians?.groupControl('forward',{range:GROUP_RECRUIT_MELEE_RANGE},!mission?.runtime.game.playerInfo.groupStuffDisabled)??'none',
