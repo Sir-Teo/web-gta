@@ -25,7 +25,7 @@ const ENTRY_SETTLE_RATE=10;
 const LINE_UP_SECONDS=LINE_UP_SHARED;
 /** CTaskSimpleCarJumpOut for automobiles: door until 0.07 s, carried car speed until 0.45 s. */
 const JUMP_OUT_SET_OUT=JUMP_SET_SHARED,JUMP_OUT_CARRY=JUMP_CARRY_SHARED;
-const RIDE_SETS=[['CAR_sit_weak','Drive_L_weak','Drive_R_weak','Drive_L_weak_slow','Drive_R_weak_slow','CAR_LB_weak'],['CAR_sit','Drive_L','Drive_R','Drive_L_slow','Drive_R_slow','CAR_LB'],['CAR_sit_pro','Drive_L_pro','Drive_R_pro','Drive_L_pro_slow','Drive_R_pro_slow','CAR_LB_pro'],['CAR_Lsit','Drive_LO_l','Drive_LO_R'],['Drive_truck','DRIVE_truck_L','DRIVE_truck_R','DRIVE_truck_back'],['KART_drive','KART_L','KART_R','KART_LB']];
+const RIDE_SETS=[['CAR_sit','Drive_L','Drive_R','Drive_L_slow','Drive_R_slow','CAR_LB'],['CAR_sit_pro','Drive_L_pro','Drive_R_pro','Drive_L_pro_slow','Drive_R_pro_slow','CAR_LB_pro'],['CAR_Lsit','Drive_LO_l','Drive_LO_R'],['Drive_truck','DRIVE_truck_L','DRIVE_truck_R','DRIVE_truck_back'],['KART_drive','KART_L','KART_R','KART_LB']];
 export interface EntryPose {car?:WorldCar;local?:V3;headingOffset?:number;world?:V3;heading?:number;clip:string;seconds:number;blend:number;overlay?:{clip:string;amount:number};
  /** Partial clips laid over the idle in turn, each at its own time (the steering and look-back). */
  overlays?:{clip:string;amount:number;seconds:number}[]}
@@ -34,11 +34,13 @@ export interface NpcPose {car:WorldCar;seat:0|1;local:V3;clip:string;seconds:num
  * model he was drawn with in the seat, and an officer's gun (a unit's cop stays a cop, CCopPed, once out). */
 export interface LeavingDriver {model:number|string;officer?:{weapon:number;accuracy:number};dead?:boolean}
 interface ClipUse {key:string;clip:NativeAnimation;group:number}
-/** CVehicle::ProcessDrivingAnims set selection (RideAnims.h), shared by cars and aircraft: low, kart, truck, else driving skill with
- * `_slow` at |m_vecMoveSpeed| ≤ 0.4 (`speed` in metres per second). */
+/** CVehicle::ProcessDrivingAnims set selection, shared by cars and aircraft: low, kart, truck, else driving skill with
+ * `_slow` at |m_vecMoveSpeed| ≤ 0.4 (`speed` in metres per second). The iOS build (0x100480518, sets at 0x100654260)
+ * has two skill tiers, not the PC's three: under 50 the standard set, from 50 the pro one. It never picks the `_weak`
+ * clips the PC gives a driver under 50. */
 export function nativeRideAnims(o:{low:boolean;kart:boolean;truck:boolean;drivingSkill:number;speed:number}){
- const [idle,left,right,back]=o.low?[...RIDE_SETS[3],'CAR_LB']:o.kart?RIDE_SETS[5]:o.truck?RIDE_SETS[4]:(()=>{
-  const set=RIDE_SETS[o.drivingSkill<50?0:o.drivingSkill<100?1:2];
+ const [idle,left,right,back]=o.low?[...RIDE_SETS[2],'CAR_LB']:o.kart?RIDE_SETS[4]:o.truck?RIDE_SETS[3]:(()=>{
+  const set=RIDE_SETS[o.drivingSkill<50?0:1];
   return o.speed/50<=.4?[set[0],set[3],set[4],set[5]]:[set[0],set[1],set[2],set[5]];
  })();
  return {idle,left,right,back};

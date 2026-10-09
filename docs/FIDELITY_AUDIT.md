@@ -11602,3 +11602,9 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
 - A boat's driver stands at the model's ped_frontseat as it is. GetSeatPositionInVehicle (iOS 0x10032bdd0) mirrors a
   driver's seat to the left for every vehicle type but a boat or a bike (5 or 9 at +0x734); the port mirrored boats as
   cars, so on the Squalo (+0.688), Speeder, Predator, Reefer and Launch CJ stood across the deck from the wheel.
+- The player's driving clips come in two skill tiers, as the iOS ProcessDrivingAnims (0x100480518) picks them:
+  STAT_DRIVING_SKILL under 50 (0x1005908a0) takes the standard set (CAR_sit, Drive_L/R, their `_slow` pair, CAR_LB;
+  0x100654280/0x100654290), 50 or more the pro set (0x1006542a0/0x1006542b0). The PC's third tier, the `_weak` clips
+  under 50, is not in the iOS table, and a new game's CJ no longer drives hunched over the wheel.
+  - The scan behind the boat seat fix read every vehicle DFF's ped_frontseat: only boats (Coastguard, Jetmax, Tropic)
+    have a negative x, so the port's −|x| for cars and aircraft is the native −x.
