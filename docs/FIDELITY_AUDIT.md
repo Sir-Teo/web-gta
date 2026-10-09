@@ -11549,3 +11549,9 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   plays in the slot: no CAESound in the first two, an idle hardware channel in the other two. So a slot loaded and not
   yet played, or an empty one, is finished. The port answered true only once a played sample ran out. HOODS5's phone
   scene preloads its next line into the other slot and waits for both to be finished, so it sat at its first line.
+- WARP_CHAR_FROM_CAR_TO_COORD on the player (FlushImmediately and a teleport, CTaskSimpleCarSetPedOut) does not run
+  ReplaceWeaponWhenExitingVehicle. Only CTaskSimpleCarGetOut, the slow drag-out and the jetpack do. m_nSavedWeapon
+  then waits for the next way out of a vehicle. SET_CURRENT_CHAR_WEAPON on the player sets m_nChosenWeapon, which
+  ProcessWeaponSwitch takes up only out of a vehicle. The port's exit restored the weapon from before the car on any
+  exit, so SWEET2 warped CJ out at Emmet's with the pistol it had just chosen for him replaced by bare fists, and the
+  bottles could not be shot.

@@ -1090,6 +1090,16 @@ async function boot() {
   // Uzi or Tec-9 with ammo, else its MP5, is taken up; that is the one weapon a driver's drive-by fires. With none the
   // weapon stays put and there is no drive-by. ReplaceWeaponWhenExitingVehicle gives the saved weapon back.
   let driverSavedWeapon:number|undefined;
+  /** m_bInVehicleDontAllowWeaponChange: at a vehicle's controls last frame. */
+  let driverWeaponLocked=false;
+  /** WARP_CHAR_FROM_CAR_TO_COORD took him out (CTaskSimpleCarSetPedOut and a teleport): no CTaskSimpleCarGetOut, so no
+   * ReplaceWeaponWhenExitingVehicle, and m_nSavedWeapon waits for the next way out of a vehicle. */
+  let driverWarpedOut=false;
+  /** CPlayerPedData::m_nChosenWeapon as SET_CURRENT_CHAR_WEAPON sets it in a vehicle, where ProcessWeaponSwitch may not
+   * change weapons: taken up once he is out, unless ReplaceWeaponWhenExitingVehicle's SetCurrentWeapon chose again. */
+  let driverChosenWeapon:number|undefined;
+  /** Out by a warp with a weapon still saved: nothing is given back until he has been at a vehicle's controls again. */
+  let driverHeldAfterWarp=false;
   // CPad::GetLookLeft / GetLookRight: one shoulder held and not the other, refused on the frame it is pressed and on the
   // frame the other is released; both held is the look-behind, which fires ahead.
   let lookQ=false,lookE=false;
@@ -1100,6 +1110,17 @@ async function boot() {
   const DRIVER_DRIVEBY_WEAPONS=[28,32,29];
   const stepDriverWeapon=(driving:boolean)=>{
     const inv=weapons.inventory,loaded=(id:number)=>{const a=inv.ammo.get(id);return inv.owned.has(id)&&!!a&&a.clip+a.reserve>0;};
+    if(driving){driverWeaponLocked=true;driverHeldAfterWarp=false;}
+    else if(driverWeaponLocked){
+     driverWeaponLocked=false;
+     const chosen=driverChosenWeapon;driverChosenWeapon=undefined;
+     // Warped out: the weapon the script chose is taken up, and the saved one stays saved until the next vehicle.
+     if(driverWarpedOut){
+      driverWarpedOut=false;driverHeldAfterWarp=true;
+      if(chosen!==undefined&&chosen!==inv.selected&&inv.owned.has(chosen)&&inv.select(chosen))void weaponView.equip(inv.selected);
+     }
+    }
+    if(!driving&&driverHeldAfterWarp)return;
     if(driving&&driverSavedWeapon===undefined){
      driverSavedWeapon=inv.selected;
      // RemoveWeaponWhenEnteringVehicle: without m_bCanDoDriveBy the weapon is only put away, no SMG taken up.
@@ -6024,6 +6045,7 @@ async function boot() {
                  },
                  warpPlayerFromCarToCoord:position=>{
                   const car=worldCar?.occupied?worldCar:fleet?.occupied,x=position.x,z=-position.y,y=position.z;
+                  if(driverWeaponLocked)driverWarpedOut=true;
                   if(car){carEntry.cancel();car.setPedOut({x,y,z});}
                   // CTaskSimpleCarSetPedOut and the teleport take him off a bike, boat or aircraft as off a car (a script
                   // ending a ride warps CJ off his BMX).
@@ -6264,7 +6286,12 @@ async function boot() {
                  modelIndex:name=>scriptPickupModels?.byName.get(name.toLowerCase())?.id??-1,
                  givePlayerWeapon:(weapon,ammo)=>{const before=weapons.inventory.selected;if(weapons.inventory.give(weapon,ammo)&&weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);},
                  // SetCurrentCharWeapon only picks among the weapons the ped holds: a type he does not have changes nothing.
-                 setPlayerCurrentWeapon:weapon=>{if(weapons.inventory.selected!==weapon&&weapons.inventory.owned.has(weapon)&&weapons.inventory.select(weapon))void weaponView.equip(weapons.inventory.selected);},
+                 // SET_CURRENT_CHAR_WEAPON on the player sets m_nChosenWeapon, which ProcessWeaponSwitch takes up on foot at
+                 // once and in a vehicle not until he is out of it.
+                 setPlayerCurrentWeapon:weapon=>{
+                  if(driverWeaponLocked){if(weapons.inventory.owned.has(weapon))driverChosenWeapon=weapon;return;}
+                  if(weapons.inventory.selected!==weapon&&weapons.inventory.owned.has(weapon)&&weapons.inventory.select(weapon))void weaponView.equip(weapons.inventory.selected);
+                 },
                  setPlayerArmour:armour=>{sim.player.armour=armour;},
                  playerArmour:()=>sim.player.armour,
                  pedModelBuysDrugs:model=>pedestrians?.modelBuysDrugs(model)??false,
