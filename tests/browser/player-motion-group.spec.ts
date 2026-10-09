@@ -1,10 +1,12 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 test('a fat CJ walks with fat.ifp and a muscular one with muscular.ifp, from the next rebuild of the player',async({page})=>{
  test.setTimeout(150000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
+ await endStoryMission(page);
  await expect.poll(()=>page.evaluate(()=>!!(window as any).__game.missionForProfiling()?.runtime),{timeout:60000}).toBe(true);
  await expect.poll(async()=>(await state()).nativeCharacter?.motionGroup,{timeout:30000}).toBe('player');
  // STAT_FAT past 500 changes nothing until the player is rebuilt (a restart or an entry-exit transfer).

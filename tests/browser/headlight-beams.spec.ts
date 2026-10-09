@@ -1,10 +1,12 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 test('lit headlights draw their beam fans at night and none by day',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
+ await endStoryMission(page);
  await expect.poll(async()=>(await state()).nativeCar!=null,{timeout:30000}).toBe(true);
  // CJ at the Greenwood's wheel (a parked car's lights stay off), at noon and at 23:00.
  await page.keyboard.press('KeyF');

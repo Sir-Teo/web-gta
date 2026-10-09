@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** Regression: standing on a downtown rooftop (about 84 m up at 1700,1400), every civilian spawned at street level is
  * culled at once by the 25 m height band. Before the fix the cull dropped the ped without giving back its Rapier body,
  * collider, character controller and view, leaking about ten of each a second until the frame took 400 ms. */
@@ -7,6 +8,7 @@ test('culled pedestrians give back their bodies and views',async({page})=>{
  await page.goto('/');
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  await page.waitForFunction(()=>(window as any).__game?.state().player.grounded);
+ await endStoryMission(page);
  const hop=async(x:number,z:number)=>{await page.evaluate(([x,z])=>{const g=(window as any).__game;const h=g.groundAt(x,z,300);if(h!==null)g.placePlayer(x,h+.05,z);},[x,z]);
   await page.waitForFunction(()=>{const s=(window as any).__game.state();return !s.terrainHold&&!s.paused&&s.following.pending===null;},null,{timeout:30000}).catch(()=>{});await page.waitForTimeout(400);};
  for(let x=2600;x>=1700;x-=100)await hop(x,1550);

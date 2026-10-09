@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 test('a street ped spawns on the Grove Street porch steps and sits through the seat clips',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
@@ -6,6 +7,7 @@ test('a street ped spawns on the Grove Street porch steps and sits through the s
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
+ await endStoryMission(page);
  await expect.poll(async()=>(await state()).pedestrians.people.some((p:any)=>!p.officer&&p.health>0),{timeout:60000}).toBe(true);
  // The porch steps of the Grove Street house at native (2512.6, -1651): 46 m north of CJ facing them (heading π faces -z; the
  // on-screen band, 42.5 to 50.5) or 20 m north of CJ facing away (the off-screen band, 15 to 25). The camera hangs on its

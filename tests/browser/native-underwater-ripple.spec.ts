@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 // CPostEffects::UnderWaterRipple: with the camera under the water surface the frame is redrawn as a swaying strip of
 // the captured copy, tinted and darkened with depth.
@@ -7,6 +8,7 @@ test('diving puts the underwater ripple over the frame, surfacing removes it',as
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  // The sea off Santa Maria: CJ swims at the surface, the camera above it.
  for(let i=0;i<40&&!(await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(560,1.5,1950);return g.state().player.swimming;}));i++)await page.waitForTimeout(400);
  await page.waitForTimeout(1000);

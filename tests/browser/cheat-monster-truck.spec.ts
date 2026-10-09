@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** The monster truck cheat (CCheat::MonsterTruckCheat, model 556) builds the truck beside CJ as a car on its MONSTER
  * handling line; CMonsterTruck's own suspension routines are not reversed. */
 test('the monster truck cheat puts a drivable Monster beside the player',async({page})=>{
@@ -7,6 +8,7 @@ test('the monster truck cheat puts a drivable Monster beside the player',async({
  await page.goto('/');
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
+ await endStoryMission(page);
  // Under load the player can land before WorldFleet has loaded.
  await page.waitForFunction(()=>!!(window as any).__game.fleet(),undefined,{timeout:60000});
  const out=await page.evaluate(async()=>{

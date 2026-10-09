@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 // CAEWaterCannonAudioEntity: the fire truck's jet keeps two voices on its last section while it sprays.
 test('the water cannon jet plays its native voices while it sprays',async({page})=>{
@@ -6,6 +7,7 @@ test('the water cannon jet plays its native voices while it sprays',async({page}
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  await expect.poll(async()=>(await state()).nativeCar!=null,{timeout:30000}).toBe(true);
  await page.waitForTimeout(1000);
  await page.evaluate(()=>(window as any).__game.spawnVehicle(407));

@@ -1,10 +1,12 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 // CWeapon::TakePhotograph: the camera spends film and marks the peds it catches for HAS_CHAR_BEEN_PHOTOGRAPHED.
 test('a photo spends film and marks the ped in frame as photographed',async({page})=>{
  test.setTimeout(120000);
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:45000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  await expect.poll(async()=>(await state()).pedestrians.people.some((p:any)=>!p.officer&&p.health>0),{timeout:60000}).toBe(true);
  await page.keyboard.press('Backquote');await page.locator('[data-weapon="43"]').click();
  await expect.poll(async()=>(await state()).weapons.ready).toBe(true);

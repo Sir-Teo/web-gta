@@ -1,4 +1,5 @@
 import {test,expect,type Page} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 // CPostEffects::NightVision and InfraredVision: the goggles tint the drawn frame (32, 255, 32) and (255, 64, 255) with
 // grain, after the colour filter greys its passes to 64.
@@ -8,6 +9,7 @@ test('night vision goggles green the frame and infrared goggles turn it magenta'
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  await page.waitForTimeout(1000);
  const plain=await centre(page);
  for(const [id,mode] of [[44,'nightvision'],[45,'infrared']] as const){
