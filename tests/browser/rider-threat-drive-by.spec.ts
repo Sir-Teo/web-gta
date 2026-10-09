@@ -11,7 +11,7 @@ test('a script passenger drives by at a ped it hates when its decision maker say
  const w=(fn:string,...args:unknown[])=>page.evaluate(({fn,args})=>(window as any).__game.missionForProfiling().runtime.world[fn](...args),{fn,args});
  const at=await page.evaluate(()=>{const p=(window as any).__game.state().player.position;return {x:p.x,y:-p.z,z:p.y};});
  const made=await page.evaluate(at=>{const m=(window as any).__game.missionForProfiling(),dms=m.runtime.game.decisionMakers;
-  return {car:m.vehicles.create(400,{x:at.x+3,y:at.y,z:at.z},0),homie:m.peds.create(8,'MALE01',{x:at.x+5,y:at.y,z:at.z}),
+  return {car:m.vehicles.create(400,{x:at.x+3,y:at.y+8,z:at.z},0),homie:m.peds.create(8,'MALE01',{x:at.x+5,y:at.y+8,z:at.z}),
    pedDm:dms.load(2,false,false),groupDm:dms.load(0,false,true)};},at);
  await page.waitForFunction(m=>{const g=(window as any).__game.missionForProfiling();return !!g.vehicles.entity(m.car)&&!!g.peds.entity(m.homie);},made,{timeout:60000});
  // As TWAR7 sets OG Loc up: 148@ answers the hate (36) with the gang drive-by, the group's 146@ with
@@ -27,13 +27,14 @@ test('a script passenger drives by at a ped it hates when its decision maker say
  await w('givePedWeapon',made.homie,32,30000);
  await w('setGroupMember',group,made.homie);
  const threat=()=>page.evaluate(m=>{const r=(window as any).__game.missionForProfiling().peds.entity(m.homie);return {threat:!!r?.threat,driveBy:!!r?.driveBy,range:r?.threat?.range,shots:r?.driveBy?.shots??0};},made);
- // Nobody hated about yet.
+ // Nobody hated about yet. (The car is in the open street: one put into the kerbside fence burns.)
  await page.waitForTimeout(4000);
  expect(await threat()).toEqual({threat:false,driveBy:false,range:undefined,shots:0});
  await w('setPedRelationship',made.homie,4,24);
- // Freddy: CREATE_CHAR 24 (MISSION1), ten units up the street.
- const freddy=await page.evaluate(at=>(window as any).__game.missionForProfiling().peds.create(24,'MALE01',{x:at.x+3,y:at.y+10,z:at.z}),at);
+ // Freddy: CREATE_CHAR 24 (MISSION1), twelve units up the street.
+ const freddy=await page.evaluate(at=>(window as any).__game.missionForProfiling().peds.create(24,'MALE01',{x:at.x+3,y:at.y+20,z:at.z}),at);
  await expect.poll(async()=>(await threat()).driveBy,{timeout:20000}).toBe(true);
+ expect(await page.evaluate(m=>(window as any).__game.missionForProfiling().vehicles.entity(m.car).health,made)).toBe(1000);
  // Range: the TEC-9's target range against a gang type's 40 + 5.
  expect((await threat()).range).toBe(45);
  // He leans out and fires at him.
