@@ -911,7 +911,7 @@ async function boot() {
   /** How long CJ has been in SWIM_BACK_TO_SURFACE, for its SWIM_JUMPOUT and CLIMB_jump. */
   let swimJumpoutSeconds:number|undefined;
   let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
-  let surfaceSprint:Map<number,boolean>|undefined,surfaceClimbable:Map<number,boolean>|undefined,surfaceSteep:Map<number,boolean>|undefined;
+  let surfaceSprint:Map<number,boolean>|undefined,surfaceClimbable:Map<number,boolean>|undefined,surfaceSteep:Map<number,boolean>|undefined,surfaceSoftLand:Map<number,boolean>|undefined;
   let surfaceSprintBlocked=false;
   /** CPlayerPedData::m_bPlayerSprintDisabled: the script's DISABLE_PLAYER_SPRINT, or CTaskComplexUseGoggles running. */
   const playerSprintDisabled=()=>!!mission?.runtime.game.playerInfo.sprintDisabled||!!weapons.goggles;
@@ -1264,7 +1264,9 @@ async function boot() {
   weapons.onSound=(event,id,position,source)=>sound.combat(event,id,position,source);
   NativeWeaponAudio.canSeeOutside=()=>render.lighting.area===0;
   // CEventDamage::AffectsPed's MAKE_PLAYER_FIRE_PROOF and ComputeWillKillPed's CHEAT_NO_ONE_CAN_STOP_US (the AK recruit cheat).
-  sim.playerFireProof=()=>!!mission?.runtime.game.playerInfo.fireProof;sim.playerWeaponProof=playerWeaponProofCheat;sim.headScriptName=()=>mission?.runtime.headName;
+  sim.playerFireProof=()=>!!mission?.runtime.game.playerInfo.fireProof;sim.playerWeaponProof=playerWeaponProofCheat;
+  // IsSoftLanding for the ground CJ has just come down on, by the material under his feet.
+  sim.landingSoft=()=>{const contact=importedScene&&sampleNativeGroundLighting(sim.world,sim.player.position,sim.playerCollider,importedScene.sources);return !!contact&&surfaceSoftLand?.get(contact.material)===true;};sim.headScriptName=()=>mission?.runtime.headName;
   weapons.onBulletHit=(hit,point,angle)=>{
     const collisions=sound.nativeEngine?.collisions;if(!collisions||paused)return;
     const handle=hit.collider.handle,vehicle=[...(fleet?.cars??[])].some(c=>hit.collider.parent()?.handle===c.car.body.handle)||[...(fleet?.planes??[])].some(p=>hit.collider.parent()?.handle===p.body.handle);
@@ -5077,7 +5079,7 @@ async function boot() {
           try{const [font]=decodeNamedTextures(['roadsignfont'],new Uint8Array(await file.arrayBuffer()));if(font&&!font.compressed)roadsigns.setFont({width:font.mips[0].width,height:font.mips[0].height,data:font.mips[0].data});}catch{}
           return disposeSunTexture.load(file);}},surfaceInfo:{load:async file=>{
           if(file.size>4*1024*1024)return false;
-          try{const flags=readSurfaceMovementFlags(await file.text());surfaceSprint=flags.sprint;surfaceClimbable=flags.climbable;surfaceSteep=flags.steepSlope;return true;}catch{surfaceSprint=surfaceClimbable=undefined;return false;}
+          try{const flags=readSurfaceMovementFlags(await file.text());surfaceSprint=flags.sprint;surfaceClimbable=flags.climbable;surfaceSteep=flags.steepSlope;surfaceSoftLand=flags.softLand;return true;}catch{surfaceSprint=surfaceClimbable=undefined;return false;}
         }},surfaceAudio:{load:async file=>{
           surfaceAudio=undefined;if(file.size>1024*1024)return false;
           try{const parsed=readSurfaceAudio(await file.text());if(parsed.warnings.length)return false;surfaceAudio=parsed;return true;}catch{return false;}

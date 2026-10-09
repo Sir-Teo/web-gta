@@ -1,10 +1,10 @@
 import {readSurfaceInfo} from '../assets/surfaceInfo';
 import {nativeSurfaceId} from '../assets/surfaceIds';
-/** LoadSurfaceInfos narrows Sprint and Climbable to bool; later records for an ID win. */
+/** LoadSurfaceInfos narrows Sprint, Climbable, SteepSlope and SoftLand to bool; later records for an ID win. */
 export function readSurfaceMovementFlags(text:string){
- const sprint=new Map<number,boolean>(),climbable=new Map<number,boolean>(),steepSlope=new Map<number,boolean>();
- for(const record of readSurfaceInfo(text).records){const id=nativeSurfaceId(record.name);sprint.set(id,record.values.sprint!==0);climbable.set(id,record.values.climbable!==0);steepSlope.set(id,record.values.steepSlope!==0);}
- return {sprint,climbable,steepSlope};
+ const sprint=new Map<number,boolean>(),climbable=new Map<number,boolean>(),steepSlope=new Map<number,boolean>(),softLand=new Map<number,boolean>();
+ for(const record of readSurfaceInfo(text).records){const id=nativeSurfaceId(record.name);sprint.set(id,record.values.sprint!==0);climbable.set(id,record.values.climbable!==0);steepSlope.set(id,record.values.steepSlope!==0);softLand.set(id,record.values.softLand!==0);}
+ return {sprint,climbable,steepSlope,softLand};
 }
 export function readSurfaceSprintRestrictions(text:string){return readSurfaceMovementFlags(text).sprint;}
 /** Surface restriction applies to grounded, on-foot controls before gait selection.

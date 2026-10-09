@@ -260,6 +260,8 @@ export class Simulation {
   playerCanBeDamaged=true;
   /** CPlayerInfo::m_bFireProof and CHEAT_INFINITE_HEALTH (playerWeaponProofCheat), which the host answers. */
   playerFireProof?:()=>boolean;playerWeaponProof?:()=>boolean;
+  /** SurfacesInfos_c::IsSoftLanding for what the player has just come down on (landingDamage), which the host answers. */
+  landingSoft?:()=>boolean;
   /** The name of CTheScripts::pActiveScripts' head, the most recently started script still running (iOS name checks). */
   headScriptName?:()=>string|undefined;
   /** CPhysical::physicalFlags' proofs on the player, which SET_CHAR_PROOFS sets. */
@@ -612,7 +614,7 @@ export class Simulation {
     }
     if (this.player.grounded && !wasGrounded && this.player.health > 0) {
       if (this.fall.falling) { this.fallLanding = this.fall.minVz < -.4 * 50 ? 'knockdown' : 'collapse'; this.fallLandingSound = true; }
-      { const hurt = landingDamage(this.player.verticalSpeed); if (hurt > 0) this.damagePlayer(hurt, true, { weapon: 54 }); }
+      { const hurt = landingDamage(this.player.verticalSpeed, { across: this.player.speed, soft: this.landingSoft?.(), fallFall: this.fall.falling }); if (hurt > 0) this.damagePlayer(hurt, true, { weapon: 54 }); }
     }
     if (this.player.grounded) this.fall = { minVz: 0, falling: false };
     // bIsInTheAir: a jump's launch puts him in the air at once; walking off an edge only when there is no ground within
@@ -825,7 +827,7 @@ export class Simulation {
     this.playerBody.setNextKinematicTranslation({ x: position.x + movement.x, y: position.y + movement.y, z: position.z + movement.z });
     this.player.grounded = resolved.grounded;
     if (this.player.grounded && !wasGrounded && this.player.health > 0) {
-      { const hurt = landingDamage(this.player.verticalSpeed); if (hurt > 0) this.damagePlayer(hurt, true, { weapon: 54 }); }
+      { const hurt = landingDamage(this.player.verticalSpeed, { across: this.player.speed, soft: this.landingSoft?.() }); if (hurt > 0) this.damagePlayer(hurt, true, { weapon: 54 }); }
     }
     this.player.phase += this.player.speed * dt * 2.8;
   }

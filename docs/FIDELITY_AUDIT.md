@@ -11722,3 +11722,9 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   his sideways shuffle, so he turned with it, about 70 degrees in a second and a half, and strafed in a circle. An aimed
   gun already held it (render.aiming); now the target button with any weapon does (render.targetHeld).
   native-fight-stance.spec.ts runs off the opening and passes every time (it failed every run off it, half under it).
+- Landing damage is the iOS ped collision's (health.ts landingDamage; the routine at 0x10032803c..0x1003282f4 is not in
+  gta-reversed), replacing an authored (speed − 10) × 8 capped at 100. A ped (all stay PEDSTATE_IDLE) coming down faster
+  than 0.375 units a frame, or across faster than 0.66, takes max(across − 0.25, 0) × 100 + max(−0.25 − down, 0) × 400
+  as a WEAPON_FALL CEventDamage on the torso, the offsets 0.375 on a SoftLand surface (bit 11, IsSoftLanding
+  0x100268680, now read from surfinfo.dat under CJ); faster than 0.6 down is 500. Slower, a ped still in FALL_FALL
+  (anim 120) that comes down at all takes 15. A long fall now kills: 100 m at 0.6+ units a frame is 500.

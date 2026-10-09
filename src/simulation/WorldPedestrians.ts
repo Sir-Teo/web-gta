@@ -4291,7 +4291,7 @@ export class WorldPedestrians {
      // CTaskComplexInAirAndLand: FALL_fall lands as a collapse (or a knockdown past 0.4 units a frame), a glide as
      // FALL_land; the height costs the same damage as the player's landing.
      const minVz=p.air.minVz,fell=p.air.clip==='fall_fall';p.air=undefined;
-     const damage=landingDamage(minVz);
+     const damage=landingDamage(minVz,{fallFall:fell});
      if(p.view.reactionName&&/^fall_/.test(p.view.reactionName))p.view.clearReaction();
      if(fell&&minVz<-0.4*50){this.hit(p,Math.sin(state.heading),Math.cos(state.heading),0,'ko_skid_back',1000);}
      else{const clip=fell?'fall_collapse':'fall_land';const duration=p.view.reactionDuration(clip)??(fell?1.5:0.6);if(p.view.hasReaction(clip))p.view.playReaction(clip,duration);p.landing=duration;}

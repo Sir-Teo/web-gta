@@ -15,8 +15,14 @@ function drop(height: number) {
 test('ordinary jumps are safe, while a high fall damages health once', () => {
   sim = new Simulation(); advance(0.5); advance(1 / 60, { ...idle, jump: true }); advance(1.2);
   expect(sim.player.health).toBe(100);
-  drop(5); advance(1.1); expect(sim.player.health).toBeGreaterThan(0); expect(sim.player.health).toBeLessThan(90);
-  const health = sim.player.health; advance(0.5); expect(sim.player.health).toBe(health);
+  // Five units: in FALL_FALL but under 0.375 units a frame, the ped collision's 15 (landingDamage), through the
+  // player's damage multiplier.
+  drop(5); advance(1.1); const five = 100 - sim.player.health; expect(five).toBeGreaterThan(0); expect(five).toBeLessThan(15);
+  advance(0.5); expect(sim.player.health).toBe(100 - five);
+  // Twelve: past the gate, (−0.25 − down) × 400, much more, once.
+  sim.player.health = 100; drop(12); advance(1.5); const twelve = 100 - sim.player.health;
+  expect(twelve).toBeGreaterThan(five * 2); expect(sim.player.health).toBeGreaterThan(0);
+  advance(0.5); expect(sim.player.health).toBe(100 - twelve);
 });
 
 test('reset discards old ground contact until physics resolves the destination',()=>{

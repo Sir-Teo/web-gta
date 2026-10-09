@@ -17,3 +17,19 @@ test('landing damage and armour order', () => {
   expect(landingDamage(-5)).toBe(0);
   expect(landingDamage(-20)).toBeGreaterThan(0);
 });
+
+// iOS ped collision 0x10032803c..0x1003282f4: units a frame (the browser's a second over 50).
+test('landing damage is the ped collision\'s WEAPON_FALL', () => {
+  // Under the 0.375 a frame gate (18.75 a second), nothing, unless still in FALL_FALL: 15.
+  expect(landingDamage(-18)).toBe(0);
+  expect(landingDamage(-18, { fallFall: true })).toBe(15);
+  expect(landingDamage(-0.5, { fallFall: true })).toBe(0);
+  // Past it, (−0.25 − down) × 400: 0.4 a frame is 60; a soft landing's offset is 0.375.
+  expect(landingDamage(-20)).toBeCloseTo(60, 4);
+  expect(landingDamage(-20, { soft: true })).toBeCloseTo(10, 4);
+  // Across faster than 0.66 a frame adds (across − 0.25) × 100; down past 0.6 a frame is 500.
+  expect(landingDamage(0, { across: 35 })).toBeCloseTo(45, 4);
+  expect(landingDamage(-31)).toBe(500);
+  // A ped out of PEDSTATE_IDLE: the 0.25 gate.
+  expect(landingDamage(-15, { idle: false })).toBeCloseTo(20, 4);
+});

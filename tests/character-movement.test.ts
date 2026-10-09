@@ -114,8 +114,12 @@ test('a long fall below the spawn height lands; leaving the world puts him back 
   setup('box');
   // Spawned 100 m up with the floor at 0: the old rule (30 m under the spawn) would have sent him back up mid-fall.
   sim.respawn = { x: 0, y: 100, z: 0 }; sim.resetPlayer();
+  // Safe (MAKE_PLAYER_SAFE): the landing past 0.6 units a frame is 500 damage (landingDamage), and Wasted would respawn
+  // him up there.
+  sim.playerCanBeDamaged = false;
   let lowest = 100;
   for (let i = 0; i < 400; i++) { sim.step(1 / 50, controls); lowest = Math.min(lowest, sim.player.position.y); }
+  sim.playerCanBeDamaged = true;
   expect(lowest).toBeLessThan(70);
   expect(sim.player.position.y).toBeLessThan(1);
   expect(sim.player.grounded).toBe(true);

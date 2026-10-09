@@ -45,13 +45,16 @@ test('a street ped off the ground falls under gravity, glides then falls, and la
  expect(result.mid.peakFall).toBeLessThan(-8);expect(result.mid.peakFall).toBeGreaterThan(-10);
  expect(result.mid.health).toBe(100);expect(result.mid.down).toBe(0);
  // Five metres: the line finds nothing once he is past 0.1 units a frame, so the glide turns into FALL_fall; landing
- // past 10 m/s (but under 0.4 units a frame, no knockdown) costs a little health.
+ // under 0.375 units a frame in it costs the ped collision's 15 (landingDamage).
  expect(result.five.clips.slice(0,2)).toEqual(['fall_glide','fall_fall']);
  expect(result.five.peakFall).toBeLessThan(-10);expect(result.five.peakFall).toBeGreaterThan(-20);
- expect(result.five.health).toBeLessThan(100);expect(result.five.health).toBeGreaterThan(50);
- // Twelve metres: over 0.4 units a frame the impact knocks him down (KO_skid_back) and costs (speed − 10) × 8 health.
+ expect(result.five.health).toBe(85);
+ // Twelve metres: over 0.4 units a frame the impact knocks him down (KO_skid_back) and costs (−0.25 − down) × 400
+ // (down in units a frame): about 68 at 21 a second.
  expect(result.high.clips.slice(0,3)).toEqual(['fall_glide','fall_fall','ko_skid_back']);
  expect(result.high.peakFall).toBeLessThan(-20);
  expect(result.high.airSeconds).toBeGreaterThan(0.9);
- expect(result.high.health).toBeLessThan(30);expect(result.high.health).toBeGreaterThan(0);
+ const hit=(-0.25-result.high.peakFall/50)*400;
+ // (The peak sampled here misses the last step before touchdown, a few tenths faster.)
+ expect(Math.abs(result.high.health-(100-hit))).toBeLessThan(4);expect(result.high.health).toBeGreaterThan(0);
 });
