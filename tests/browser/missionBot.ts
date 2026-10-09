@@ -79,7 +79,18 @@ export function missionBotTick(dtSeconds:number){
  const tankCar=!vehicle&&brief!==mem.tankDone&&/gas tank/i.test(objective)?(m.vehicles?.handles??[]).map((h:number)=>({h,car:m.vehicles.entity(h)}))
   .filter((c:any)=>c.h!==mem.rodeIn&&c.car?.car?.body&&!c.car.wrecked&&!c.car.occupied&&c.car.car.nativeFramePosition?.('petrolcap'))
   .map((c:any)=>{const t=c.car.car.body.translation();return {...c,d:Math.hypot(t.x-me.x,-t.z-me.y)};}).filter((c:any)=>c.d<40).sort((a:any,b:any)=>a.d-b.d)[0]:undefined;
- if(!blips.length&&!marker&&!marks.length&&!tankCar)return null;
+ // Nothing blipped for a quarter of a minute at the wheel with the script's peds aboard: a player drives on round the
+ // streets (SWEET4's next gang of Ballas only comes out where CJ cannot see it and is not near).
+ const idleAboard=!!vehicle&&!blips.length&&!marker&&((m.peds?.handles??[]) as number[]).some((h:number)=>{try{return !m.peds.isDead(h)&&world.pedVehicle?.(h)===vehicle;}catch{return false;}});
+ mem.idleAboard=idleAboard?(mem.idleAboard??0)+dtSeconds:0;
+ if(idleAboard&&mem.idleAboard>15){
+  // A point a hundred and fifty units off in some direction, driven to by the road route, and another once there.
+  const goal=mem.wanderGoal;
+  if(!goal||Math.hypot(goal.x-me.x,goal.y-me.y)<20){const a=Math.random()*Math.PI*2;mem.wanderGoal={x:me.x+Math.cos(a)*150,y:me.y+Math.sin(a)*150,z:me.z};}
+ }
+ if(!idleAboard)mem.wanderGoal=undefined;
+ const driveAround=idleAboard&&mem.idleAboard>15;
+ if(!blips.length&&!marker&&!marks.length&&!tankCar&&!driveAround)return null;
  const nearest=(list:any[])=>list.sort((a,b)=>distance(a.position)-distance(b.position))[0];
  const enemies=blips.filter((b:any)=>b.type===BLIP_CHAR&&!b.friendly);
  const cars=blips.filter((b:any)=>b.type===BLIP_CAR&&b.friendly&&b.handle!==vehicle);
@@ -192,6 +203,7 @@ export function missionBotTick(dtSeconds:number){
   (world.setPedCoordinatesDontWarpGang??world.setPedCoordinates).call(world,1,sx,sy,z+1);
   return true;
  };
+ if(driveAround){glide(mem.wanderGoal,10);return {action:'drive around'};}
  // Whether nothing fixed (a wall, the room's own mesh) stands between CJ's eye and a ped's chest, in script coordinates.
  const clearShot=(from:any,to:any)=>{
   const R=g.RAPIER,o={x:from.x,y:from.z+.6,z:-from.y},d={x:to.x-from.x,y:to.z-from.z,z:-(to.y-from.y)},l=Math.hypot(d.x,d.y,d.z);
@@ -286,7 +298,11 @@ export function missionBotTick(dtSeconds:number){
  }
  if(enemies.length){
   const e=nearest(enemies);
-  if(vehicle&&distance(e.position)<25){try{world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);}catch{}return {action:'leave car to fight',target:e.handle};}
+  // With the script's peds riding in his car a player drives and they shoot (SWEET4: "just concentrate on the driving
+  // and we'll take care of the shooting"; the homies are its passengers, not his group): he stays at the wheel and
+  // keeps the car near the enemy.
+  const crewAboard=!!vehicle&&((m.peds?.handles??[]) as number[]).some((h:number)=>{try{return !m.peds.isDead(h)&&world.pedVehicle?.(h)===vehicle;}catch{return false;}});
+  if(vehicle&&!crewAboard&&distance(e.position)<25){try{world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);}catch{}return {action:'leave car to fight',target:e.handle};}
   // Six seconds at the same target and it still stands (behind a wall in SWEET1B's crack den): a player walks up to it.
   if(mem.shootTarget!==e.handle){mem.shootTarget=e.handle;mem.shootFor=0;mem.vantage=undefined;}
   // The six seconds run from when he takes the target on, closing in or firing (one held twelve units off behind a
