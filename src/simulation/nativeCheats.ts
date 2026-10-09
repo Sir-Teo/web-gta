@@ -56,6 +56,11 @@ export class NativeCheats {
 }
 /** The game's single CCheat state, read where the original reads CCheat::IsActive. */
 export const CHEATS=new NativeCheats();
+/** CPedDamageResponseCalculator::ComputeWillKillPed (iOS 0x10028a1b8): the player takes nothing from a weapon under 47
+ * (WEAPON_LAST_WEAPON) while m_aCheatsActive[0x45] is on, a byte below CHEAT_MEGA_PUNCH's 0x4b; iOS indexes the cheats 8
+ * above PC's enum, so that is CHEAT_INFINITE_HEALTH (61), BAGUVIX: explosions, cars, drowning and falls still hurt.
+ * gta-reversed names the cheat CHEAT_NO_ONE_CAN_STOP_US (77), which would sit 10 below mega punch, not 6. */
+export function playerWeaponProofCheat(){return CHEATS.isActive('infiniteHealth');}
 /** CPedDamageResponseCalculator::ComputeWillKillPed and CEventDamage::ComputeDeathAnim: under CHEAT_MEGA_PUNCH a
  * blow from fists (0), brass knuckles (1) or the parachute (46) takes all the victim's health and throws the body
  * twenty times as hard. */

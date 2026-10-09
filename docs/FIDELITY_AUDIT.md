@@ -11712,3 +11712,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   hate for MISSION1) fired at Freddy only once Freddy fired at CJ (the group's authored threat); he now fires on sight.
   SET_SENSE_RANGE on a rider is kept too. Not scanned: the respect/like/dislike events, the lighting test.
   tests/browser/rider-threat-drive-by.spec.ts.
+- BAGUVIX (CHEAT_INFINITE_HEALTH) makes CJ proof against weapons under 47; the port had wired that check to the AK
+  recruit cheat. iOS CPedDamageResponseCalculator::ComputeWillKillPed (0x10028a1b8) reads m_aCheatsActive[0x45] for it
+  and [0x4b] for mega punch (weapons 0, 1, 46). iOS indexes the cheats 8 above PC's enum (mega punch is 67), so 0x45 is
+  CHEAT_INFINITE_HEALTH (61); gta-reversed names it CHEAT_NO_ONE_CAN_STOP_US (77), which would sit 10 below mega punch,
+  not 6. Explosions, cars, drowning and falls still hurt, as BAGUVIX is known to leave them (playerWeaponProofCheat).

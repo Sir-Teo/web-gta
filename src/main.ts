@@ -196,7 +196,7 @@ import {initialTankTurret,stepTankTurret,stepTankTurretPad,tankShotDirection,tan
 import {EXPLOSION} from './combat/nativeExplosion';
 import {carLightPools} from './render/carLightPools';
 import {pedTypeAtLeastDealer,playerKilledADealer} from './simulation/nativePopCycleEvents';
-import {CHEATS,megaPunchBlow,type CheatName} from './simulation/nativeCheats';
+import {CHEATS,megaPunchBlow,playerWeaponProofCheat,type CheatName} from './simulation/nativeCheats';
 import {VEHICLE_ANIM_GROUP_TABLES} from './assets/vehicleAnimGroups';
 import {stepFogReduction} from './world/nativeFogReduction';
 import {VehicleAnimationLibrary} from './assets/vehicleAnimations';
@@ -1264,7 +1264,7 @@ async function boot() {
   weapons.onSound=(event,id,position,source)=>sound.combat(event,id,position,source);
   NativeWeaponAudio.canSeeOutside=()=>render.lighting.area===0;
   // CEventDamage::AffectsPed's MAKE_PLAYER_FIRE_PROOF and ComputeWillKillPed's CHEAT_NO_ONE_CAN_STOP_US (the AK recruit cheat).
-  sim.playerFireProof=()=>!!mission?.runtime.game.playerInfo.fireProof;sim.playerWeaponProof=()=>CHEATS.isActive('recruitAk');sim.headScriptName=()=>mission?.runtime.headName;
+  sim.playerFireProof=()=>!!mission?.runtime.game.playerInfo.fireProof;sim.playerWeaponProof=playerWeaponProofCheat;sim.headScriptName=()=>mission?.runtime.headName;
   weapons.onBulletHit=(hit,point,angle)=>{
     const collisions=sound.nativeEngine?.collisions;if(!collisions||paused)return;
     const handle=hit.collider.handle,vehicle=[...(fleet?.cars??[])].some(c=>hit.collider.parent()?.handle===c.car.body.handle)||[...(fleet?.planes??[])].some(p=>hit.collider.parent()?.handle===p.body.handle);

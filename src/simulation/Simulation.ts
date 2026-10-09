@@ -258,7 +258,7 @@ export class Simulation {
   /** CPedDamageResponseCalculator::AccountForPedArmour: armour absorbs damage first, except falls and drowning. */
   /** CPlayerData::m_bCanBeDamaged, which MAKE_PLAYER_SAFE_FOR_CUTSCENE clears and restores. */
   playerCanBeDamaged=true;
-  /** CPlayerInfo::m_bFireProof and CHEAT_NO_ONE_CAN_STOP_US, which the host answers. */
+  /** CPlayerInfo::m_bFireProof and CHEAT_INFINITE_HEALTH (playerWeaponProofCheat), which the host answers. */
   playerFireProof?:()=>boolean;playerWeaponProof?:()=>boolean;
   /** The name of CTheScripts::pActiveScripts' head, the most recently started script still running (iOS name checks). */
   headScriptName?:()=>string|undefined;

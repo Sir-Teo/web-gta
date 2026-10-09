@@ -15,3 +15,15 @@ test('CJ takes 0.77 of a hit while intro1 heads the script list',()=>{
  const armoured=hit('INTRO1',5);expect(armoured.player.armour).toBe(0);
  expect(100-armoured.player.health).toBeCloseTo((plain-5)*Math.fround(.77),5);
 });
+
+// iOS ComputeWillKillPed reads m_aCheatsActive[0x45], CHEAT_INFINITE_HEALTH (BAGUVIX), not the AK recruit cheat.
+test('under BAGUVIX CJ takes no gunfire, but a fall or a blast still hurts',async()=>{
+ const {CHEATS,playerWeaponProofCheat}=await import('../src/simulation/nativeCheats');
+ const hit=(weapon:number)=>{const sim=new Simulation();sim.player.health=100;sim.playerWeaponProof=playerWeaponProofCheat;sim.damagePlayer(20,false,{weapon});return 100-sim.player.health;};
+ try{
+  CHEATS.enable('recruitAk');expect(hit(22)).toBeGreaterThan(0);CHEATS.disable('recruitAk');
+  CHEATS.enable('infiniteHealth');
+  expect(hit(22)).toBe(0);expect(hit(46)).toBe(0);
+  expect(hit(51)).toBeGreaterThan(0);expect(hit(54)).toBeGreaterThan(0);
+ }finally{CHEATS.reset();}
+});
