@@ -168,8 +168,9 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  /** CWorld::ProcessVerticalLine from the native point down to z = -1000: the first ground under it, or undefined
   * where the world has nothing there. FindGroundZForCoord asks from z = 1000. */
  groundLevel?(x:number,y:number,z:number):number|undefined;
- /** CEntity::GetDistanceFromCentreOfMassToBaseOfModel (0x536BE0): how far CREATE_OBJECT lifts the object. */
- modelBaseOffset?(model:number|string):number;
+ /** CEntity::GetDistanceFromCentreOfMassToBaseOfModel (0x536BE0): how far CREATE_OBJECT lifts the object, or
+  * undefined while the browser is still reading the model's collision. */
+ modelBaseOffset?(model:number|string):number|undefined;
  /** What CCamera::Restore asks of the player: FindPlayerVehicle, and whether the ped state is one of
   * ENTER_CAR, CARJACK or OPEN_DOOR (the car camera) or EXIT_CAR (the on-foot camera). */
  playerCameraState?():{inVehicle:boolean;enteringCar:boolean;exitingCar:boolean};

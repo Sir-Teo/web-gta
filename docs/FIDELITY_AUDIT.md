@@ -11566,8 +11566,13 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
 - CREATE_OBJECT lifts the object by CEntity::GetDistanceFromCentreOfMassToBaseOfModel (gta-reversed ObjectCommands),
   minus the lowest z of the model's COL box. The port's lift was a stub that answered 0, so every script object sat
   that much down in what it stands on. SWEET2's second bottle sat 0.24 into the ledge behind its face, so CJ's shots
-  met the ledge and the round never ended. The lift now comes from the model's COL. The command waits the frames the
-  browser takes to read it, as GET_MODEL_DIMENSIONS does.
+  met the ledge and the round never ended. The lift now comes from the model's COL.
+  - The command does not wait for the COL to be read. Native CREATE_OBJECT loads the model on the spot. A wait broke
+    INITIAL, which makes its objects with no WAIT between them while MAIN loads INITIL2 into the same mission space
+    right after. INITIAL resumed in INITIL2's bytes and gave up (`Unsupported SCM parameter 43`), so Sweet's car
+    point ($142), the car generators and the rest of its setup never ran. INTRO2 then made Sweet's car at the map's
+    origin. An object whose COL is not in yet is made at the point and lifted when the COL arrives, unless something
+    has moved it by then.
 - A script ped's collision wait (the browser's stand-in for CColStore keeping the collision round mission peds) took
   only live ones, so a dead one CJ left behind fell through the map once the terrain window moved off it, about five
   units a second. SWEET3's Ballas driver, shot at the drive-thru, was found under Willowfield. A dead script ped now

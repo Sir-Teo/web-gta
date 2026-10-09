@@ -1193,14 +1193,13 @@ export class ScmMission {
    setLaRiots:active=>{this.laRiots=active;this.world.setLaRiots(active);},
    groundLevel:(x,y,z)=>this.world.groundLevel(x,y,z),
    // CEntity::GetDistanceFromCentreOfMassToBaseOfModel: minus the lowest z of the model's COL box, which CREATE_OBJECT
-   // lifts the object by. The script has the model loaded by then; the browser reads its COL on the first request, and
-   // the command waits the frames that takes. SWEET2's second bottle sat 0.24 down in the ledge it stands on, behind
-   // the ledge's face from where CJ shoots. A model with no collision is not lifted.
+   // lifts the object by. The browser reads the COL on the first request; until then this is undefined and the
+   // object is lifted when it arrives (liftCreatedObjects). SWEET2's second bottle sat 0.24 down in the ledge it
+   // stands on, behind the ledge's face from where CJ shoots. A model with no collision is not lifted.
    modelBaseOffset:model=>{
     if(!this.world.objectModelBounds)return 0;
     const bounds=this.world.objectModelBounds(model);
-    if(bounds===undefined)throw new ScmEntityPending(`model ${model}`);
-    return bounds?-bounds.min.z:0;
+    return bounds===undefined?undefined:bounds?-bounds.min.z:0;
    },
    // The peds a script asks after: the player's handle is answered from the running game, and every other one
    // from the pool the script made it with. A question that needs a ped the browser has not built yet gives
@@ -2984,6 +2983,19 @@ export class ScmMission {
    },
   });
  }
+ /** CREATE_OBJECT's base lift for the objects made before their model's collision was read, once it is, unless the
+  * script or the world has moved the object since. */
+ private liftCreatedObjects(){
+  const objects=this.runtime.game.objects;if(!objects.pendingBaseLifts.size)return;
+  for(const object of objects.pendingBaseLifts){
+   const at=object.pendingBaseLift;
+   if(!at||!objects.exists(object.handle)||objects.at(object.handle)!==object){objects.pendingBaseLifts.delete(object);continue;}
+   const bounds=this.world.objectModelBounds?.(object.model);if(bounds===undefined)continue;
+   object.pendingBaseLift=undefined;objects.pendingBaseLifts.delete(object);
+   const p=object.position;
+   if(bounds&&p.x===at.x&&p.y===at.y&&p.z===at.z)object.position={x:p.x,y:p.y,z:p.z-bounds.min.z};
+  }
+ }
  private processGarageDoors(nowMs:number){
   const near=this.world.worldObjectsNear,models=this.world.garageDoorModels?.();
   if(!near||!models?.size)return;
@@ -4258,7 +4270,7 @@ export class ScmMission {
   // CPad::Update for pad 0 before the scripts run: a PRINT of WUZ1_DA or GAR2_10 (iOS) clears DisablePlayerControls,
   // the script's player-safe bit with it; the CPlayerInfo half of MakePlayerSafe is left as it was.
   {const pads=this.runtime.game.pads;if(pads.releaseControls[0]){pads.releaseControls[0]=false;pads.setPlayerSafe(0,false);this.playerControl=true;}}
-  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();this.processObjectBrains(nowMs);this.processPedBrains(nowMs);this.processGarageDoors(nowMs);this.updateConversations(nowMs);this.settlePutDown();if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.runtime.game.objects.advanceFades(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
+  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();this.processObjectBrains(nowMs);this.processPedBrains(nowMs);this.processGarageDoors(nowMs);this.liftCreatedObjects();this.updateConversations(nowMs);this.settlePutDown();if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.runtime.game.objects.advanceFades(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
    this.processRunners(timeStepMs/1000);
    this.drownRiders(timeStepMs);

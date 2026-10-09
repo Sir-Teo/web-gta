@@ -43,6 +43,21 @@ describe('script objects',()=>{
   expect(object.usesCollision).toBe(true);
  });
 
+ test('CREATE_OBJECT does not wait for a model whose collision is still being read; the lift is left to the host',()=>{
+  // INITIAL makes its objects with no WAIT between them, and MAIN loads INITIL2 into the same mission space next: a
+  // thread suspended here would resume in INITIL2's bytes.
+  const bytes=file(),header=readScmHeader(bytes);
+  const code=decodeScmInstructions(bytes,header.missions[0].start,header.missions[0].end);
+  const create=code.find(i=>i.name==='CREATE_OBJECT')!;
+  const {thread,game}=threadAt(bytes,create.offset,new ScmGameState(),{groundLevel:()=>1000,modelBaseOffset:()=>undefined});
+  runOne(thread);
+  expect(thread.ip).toBeGreaterThan(create.offset);
+  const object=game.objects.at(game.objects.handles[0]);
+  expect(object.position.z).toBeCloseTo(create.parameters[3].value as number,4);
+  expect(object.pendingBaseLift).toEqual(object.position);
+  expect([...game.objects.pendingBaseLifts]).toEqual([object]);
+ });
+
  test('CREATE_OBJECT at z = -100 (DRIV2) drops to FindGroundZForCoord, 20 where there is no ground',()=>{
   const bytes=file(),header=readScmHeader(bytes);
   const mission=header.missions.map(m=>({m,code:decodeScmInstructions(bytes,m.start,m.end)})).find(({code})=>String(code[0].parameters?.[0]?.value)==='DRIV2')!;

@@ -32,6 +32,9 @@ export interface ScmObject {
  position:{x:number;y:number;z:number};
  /** CObject::objectFlags.bIsPhotographed, which TakePhotograph sets and HAS_OBJECT_BEEN_PHOTOGRAPHED reads. */
  photographed?:boolean;
+ /** Where CREATE_OBJECT put an object whose model's collision was still being read: the host lifts it by the base
+  * offset once the collision is in, if nothing has moved it since. */
+ pendingBaseLift?:{x:number;y:number;z:number};
  /** CEntity heading, radians, and the full orientation SET_OBJECT_ROTATION gives it. */
  heading:number;rotation:{x:number;y:number;z:number};
  /** CPhysical::m_vecMoveSpeed, native units per frame. */
@@ -122,6 +125,8 @@ export class ScmObjects {
   * an animation. Unset, every model does. */
  clumpModel?:(model:number|string)=>boolean;
  private readonly objects=new Map<number,ScmObject>();
+ /** The objects waiting on their CREATE_OBJECT base lift (ScmObject.pendingBaseLift). */
+ readonly pendingBaseLifts=new Set<ScmObject>();
  private nextHandle=1;
  /** The objects handed to g_breakMan since the host last looked, each with BreakObject_c::Init's bJustFaces: the
   * host spawns the pieces from the model while it still has it. */

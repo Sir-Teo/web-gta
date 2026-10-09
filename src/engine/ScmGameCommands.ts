@@ -3139,8 +3139,14 @@ const handlers:Record<string,ScmCommandHandler>={
   const g=game(t,i),asset=model(t,i,p[0]),position=vec(t,p,1);
   // CWorld::PutToGroundIfTooLow, then the lift by the distance from the centre of mass to the base of the model.
   if(position.z<=-100)position.z=world(t,i,'groundLevel')(position.x,position.y,1000)??20;
-  position.z+=world(t,i,'modelBaseOffset')(asset);
-  t.writeInt(p[4],g.objects.create(asset,position,{external:t.isExternal||t.externalType!==-1,missionCleanup:t.usesMissionCleanup}).handle);
+  // Native CREATE_OBJECT loads the model there and then; the browser may still be reading its collision, and the
+  // command must not wait for it (INITIAL makes its objects in one frame, and MAIN loads INITIL2 into the same
+  // mission space straight after), so the lift then comes when the collision does.
+  const lift=world(t,i,'modelBaseOffset')(asset);
+  if(lift!==undefined)position.z+=lift;
+  const object=g.objects.create(asset,position,{external:t.isExternal||t.externalType!==-1,missionCleanup:t.usesMissionCleanup});
+  if(lift===undefined){object.pendingBaseLift={...position};g.objects.pendingBaseLifts.add(object);}
+  t.writeInt(p[4],object.handle);
  },
  CREATE_OBJECT_NO_OFFSET:(t,p,i)=>{
   const g=game(t,i);
