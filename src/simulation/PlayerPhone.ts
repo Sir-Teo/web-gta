@@ -41,7 +41,10 @@ export class PlayerPhone{
    const source=await openStaticWorld(this.base),entry=source.entry('cellphone.dff'),textureEntry=source.entry('cellphone.txd');
    if(!entry)return undefined;
    const read=await readModel({file:source.file,entry,textureEntry},new ModelReadCache(source.file,source.entries));
-   return modelObject(read.model,read.textures);
+   // Hung on the hand, its frames are no part of the ped's skeleton: untagged, as a gun is, so a clip the ped is given
+   // later still binds to one model instance (HOODS5's phone call, then a script clip on the same ped).
+   const phone=modelObject(read.model,read.textures);phone.root.traverse(o=>{delete o.userData.nativeFrame;});
+   return phone;
   })().catch(()=>undefined);
   return this.model;
  }

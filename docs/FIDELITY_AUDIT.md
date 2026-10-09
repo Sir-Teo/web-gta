@@ -11560,3 +11560,6 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   the turn while the player hangs from something, snaps onto it within one turn, and spends the turn. Its heading is
   Beta + π/2 (gta-reversed Process_Rocket). The port's stand-in took the angle as relative to the vehicle and the
   second operand as a turn limit, and changed the attachment's limit. The attachment's own limit is untouched now.
+- The cellphone a ped holds on TASK_USE_MOBILE_PHONE (and the player's) hung on the hand with its own frame tags, so
+  the next clip a script gave that ped failed to bind ("Animation binding requires one model instance"): HOODS5's
+  phone call, then a GANGS clip. Its frames are no part of the ped's skeleton and go untagged, as a held gun's do.
