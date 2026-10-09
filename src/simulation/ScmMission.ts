@@ -1192,9 +1192,16 @@ export class ScmMission {
    loadPathNodesInArea:()=>{},
    setLaRiots:active=>{this.laRiots=active;this.world.setLaRiots(active);},
    groundLevel:(x,y,z)=>this.world.groundLevel(x,y,z),
-   // CEntity::GetDistanceFromCentreOfMassToBaseOfModel needs the model's own bounds, which the browser only
-   // has once the streamer has read it; until then the object sits with its origin on the ground.
-   modelBaseOffset:()=>0,
+   // CEntity::GetDistanceFromCentreOfMassToBaseOfModel: minus the lowest z of the model's COL box, which CREATE_OBJECT
+   // lifts the object by. The script has the model loaded by then; the browser reads its COL on the first request, and
+   // the command waits the frames that takes. SWEET2's second bottle sat 0.24 down in the ledge it stands on, behind
+   // the ledge's face from where CJ shoots. A model with no collision is not lifted.
+   modelBaseOffset:model=>{
+    if(!this.world.objectModelBounds)return 0;
+    const bounds=this.world.objectModelBounds(model);
+    if(bounds===undefined)throw new ScmEntityPending(`model ${model}`);
+    return bounds?-bounds.min.z:0;
+   },
    // The peds a script asks after: the player's handle is answered from the running game, and every other one
    // from the pool the script made it with. A question that needs a ped the browser has not built yet gives
    // that thread up rather than being made up.

@@ -11563,3 +11563,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
 - The cellphone a ped holds on TASK_USE_MOBILE_PHONE (and the player's) hung on the hand with its own frame tags, so
   the next clip a script gave that ped failed to bind ("Animation binding requires one model instance"): HOODS5's
   phone call, then a GANGS clip. Its frames are no part of the ped's skeleton and go untagged, as a held gun's do.
+- CREATE_OBJECT lifts the object by CEntity::GetDistanceFromCentreOfMassToBaseOfModel (gta-reversed ObjectCommands),
+  minus the lowest z of the model's COL box. The port's lift was a stub that answered 0, so every script object sat
+  that much down in what it stands on. SWEET2's second bottle sat 0.24 into the ledge behind its face, so CJ's shots
+  met the ledge and the round never ended. The lift now comes from the model's COL. The command waits the frames the
+  browser takes to read it, as GET_MODEL_DIMENSIONS does.
