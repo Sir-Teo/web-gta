@@ -22,6 +22,7 @@ import {NATIVE_GRAVITY_MS2} from './nativeGravity';
 import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
 import {stepBombTimer} from '../vehicle/nativeCarBomb';
 import {nativeBoatDrive} from './nativeBoatDrive';
+import {DEFAULT_CRUISE_SPEED,MISSION_GOTOCOORDINATES_ASTHECROWSWIMS,MISSION_NONE,boatCruiseSpeed,boatGotoCoords,boatStop,steerAIBoat,type BoatPilot} from './nativeBoatAI';
 export const PLAYABLE_BOATS:Readonly<Record<number,string>>={430:'Predator',446:'Squalo',452:'Speeder',453:'Reefer',454:'Tropic',472:'Coastguard',473:'Dinghy',484:'Marquis',493:'Jetmax',595:'Launch'};
 type Assets=Awaited<ReturnType<Awaited<ReturnType<typeof openStaticWorldVehicles>>['load']>>;
 /** Drivable hulls over WATER.DAT. Buoyancy, wake trail, spray, drive forces,
@@ -170,6 +171,8 @@ export class WorldBoat {
  }
  /** Boarding warp with the seated driver pose (no boat entry clips exist in the archive). */
  finishEnter(){
+  // At the helm the boat is STATUS_PLAYER: its autopilot keeps its settings but no longer drives it.
+  if(this.pilot)this.pilot.physics=false;
   this.sim.setCrouched(false);this.occupied=true;this.driverPose='car_sit';this.driving.reset();this.sim.playerCollider.setEnabled(false);this.sim.cameraExcludedBody=this.body;this.afterStep();return `${this.name} · W/S throttle · A/D steer · Space brake · F exit`;
  }
  finishExit(foot?:{x:number;y:number;z:number}){
@@ -215,7 +218,9 @@ export class WorldBoat {
   // carried out of range still goes up on time.
   if(stepBombTimer(this,dt*50)&&!this.wrecked)this.blowUp();
   // A frozen boat takes none of the step, as a far one does: its speed would be worked on with nothing to move it.
-  const nearby=this.distance()<250;this.body.setEnabled(nearby&&!this.frozen);this.root.visible=nearby;if(!nearby||this.frozen)return;
+  // A boat its autopilot is taking somewhere goes on beyond 250 m, as a piloted heli does.
+  const nearby=this.distance()<250,steps=nearby||this.pilot?.physics===true&&this.pilot.mission===MISSION_GOTOCOORDINATES_ASTHECROWSWIMS;
+  this.body.setEnabled(steps&&!this.frozen);this.root.visible=nearby;if(!steps||this.frozen)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
   // Attached to another vehicle (ATTACH_CAR_TO_CAR): a kinematic body the host sets on it after the step.
   if(this.body.bodyType()===RAPIER.RigidBodyType.KinematicPositionBased)return;
@@ -247,8 +252,15 @@ export class WorldBoat {
  engineSpeed=0;
  /** CBoat::ProcessControlInputs (0x6F0A10): the brake pedal eases toward the pad's brake a tenth a frame and, once
   * past 0.05, reverses at 0.3 of it; the steering eases toward the negated stick at 0.2 a step, and the lock is the
-  * handling's, applied to the signed square. Keyboard steering (the mouse branch is not modelled). */
+  * handling's, applied to the signed square. Keyboard steering (the mouse branch is not modelled). A script's boat in
+  * STATUS_PHYSICS takes its pedals and steer angle from its autopilot instead (nativeBoatAI.ts). */
  private controlInputs(dt:number){
+  if(!this.occupied&&this.pilot?.physics){
+   const q=this.body.rotation(),p=this.body.translation(),v=this.body.linvel(),f=new Vector3(0,0,-1).applyQuaternion(q as Quaternion);
+   const c=steerAIBoat(this.pilot,{position:{x:p.x,y:-p.z},forward:{x:f.x,y:-f.z},moveSpeed:{x:v.x/50,y:-v.z/50}});
+   this.gasPedal=c.gas;this.brakePedal=c.brake;this.steerAngle=c.steer;this.brake=c.handbrake;
+   return;
+  }
   const accelerate=this.occupied?Math.max(0,this.throttle):0,brake=this.occupied?Math.max(0,-this.throttle):0,steer=this.occupied?this.steer:0;
   // ProcessControlInputs eases the brake a tenth of the way once a game frame (30 fps), unscaled.
   this.brakePedal=Math.max(0,Math.min(1,this.brakePedal+(brake-this.brakePedal)*(1-Math.pow(.9,dt*30))));
@@ -387,6 +399,15 @@ export class WorldBoat {
  missionCar=false;
  /** CVehicle::bConsideredByPlayer, which SET_VEHICLE_IS_CONSIDERED_BY_PLAYER clears: the player's enter search passes it over. */
  consideredByPlayer=true;
+ /** CAutoPilot as a script sets it on a boat (nativeBoatAI.ts), made on first use; `physics` is STATUS_PHYSICS. */
+ pilot?:BoatPilot&{physics:boolean};
+ private autopilot(){return this.pilot??={mission:MISSION_NONE,target:{x:0,y:0,z:0},cruiseSpeed:DEFAULT_CRUISE_SPEED,engineOn:false,physics:false};}
+ /** BOAT_GOTO_COORDS: off to (x, y) at the cruise speed, the engine on unless the boat is wrecked (bEngineBroken). */
+ tellBoatToGoToCoors(x:number,y:number,z:number){const p=this.autopilot();boatGotoCoords(p,x,y,z,this.wrecked,(x,y)=>this.waterLevel?.(x,y));p.physics=true;}
+ /** BOAT_STOP: no mission, the engine off, the cruise speed 0. */
+ boatStop(){const p=this.autopilot();boatStop(p);p.physics=true;}
+ /** SET_BOAT_CRUISE_SPEED: the autopilot's cruise speed, whatever the boat is doing. */
+ setBoatCruiseSpeed(speed:number){this.autopilot().cruiseSpeed=boatCruiseSpeed(speed);}
  /** FREEZE_CAR_POSITION: the body held where it is. */
  frozen=false;
  heading(){const q=this.body.rotation();return Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));}

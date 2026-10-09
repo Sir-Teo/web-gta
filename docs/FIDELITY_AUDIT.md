@@ -11632,3 +11632,18 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   go; now full lock holds about 0.75 rad/s and the turn dies within a second of letting go. The hull is against the
   world when the pair has a contact point. WorldPlane's two crash tests (the hard landing, and the crash-and-burn heli
   striking something as it rises) read contact pairs the same way and now ask for a contact point too.
+- A script's boat goes where BOAT_GOTO_COORDS sends it (src/simulation/nativeBoatAI.ts; gta-reversed has none of it).
+  The handler (iOS 0x1001d5f30) sets MISSION_GOTOCOORDINATES_ASTHECROWSWIMS (14) unless the vehicle is crashing (57,
+  58), the destination (a z at or under −100 is the water's level, any other stored as 0), STATUS_PHYSICS, bEngineOn
+  unless bEngineBroken (+0x568 bit 41), a cruise speed of at least 1, and the mission's start time. BOAT_STOP
+  (0x1001d5f80) sets MISSION_NONE, STATUS_PHYSICS, the engine off and the cruise speed 0; SET_BOAT_CRUISE_SPEED
+  (0x1001d6064) truncates into the byte. CBoat::ProcessControl (0x10045c26c) runs SteerAICarWithPhysics on a
+  STATUS_PHYSICS boat with or without a driver, and mission 14 is SteerAIBoatWithPhysicsHeadingForTarget
+  (0x10019c4dc): the turn to the point wrapped and held within ±0.5; the throttle full until the speed (60 × the move
+  speed) is within a quarter of the cruise speed, easing to none at it; past it, −0.1 (−0.2 when 5 over) with the
+  steering turned round. MISSION_NONE is no steer or gas, half brake, the handbrake. The outputs go straight to
+  m_fSteerAngle, m_fGasPedal and m_fBreakPedal, which the boat's drive reads as it reads the player's. CJ at the helm
+  makes it STATUS_PLAYER again. A boat on its way steps beyond 250 m, as a piloted heli does. WUZI2's two boats sat at
+  their first point for good; a Reefer told to go 80 m behind it turns, holds about its cruise speed and arrives.
+  - Not ported: SteerAICarWithPhysics' temp actions before the mission (reversing out when stuck), CCarAI::UpdateCarAI,
+    and the boat's engine sound under the autopilot (the engine is still on exactly while CJ is at the helm).

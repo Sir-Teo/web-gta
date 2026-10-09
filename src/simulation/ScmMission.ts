@@ -2510,6 +2510,11 @@ export class ScmMission {
    setPedCanBeKnockedOffBike:(handle,stayOnBike)=>{if(handle===PLAYER_PED_HANDLE)this.runtime.game.playerInfo.stayOnBike=stayOnBike;else this.world.setScriptPedFlag(this.livePed(handle),'stayOnBike',stayOnBike);},
    // SET_HELI_BLADES_FULL_SPEED (iOS 0x1001faec4): a helicopter's m_fHeliRotorSpeed to 0.22 at once.
    setHeliBladesFullSpeed:handle=>{const heli=this.liveVehicle(handle) as {helicopter?:boolean;rotorSpeed?:number};if(heli.helicopter)heli.rotorSpeed=.22;},
+   // BOAT_GOTO_COORDS (iOS 0x1001d5f30), BOAT_STOP (0x1001d5f80) and SET_BOAT_CRUISE_SPEED (0x1001d6064) on a boat's
+   // autopilot (nativeBoatAI.ts); anything else is left alone.
+   boatGotoCoords:(handle,x,y,z)=>{(this.liveVehicle(handle) as {tellBoatToGoToCoors?:(x:number,y:number,z:number)=>void}).tellBoatToGoToCoors?.(x,y,z);},
+   boatStop:handle=>{(this.liveVehicle(handle) as {boatStop?:()=>void}).boatStop?.();},
+   setBoatCruiseSpeed:(handle,speed)=>{(this.liveVehicle(handle) as {setBoatCruiseSpeed?:(speed:number)=>void}).setBoatCruiseSpeed?.(speed);},
    // HELI_GOTO_COORDS (iOS 0x1001e268c): CAutomobile::TellHeliToGoToCoors with the command's arguments as they are.
    heliGotoCoords:(handle,x,y,z,minAltitude,maxAltitude)=>{(this.liveVehicle(handle) as {tellHeliToGoToCoors?:(x:number,y:number,z:number,min:number,max:number)=>void}).tellHeliToGoToCoors?.(x,y,z,minAltitude,maxAltitude);},
    // HELI_FOLLOW_ENTITY (iOS 0x1001f5edc): the ped, or with none (-1) the vehicle, as m_TargetEntity, followed until it
