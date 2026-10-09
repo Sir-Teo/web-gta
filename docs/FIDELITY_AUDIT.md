@@ -11568,3 +11568,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   that much down in what it stands on. SWEET2's second bottle sat 0.24 into the ledge behind its face, so CJ's shots
   met the ledge and the round never ended. The lift now comes from the model's COL. The command waits the frames the
   browser takes to read it, as GET_MODEL_DIMENSIONS does.
+- A script ped's collision wait (the browser's stand-in for CColStore keeping the collision round mission peds) took
+  only live ones, so a dead one CJ left behind fell through the map once the terrain window moved off it, about five
+  units a second. SWEET3's Ballas driver, shot at the drive-thru, was found under Willowfield. A dead script ped now
+  lies where it fell until its ground comes back.
