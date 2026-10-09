@@ -219,7 +219,7 @@ export class WorldBoat {
   if(stepBombTimer(this,dt*50)&&!this.wrecked)this.blowUp();
   // A frozen boat takes none of the step, as a far one does: its speed would be worked on with nothing to move it.
   // A boat its autopilot is taking somewhere goes on beyond 250 m, as a piloted heli does.
-  const nearby=this.distance()<250,steps=nearby||this.pilot?.physics===true&&this.pilot.mission===MISSION_GOTOCOORDINATES_ASTHECROWSWIMS;
+  const nearby=this.distance()<250,steps=nearby||!this.wrecked&&this.pilot?.physics===true&&this.pilot.mission===MISSION_GOTOCOORDINATES_ASTHECROWSWIMS;
   this.body.setEnabled(steps&&!this.frozen);this.root.visible=nearby;if(!steps||this.frozen)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
   // Attached to another vehicle (ATTACH_CAR_TO_CAR): a kinematic body the host sets on it after the step.
@@ -255,7 +255,8 @@ export class WorldBoat {
   * handling's, applied to the signed square. Keyboard steering (the mouse branch is not modelled). A script's boat in
   * STATUS_PHYSICS takes its pedals and steer angle from its autopilot instead (nativeBoatAI.ts). */
  private controlInputs(dt:number){
-  if(!this.occupied&&this.pilot?.physics){
+  // A wrecked boat is STATUS_WRECKED, which no autopilot drives.
+  if(!this.occupied&&!this.wrecked&&this.pilot?.physics){
    const q=this.body.rotation(),p=this.body.translation(),v=this.body.linvel(),f=new Vector3(0,0,-1).applyQuaternion(q as Quaternion);
    const c=steerAIBoat(this.pilot,{position:{x:p.x,y:-p.z},forward:{x:f.x,y:-f.z},moveSpeed:{x:v.x/50,y:-v.z/50}});
    this.gasPedal=c.gas;this.brakePedal=c.brake;this.steerAngle=c.steer;this.brake=c.handbrake;

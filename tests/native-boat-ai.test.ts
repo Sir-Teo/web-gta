@@ -40,3 +40,14 @@ test('BOAT_GOTO_COORDS, SET_BOAT_CRUISE_SPEED and BOAT_STOP as the iOS handlers 
  const crash={...pilot(),mission:MISSION_HELI_CRASH_AND_BURN};boatGotoCoords(crash,1,1,0,false,()=>0);boatStop(crash);
  expect(crash.mission).toBe(MISSION_HELI_CRASH_AND_BURN);
 });
+
+test('a wrecked boat takes nothing from its autopilot',async()=>{
+ const {WorldBoat}=await import('../src/simulation/WorldBoat');
+ const boat:any=Object.create(WorldBoat.prototype);
+ Object.assign(boat,{occupied:false,wrecked:true,pilot:{...pilot(),mission:14,target:{x:0,y:100,z:0},physics:true},gasPedal:0,brakePedal:0,rawSteer:0,steerAngle:0,throttle:0,steer:0,brake:false,
+  handling:{values:{steeringLock:30}},body:{rotation:()=>({x:0,y:0,z:0,w:1}),translation:()=>({x:0,y:0,z:0}),linvel:()=>({x:0,y:0,z:0})}});
+ (WorldBoat.prototype as any).controlInputs.call(boat,1/50);
+ expect(boat.gasPedal).toBe(0);
+ boat.wrecked=false;(WorldBoat.prototype as any).controlInputs.call(boat,1/50);
+ expect(boat.gasPedal).toBe(1);
+});

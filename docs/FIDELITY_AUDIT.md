@@ -11645,6 +11645,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   m_fSteerAngle, m_fGasPedal and m_fBreakPedal, which the boat's drive reads as it reads the player's. CJ at the helm
   makes it STATUS_PLAYER again. A boat on its way steps beyond 250 m, as a piloted heli does. WUZI2's two boats sat at
   their first point for good; a Reefer told to go 80 m behind it turns, holds about its cruise speed and arrives.
+  - A wrecked boat is STATUS_WRECKED, which the autopilot never drives.
   - Not ported: SteerAICarWithPhysics' temp actions before the mission (reversing out when stuck), CCarAI::UpdateCarAI,
     and the boat's engine sound under the autopilot (the engine is still on exactly while CJ is at the helm).
 - A script rider's TASK_DRIVE_BY at a ped the script then deletes stops shooting at it; it threw "Script ped handle
