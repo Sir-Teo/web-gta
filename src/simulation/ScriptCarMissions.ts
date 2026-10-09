@@ -6,6 +6,7 @@ import {SWIRVE_STOP_WAIT_MS,TRY_NOT_TO_TURN_MODELS,initialLaneChangeCountdown,sw
 import {slowCarDownForCars,type DangerView} from '../vehicle/nativeCarCtrl';
 import {findTrafficRoute,joinCarWithRoadSystem,trafficLinks,travelLink as travel,type TrafficLink} from './trafficRoute';
 import type {WorldCar} from './WorldCar';
+import {LAW_ENFORCEMENT_MODELS} from './nativeWanted';
 /** What CAutoPilot drives: a car, or a bike, whose rider takes the same pedals (CBike::ProcessControlInputs). */
 export interface ScriptDrivable {
  readonly car:{body:import('@dimforge/rapier3d-compat').RigidBody};
@@ -32,17 +33,26 @@ export interface ScriptDrivable {
 export type ScriptCarMissionKind='gotoCoords'|'gotoCoordsStraight'|'gotoCoordsAccurate'|'gotoCoordsStraightAccurate'|'gotoCoordsRacing'|'cruise'|'none'
  |'ramPlayerFar'|'ramPlayerClose'|'blockPlayerFar'|'blockPlayerClose'|'blockPlayerStop'
  |'ramCarFar'|'ramCarClose'|'blockCarFar'|'blockCarClose'|'blockCarStop'
- |'emergencyStop'|'stopForever'|'escort'|'escortFar'|'driveByFar'|'driveByClose';
+ |'emergencyStop'|'stopForever'|'escort'|'escortFar'|'driveByFar'|'driveByClose'|'followCarFar'|'followCarClose';
 /** eCarMission's numbers for TASK_CAR_MISSION, and the kind each starts as. */
 export const CAR_MISSION:Readonly<Record<number,ScriptCarMissionKind>>={0:'none',1:'cruise',2:'ramPlayerFar',3:'ramPlayerClose',4:'blockPlayerFar',
  5:'blockPlayerClose',6:'blockPlayerStop',10:'emergencyStop',11:'stopForever',15:'ramCarFar',16:'ramCarClose',17:'blockCarFar',18:'blockCarClose',
- 19:'blockCarStop',29:'escort',30:'escort',31:'escort',32:'escort',60:'driveByClose',61:'driveByFar',65:'escortFar',66:'escortFar',67:'escortFar',68:'escortFar'};
+ 19:'blockCarStop',29:'escort',30:'escort',31:'escort',32:'escort',52:'followCarFar',53:'followCarClose',60:'driveByClose',61:'driveByFar',65:'escortFar',66:'escortFar',67:'escortFar',68:'escortFar'};
 /** MISSION_ESCORT_LEFT, _RIGHT, _REAR and _FRONT (29-32) and their FARAWAY forms (65-68; 57-60 are the plane and heli
  * crash-and-burn missions, the police plane's attack and DO_DRIVEBY_CLOSE). */
 export type EscortSide='left'|'right'|'rear'|'front';
 export const escortSide=(mission:number):EscortSide|undefined=>(['left','right','rear','front'] as const)[mission>=65?mission-65:mission-29];
 /** The kinds that follow the road toward a goal (SteerAICarWithPhysicsFollowPath), a moving one for the FARAWAY missions. */
-const ROAD_KINDS:ReadonlySet<ScriptCarMissionKind>=new Set(['gotoCoords','gotoCoordsAccurate','gotoCoordsRacing','ramPlayerFar','blockPlayerFar','ramCarFar','blockCarFar','escortFar','driveByFar']);
+const ROAD_KINDS:ReadonlySet<ScriptCarMissionKind>=new Set(['gotoCoords','gotoCoordsAccurate','gotoCoordsRacing','ramPlayerFar','blockPlayerFar','ramCarFar','blockCarFar','escortFar','driveByFar','followCarFar']);
+/** MISSION_FOLLOWCAR_CLOSE (iOS 0x1001997d0): headed for the car it follows as any close mission is, and inside the
+ * follow distance + 10 its own pedals from the gap and the two speeds (60 x the move speed in 2-D): the gap past the
+ * follow distance doubled (five times when short of it), plus the leader's speed less its own; under 0 no gas and a
+ * brake of a tenth of it, at most 1, else a twentieth of it as gas, at most 1, and no brake. `distance` is 3-D. */
+export function followCarClosePedals(base:Pedals,distance:number,followDistance:number,leaderSpeed:number,ownSpeed:number):Pedals{
+ if(distance>=followDistance+10)return base;
+ const gap=distance-followDistance,s=gap*(gap<0?5:2)+leaderSpeed*60-ownSpeed*60;
+ return s<0?{...base,accel:0,brake:Math.min(-s/10,1)}:{...base,accel:Math.min(s/20,1),brake:0};
+}
 /** VC's SteerAICarWithPhysicsTryingToBlockTarget: the target's speed counted up to 0.13 a frame, and the handbrake stop
  * inside 5 units, back to blocking past 10. */
 export const MAX_SPEED_TO_ACCOUNT_IN_INTERCEPTING=.13,DISTANCE_TO_SWITCH_FROM_BLOCK_TO_STOP=5,DISTANCE_TO_SWITCH_FROM_STOP_TO_BLOCK=10;
@@ -92,6 +102,8 @@ interface Mission{
  escort?:EscortSide;
  /** When the moving goal's route was last worked out, and for where. */
  routeAt?:number;routeGoal?:{x:number;y:number;z:number};
+ /** m_nCarFollowDist (+0x50e), SET_CAR_FOLLOW_CAR's distance in its byte. */
+ followDistance?:number;
  /** TEMPACT_TURNLEFT or TURNRIGHT the ram sets for 250 ms beside the player's car. */
  turn?:{dir:'left'|'right';until:number};
  /** m_nRandomSeed's low byte, for the ram's side. */
@@ -148,7 +160,7 @@ export class ScriptCarMissions{
   const kind=CAR_MISSION[o.mission];if(kind===undefined)return false;
   if(kind.startsWith('driveBy')&&!o.target&&!o.targetPlayer)return false;
   if(kind==='cruise'){this.wander(car,o);return true;}
-  const needsCar=kind.startsWith('ramCar')||kind.startsWith('blockCar')||kind.startsWith('escort');
+  const needsCar=kind.startsWith('ramCar')||kind.startsWith('blockCar')||kind.startsWith('escort')||kind.startsWith('followCar');
   if(needsCar&&!o.target)return false;
   const existing=this.missions.get(car),m:Mission={...this.idle(existing?.straightLineDistance),kind,cruise:o.cruise,style:o.style,target:needsCar||kind.startsWith('driveBy')?o.target:undefined,
    escort:kind.startsWith('escort')?escortSide(o.mission):undefined,seed:Math.floor(this.random()*32768)};
@@ -156,6 +168,18 @@ export class ScriptCarMissions{
   if(ROAD_KINDS.has(kind)){const goal=this.targetPosition(m);if(goal){m.goal=goal;this.route(car,m);m.routeAt=this.seconds;m.routeGoal={...goal};}}
   return true;
  }
+ /** SET_CAR_FOLLOW_CAR (iOS 0x1001fbf90): CCarAI::TellCarToFollowOtherCar (0x10018c710) makes the leader the target,
+  * joins the road system, sets MISSION_FOLLOWCAR_FARAWAY, the engine (the host's), a cruise speed of at least 6 and the
+  * follow distance truncated into its byte. */
+ followCar(car:ScriptDrivable,leader:WorldCar,o:{distance:number;cruise:number;style:number}){
+  const existing=this.missions.get(car),m:Mission={...this.idle(existing?.straightLineDistance),kind:'followCarFar',cruise:Math.max(o.cruise,6),style:o.style,
+   target:leader,followDistance:Math.trunc(o.distance)&255,seed:Math.floor(this.random()*32768)};
+  this.missions.set(car,m);
+  const goal=this.targetPosition(m);if(goal){m.goal=goal;this.route(car,m);m.routeAt=this.seconds;m.routeGoal={...goal};}
+ }
+ /** SET_CAR_CRUISE_SPEED and SET_CAR_DRIVING_STYLE write CAutoPilot's own fields, which its steering reads each frame:
+  * a mission already under way takes the new value. */
+ setAutopilotField(car:ScriptDrivable,field:'cruise'|'style',value:number){const m=this.missions.get(car);if(m)m[field]=value;}
  /** Where the mission's target is: the target car, or the player (FindPlayerCoors). */
  private targetPosition(m:Mission){
   if(m.target)return m.target.disposed?undefined:{...m.target.car.body.translation()};
@@ -230,6 +254,11 @@ export class ScriptCarMissions{
     return m.turn&&this.seconds<m.turn.until?turnPedals(m.turn.dir):steerHeadingForTarget(state,ram.target,m.cruise);
    }
    case 'ramCarClose':{const t=targetNative();return t?steerHeadingForTarget(state,t.at,m.cruise):undefined;}
+   case 'followCarClose':{
+    const t=targetNative();if(!t||!m.target)return undefined;
+    const a=car.car.body.translation(),b=m.target.car.body.translation();
+    return followCarClosePedals(steerHeadingForTarget(state,t.at,m.cruise),Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z),m.followDistance??0,Math.hypot(t.speed.x,t.speed.y),Math.hypot(state.moveSpeed.x,state.moveSpeed.y));
+   }
    // MISSION_DO_DRIVEBY_CLOSE (iOS 0x100199968): heading for the point 10 units off the target square to the line from
    // the car (CVector::Normalise, x 1 when there is no line), on the side the low bit of the car's seed picks.
    case 'driveByClose':{
@@ -344,6 +373,10 @@ export class ScriptCarMissions{
    // DO_DRIVEBY_FARAWAY and _CLOSE (UpdateCarAI 0x41F4D7, 0x41F5B1): close in at the close distance, and back to the
    // road system at the far one.
    case 'driveByFar':if(d2<=close**2)m.kind='driveByClose';break;
+   // FOLLOWCAR_FARAWAY and _CLOSE (UpdateCarAI, iOS 0x1001895ac and 0x100188fa4): close in short of the straight-line
+   // distance; back to the road past it + 5, or past 50 for a police car (bIsLawEnforcer).
+   case 'followCarFar':if(d2<close**2)m.kind='followCarClose';break;
+   case 'followCarClose':{const limit=car.modelId!==undefined&&LAW_ENFORCEMENT_MODELS.has(car.modelId)?50:far;if(d2>limit**2){m.kind='followCarFar';this.route(car,m);}break;}
    case 'driveByClose':if(d2>=far**2){m.kind='driveByFar';this.route(car,m);}break;
   }
   if(ROAD_KINDS.has(m.kind)){

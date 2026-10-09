@@ -11655,3 +11655,15 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   STATUS_PHYSICS; the port rested every car without the player or an autopilot. LOWR's and SWEET6's lowriders, worked
   by CONTROL_CAR_HYDRAULICS with a ped warped in, sat level: the lines moved under a body that did not step. The host
   answers WorldCar.hasDriverPed from its riders, as it already did WorldBike.hasDriverPed for CBike's.
+- SET_CAR_FOLLOW_CAR (iOS 0x1001fbf90) makes a car follow another: CCarAI::TellCarToFollowOtherCar (0x10018c710) sets
+  the leader as m_TargetEntity, joins the road system, sets MISSION_FOLLOWCAR_FARAWAY (52), the engine on unless broken,
+  a cruise speed of at least 6 and m_nCarFollowDist (+0x50e) from the distance. FARAWAY follows the roads to the leader
+  and turns CLOSE (53) short of the straight-line distance; CLOSE turns back past it + 5 (past 50 for a police car), and
+  either ends with no leader (UpdateCarAI 0x1001895ac, 0x100188fa4). CLOSE (0x1001997d0) heads for the leader as any
+  close mission, and inside the follow distance + 10 sets its pedals from the gap and the two speeds
+  (followCarClosePedals). MUSIC3's escort car sat still behind the limo; a car told to follow at 15 now holds 15.1
+  units at the leader's speed. SET_CAR_MISSION 52 and 53 take the same missions.
+- SET_CAR_CRUISE_SPEED and SET_CAR_DRIVING_STYLE reach a car mission under way. They write CAutoPilot's own fields,
+  which the steering reads each frame (a drive task sets the cruise speed once, as it starts); the port kept them
+  aside for the next mission only, so MUSIC3's SET_CAR_CRUISE_SPEED 15 after the follow, and any chase that speeds a
+  car up or slows it down, changed nothing.

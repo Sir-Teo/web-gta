@@ -779,6 +779,8 @@ export interface ScmMissionWorld {
  /** CTaskComplexCarDriveMission's autopilot mission (eCarMission) against a target car, or the player with none;
   * false for a mission the browser does not drive. */
  scriptVehicleCarMission?(car:unknown,o:{mission:number;target?:unknown;cruise:number;style:number}):boolean;
+ /** SET_CAR_FOLLOW_CAR: the car follows `leader` at `distance` on its own cruise speed and style. */
+ scriptVehicleFollowCar?(car:unknown,leader:unknown,o:{distance:number;cruise:number;style:number}):boolean;
  setPlayerCollision?(uses:boolean):void;
  /** CWorld::StopAllLawEnforcersInTheirTracks. */
  stopAllLawEnforcers():void;
@@ -1101,6 +1103,17 @@ export class ScmMission {
     if(mission===0){this.world.stopScriptVehicle?.(car);return;}
     if(!this.host('scriptVehicleCarMission','SET_CAR_MISSION')(car,{mission,cruise:fields.cruiseSpeed??CREATED_CRUISE_SPEED,style:fields.drivingStyle??0}))
      throw new UnsupportedScmCommand(-1,0,'SET_CAR_MISSION',`mission ${mission}`);
+   },
+   // SET_CAR_FOLLOW_CAR (iOS 0x1001fbf90, CCarAI::TellCarToFollowOtherCar 0x10018c710): the engine on unless broken,
+   // the car's own cruise speed (at least 6) and style; the leader is a vehicle handle (none when it names nothing).
+   setVehicleFollowVehicle:(handle,leader,distance)=>{
+    const car=this.liveVehicle(handle),fields=this.world.scriptVehicleAutopilotFields?.(car)??{};
+    const target=this.vehicles.exists(leader)?this.vehicles.entity(leader):undefined;
+    if('engineRunning' in (car as object)&&!(car as {engineBroken?:boolean}).engineBroken)(car as {engineRunning:boolean}).engineRunning=true;
+    // No leader: UpdateCarAI finds no target and ends the mission.
+    if(!target){this.world.stopScriptVehicle?.(car);return;}
+    if(!this.host('scriptVehicleFollowCar','SET_CAR_FOLLOW_CAR')(car,target,{distance,cruise:fields.cruiseSpeed??CREATED_CRUISE_SPEED,style:fields.drivingStyle??0}))
+     throw new UnsupportedScmCommand(-1,0,'SET_CAR_FOLLOW_CAR','not a car the browser drives');
    },
    // CAR_WANDER_RANDOMLY (VC's handler; SA's is unreversed): the car joins the road system on MISSION_CRUISE with the
    // engine on, a cruise speed of at least 1 and the anti-reverse timer restarted.
@@ -2122,8 +2135,7 @@ export class ScmMission {
     const used=handle===PLAYER_PED_HANDLE?this.host('playerEntryExit','GET_POSITION_OF_ENTRY_EXIT_CHAR_USED')():(this.livePed(handle),undefined);
     return used?{x:used.position[0],y:used.position[1],z:used.position[2],heading:used.heading}:{x:0,y:0,z:0,heading:0};
    },
-   // CAutoPilot's fields for a car the script made, which nothing drives here yet: they are the car's, kept
-   // for the day something reads them, and the adapter says which of the two that is.
+   // CAutoPilot's fields for a car the script made: the car's own, which a mission it is on reads as it drives.
    setVehicleCruiseSpeed:(handle,maxSpeed)=>{this.world.setScriptVehicleAutopilot(this.liveVehicle(handle),'cruiseSpeed',maxSpeed);},
    setVehicleDrivingStyle:(handle,style)=>{this.world.setScriptVehicleAutopilot(this.liveVehicle(handle),'drivingStyle',style);},
    setVehicleLoadCollisionFlag:(handle,state)=>{this.world.setScriptVehicleAutopilot(this.liveVehicle(handle),'loadsCollision',state?1:0);},

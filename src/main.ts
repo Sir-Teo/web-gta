@@ -5535,7 +5535,9 @@ async function boot() {
                  scriptPedArea:ped=>onFoot(ped)?.areaCode??0,
                  setScriptPedSkill:(ped,skill)=>{const p=onFoot(ped);if(p)pedestrians?.setWeaponSkill(p,skill);},
                  setScriptPedUsedEntryExit:ped=>{const p=onFoot(ped);if(p)p.usedEntryExit=true;},
-                 setScriptVehicleAutopilot:(car,field,value)=>{((car as ScriptCar).autopilotFields??={})[field]=value;},
+                 // CAutoPilot's fields; a car mission under way reads the cruise speed and style as it drives.
+                 setScriptVehicleAutopilot:(car,field,value)=>{((car as ScriptCar).autopilotFields??={})[field]=value;
+                  if(isScriptDrivable(car)&&(field==='cruiseSpeed'||field==='drivingStyle'))scriptCars.setAutopilotField(car,field==='cruiseSpeed'?'cruise':'style',value);},
                  // CWorld::ProcessLineOfSight against the world's own fixed collision; with `flags`, CWorld::GetIsLineOfSightClear
                  // over the entity kinds they name: buildings (the fixed world), vehicles, peds (the player's included) and
                  // objects (any other body). Dummies are not bodies here.
@@ -6261,6 +6263,11 @@ async function boot() {
                   if(target&&!(target.car&&target.nativeBody))return false;
                   if(!isScriptDrivable(car))return false;
                   return scriptCars.carMission(car,{mission:o.mission,target:target as ScriptCar|undefined,cruise:o.cruise,style:o.style});
+                 },
+                 scriptVehicleFollowCar:(car,leader,o)=>{
+                  const target=leader as Partial<ScriptCar>|undefined;
+                  if(!isScriptDrivable(car)||!target?.car||!target.nativeBody)return false;
+                  scriptCars.followCar(car,target as ScriptCar,o);return true;
                  },
                  scriptVehicleSeatDoor:(car,seat)=>{
                   // A bike's rider steps off at its side: the driver's saddle to the left, the pillion to the right, as the
