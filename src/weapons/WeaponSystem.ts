@@ -69,6 +69,8 @@ interface SniperBullet {weapon:number;damage:number;position:Vec3;direction:Vec3
 interface Hazard {kind:'flame'|'gas';position:Vec3;remaining:number;tick:number;radius:number;}
 /** CShotInfo: native area-effect particles for the flamethrower, spray can and extinguisher. */
 export interface AreaShot {weapon:number;origin:Vec3;velocity:Vec3;range:number;remaining:number;executed:boolean;age:number;
+ /** CShotInfo::m_pCreator for a ped's shot: its collider (none for the player's). */
+ creator?:number;
  /** Where the drawn stream is: it stops at a wall, the shot itself does not. */
  shown?:Vec3;stopped?:boolean;}
 const add=(a:Vec3,b:Vec3,s=1):Vec3=>({x:a.x+b.x*s,y:a.y+b.y*s,z:a.z+b.z*s});
@@ -844,13 +846,19 @@ export class WeaponSystem {
   const car=[...(this.fleet()?.cars??[])].find(c=>hit.collider.parent()?.handle===c.car.body.handle);if(car)pushShotVehicle(car,hit.normal,point,weapon);
  }
  private tyreHit(source:Vec3,direction:Vec3,reach:number){return bulletTyreHit(this.fleet()?.cars??[],source,direction,reach);}
- /** CShotInfo::AddShot. */
- private addAreaShot(weapon:number,info:NativeWeaponInfo,origin:Vec3,target:Vec3){
+ /** CWeapon::FireAreaEffect for a ped (spray can, extinguisher, flamethrower): CShotInfo::AddShot with the ped as the
+  * creator, whose shots pass it by and whose finished tags play no chime. */
+ pedAreaShot(weapon:number,origin:Vec3,target:Vec3,creator:number){
+  const info=this.inventory.info(weapon);if(!info||info.fire!=='area')return;
+  this.addAreaShot(weapon,info,origin,target,creator);this.fx?.areaEffect(weapon,origin,normalize(add(target,origin,-1)));
+ }
+ /** CShotInfo::AddShot. `creator` is the ped's collider for a ped's shot (none for the player's). */
+ private addAreaShot(weapon:number,info:NativeWeaponInfo,origin:Vec3,target:Vec3,creator?:number){
   if(this.shots.length>=100)this.shots.shift();
   let offset=add(target,origin,-1);
   if(info.spread!==0)offset=add(offset,{x:randTable()*info.spread,y:randTable(),z:randTable()*info.spread});
   const speed=(info.speed+(hasWeaponFlag(info,WEAPON_FLAG.randSpeed)?randTable():0))/NATIVE_STEP;
-  this.shots.push({weapon,origin:{...origin},velocity:add({x:0,y:0,z:0},normalize(offset),speed),range:info.radius,remaining:info.lifespan/1000,executed:false,age:0});
+  this.shots.push({weapon,origin:{...origin},velocity:add({x:0,y:0,z:0},normalize(offset),speed),range:info.radius,remaining:info.lifespan/1000,executed:false,age:0,creator});
   // CWeapon::FireAreaEffect's one-in-three CCreepingFire attempt never starts a fire: the creeping-fire table starts at zero.
  }
  /** CFireManager: world fires and fires on peds, the player and vehicles. */
@@ -999,6 +1007,7 @@ export class WeaponSystem {
    const kind=shot.weapon===37?'flame':shot.weapon===41?'spray':'extinguisher';this.effect(kind,shot.shown!,shot.shown!,dt*1.5,.15+Math.min(.6,shot.age*.9));
    const reach=Math.max(shot.range,1);
    for(const person of people){
+    if(shot.creator!==undefined&&person.handle===shot.creator)continue;
     const d2=(person.position.x-shot.origin.x)**2+(person.position.y-shot.origin.y)**2+(person.position.z-shot.origin.z)**2;if(d2>=reach)continue;
     if(shot.weapon===37){this.ignitePed(person.handle,person.position,100,!!person.fireProof,person.inAir);continue;}
     if(shot.executed)continue;
@@ -1011,7 +1020,7 @@ export class WeaponSystem {
    // part-mission-complete chime for the player.
    if(shot.weapon===41&&!shot.executed){const sprayed=this.onSprayPaint?.([shot.origin.x,-shot.origin.z,shot.origin.y],shot.range),state=sprayed?.state;if(sprayed&&state!=='notFound'){shot.executed=true;
     // CShotInfo::Update: the shot loses its motion along the tag's forward axis, then doubles.
-    {const [dx,dy,dz]=sprayed.direction,d={x:dx,y:dz,z:-dy},v=shot.velocity,along=v.x*d.x+v.y*d.y+v.z*d.z;shot.velocity={x:(v.x-d.x*along)*2,y:(v.y-d.y*along)*2,z:(v.z-d.z*along)*2};}if(state==='painted')this.onSprayPainted?.();}}
+    {const [dx,dy,dz]=sprayed.direction,d={x:dx,y:dz,z:-dy},v=shot.velocity,along=v.x*d.x+v.y*d.y+v.z*d.z;shot.velocity={x:(v.x-d.x*along)*2,y:(v.y-d.y*along)*2,z:(v.z-d.z*along)*2};}if(state==='painted'&&shot.creator===undefined)this.onSprayPainted?.();}}
    // CFireManager::ExtinguishPointWithWater(origin, range, 2): water strength 2 per second.
    if(shot.weapon===42&&!shot.executed&&this.fires.extinguishPointWithWater(this.toNative(shot.origin),shot.range,2,dt))shot.executed=true;
    if(shot.weapon===37){

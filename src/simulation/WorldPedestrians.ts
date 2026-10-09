@@ -531,6 +531,9 @@ export class WorldPedestrians {
  private people:Pedestrian[]=[];
   /** `shooter` is the ped's id and live position (renderer frame), for the ped's own CAEPedWeaponAudioEntity. */
   onShot?:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},weapon:number,hit:boolean,shooter?:{id:string;position:()=>{x:number;y:number;z:number}|undefined})=>void;
+  /** A ped's area-effect shot (CWeapon::FireAreaEffect): the weapon, the muzzle and the point aimed at (renderer axes), and
+   * the shooter's collider. */
+  onAreaShot?:(weapon:number,from:{x:number;y:number;z:number},at:{x:number;y:number;z:number},shooter:number)=>void;
   /** Landed fist/nightstick blows (combat bank unarmed impact sample). */
   onMeleeHit?:(position:{x:number;y:number;z:number},byPlayer:boolean)=>void;
   /** Dead armed peds drop their gun with leftover rounds (one-shot pickup). */
@@ -3406,6 +3409,10 @@ export class WorldPedestrians {
     if(p.order?.kind!=='goToPointShooting')state.heading=Math.atan2(aimOffset.x,aimOffset.z);
     p.view.update(p.actor,1);
     const muzzle=p.gun?.root.getObjectByName('gunflash')?.getWorldPosition(new Vector3())??p.view.hand()?.getWorldPosition(new Vector3())??new Vector3(eye.x,eye.y,eye.z);
+    // CWeapon::FireAreaEffect for a ped's spray can, extinguisher or flamethrower: a CShotInfo cloud toward the aim, which
+    // CShotInfo::Update carries on (a spray can's paints the tags it reaches: Sweet's demonstration in SWEET1). They are no
+    // instant-hit line.
+    if(weapon.info.fire==='area'){p.flash=.06;this.onAreaShot?.(weapon.info.type,{x:muzzle.x,y:muzzle.y,z:muzzle.z},{x:aim.x,y:aim.y,z:aim.z},p.collider.handle);}else{
     // CWeapon::FireInstantHit for a ped: the line to the target, on to the weapon's range, its end moved by the
     // ped's inaccuracy (npcShotEnd).
     const playerTarget=this.playerTargetAt(aim),endPoint=npcShotEnd(muzzle,aim,weapon.info,p.gunAccuracy,{targetIsPlayer:!!playerTarget,targetSpeed:playerTarget?.speed,rangeMultiplier:playerTarget?.rangeMultiplier});
@@ -3438,6 +3445,7 @@ export class WorldPedestrians {
     else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer){car.damage(shotDamage,undefined,false,undefined,{weapon:weapon.info.type,by:{ped:p}});
      // InflictDamage's random tyre burst: (rand() & 0x7f) under the weapon's chance.
      const chance=aiTyreBurstChance(weapon.info.type);if(chance&&!car.wrecked&&Math.floor(Math.random()*128)<chance)car.burstTyreAt(end);}}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')&&npcDamageReaches(victim,p,weapon.info.type,true,this.hitPiece(victim,end))){victim.lastDamagedBy={ped:p};victim.health=healthAfter(victim.health,shotDamage);if(shotDamage>0)victim.lastWeaponDamage=weapon.info.type;if(!victim.health)this.onKill?.({id:victim.id,officer:victim.officer,gang:victim.gang,pedType:victim.pedType,recruit:!!victim.follow,byPlayer:false});const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,shotDamage,vfrom,end,false),vfrom);}}}
+    }
    }
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}
   }

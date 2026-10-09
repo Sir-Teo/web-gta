@@ -1,7 +1,9 @@
-import type {NativeWeaponInfo} from '../weapons/weaponData';
+import {WEAPON_FLAG,type NativeWeaponInfo} from '../weapons/weaponData';
 export interface NpcGunState {time:number;rounds:number;reload:number;active:boolean;
  /** CTaskSimpleGunControl: the rounds left in the burst, and the seconds until the next one (m_nextAtkTimeMs). */
- burstLeft?:number;pause?:number}
+ burstLeft?:number;pause?:number;
+ /** Seconds into the current 30 fps frame, for a continuous-fire weapon's shot a frame. */
+ frameClock?:number}
 /** DEFAULT_GUN_ATTACK_PERIOD (0x8D2E78), a value in the executable the reference does not carry: 2000 ms in the iOS
  * one (0x100652e78, read by CTaskSimpleGunControl::ProcessPed at 0x1003b025c). */
 export const GUN_ATTACK_PERIOD_MS=2000;
@@ -32,6 +34,14 @@ export function stepNpcGun(state:NpcGunState,info:NativeWeaponInfo,reloadSeconds
  if(state.time>=info.loop.end){
   state.time=info.loop.start+(state.time-info.loop.end);
   fired ||= info.loop.fire>=info.loop.start&&state.time>info.loop.fire;
+ }
+ // A continuous-fire weapon (bContinuosFire: the spray can, extinguisher and flamethrower) fires every game frame its
+ // animation is past the fire point, as the player's does: Sweet's spray in SWEET1 fills the tag in the time the script
+ // gives it.
+ if(info.flags&WEAPON_FLAG.continuousFire){
+  state.frameClock=(state.frameClock??0)+dt;
+  const frame=state.frameClock>=1/30;if(frame)state.frameClock%=1/30;
+  fired=frame&&state.time>=info.loop.fire;
  }
  if(fired&&burst&&--state.burstLeft!<=0){state.burstLeft=0;state.pause=npcBurstPause(info.fire==='projectile',burst.rate,burst.random);state.active=false;state.time=0;}
  // A reload drops what is left of the burst: back in FIREBURST the last command was RELOAD, so the attack timer restarts

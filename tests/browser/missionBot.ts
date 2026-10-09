@@ -330,7 +330,7 @@ export function missionBotTick(dtSeconds:number){
   const tag=(g.tagsNear?.(me.x,me.y,20)??[]).filter((t:any)=>t.alpha<255).sort((a:any,b:any)=>distance(a)-distance(b))[0];
   if(tag){
    const f=tag.forward,stand={x:tag.x+f[0]*1.2,y:tag.y+f[1]*1.2,z:tag.z};
-   if(glide(stand,.3))return {action:'go to tag'};
+   if(distance(tag)>2.2&&glide(stand,.9))return {action:'go to tag'};
    try{world.setPedCurrentWeapon?.(1,41);}catch{}
    const now=performance.now();if(now-mem.lastShot>=60){mem.lastShot=now;g.fireAt(tag.x,tag.z,-tag.y);}
    return {action:'spray tag',alpha:tag.alpha};

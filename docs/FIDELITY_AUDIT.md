@@ -11515,3 +11515,10 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
 - ADD_SPARKS (iOS 0x100200738) throws Fx_c::AddSparks: at the point, along the direction CVector::NormaliseAndMag
   leaves (a direction of no length becomes (1, its y, its z)), its length the force, the script's count, nothing
   across, prt_spark_2, spread 0.4, life 1. DRUGS1 throws them seventeen times; the command had no world hook.
+- A ped's spray can, extinguisher or flamethrower fires CWeapon::FireAreaEffect's CShotInfo cloud, as the player's does.
+  CShotInfo::Update (gta-reversed ShotInfo.cpp) paints the tags a spray reaches whoever made it, with the chime for the
+  player's alone, and passes its creator by. A continuous-fire weapon (bContinuosFire) fires every game frame its
+  animation is past the fire point. NPCs fired every weapon as an instant-hit line once an animation loop, so in SWEET1
+  Sweet's demonstration (TASK_SHOOT_AT_COORD on the first tag for 15 s, the script waiting on
+  GET_PERCENTAGE_TAGGED_IN_AREA for 100) never painted a thing and the mission waited for good.
+- native-tags.spec.ts fails on main 8771fb3e too.
