@@ -11625,3 +11625,10 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
     only the windscreen smash after it is for automobiles (+0x734 = 0). Every seat of a boat or an aircraft counts.
   - Still open: a ped on a train carriage rides unseen, and the Nevada's ped_frontseat hangs off a child frame and is
     read as its own matrix.
+- A boat no longer spins like a top. GetHasHitWall was read as any Rapier contact pair with fixed geometry, and a pair
+  is only two bounding boxes meeting: the seabed's takes in a whole harbour, so in open water the flag stayed on.
+  ProcessBoatControl then skipped the turn resistance (vecTurnRes, the Reefer's 0.96 a step on the yaw) and added the
+  wall's 0.4 buoyancy turn every step. Three seconds of full lock left a Reefer turning at 4 rad/s with the wheel let
+  go; now full lock holds about 0.75 rad/s and the turn dies within a second of letting go. The hull is against the
+  world when the pair has a contact point. WorldPlane's two crash tests (the hard landing, and the crash-and-burn heli
+  striking something as it rises) read contact pairs the same way and now ask for a contact point too.

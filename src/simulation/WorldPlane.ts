@@ -583,19 +583,28 @@ export class WorldPlane {
  }
  /** CAutomobile::IsInAir: not in the water, no wheel on the ground and moving. */
  get inAir(){if(this.inWater)return false;const v=this.body.linvel();return !this.grounded&&(v.x!==0||v.y!==0||v.z!==0);}
+ /** Touching fixed world geometry this step: a contact pair with a contact point. A pair alone is only the bounding
+  * boxes meeting, which a terrain block's does for anything flying low over it. */
+ private touchingFixed(){
+  let contact=false;
+  for(let i=0;i<this.body.numColliders()&&!contact;i++){const collider=this.body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
+   if(contact||other.parent()&&!other.parent()!.isFixed())return;
+   this.sim.world.contactPair(collider,other,manifold=>{if(manifold.numContacts()>0)contact=true;});
+  });}
+  return contact;
+ }
  afterStep(){let destroyed=this.pendingExplosion;this.pendingExplosion=false;
   if(stepBombTimer(this,this.stepDt*50)){this.destroyed();destroyed=true;}
   if(!this.occupied)this.exitPending=false;
   else if(this.exitPending&&this.leaveMode()==='wait')this.slowForExit(this.stepDt);
   const change=new Vector3().copy(this.body.linvel()).sub(this.impactVelocity).length();
-  if(this.health>0&&change>12){let contact=false;for(let i=0;i<this.body.numColliders();i++)this.sim.world.contactPairsWith(this.body.collider(i),c=>{if(!c.parent()||c.parent()!.isFixed())contact=true;});if(contact)destroyed=this.damage((change-10)*45);}
+  if(this.health>0&&change>12&&this.touchingFixed())destroyed=this.damage((change-10)*45);
   // CAutomobile::ProcessControl's crash-and-burn: a helicopter told to come down (MISSION_HELI_CRASH_AND_BURN), or the
   // player's plane or helicopter burning whose fire started in the air (m_fireParticleCounter 2), blows up at once,
   // burning (under 250 health), when it strikes something rising or is down, unless it is still sinking.
   if(!destroyed)destroyed=this.burn(this.stepDt);
   if(!destroyed&&this.health>0&&this.health<250&&(this.occupied&&this.fireCounter===2||this.heliPilot?.mission===MISSION_HELI_CRASH_AND_BURN)){
-   let contact=false;for(let i=0;i<this.body.numColliders();i++)this.sim.world.contactPairsWith(this.body.collider(i),c=>{if(!c.parent()||c.parent()!.isFixed())contact=true;});
-   const v=this.body.linvel(),rising=contact&&v.y-this.impactVelocity.y>0;
+   const v=this.body.linvel(),rising=this.touchingFixed()&&v.y-this.impactVelocity.y>0;
    if((rising||this.grounded)&&(v.y>=0||this.inWater))destroyed=this.damage(this.health);
   }
   if(!this.occupied)return destroyed;const p=this.body.translation(),q=this.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={...p};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=this.airspeed;player.grounded=this.grounded;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});return destroyed;}

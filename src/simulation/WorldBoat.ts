@@ -344,8 +344,14 @@ export class WorldBoat {
   const v=this.body.linvel(),change=Math.hypot(v.x-before.x,v.y-before.y,v.z-before.z);
   // bPostCollision: damage this step with the impact rising (m_vecLastCollisionImpactVelocity.z > 0.1).
   this.postCollision=change>0&&(v.y-before.y)/50>.1;
-  // GetHasHitWall: the hull is touching fixed world geometry.
-  let wall=false;for(let i=0;i<this.body.numColliders()&&!wall;i++)this.sim.world.contactPairsWith(this.body.collider(i),other=>{if(other.parent()?.isFixed()??true)wall=true;});
+  // GetHasHitWall: the hull is touching fixed world geometry. A contact pair is only the two bounding boxes meeting (the
+  // seabed's takes in a whole harbour, so it held the flag on in open water: no turn damping, and the wall's turn force
+  // every step, and a boat spun on and on); the hull touches when the pair has a contact point.
+  let wall=false;
+  for(let i=0;i<this.body.numColliders()&&!wall;i++){const collider=this.body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
+   if(wall||!(other.parent()?.isFixed()??true))return;
+   this.sim.world.contactPair(collider,other,manifold=>{if(manifold.numContacts()>0)wall=true;});
+  });}
   this.hitWall=wall;
   const raw=this.handling.values.mass*change/50*this.handling.values.collisionDamageMultiplier;
   // CBoat::ProcessControl: collisions only hurt a hull at 250 health or more, and never past 1; the fire below 250
