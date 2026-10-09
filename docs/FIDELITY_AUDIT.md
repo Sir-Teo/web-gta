@@ -11734,3 +11734,10 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   0.4 from pedstats.dat for the player too. Armour is skipped for drowning and falls (weapons 53, 54) after it. So CJ
   takes 0.33 of the landing damage (1e45ef7d) and of a blast's 250: a grenade at his feet costs him 82.5.
   (The bump response still compares pedstats defend weaknesses, where the player's is 0.4.)
+- A ped takes every weapon's damage times its pedstats defend weakness, not only a fist's: iOS
+  AccountForPedDamageStats (0x10028a070) scales the factor for any weapon (an old woman 3.0, a tourist 1.8, a gang
+  member 1.0). Then (0x10028a0c4..0x10028a1a4) the player's blow on a member of his own group, short of a flamethrower
+  (37) or a blast (51), is cut to a tenth (0x10058cb80) and to 12.5 at most; so is any hit on CJ from a ped he is
+  friendly with (CPedIntelligence::IsFriendlyWith 0x10035c58c: respect or like for its type, or the same type), and a
+  mission ped's from its own group. The last two are not wired yet (damagePlayer has no attacker; script groups).
+  tests/browser/ped-damage-stats.spec.ts. SMOKE2 (28) passes on the branch.

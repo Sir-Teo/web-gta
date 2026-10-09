@@ -424,6 +424,8 @@ export const NATIVE_PED_WALK_SPEED = 1.522;
 export const NATIVE_PED_RUN_SPEED = 4.304;
 export const NATIVE_PED_SPRINT_SPEED = 5.903;
 export const NATIVE_PLAYER_DEFEND_MULT = 0.4;
+/** AccountForPedDamageStats' cut for a blow between friends (0x10028a18c): a tenth (0x10058cb80), at most 12.5. */
+const FRIENDLY_DAMAGE_FACTOR=Math.fround(.1),FRIENDLY_DAMAGE_CAP=12.5;
 /** How long a dragged-out driver stays on the ground before his get-up (authored: the stand-up task is unreversed). */
 const JACKED_LIE_SECONDS=.6;
 /** melee.dat UNARMED range re-exported from the native table (targetRange 10.0
@@ -835,7 +837,12 @@ export class WorldPedestrians {
     // CPedDamageResponseCalculator::ComputeWillForceDeath (0x4AD610, not reversed): an instant-hit bullet in the head
     // kills outright, unless the ped is spared critical hits (bNoCriticalHits, SET_CHAR_SUFFERS_CRITICAL_HITS off).
     const headshot=kind==='bullet'&&!!hit?.point&&!p.noCriticalHits&&isInstantHitGun(hit.weapon)&&this.hitPiece(p,hit.point)===PED_PIECE.head;
-    const applied=megaPunch||headshot?p.health:base*(kind==='melee'?playerPunchDamage(1,p.defendMult):1);
+    // iOS CPedDamageResponseCalculator::AccountForPedDamageStats (0x10028a070): any weapon's damage times the victim's
+    // pedstats defend weakness (a melee blow's is in playerPunchDamage); then the player's own blow on a member of his
+    // group, short of a flamethrower or a blast, is cut to a tenth and to 12.5 at most.
+    let applied=megaPunch||headshot?p.health:base*(kind==='melee'?playerPunchDamage(1,p.defendMult):p.defendMult);
+    const weaponType=hit?.weapon??(kind==='explosion'?WEAPON.explosion:undefined);
+    if(!megaPunch&&!headshot&&byPlayer&&p.follow&&weaponType!==WEAPON.flamethrower&&weaponType!==WEAPON.explosion)applied=Math.min(applied*FRIENDLY_DAMAGE_FACTOR,FRIENDLY_DAMAGE_CAP);
     p.health=healthAfter(p.health,applied);
     const q=p.actor.player.position,from={x:q.x-direction.x,z:q.z-direction.z};
     const weapon=hit?.weapon??(kind==='melee'?WEAPON.unarmed:kind==='explosion'?WEAPON.explosion:kind==='spray'?WEAPON.spraycan:WEAPON.pistol);
