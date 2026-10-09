@@ -26,8 +26,9 @@ test('a nearby blast that throws CJ plays no flinch, and one that kills him drop
  await page.waitForTimeout(1500);
  await page.keyboard.down('KeyW');await page.waitForTimeout(600);await page.keyboard.up('KeyW');
  expect((await state()).player.speed).toBeGreaterThanOrEqual(0);
- // A grenade at his feet kills him: the death clip holds.
- await page.evaluate(()=>(window as any).__game.explodeAt(2480,12.8,1668,0));
+ // A grenade at his feet kills him: the death clip holds. (Its 250 reaches CJ as 82.5 through iOS's 0.33,
+ // AccountForPedDamageStats, so he is brought under that first.)
+ await page.evaluate(()=>{const g=(window as any).__game;g.sim.player.health=Math.min(g.sim.player.health,60);g.explodeAt(2480,12.8,1668,0);});
  await expect.poll(async()=>(await state()).player.health).toBe(0);
  await expect.poll(async()=>(await state()).nativeCharacter?.reaction??null).not.toBeNull();
  // CPlayerInfo::KillPlayer: "wasted" in light grey gothic above the centre, the zone name hidden, gone after 4 s.

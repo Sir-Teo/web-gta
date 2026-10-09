@@ -6,7 +6,8 @@ async function start(page:Page){
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
- await page.evaluate(()=>(window as any).__game.placePlayer(2491,12.6,1668));
+ // No armour: Explore's CJ wears some, which would take the hit before his health (AccountForPedArmour).
+ await page.evaluate(()=>{const g=(window as any).__game;g.sim.player.armour=0;g.placePlayer(2491,12.6,1668);});
  // The empty car twelve metres behind, facing CJ.
  await page.evaluate(()=>(window as any).__game.placeCar(2491,13.3,1680,0));
  await page.waitForTimeout(800);
@@ -22,8 +23,8 @@ test('a car above 25 m/s knocks CJ down for 30 health and does not stop dead',as
  const s=await state();
  // The contact that hurt him; CJ's look back at the car can be recorded after it.
  expect(s.playerCarHits.hurtBy).toBe('hit');
- // 30 x NATIVE_PLAYER_DEFEND_MULT (0.4), the player's damage scaling.
- expect(s.player.health).toBe(88);expect(s.knockdown).toBeGreaterThan(0);
+ // 30 x NATIVE_PLAYER_DAMAGE_MULT (0.33), the player's damage scaling (AccountForPedDamageStats).
+ expect(s.player.health).toBeCloseTo(100-30*0.33,3);expect(s.knockdown).toBeGreaterThan(0);
  // The ped branch counts the car ten times heavier: it keeps most of its speed.
  expect(Math.hypot(s.nativeCar.velocity.x,s.nativeCar.velocity.z)).toBeGreaterThan(15);
  expect(errors).toEqual([]);

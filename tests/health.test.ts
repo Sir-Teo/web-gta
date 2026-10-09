@@ -1,6 +1,7 @@
 import { afterEach, beforeAll, expect, test } from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { Simulation, type Controls } from './helpers/groundedSimulation';
+import { NATIVE_PLAYER_DAMAGE_MULT } from '../src/simulation/Simulation';
 let sim: Simulation;
 const idle: Controls = { x: 0, y: 0, sprint: false, jump: false, cameraYaw: 0 };
 beforeAll(async () => { await RAPIER.init(); });
@@ -34,7 +35,7 @@ test('reset discards old ground contact until physics resolves the destination',
 
 test('ordinary damage kills below one HP and dead-player hits do not restart respawn',()=>{
  sim=new Simulation();sim.player.health=1.1;
- sim.damagePlayer(1,true); // current stat adapter supplies 0.4 damage: leaves < 1 HP
+ sim.damagePlayer(1,true); // 0.33 of it (AccountForPedDamageStats): leaves < 1 HP
  expect(sim.player.health).toBe(0);
  sim.advancePlayerDeath(.5);const remaining=sim.deathRemaining;
  sim.damagePlayer(100,true);
@@ -42,7 +43,8 @@ test('ordinary damage kills below one HP and dead-player hits do not restart res
 });
 
 test('exactly one HP survives, and vehicle death bypasses damage scaling and armour',()=>{
- sim=new Simulation();sim.player.health=3;sim.damagePlayer(5,true);
+ // The player takes 0.33 of it (AccountForPedDamageStats): left with exactly 1, he lives.
+ sim=new Simulation();sim.player.health=1+5*NATIVE_PLAYER_DAMAGE_MULT;sim.damagePlayer(5,true);
  expect(sim.player.health).toBe(1);
  sim.player.armour=100;sim.vehicleOccupantDied();
  expect(sim.player.health).toBe(0);expect(sim.player.armour).toBe(100);

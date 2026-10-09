@@ -11728,3 +11728,9 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   as a WEAPON_FALL CEventDamage on the torso, the offsets 0.375 on a SoftLand surface (bit 11, IsSoftLanding
   0x100268680, now read from surfinfo.dat under CJ); faster than 0.6 down is 500. Slower, a ped still in FALL_FALL
   (anim 120) that comes down at all takes 15. A long fall now kills: 100 m at 0.6+ units a frame is 500.
+- The player's damage is scaled by iOS's 0.33, not STAT_PLAYER's 0.4. iOS CPedDamageResponseCalculator::
+  AccountForPedDamageStats (0x10028a070, run first by ComputeDamageResponse 0x100289cc0 for every weapon) multiplies the
+  player's damage factor by a constant 0.33 (0x100593cb0) and another ped's by its pedstats defend weakness; PC reads the
+  0.4 from pedstats.dat for the player too. Armour is skipped for drowning and falls (weapons 53, 54) after it. So CJ
+  takes 0.33 of the landing damage (1e45ef7d) and of a blast's 250: a grenade at his feet costs him 82.5.
+  (The bump response still compares pedstats defend weaknesses, where the player's is 0.4.)

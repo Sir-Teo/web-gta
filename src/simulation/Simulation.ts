@@ -31,9 +31,10 @@ export const NATIVE_SPRINT_SPEED = 9.562;
 export const NATIVE_CROUCH_WALK_SPEED = 3.74;
 /** CPhysical::ApplyGravity for a ped: GRAVITY a frame squared, in native units. */
 const NATIVE_GRAVITY = 0.008;
-/** STAT_PLAYER's table value. Applying this to every damage kind remains an
- * assumption: AccountForPedDamageStats is unreversed in the pinned source. */
-export const NATIVE_PLAYER_DEFEND_MULT = 0.4;
+/** iOS CPedDamageResponseCalculator::AccountForPedDamageStats (0x10028a070): the player's damage factor times 0.33
+ * (0x100593cb0) for every weapon, falls and drownings included, before armour; another ped's by its pedstats defend
+ * weakness. PC reads STAT_PLAYER's 0.4 there. */
+export const NATIVE_PLAYER_DAMAGE_MULT = Math.fround(0.33);
 
 export interface Controls { x: number; y: number; sprint: boolean; walk?: boolean; jump: boolean;
   /** CPad::GetJump (held) and CPad::GetExitVehicle (held), read by CTaskSimpleClimb. `jump` is the press. */
@@ -283,8 +284,7 @@ export class Simulation {
     // alone (a landing is WEAPON_FALL, collision-proofed); a knockdown blow is still its fist or nightstick.
     if(event&&this.playerProofs&&!physicalCanBeDamaged(this.playerProofs,event.weapon))return;
     if(event&&event.weapon<47&&this.playerWeaponProof?.())return;
-    // Compatibility gap: per-damage-kind stat scaling is not yet established.
-    amount *= NATIVE_PLAYER_DEFEND_MULT;
+    amount *= NATIVE_PLAYER_DAMAGE_MULT;
     let armour = 0;
     if (!bypassArmour && this.player.armour > 0) { const absorbed = Math.min(this.player.armour, amount); this.player.armour -= absorbed; amount -= absorbed; armour = absorbed; }
     if (event && megaPunchBlow(event.weapon)) amount = this.player.health;
