@@ -48,8 +48,10 @@ export class WorldBoat {
  pendingExplosion=false;
  /** Seated driver pose clip and engine speed for audio. */
  driverPose='car_sit';engine01=0;
- /** The ped_frontseat dummy in native model space, mirrored to the driver's side (GetSeatPositionInVehicle). */
- seat(){const frame=this.assets.model?.frames.find(f=>f.name.toLowerCase()==='ped_frontseat');return frame?{x:-Math.abs(frame.matrix[12]),y:frame.matrix[13],z:frame.matrix[14]}:undefined;}
+ /** The ped_frontseat dummy in native model space, as it is: GetSeatPositionInVehicle (iOS 0x10032bdd0) mirrors a
+  * driver's seat to the left for every vehicle but a boat or a bike (vehicle type 5 or 9 at +0x734). The Squalo,
+  * Speeder, Predator, Reefer and Launch put the wheel on the right. */
+ seat(){const frame=this.assets.model?.frames.find(f=>f.name.toLowerCase()==='ped_frontseat');return frame?{x:frame.matrix[12],y:frame.matrix[13],z:frame.matrix[14]}:undefined;}
  /** Handling's model flags (m_bSitInBoat is 0x400). */
  get modelFlags(){return this.assets.handling.values.modelFlags??0;}
  /** The driver's steering and look-back clips (ProcessDrivingAnims). */

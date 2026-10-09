@@ -11599,3 +11599,6 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
     peds riding with him.
   - Bike riders (the bTestForShotInVehicle path) are as they were. The windscreen smash on a front hit (automobiles,
     +0x734) is not ported.
+- A boat's driver stands at the model's ped_frontseat as it is. GetSeatPositionInVehicle (iOS 0x10032bdd0) mirrors a
+  driver's seat to the left for every vehicle type but a boat or a bike (5 or 9 at +0x734); the port mirrored boats as
+  cars, so on the Squalo (+0.688), Speeder, Predator, Reefer and Launch CJ stood across the deck from the wheel.
