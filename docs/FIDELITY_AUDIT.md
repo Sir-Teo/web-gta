@@ -11545,3 +11545,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   CWeapon::Fire the target entity and, with no offset given, no point, so a car is shot at where it is.
 - A script ped that dies has its script tasks flushed for CTaskComplexDie. A driver's car stops (MISSION_NONE, its
   brakes on) rather than driving the rest of the sequence with him dead at the wheel.
+- HAS_MISSION_AUDIO_FINISHED is CAudioEngine::IsMissionAudioSampleFinished (iOS 0x100156f10). It asks whether nothing
+  plays in the slot: no CAESound in the first two, an idle hardware channel in the other two. So a slot loaded and not
+  yet played, or an empty one, is finished. The port answered true only once a played sample ran out. HOODS5's phone
+  scene preloads its next line into the other slot and waits for both to be finished, so it sat at its first line.

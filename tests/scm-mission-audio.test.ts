@@ -142,13 +142,15 @@ test('the audio service streams a sample in by the next frame and runs a played 
  const audio=new ScmMissionAudio();
  audio.preload(2,20015);expect(audio.slots[1].loadingStatus).toBe(AUDIO_LOADING);expect(audio.hasLoaded(2)).toBe(false);
  audio.service(33);expect(audio.hasLoaded(2)).toBe(true);
+ // Loaded and not played: nothing plays in the slot, so it is finished (IsMissionAudioSampleFinished).
+ expect(audio.hasFinished(2)).toBe(true);
  expect(audio.play(2,1000)).toBe(true);expect(audio.anyPlaying).toBe(true);
  audio.service(600);expect(audio.hasFinished(2)).toBe(false);
  audio.service(400);expect(audio.hasFinished(2)).toBe(true);expect(audio.anyPlaying).toBe(false);
- // A sample played without a length runs the default; an empty slot never finishes.
+ // A sample played without a length runs the default; an empty slot has nothing playing, so it is finished.
  audio.preload(1,20016);audio.service(0);audio.play(1);audio.service(DEFAULT_SAMPLE_MS-1);expect(audio.hasFinished(1)).toBe(false);
  audio.service(1);expect(audio.hasFinished(1)).toBe(true);
- audio.service(10000);expect(audio.hasFinished(3)).toBe(false);
+ audio.service(10000);expect(audio.hasFinished(3)).toBe(true);
  // A line's length follows its subtitle, less the HUD tokens.
  expect(speechLengthMs('~w~Hi')).toBe(800);expect(speechLengthMs('')).toBe(DEFAULT_SAMPLE_MS);
  expect(speechLengthMs('x'.repeat(60))).toBe(300+60*66);

@@ -123,8 +123,11 @@ export class ScmMissionAudio {
  }
  /** What a host calls when the sample runs out before its length. */
  finish(scriptSlot:number){const slot=this.slot(scriptSlot);slot.playing=false;slot.finished=true;slot.remainingMs=0;}
- /** HAS_MISSION_AUDIO_FINISHED. */
- hasFinished(scriptSlot:number){return this.slot(scriptSlot).finished;}
+ /** HAS_MISSION_AUDIO_FINISHED: CAudioEngine::IsMissionAudioSampleFinished (iOS 0x100156f10) answers whether nothing
+  * plays in the slot (no CAESound in the first two, the hardware channel idle in the other two), so a slot loaded and
+  * not yet played, or empty, is finished. HOODS5 preloads its next line into the other slot and waits for both to
+  * be finished before playing the first. */
+ hasFinished(scriptSlot:number){return !this.slot(scriptSlot).playing;}
  /** IS_MISSION_AUDIO_PLAYING and IS_MISSION_AUDIO_LOADING, neither of which names a slot: they ask about all
   * four at once, which is the only reading their empty operand list allows. */
  get anyPlaying(){return this.slots.some(slot=>slot.playing);}
