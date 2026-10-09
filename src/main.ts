@@ -593,7 +593,9 @@ async function boot() {
    targetPosition:target=>{
     if(target.kind==='point')return {x:target.x,y:target.y,z:target.z};
     if(target.kind==='live')return target.position();
-    const at=target.kind==='ped'?mission?.runtime.world?.pedPosition?.(target.handle):mission&&mission.vehicles.exists(target.handle)?mission.vehicles.positionOf(target.handle):undefined;
+    // A ped the script has deleted is no target (CTaskSimpleGangDriveBy's registered reference clears), not a fault.
+    const world=mission?.runtime.world;
+    const at=target.kind==='ped'?world?.pedExists?.(target.handle)?world.pedPosition?.(target.handle):undefined:mission&&mission.vehicles.exists(target.handle)?mission.vehicles.positionOf(target.handle):undefined;
     return at&&{x:at.x,y:at.z-(target.kind==='ped'?PED_ORIGIN_HEIGHT:0),z:-at.y};
    },
    hitPed:(collider,damage,weapon,direction,end)=>!!pedestrians?.bulletHit(collider,damage,weapon,direction,end),

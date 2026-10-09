@@ -11647,3 +11647,6 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   their first point for good; a Reefer told to go 80 m behind it turns, holds about its cruise speed and arrives.
   - Not ported: SteerAICarWithPhysics' temp actions before the mission (reversing out when stuck), CCarAI::UpdateCarAI,
     and the boat's engine sound under the autopilot (the engine is still on exactly while CJ is at the helm).
+- A script rider's TASK_DRIVE_BY at a ped the script then deletes stops shooting at it; it threw "Script ped handle
+  names nothing" every frame in the drive-by step (SWEET4 deletes its Ballas under Sweet's drive-by). Natively the
+  task's target is a registered reference, which the deletion clears.
