@@ -92,6 +92,13 @@ function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp'
   // clip (the BMX, the mountain bike) has none. TWAR7's OG Loc rode CJ's PCJ-600 unseen.
   if(!isScriptCar(rider.car)&&typeof bike.riderPose==='function'&&typeof bike.backSeat==='function'&&bike.car&&!rider.offset&&rider.seat!=='driver'){
    const seat=bike.backSeat(),block=bike.riderPose().block,name=`${block}_passenger`.toLowerCase(),clip=seat&&block?bikeClip?.(block,name):undefined;
+   // A pillion's drive-by (TWAR7's OG Loc at Freddy): BIKE_DBZ's clip (bike_dbz.ifp) toward where it aims, the gun in hand.
+   const d=rider.driveBy,aim=d?.aimPoint;
+   if(seat&&d&&aim){
+    const b=bike.car.body.translation(),q=bike.car.body.rotation(),f=new Vector3(0,0,-1).applyQuaternion(new Quaternion(q.x,q.y,q.z,q.w));
+    const lean=pillionDriveByClip(Math.atan2(-f.x,-f.z),Math.atan2(-(aim.x-b.x),-(aim.z-b.z))),anim=lean?bikeClip?.('bike_dbz',lean):undefined;
+    if(lean&&anim&&anim.duration>0){poses.push({key:`script:${bike.car.body.handle}:pillion`,car:bike as import('./render/VehicleOccupants').OccupantVehicle,model:rider.model,local:seat,clip:lean,seconds:d.seconds%anim.duration,animation:anim,gun:driveBy?.gun?.asset});continue;}
+   }
    if(seat&&(clip||played))poses.push({key:`script:${bike.car.body.handle}:pillion`,car:bike as import('./render/VehicleOccupants').OccupantVehicle,model:rider.model,local:seat,...(played??{clip:name,seconds:clip!.duration,animation:clip!})});
    continue;
   }
@@ -349,7 +356,7 @@ import {startPlaybackRecordedCar} from './engine/carRecordingPlayback';
 import {WorldTrain} from './simulation/WorldTrain';
 import {WorldBoat} from './simulation/WorldBoat';
 import {layoutMenu,menuItemAt} from './ui/nativeHudMenus';
-import {newScriptDriveBy,stepScriptDriveBy,type ScriptDriveByWorld} from './simulation/scriptDriveBy';
+import {newScriptDriveBy,pillionDriveByClip,stepScriptDriveBy,type ScriptDriveByWorld} from './simulation/scriptDriveBy';
 import {applyStoredSwitches,markRoadNodeAsDontWander,switchRoadsOffInArea,unmarkAllRoadNodesAsDontWander} from './simulation/nativePathSwitches';
 import {pathAreaLoaded,pathAreaMaps} from './assets/worldPaths';
 import {findCaboose,findCarriage,setTrainCruiseSpeed,setTrainSpeed} from './simulation/nativeTrain';

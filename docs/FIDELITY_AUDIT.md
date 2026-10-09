@@ -11684,3 +11684,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   group's IDLE_tired, blended in at 4, for the time given in ms, then blends it out. It goes through the scripted
   play-anim task, so GET_SCRIPT_TASK_STATUS and sequences see it as they see any task; the command had no handler. (The
   handler change itself went in with a9ea4218.)
+- A bike's pillion doing a drive-by leans out with BIKE_DBZ's clips (bike_dbz.ifp) instead of sitting in its passenger
+  pose. CTaskSimpleGangDriveBy (iOS 0x1003b7830 to 0x1003b7960) takes group 73 for a bike's passenger and picks the
+  clip by the target's heading against the bike's (atan2(-x, y)), wrapped, turned an eighth on and cut into quarters:
+  Pass_Driveby_FWD, _LHS, _BWD, _RHS (pillionDriveByClip). The port drew the pillion in its passenger clip while it
+  fired.

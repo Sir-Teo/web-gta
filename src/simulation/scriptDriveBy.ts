@@ -34,6 +34,15 @@ export interface ScriptDriveByWorld {
  seatedShot?:(from:Vector3,direction:Vector3,range:number,own:WorldCar,hitBody:unknown)=>{t:number;hit:(damage:number,weapon:number)=>void}|undefined;
  random:()=>number;
 }
+/** CTaskSimpleGangDriveBy's clip for a bike's pillion (iOS 0x1003b7830): the target's heading against the bike's
+ * (CVector::Heading, atan2(-x, y) in the native plane), wrapped, turned an eighth on and cut into quarters, picks
+ * BIKE_DBZ's Pass_Driveby_FWD, _LHS, _BWD or _RHS; the angle that lands on a fifth quarter picks none. */
+export function pillionDriveByClip(bikeHeading:number,targetHeading:number):'pass_driveby_fwd'|'pass_driveby_lhs'|'pass_driveby_bwd'|'pass_driveby_rhs'|undefined{
+ let d=targetHeading-bikeHeading;
+ if(d>Math.PI)d-=Math.PI*2;else if(d<-Math.PI)d+=Math.PI*2;
+ d+=Math.PI/4;if(d<0)d+=Math.PI*2;
+ return (['pass_driveby_fwd','pass_driveby_lhs','pass_driveby_bwd','pass_driveby_rhs'] as const)[Math.trunc(d/(Math.PI/2))];
+}
 /** The task as given; its magazine fills at the first step, once the weapon is known. */
 export function newScriptDriveBy(target:DriveByTarget,radius:number,fireRate:number,rightSide:boolean):ScriptDriveBy{
  return {target,radius,fireRate,side:rightSide?'right':'left',gun:{time:0,rounds:-1,reload:0,active:false},seconds:0,shots:0,firing:false};
