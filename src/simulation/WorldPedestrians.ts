@@ -2406,8 +2406,11 @@ export class WorldPedestrians {
   // is not the ground there.
   if(!(this.sim.collisionLoaded?.(at.x,at.z)??true))return false;
   const hit=this.sim.world.castRay(new RAPIER.Ray({x:at.x,y:top,z:at.z},{x:0,y:-1,z:0}),w.reground?2000:500,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-  // Water under it counts as it does for a car: the ped is let go to fall in.
-  if(!hit)return this.waterLevel?.(at.x,-at.z)!==undefined&&!w.reground;
+  // Its area's collision is in and nothing is under it: the native ped would never have waited, and falls (into water,
+  // or through the map, where CWorld::RemoveFallenPeds sets a script's ped down at the nearest node). SWEET4 makes two
+  // of its last Ballas under an overhang of Glen Park's COL with no floor below, and they hung there for good. One
+  // put down at FindGroundZForCoord's fallback waits on.
+  if(!hit)return !w.reground;
   // A ped made at its path node can stand with its feet a little under the surface there (AMBULAN's patients on a
   // slope or a raised verge): the game's collision spheres push it out along the surface's normal, the browser's
   // capsule only finds ground below its feet, so it is set on the surface the ray from above found.

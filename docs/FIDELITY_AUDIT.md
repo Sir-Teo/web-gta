@@ -11572,3 +11572,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   only live ones, so a dead one CJ left behind fell through the map once the terrain window moved off it, about five
   units a second. SWEET3's Ballas driver, shot at the drive-thru, was found under Willowfield. A dead script ped now
   lies where it fell until its ground comes back.
+- A script ped whose area's collision is in but has no ground under it no longer waits for collision. The native ped
+  never waited, and falls into water or through the map, where CWorld::RemoveFallenPeds sets a script's ped down at
+  the nearest node. SWEET4 makes two of its last Ballas under an overhang of Glen Park's COL (laemacpark01 has no floor
+  there in the original either), and the port held them in the air for good. The 16th kill never came, so the drive
+  never ended. One put down at FindGroundZForCoord's fallback still waits.
