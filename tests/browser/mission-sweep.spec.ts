@@ -31,6 +31,9 @@ const watch=(process.env.SWEEP_WATCH??'').split(',').filter(Boolean);
 const globals=(process.env.SWEEP_GLOBALS??'').split(',').filter(Boolean).map(Number);
 /** SWEEP_LOCALS=35,204: the mission thread's own integer locals printed with the progress line (its stage counter). */
 const localInts=(process.env.SWEEP_LOCALS??'').split(',').filter(Boolean).map(Number);
+/** SWEEP_STATS=225=100: stats set before each launch, for a mission that turns a fresh save away (WUZI2 wants lung
+ * capacity, stat 225, over 50). */
+const stats=(process.env.SWEEP_STATS??'').split(',').filter(Boolean).map(s=>s.split('=').map(Number) as [number,number]);
 /** SWEEP_FLOATS=222,227: the mission thread's float locals, printed the same way. */
 const localFloats=(process.env.SWEEP_FLOATS??'').split(',').filter(Boolean).map(Number);
 const list=process.env.SWEEP??'';
@@ -73,13 +76,14 @@ test('mission sweep',async({page})=>{
   }
   await page.evaluate(()=>{const r=(window as any).__game.missionForProfiling().runtime;try{r.world.setPedCoordinates(1,2495,-1687,13.4);}catch{}});
   await page.waitForTimeout(2000);
-  const start=await page.evaluate(id=>{
+  const start=await page.evaluate(([id,stats])=>{
    const g=(window as any).__game,m=g.missionForProfiling(),r=m.runtime;
+   for(const [stat,value] of stats)r.game.stats.set(stat,value);
    for(const slot of [...r.active])if(slot.thread.base>0)r.terminateAllWithName(slot.thread.name);
    r.game.alreadyRunningAMissionScript=false;g.setWantedLevel(0);
    (window as any).__sweepGaveUp=m.snapshot().gaveUp.length;(window as any).__sweep.pilot=undefined;
    r.loadAndLaunchMission(id);return {threads:r.active.length};
-  },id);
+  },[id,stats] as const);
   const timeline:{at:number;offset:number;decision:string}[]=[];
   let last:any,previous:any,teleports=0,samples=0,maxOffset=0,ended=false,lastAction='';const waits=new Map<string,number>();
   const deadline=Date.now()+seconds*1000;
