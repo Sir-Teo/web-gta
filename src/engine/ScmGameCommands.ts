@@ -1363,10 +1363,20 @@ const handlers:Record<string,ScmCommandHandler>={
  START_CUTSCENE:(t,_p,i)=>{const state=game(t,i);state.cutscene.start();if(state.cutscene.running)t.host?.world?.startCutscene?.();},
  HAS_CUTSCENE_FINISHED:(t,_p,i)=>{t.updateCompareFlag(game(t,i).cutscene.hasFinished,negated(i));},
  CLEAR_CUTSCENE:(t,_p,i)=>{
-  // DeleteCutsceneData returns at once with nothing loaded; otherwise it restores the two density multipliers.
-  const g=game(t,i),previous=g.cutscene.previousDensity;
-  if(g.cutscene.status!==CUTSCENE_NONE&&previous){g.carDensityMultiplier=previous.car;g.pedDensityMultiplier=previous.ped;}
+  // DeleteCutsceneData (iOS 0x1002e8314) returns at once with nothing loaded; otherwise it restores the two density
+  // multipliers and, with the cutscene's data file loaded (every scripted cutscene has one), the camera by a jump cut
+  // with the widescreen off. Then the pad's safe-for-cutscene bit and ms_cutsceneProcessing go, and
+  // CPlayerInfo::MakePlayerSafe(false, 10000) gives the player his pad back: SWEET3 sets no control after SWEET2B,
+  // and the chase that follows is driven on the control the clear restored.
+  const g=game(t,i),previous=g.cutscene.previousDensity,loaded=g.cutscene.status!==CUTSCENE_NONE;
+  if(loaded&&previous){g.carDensityMultiplier=previous.car;g.pedDensityMultiplier=previous.ped;}
   g.cutscene.previousDensity=undefined;g.cutscene.clear();t.host?.world?.clearCutscene?.();
+  if(!loaded)return;
+  g.camera.restoreWithJumpCut(world(t,i,'playerCameraState')());g.widescreenOn=false;
+  g.pads.setSafeForCutscene(0,false);g.playerInfo.cutsceneProcessing=false;
+  // MakePlayerSafe(false), as SET_PLAYER_CONTROL on is it, over the cutscene's radius.
+  g.pads.setPlayerSafe(0,false);g.playerInfo.canBeDamaged=true;g.playerInfo.everybodyBackOff=false;
+  world(t,i,'setPlayerControl')(0,true);world(t,i,'makePlayerSafe')(0,false,10000);
  },
  APPEND_TO_NEXT_CUTSCENE:(t,p,i)=>{game(t,i).cutscene.append(t.text(p[0]),t.text(p[1]));},
  // The skip pair: CRunningScript::m_SceneSkipIP, the label the thread jumps to when the skip button is pressed

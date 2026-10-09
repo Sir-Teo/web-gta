@@ -18,7 +18,8 @@ function instruction(opcode:number,operands:readonly (readonly [number,number]|s
 const int=(value:number)=>[1,value] as const;
 function run(game:ScmGameState,world:Partial<ScmWorldCommands>,...instructions:number[][]){
  const space=new Uint8Array(2048);space.set(instructions.flat(),0);
- const host:ScmThreadHost={startScript(){},game,world:{fade(){},...world} as ScmWorldCommands};
+ // CLEAR_CUTSCENE's DeleteCutsceneData puts the camera back and gives the player his pad back through the host.
+ const host:ScmThreadHost={startScript(){},game,world:{fade(){},playerCameraState:()=>({inVehicle:false,enteringCar:false,exitingCar:false}),setPlayerControl(){},makePlayerSafe(){},...world} as ScmWorldCommands};
  const thread=new ScmThread(space,0,0,undefined,host);
  try{thread.run(0,16);}catch(error){if(!String(error).includes('watchdog'))throw error;}
  return thread;
@@ -127,4 +128,21 @@ test('a cutscene holds the car and ped densities at 0 from LOAD_CUTSCENE until C
  expect(game.cutscene.status).toBe(CUTSCENE_NONE);
  // DeleteCutsceneData with nothing loaded leaves them as they are.
  game.carDensityMultiplier=0;run(game,{},instruction(op('CLEAR_CUTSCENE'),[]));expect(game.carDensityMultiplier).toBe(0);
+});
+
+test('CLEAR_CUTSCENE gives the player his pad back, the camera by a jump cut and the widescreen off (SWEET3 after SWEET2B)',()=>{
+ const game=new ScmGameState();const calls:string[]=[];
+ const world={setPlayerControl:(player:number,on:boolean)=>{calls.push(`control ${player} ${on}`);},makePlayerSafe:(player:number,safe:boolean,radius:number)=>{calls.push(`safe ${player} ${safe} ${radius}`);}};
+ run(game,world,instruction(op('SWITCH_WIDESCREEN'),[int(1)]),instruction(op('SET_PLAYER_CONTROL'),[int(0),int(0)]));
+ run(game,world,instruction(op('MAKE_PLAYER_SAFE_FOR_CUTSCENE'),[int(0)]),instruction(op('LOAD_CUTSCENE'),['SWEET2B']));
+ expect([game.pads.playerSafe[0],game.pads.safeForCutscene[0],game.playerInfo.cutsceneProcessing,game.widescreenOn]).toEqual([true,true,true,true]);
+ calls.length=0;
+ run(game,world,instruction(op('CLEAR_CUTSCENE'),[]));
+ expect([game.pads.playerSafe[0],game.pads.safeForCutscene[0],game.playerInfo.cutsceneProcessing,game.widescreenOn]).toEqual([false,false,false,false]);
+ expect([game.playerInfo.canBeDamaged,game.playerInfo.everybodyBackOff]).toEqual([true,false]);
+ expect(game.camera.restoreByJumpCut).toBe(true);
+ expect(calls).toEqual(['control 0 true','safe 0 false 10000']);
+ // With nothing loaded DeleteCutsceneData returns at once: the pad stays as the script left it.
+ run(game,world,instruction(op('SET_PLAYER_CONTROL'),[int(0),int(0)]),instruction(op('CLEAR_CUTSCENE'),[]));
+ expect(game.pads.playerSafe[0]).toBe(true);
 });

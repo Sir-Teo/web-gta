@@ -11526,3 +11526,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   Sweet's demonstration (TASK_SHOOT_AT_COORD on the first tag for 15 s, the script waiting on
   GET_PERCENTAGE_TAGGED_IN_AREA for 100) never painted a thing and the mission waited for good.
 - native-tags.spec.ts fails on main 8771fb3e too.
+- CLEAR_CUTSCENE is CCutsceneMgr::DeleteCutsceneData (iOS 0x1002e8314). With a cutscene loaded it puts the densities
+  back and, with its data file, restores the camera with a jump cut and the widescreen off. It also clears the pad's
+  safe-for-cutscene bit and ms_cutsceneProcessing, and calls CPlayerInfo::MakePlayerSafe(false, 10000), which gives the
+  player control back. The port did only the densities. SWEET3 sets no player control after SWEET2B, so the chase
+  after the drive-thru began with CJ unable to move.
