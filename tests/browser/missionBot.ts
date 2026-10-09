@@ -428,7 +428,11 @@ export function missionBotTick(dtSeconds:number){
  if(vehicle)mem.carHunt=undefined;
  // So too on foot with the place over 250 units off (CRASH1 and CRASH2 from the donut shop to Idlewood): a player does
  // not walk across town. Not with a group homie following, whom the script's own car above is for.
- const farPlace=places.length&&distance(nearest(places).position)>250&&!members.length;
+ // A place inside an interior is as far as its door outside (INTRO2's barber, blipped at 413,-19,1000 from his door
+ // on Idlewood's street).
+ const placeDistance=(b:any)=>{const door=b.entryExit!=null&&b.position.z>500&&me.z<500?g.entryExitEntrance?.(b.entryExit):null;return distance(door??b.position);};
+ const nearestPlace=places.length?[...places].sort((a:any,b:any)=>placeDistance(a)-placeDistance(b))[0]:undefined;
+ const farPlace=!!nearestPlace&&placeDistance(nearestPlace)>250&&!members.length;
  if(!vehicle&&me.z<500&&(/\bdrive\b|take (her|him|them) home/i.test(objective)||farPlace)&&!mem.carHunt)mem.carHunt={since:performance.now()};
  if(mem.carHunt&&performance.now()-mem.carHunt.since>30000)mem.carHunt=undefined;
  if(!vehicle&&me.z<500&&mem.carHunt){
@@ -445,7 +449,7 @@ export function missionBotTick(dtSeconds:number){
  // Sweet's door): a player drives there, his group getting in with him, rather than walk the homie through the
  // back yards, where a follower seeking him straight is held by the first fence. Half a minute at it at most.
  if(vehicle)mem.rideHunt=undefined;
- if(!vehicle&&me.z<500&&members.length&&places.length&&distance(nearest(places).position)>80&&!mem.rideHunt){
+ if(!vehicle&&me.z<500&&members.length&&nearestPlace&&placeDistance(nearestPlace)>80&&!mem.rideHunt){
   const own=(m.vehicles?.handles??[]).map((h:number)=>m.vehicles.entity?.(h)).filter((c:any)=>c?.car?.body&&!c.wrecked&&!c.disposed&&!c.occupied&&!c.locked)
    .map((c:any)=>{const t=c.car.body.translation();return {x:t.x,y:-t.z,z:t.y};}).filter((p:any)=>distance(p)<25).sort((a:any,b:any)=>distance(a)-distance(b))[0];
   if(own)mem.rideHunt={since:performance.now(),at:own};
