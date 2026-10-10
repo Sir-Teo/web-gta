@@ -18,7 +18,7 @@
 /* GetScreenRect with m_fScreenReductionPercentage 30: the top bar ends 22 lines (of 448) short of 15% of the screen, the bottom one begins 14 lines past it. */
 .widescreen-border{position:absolute;left:0;right:0;background:#000;pointer-events:none}.widescreen-border.top{top:0;height:calc(calc(15 * var(--screen-h) / 100) - 22 / 448 * var(--screen-h))}.widescreen-border.bottom{bottom:0;height:calc(calc(15 * var(--screen-h) / 100) + 14 / 448 * var(--screen-h))}.widescreen-border[hidden]{display:none}
 .script-hud-off .status,.script-hud-off .bars,.script-hud-off .wanted-status{visibility:hidden}
-.widescreen .status,.widescreen .bars,.widescreen .wanted-status,.widescreen .vehicle-name,.widescreen .location,.widescreen .native-navigation,.widescreen .weapon-crosshair,.widescreen .radar-altimeter,.widescreen .radar-altimeter-mark{visibility:hidden}
+.widescreen .status,.widescreen .bars,.widescreen .wanted-status,.widescreen .vehicle-name,.widescreen .location,.widescreen .native-navigation,.widescreen .weapon-crosshair,.widescreen .radar-altimeter,.widescreen .radar-altimeter-mark,.widescreen .onboarding{visibility:hidden}
 /* CHud::DrawTripSkip over the 640 x 448 frame: the icon from (54, 448-189) to (118, 448-125), the label centred on
    x = 86 at y = 448-127, FONT_MENU at 0.3 by 0.7, light grey with a one-pixel black edge. */
 .trip-skip{position:absolute;left:8.4375%;top:57.8125%;width:10%;height:14.2857%;pointer-events:none}
