@@ -22,11 +22,15 @@ const SOURCES={
 /** The widgets' textures the touch buttons draw, by the port's own names: the pedals, handbrake, horn and steering
  * arrows, the lock-on, the enter widget's vehicles (and the jetpack it drops), sprint and swim, dive, crouch, nitro,
  * rockets, the camera, the phone, the Positive and Negative talk, the store's accept and cancel, the mission start, the
- * scope's zoom, the rhythm games' four arrows, the drive-by sides, the radio, the fist and the weapon swap. */
+ * scope's zoom, the rhythm games' four arrows, the drive-by sides, the radio, the fist and the weapon swap, and the
+ * attack widget's weapon pictures. */
 const ART=['accelerate','brake','handbrake','horn','hud_left','hud_right','hud_lockon',
  'hud_car','hud_bike','hud_bicycle','hud_boat','hud_chopper','hud_plane','hud_monstertruck','hud_train','hud_trailer','hydraulicCar','hud_drop_jetpack',
  'sprint','hud_swim','hud_dive','hud_crouch','hud_nitro','hud_rockets','cam-toggle','hud_Cellphone','Yes','No','hud_check','hud_x','mission_start',
- 'hud_plus','hud_minus','YellowArrow','BlueArrow','RedArrow','GreenArrow','leftshoot','shoot','radiostation','punch','hud_swapgun'];
+ 'hud_plus','hud_minus','YellowArrow','BlueArrow','RedArrow','GreenArrow','leftshoot','shoot','radiostation','punch','hud_swapgun',
+ // The attack widget's picture for the weapon in hand (its update, arm64 0x1004b0e68, and table 0x1005c2f00).
+ 'brassknuckle','hud_golfclub','hud_nightstick','hud_knife','hud_bat','shovel','hud_poolcue','hud_katana','hud_chainsaw','hud_dildo1',
+ 'hud_dildo2','hud_flowers','hud_cane','hud_throw','hud_teargas','flamethrower','hud_detonator','hud_spraycan','hud_extinguisher','goggles'];
 const COLUMNS=8,CELL=256,OUTPUT='public/play/touch/widgets.png',MODULE='src/input/touchWidgetArt.ts';
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 async function source({name,bytes,sha256}){

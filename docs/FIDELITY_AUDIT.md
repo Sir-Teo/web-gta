@@ -11752,3 +11752,10 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   heard (35), a shot whizzing by (36: CEventGunShotWhizzedBy::AffectsPed, within 2 of the shot's line ahead of the
   shooter; the player's shots, his car's and the peds' now give gunShot the line's end) and the player's footsteps where
   heard at 30 or more (CEventSoundQuiet::AffectsPed, 8). tests/browser/ped-highest-event.spec.ts.
+- The touch Fire button is the iOS attack widget (widget_attack, CTouchInterface widget 1), drawn with its own art
+  for the weapon in hand, not a copy of the HUD's top-right weapon icon. Its update (iOS 0x1004b0e68) takes the
+  texture the table at 0x1005c2f00 names for a weapon type up to 46 whose bit is set in 0x77a00007ffff: "punch" for the
+  fist and the parachute, each melee weapon's own (brassknuckle, hud_knife, hud_katana...), hud_throw for the grenade,
+  molotov and satchel, hud_teargas, flamethrower, hud_detonator, hud_spraycan, hud_extinguisher, and goggles for both
+  goggles; any other weapon (the guns, the rocket launchers, the minigun, the camera) draws "shoot". The twenty
+  weapon textures join the touch atlas (scripts/content/touch-widgets.mjs, src/input/nativeAttackWidgetArt.ts).

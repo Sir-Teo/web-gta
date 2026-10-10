@@ -200,7 +200,7 @@ interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;
 const BUTTONS:ButtonSpec[]=[
  // Fire held on foot or through a scope also aims: a finger that slides from it turns the camera as the look drag does
  // (the port's SHOOT_LOOK region round its attack button), so one thumb shoots and aims.
- {label:'Fire',code:'ControlLeft',className:'fire',modes:['foot','scope','vehicle','aircraft'],givesWayTo:'hop',looksIn:['foot','scope']},
+ {label:'Fire',code:'ControlLeft',className:'fire',modes:['foot','scope','vehicle','aircraft'],givesWayTo:'hop',looksIn:['foot','scope'],art:'punch'},
  // On a bicycle the car's weapon button is the bunny hop (CBmx::ProcessBunnyHop reads it): the port's BUNNY_HOP widget,
  // at the fire button's place.
  {label:'Bunny hop',code:'ControlLeft',className:'hop',modes:['vehicle'],contextual:true,icon:'jump',driver:true,slot:'fire'},
@@ -438,14 +438,6 @@ export class TouchControls {
    const lift=(e:PointerEvent)=>{if(this.held.get(e.pointerId)!=='KeyY')return;this.held.delete(e.pointerId);if(![...this.held.values()].includes('KeyY'))input.releaseAfterFrame('KeyY');};
    tripSkip.addEventListener('pointerup',lift,options);tripSkip.addEventListener('pointercancel',lift,options);
    tripSkip.addEventListener('touchstart',e=>{if(e.cancelable)e.preventDefault();},{...options,passive:false});}
-  // The Fire button shows the weapon in hand, as the port's attack button does: the HUD icon's picture, or its fist.
-  if(slot){const img=slot.querySelector<HTMLImageElement>('img.native-weapon-icon'),fist=slot.querySelector('svg.weapon');
-   const fires=this.buttons.filter(b=>b.spec.code==='ControlLeft'&&!b.spec.icon).map(b=>b.element);
-   const mirror=()=>{const src=img&&!img.hidden&&img.getAttribute('src')?img.src:'';
-    for(const button of fires){if(button.dataset.weapon===src&&button.firstChild)continue;button.dataset.weapon=src;
-     const picture=src?Object.assign(document.createElement('img'),{src,alt:''}):fist?.cloneNode(true) as Element|undefined;
-     if(picture){picture.setAttribute('aria-hidden','true');button.replaceChildren(picture);}}};
-   this.weaponWatch=new MutationObserver(mirror);this.weaponWatch.observe(slot,{subtree:true,attributes:true,attributeFilter:['src','hidden']});mirror();}
   // The stick floats: it is centred where the thumb lands in the left zone and follows it out to its radius.
   stickZone.addEventListener('pointerdown',e=>{if(this.stickPointer!==undefined)return;e.preventDefault();capture(stickZone,e.pointerId);
    this.stickPointer=e.pointerId;this.stickOrigin={x:e.clientX,y:e.clientY};const r=stickZone.getBoundingClientRect();
@@ -570,6 +562,10 @@ export class TouchControls {
  setEnterArt(art:TouchWidgetArt){
   const span=this.buttons.find(b=>b.spec.className==='enter')?.element.querySelector<HTMLElement>('.widget-art');
   if(span)setTouchWidgetArt(span,art);
+ }
+ /** The attack widget's art for the weapon in hand (attackWidgetArt), on the Fire button. */
+ setAttackArt(art:TouchWidgetArt){
+  for(const b of this.buttons)if(b.spec.className==='fire'){const span=b.element.querySelector<HTMLElement>('.widget-art');if(span)setTouchWidgetArt(span,art);}
  }
  /** The contextual buttons (by class) the game offers now: Enter beside a vehicle, in one, or when a prompt asks. */
  setOffered(classNames:Iterable<string>){
@@ -711,14 +707,13 @@ export class TouchControls {
   const scale=editing.layout[`${layoutGroup(this.mode??'foot')}:${spec.className}`]?.[2]??1;
   row.querySelector('span')!.textContent=spec.label;this.sizeReadout.textContent=`${Math.round(scale*100)}%`;
  }
- private weaponWatch?:MutationObserver;
  private steeringPopup=document.createElement('section');
  private cameraButton=document.createElement('button');
  /** The card asking for the phone sideways: on the HUD itself, so it stands over the pause menu the turn brings up. */
  private rotateCard?:HTMLElement;
  /** Whether the player chose to play on upright (the card's Play anyway). */
  get uprightAllowed(){return !!this.rotateCard?.classList.contains('dismissed');}
- dispose(){this.abort.abort();this.weaponWatch?.disconnect();this.element.remove();this.rotateCard?.remove();}
+ dispose(){this.abort.abort();this.element.remove();this.rotateCard?.remove();}
 }
 
 /** The pause menu's touch settings, the iOS and Android port's own: steering by the stick, the arrows or tilting the

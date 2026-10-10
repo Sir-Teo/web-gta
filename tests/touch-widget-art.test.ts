@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {GL,elementSize,levelBytes,levelCount,runLengthDecode,toRgba} from '../scripts/content/mobileTextureDatabase.mjs';
 import {TOUCH_WIDGET_ATLAS,TOUCH_WIDGET_CELLS} from '../src/input/touchWidgetArt';
 import {enterWidgetArt} from '../src/input/TouchControls';
+import {attackWidgetArt} from '../src/input/nativeAttackWidgetArt';
 
 describe('the iOS port’s texture database',()=>{
  test('a run is [marker][count][element], anything else an element as it is',()=>{
@@ -52,5 +53,26 @@ describe('the enter widget’s vehicle',()=>{
   expect(enterWidgetArt({type:'car',modelId:539},true,false)).toBe('hud_boat');
   expect(enterWidgetArt({...car,hydraulics:true},true,false)).toBe('hydraulicCar');expect(enterWidgetArt({...car,hydraulics:true},false,false)).toBe('hud_car');
   expect(enterWidgetArt(undefined,false,true)).toBe('hud_drop_jetpack');expect(enterWidgetArt(undefined,false,false)).toBe('hud_car');
+ });
+});
+
+describe('the attack widget’s weapon',()=>{
+ test('the fist and the parachute punch, each melee weapon draws its own, thrown ones throw',()=>{
+  expect(attackWidgetArt(0)).toBe('punch');expect(attackWidgetArt(46)).toBe('punch');
+  expect(attackWidgetArt(1)).toBe('brassknuckle');expect(attackWidgetArt(4)).toBe('hud_knife');expect(attackWidgetArt(8)).toBe('hud_katana');
+  expect(attackWidgetArt(11)).toBe('hud_dildo1');expect(attackWidgetArt(13)).toBe('hud_dildo2');expect(attackWidgetArt(15)).toBe('hud_cane');
+  expect(attackWidgetArt(16)).toBe('hud_throw');expect(attackWidgetArt(17)).toBe('hud_teargas');expect(attackWidgetArt(18)).toBe('hud_throw');
+  expect(attackWidgetArt(39)).toBe('hud_throw');
+ });
+ test('the tools have theirs, the goggles theirs',()=>{
+  expect(attackWidgetArt(37)).toBe('flamethrower');expect(attackWidgetArt(40)).toBe('hud_detonator');expect(attackWidgetArt(41)).toBe('hud_spraycan');
+  expect(attackWidgetArt(42)).toBe('hud_extinguisher');expect(attackWidgetArt(44)).toBe('goggles');expect(attackWidgetArt(45)).toBe('goggles');
+ });
+ test('guns, the rocket launchers, the minigun, the camera and no player shoot',()=>{
+  for(const gun of [22,24,25,28,30,31,34,35,36,38,43])expect(attackWidgetArt(gun)).toBe('shoot');
+  expect(attackWidgetArt(undefined)).toBe('shoot');expect(attackWidgetArt(47)).toBe('shoot');
+ });
+ test('every picture it names is in the atlas',()=>{
+  for(let type=0;type<=46;type++)expect(TOUCH_WIDGET_CELLS[attackWidgetArt(type)]).toBeTypeOf('number');
  });
 });

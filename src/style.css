@@ -167,7 +167,7 @@ html.touch{touch-action:pan-x pan-y}.touch .game-ui{-webkit-user-select:none;-we
 .touch-buttons .touch-button{position:absolute;--d:max(40px,calc(var(--r,24) * 2 / 640 * var(--touch-size-w) * var(--touch-scale,1)));width:var(--d);height:var(--d);
  left:calc(env(safe-area-inset-left,0px) + var(--x,0) / 640 * var(--touch-safe-w) - var(--d) / 2);top:calc(env(safe-area-inset-top,0px) + var(--y,0) / 448 * var(--touch-safe-h) - var(--d) / 2)}
 .touch-button{pointer-events:auto;touch-action:none;width:var(--touch-b);height:var(--touch-b);border-radius:50%;border:2px solid #ffffff6e;background:#00000052;color:#fffffff0;font:600 clamp(10px,3vmin,12px)/1 system-ui,sans-serif;text-shadow:0 1px 2px #000;padding:0;display:grid;place-items:center;-webkit-tap-highlight-color:transparent}
-.touch-button>svg{width:56%;height:56%;fill:currentColor;filter:drop-shadow(0 1px 1px #000a)}.touch-button>img{width:74%;height:74%;object-fit:contain;filter:drop-shadow(0 1px 2px #000)}.touch-button.fire>svg.weapon{width:60%;height:60%;margin:0}
+.touch-button>svg{width:56%;height:56%;fill:currentColor;filter:drop-shadow(0 1px 1px #000a)}
 .touch-button[hidden]{display:none}
 .touch-button.on{background:#ffffffc7;color:#111;text-shadow:none}.touch-button.on>svg{filter:none}
 /* The iOS port's widget art (touchWidgetArt.ts): the texture is the whole button, its own black ring round a white

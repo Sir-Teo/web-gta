@@ -302,6 +302,7 @@ import { GamepadInput } from './input/GamepadInput';
 import { registerShell } from './core/serviceWorker';
 import { storagePanel } from './ui/storagePanel';
 import { TouchControls, enterWidgetArt, goFullscreen, offerInstall, showHelpIcons, suggestHomeScreen, touchSettingsPanel, wantsTouchControls } from './input/TouchControls';
+import { attackWidgetArt } from './input/nativeAttackWidgetArt';
 import { DENSITY_SCALE, SIDE_MISSION_VEHICLES, readTouchSettings, resolutionRatio, saveTouchSettings } from './input/touchSettings';
 import { ScreenAwake, SCREEN_IDLE_MS, screenIdle } from './input/screenAwake';
 import { keepStorage, openedInstalled } from './core/persistentStorage';
@@ -4233,6 +4234,8 @@ async function boot() {
        if(!v||v.consideredByPlayer===false)continue;const d=v.distance();if(d<best){best=d;target=v;}}
       touch.setEnterArt(enterWidgetArt(target&&{type:fleet?.vehicleIdeType(target.modelId),modelId:target.modelId,hydraulics:!!target.hydraulics},!seated,!!sim.jetPack));
      }
+     // The Fire button is the attack widget, whose art goes by the weapon in hand (attackWidgetArt), not the HUD's icon.
+     touch.setAttackArt(attackWidgetArt(weapons.inventory.selected));
      // Radio, while the vehicle has a radio to tune (a bicycle has none, CAERadioTrackManager's RADIO_DISABLED).
      touch.setOffered([...touchEnterNear?['enter']:[],...worldCar?.occupied&&worldCar.car.nitro.installed?['nitro']:[],...worldCar?.occupied&&worldCar.hydraulics?['hydraulics']:[],...fleet?.occupiedBike&&BMX_MODELS.has(fleet.occupiedBike.modelId)?['hop']:[],...radioModel!==undefined?['radio']:[],...skippable?['skip']:[]]);
     }
