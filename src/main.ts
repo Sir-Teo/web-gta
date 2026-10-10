@@ -5508,8 +5508,14 @@ async function boot() {
                // on csplay's 61-bone skeleton with his cs_head and cs_hands (CClothes::RebuildCutscenePlayer), so the clips'
                // face and thumbs move him; without those files, the gameplay body, the face's tracks left alone.
                const worldBase=new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href;
-               cutscenes??=new CutscenePlayer(render.scene,worldBase,new URL(`${import.meta.env.BASE_URL}play/`,location.href).href,async()=>{
-                const body=playerBody;if(!body)return undefined;
+               // Built once per body (his fat and muscle), not for every cutscene.
+               let cutsceneBody:{key:string;built:Promise<{model:import('./assets/dff').DffModel;textures:import('./assets/modelTextures').ModelTexture[]}|undefined>}|undefined;
+               cutscenes??=new CutscenePlayer(render.scene,worldBase,new URL(`${import.meta.env.BASE_URL}play/`,location.href).href,()=>{
+                const body=playerBody;if(!body)return Promise.resolve(undefined);
+                const key=`${body.ratios.normal},${body.ratios.fat},${body.ratios.ripped}`;
+                if(cutsceneBody?.key!==key){const built=buildCutsceneBody(body);cutsceneBody={key,built};built.catch(()=>{if(cutsceneBody?.built===built)cutsceneBody=undefined;});}
+                return cutsceneBody.built;});
+               async function buildCutsceneBody(body:NonNullable<typeof playerBody>){
                 const {readPlayerFiles}=await import('./assets/readPlayerFiles');
                 try{
                  const [{openStaticWorld},{readImgEntry}]=await Promise.all([import('./assets/staticWorldArchive'),import('./assets/img')]);
@@ -5520,10 +5526,22 @@ async function boot() {
                   const built=await readPlayerFiles([...body.files,...files],body.ratios,'classic',true);return {model:built.model,textures:built.textures};}
                 }catch(error){console.warn(`The cutscene player's body: ${String(error)}`);}
                 const built=await readPlayerFiles(body.files,body.ratios,'classic');
-                return {model:built.model,textures:built.textures};});
+                return {model:built.model,textures:built.textures};}
                // LoadCutSceneFile: the offset's scene (CStreaming::LoadScene) and the extra colour (StartExtraColour, or
                // StopExtraColour for a cutscene that names none).
                cutscenes.onDefinition=d=>{if(d.extraColour!==undefined)localLighting.startExtraColour(d.extraColour,false);else localLighting.stopExtraColour(false);requestCutsceneScene(d.offset);};
+               // The .cut's effects through the world's particle manager (FxManager_c::CreateFxSystem with the bone's
+               // matrix as parent, ignoring the bounding checks as LoadCutsceneData_loading asks).
+               type Fx=import('./simulation/fx/NativeFx').NativeFxSystem;
+               cutscenes.effects={create:(name,local,parent)=>worldFx.manager?.create(name,local,parent,true),setParent:(fx,m)=>(fx as Fx).setMatrix(m),
+                play:fx=>(fx as Fx).play(),stop:fx=>(fx as Fx).stop(),kill:fx=>(fx as Fx).kill()};
+               // HideRequestedObjects: the map's objects of the model within 1.5 across of the point are not drawn (their
+               // collision stays, as SetIsVisible leaves it) until the cutscene is cleared.
+               cutscenes.hideObjects=removals=>{
+                const scene=importedScene,hidden:string[]=[];
+                for(const r of removals)for(const p of scene?.modelPlacementsNear(new Set([r.model.toLowerCase()]),r.x,r.y,1.5)??[])if(scene!.setModelPlacementHidden(p.key,true))hidden.push(p.key);
+                return ()=>{if(importedScene===scene)for(const key of hidden)scene!.setModelPlacementHidden(key,false);};};
+               cutscenes.textureDictionary=model=>scriptObjectViews?.textureDictionary(model);
                const byId=new Map<number,import('./assets/ide').IdeAssociation>(),byName=new Map<string,import('./assets/ide').IdeAssociation>();
                const doors=new Set<string>();
                for(const record of data.ideRecords as import('./assets/ide').IdeAssociation[]){

@@ -30,13 +30,13 @@ export function readIfp(bytes: Uint8Array): AnimationPackage {
     const trackCount = r.u32(), frameBytes = format === 'ANP3' ? r.u32() : undefined, flags = format === 'ANP3' ? r.u32() : 0;
     totalTracks += trackCount;
     requireAsset(trackCount <= 512 && totalTracks <= 65536, 'IFP track budget exceeded.');
-    const tracks: AnimationTrack[] = [], bindings = new Set<string>(); let consumed = 0, duration = 0;
+    const tracks: AnimationTrack[] = [], bindings = new Map<string, number>(); let consumed = 0, duration = 0;
     for (let t = 0; t < trackCount; t++) {
       const name = r.name(24), frameType = r.u32(), frames = r.u32(), boneId = r.i32();
       requireAsset(frameType >= 1 && frameType <= 4, 'Unsupported IFP keyframe type.');
       requireAsset(boneId >= -1, 'Invalid IFP bone ID.');
       const binding = boneId === -1 ? `name:${name.trim().toLowerCase()}` : `id:${boneId}`;
-      requireAsset((boneId !== -1 || name.trim().length) && !bindings.has(binding), 'Empty or duplicate IFP bone binding.'); bindings.add(binding);
+      requireAsset(boneId !== -1 || name.trim().length, 'Empty IFP bone binding.');
       totalFrames += frames;
       requireAsset(totalFrames <= 1_000_000, 'IFP exceeds one million keyframes.');
       const compressed = frameType >= 3, translated = frameType === 2 || frameType === 4;
@@ -58,8 +58,9 @@ export function readIfp(bytes: Uint8Array): AnimationPackage {
         const time = Math.fround(compressed ? short() / 60 : float());
         // A key timed before the one ahead of it is held at that one's time: the loader's deltas make it a negative
         // step the sequence passes in an instant (PROLOG3's cshandcuff steps back 18 ms four times, PROLOG1's csplay a
-        // float's noise), and sampling needs the times in order.
-        requireAsset(time >= 0 && time <= 86400, 'Invalid IFP timestamp.'); times[f] = f ? Math.max(time, times[f - 1]) : time;
+        // float's noise), and sampling needs the times in order. A first key before nothing is kept (a cutscene cut
+        // from a longer take: CAS6B_2's start 40 s before it).
+        requireAsset(Math.abs(time) <= 86400, 'Invalid IFP timestamp.'); times[f] = f ? Math.max(time, times[f - 1]) : time;
         if (translations) for (let axis = 0; axis < 3; axis++) {
           const value = compressed ? short() / 1024 : float();
           // Finite is all the loader asks: PROLOG1's clips carry a corrupt band of keys at 22.333 s (1e29 and the like).
@@ -68,7 +69,7 @@ export function readIfp(bytes: Uint8Array): AnimationPackage {
       }
       r.position = at;
       if (frames) duration = Math.max(duration, times[frames - 1]);
-      tracks.push({ name, boneId, frameType, times, rotations, translations });
+      bind(tracks, bindings, binding, { name, boneId, frameType, times, rotations, translations });
     }
     requireAsset(frameBytes === undefined || frameBytes === consumed, 'IFP animation keyframe byte count mismatch.');
     animations.push({ name, flags, duration, tracks });
@@ -110,7 +111,7 @@ function readAnpk(bytes: Uint8Array): AnimationPackage {
     chunk('DGAN');
     const seqInfo = chunk('INFO'), seqStart = r.position, sequences = r.u32();r.position = seqStart + round(seqInfo.size);
     requireAsset(sequences <= 512, 'IFP track budget exceeded.');
-    const tracks: AnimationTrack[] = [];let duration = 0;
+    const tracks: AnimationTrack[] = [], bindings = new Map<string, number>();let duration = 0;
     for (let t = 0; t < sequences; t++) {
       chunk('CPAN');
       const anim = chunk('ANIM'), animStart = r.position, trackName = r.name(28), frames = r.u32();r.u32();r.u32();
@@ -127,13 +128,22 @@ function readAnpk(bytes: Uint8Array): AnimationPackage {
         rotations.set([-x, -y, -z, w], f * 4);
         if (translations) { translations[f * 3] = r.f32(); translations[f * 3 + 1] = r.f32(); translations[f * 3 + 2] = r.f32(); }
         if (scaled) r.position += 12;
-        const time = Math.fround(r.f32());requireAsset(time >= 0 && time <= 86400, 'Invalid IFP timestamp.');times[f] = f ? Math.max(time, times[f - 1]) : time;
+        const time = Math.fround(r.f32());requireAsset(Math.abs(time) <= 86400, 'Invalid IFP timestamp.');times[f] = f ? Math.max(time, times[f - 1]) : time;
       }
       r.position = keysStart + round(keys.size);
       duration = Math.max(duration, times[frames - 1]);
-      tracks.push({ name: trackName, boneId, frameType: translated ? 2 : 1, times, rotations, translations });
+      const binding = boneId === -1 ? `name:${trackName.trim().toLowerCase()}` : `id:${boneId}`;
+      bind(tracks, bindings, binding, { name: trackName, boneId, frameType: translated ? 2 : 1, times, rotations, translations });
     }
     animations.push({ name: clipName, flags: 0, duration, tracks });
   }
   return { format: 'ANPK', name, animations };
+}
+
+/** A track for a frame an earlier track of the clip already drives takes its place: CAnimBlendAssociation::Init keeps
+ * one node a frame and the later sequence overwrites it (CRASV2A's spade names its wrist effects twice, cut short at 24
+ * characters; RIOT_4D's SMG its control). The clip's length still counts both, as CalcTotalTime does. */
+function bind(tracks: AnimationTrack[], bindings: Map<string, number>, binding: string, track: AnimationTrack) {
+  const earlier = bindings.get(binding);
+  if (earlier === undefined) { bindings.set(binding, tracks.length); tracks.push(track); } else tracks[earlier] = track;
 }

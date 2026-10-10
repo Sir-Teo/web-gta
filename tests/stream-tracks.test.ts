@@ -17,8 +17,11 @@ describe('the stream tracks from the iOS port’s AMBIENCE, BEATS and AA packs',
   const manifest=JSON.parse(readFileSync('public/play/audio/streams/streams.json','utf8'));
   const ids=manifest.tracks.map((t:{id:number})=>t.id);
   // AMBIENCE's 135 to 174, then BEATS' 175 to 184 but 177, a stub in the bundle, then AA's 0 to 65 (the emergency
-  // channel), then the published cutscenes' tracks of the CUTSCENE pack (INTRO1A, INTRO1B, INTRO2A, PROLOG1, PROLOG3).
-  expect(ids).toEqual([...Array.from({length:40},(_,i)=>135+i),175,176,178,179,180,181,182,183,184,...Array.from({length:66},(_,i)=>i),703,704,705,706,708]);
+  // channel), then the published cutscenes' tracks of the CUTSCENE pack in order, each once (the dates share two).
+  const cutscenes=JSON.parse(readFileSync('public/play/cuts/manifest.json','utf8')) as {cutscenes:Record<string,{track:number}>};
+  const voices=[...new Set(Object.values(cutscenes.cutscenes).map(c=>c.track))].sort((a,b)=>a-b);
+  expect(voices).toHaveLength(137);expect(voices[0]).toBe(626);expect(voices.at(-1)).toBe(766);
+  expect(ids).toEqual([...Array.from({length:40},(_,i)=>135+i),175,176,178,179,180,181,182,183,184,...Array.from({length:66},(_,i)=>i),...voices]);
   for(const id of new Set(BEAT_TRACK_LOOKUP))if(id!==177)expect(ids).toContain(id);
   for(const track of manifest.tracks){
    const bytes=new Uint8Array(readFileSync(`public/play/audio/streams/${track.path}`));

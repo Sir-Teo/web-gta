@@ -9,12 +9,13 @@ import {readIfp} from '../src/assets/ifp';
 import {writeAnp3,compressedOnLoad} from '../src/assets/ifpWrite';
 import {readCutsceneFile,readCutsceneCameraPaths} from '../src/assets/cutscene';
 import {findCutsceneAudioTrackId} from '../src/engine/ScmCutsceneTrack';
+import {encodeCutsceneBundle,decodeCutsceneBundle} from '../src/assets/cutsceneBundle';
 const hash=(b:Uint8Array)=>createHash('sha256').update(b).digest('hex');
 const text=(b:Uint8Array)=>Buffer.from(b).toString('latin1').replace(/\0+$/,'');
-/** Publishes the cutscenes cutscene-sources.json lists from ANIM\CUTS.IMG under public/play/cuts/: each one's .cut and
- * .dat as they are, and its clips as the game holds them once loaded (ANP3, compressed but for the "uncompress"
- * section's, gzipped), with a manifest of their hashes and each one's stream track (FindCutsceneAudioTrackId), which
- * scripts/content/package-stream-tracks.mjs packages next.
+/** Publishes the cutscenes cutscene-sources.json lists from ANIM\CUTS.IMG under public/play/cuts/, one gzipped bundle
+ * each (assets/cutsceneBundle.ts): its .cut and .dat as they are and its clips as the game holds them once loaded (ANP3,
+ * compressed but for the "uncompress" section's), with a manifest of their hashes and each one's stream track
+ * (FindCutsceneAudioTrackId), which scripts/content/package-stream-tracks.mjs packages next.
  *
  *   node scripts/content/acquire-cutscenes.mjs /absolute/content-directory
  *   GTA_PUBLISH_CUTSCENES=1 GTA_CONTENT_DIR=/absolute/content-directory npx vitest run tests/build-cutscenes.test.ts */
@@ -35,12 +36,16 @@ test.skipIf(process.env.GTA_PUBLISH_CUTSCENES!=='1')('publish the listed cutscen
   const ifp=readIfp(await entry(`${name}.ifp`));expect(ifp.format).toBe('ANPK');
   // Every clip the .cut asks for is in the package.
   for(const member of definition.cast)expect(ifp.animations.some(a=>a.name.toLowerCase()===member.anim),`${name}: ${member.anim}`).toBe(true);
-  const anp3=writeAnp3(ifp,animation=>compressedOnLoad(animation,definition.uncompressed)),packed=gzipSync(anp3,{level:9});
-  // The published clips read back as the package's, to the compression's precision.
-  const back=readIfp(gunzipSync(packed));expect(back.animations.map(a=>[a.name,a.tracks.length])).toEqual(ifp.animations.map(a=>[a.name,a.tracks.length]));
-  cutscenes[name]={cut:await file(`${name}.cut`,Buffer.from(cut,'latin1')),dat:await file(`${name}.dat`,Buffer.from(dat,'latin1')),ifp:await file(`${name}.ifp.gz`,packed,anp3.length),...findCutsceneAudioTrackId(name)>=0?{track:findCutsceneAudioTrackId(name)}:{}};
+  const anp3=writeAnp3(ifp,animation=>compressedOnLoad(animation,definition.uncompressed));
+  const bundle=encodeCutsceneBundle(Buffer.from(cut,'latin1'),Buffer.from(dat,'latin1'),anp3),packed=gzipSync(bundle,{level:9});
+  // The bundle gives back the files and clips it was made of, and the clips read as the package's, to the
+  // compression's precision.
+  const back=decodeCutsceneBundle(gunzipSync(packed));
+  expect(Buffer.from(back.anp3).equals(Buffer.from(anp3))).toBe(true);expect(Buffer.from(back.cut).toString('latin1')).toBe(cut);expect(Buffer.from(back.dat).toString('latin1')).toBe(dat);
+  expect(readIfp(back.anp3).animations.map(a=>[a.name,a.tracks.length])).toEqual(ifp.animations.map(a=>[a.name,a.tracks.length]));
+  cutscenes[name]={bundle:await file(`${name}.csb`,packed,bundle.length),...findCutsceneAudioTrackId(name)>=0?{track:findCutsceneAudioTrackId(name)}:{}};
   total+=packed.length;
  }
  await writeFile(join(output,'manifest.json'),JSON.stringify({version:1,source:{url:lock.cutsImg.url,bytes:lock.cutsImg.bytes,sha256:lock.cutsImg.sha256},cutscenes})+'\n');
- console.log(`${lock.published.length} cutscenes, clips ${(total/1048576).toFixed(1)} MB gzipped.`);
+ console.log(`${lock.published.length} cutscenes, ${(total/1048576).toFixed(1)} MB of bundles.`);
 },600000);

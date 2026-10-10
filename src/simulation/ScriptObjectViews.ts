@@ -147,6 +147,8 @@ export class ScriptObjectViews{
  }
  /** The group an object is drawn in, for a caller checking where it ended up. */
  groupFor(handle:number){return this.views.get(handle)?.group;}
+ /** The txd an IDE gives a model of that name (a cutscene's cast member from gta3.img). */
+ textureDictionary(model:string){return this.byName.get(model.toLowerCase())?.dictionary;}
  /** The dff and txd names a script's model stands for, by id or by the name the script used. */
  private association(model:number|string){
   return typeof model==='number'?this.byId.get(model):this.byName.get(model.toLowerCase());

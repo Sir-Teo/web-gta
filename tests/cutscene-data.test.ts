@@ -7,21 +7,29 @@ import {readIfp} from '../src/assets/ifp';
 import {writeAnp3,compressedOnLoad} from '../src/assets/ifpWrite';
 import {FlyByCamera} from '../src/engine/nativeFlyByCamera';
 import {findCutsceneAudioTrackId} from '../src/engine/ScmCutsceneTrack';
+import {encodeCutsceneBundle,decodeCutsceneBundle} from '../src/assets/cutsceneBundle';
 const published=(name:string)=>readFileSync(`public/play/cuts/${name}`);
-const manifest=JSON.parse(published('manifest.json').toString()) as {cutscenes:Record<string,{cut:{file:string;sha256:string};dat:{file:string;sha256:string};ifp:{file:string;sha256:string};track?:number}>};
+const manifest=JSON.parse(published('manifest.json').toString()) as {cutscenes:Record<string,{bundle:{file:string;sha256:string;expandedBytes:number};track?:number}>};
+/** A published cutscene's files, out of its bundle. */
+const files=(name:string)=>{const b=decodeCutsceneBundle(gunzipSync(published(`${name}.csb`)));return {cut:Buffer.from(b.cut).toString('latin1'),dat:Buffer.from(b.dat).toString('latin1'),anp3:b.anp3};};
 
 describe('the published cutscenes',()=>{
- test('are the files the manifest names, the opening five with their stream tracks',()=>{
-  expect(Object.keys(manifest.cutscenes)).toEqual(['prolog1','prolog3','intro1a','intro1b','intro2a']);
+ test('are every scene in cuts.img but CUTTEST, each the file the manifest names with its stream track',()=>{
+  const lock=JSON.parse(readFileSync('scripts/content/cutscene-sources.json','utf8')) as {published:string[]};
+  expect(Object.keys(manifest.cutscenes)).toEqual(lock.published);
+  expect(lock.published).toHaveLength(147);expect(lock.published).not.toContain('cuttest');
+  // The dates share two tracks, each girlfriend's scene the same lines: 137 tracks for 147 scenes.
+  expect(new Set(Object.values(manifest.cutscenes).map(c=>c.track)).size).toBe(137);
   for(const [name,c] of Object.entries(manifest.cutscenes)){
-   for(const f of [c.cut,c.dat,c.ifp])expect(createHash('sha256').update(published(f.file)).digest('hex'),f.file).toBe(f.sha256);
+   expect(createHash('sha256').update(published(c.bundle.file)).digest('hex'),c.bundle.file).toBe(c.bundle.sha256);
+   expect(gunzipSync(published(c.bundle.file)).length).toBe(c.bundle.expandedBytes);
    expect(c.track).toBe(findCutsceneAudioTrackId(name));
   }
   const streams=JSON.parse(readFileSync('public/play/audio/streams/streams.json','utf8')) as {tracks:{id:number}[]};
   for(const c of Object.values(manifest.cutscenes))expect(streams.tracks.some(t=>t.id===c.track)).toBe(true);
  });
  test('INTRO1A plays in CJ\'s house with Big Smoke, under extra colour 12, with fifteen lines',()=>{
-  const d=readCutsceneFile(published('intro1a.cut').toString('latin1'));
+  const d=readCutsceneFile(files('intro1a').cut);
   expect(d.offset).toEqual({x:2496.72998046875,y:-1691.6700439453125,z:1013.760009765625});
   expect(d.cast.map(c=>c.model)).toEqual(['csbat','csframe','csmomchair','csplay','cssmoke']);
   expect(d.cast.every(c=>!c.repeat&&c.anim===c.model)).toBe(true);
@@ -29,14 +37,14 @@ describe('the published cutscenes',()=>{
   expect(d.extraColour).toBe(11);expect(d.uncompressed).toEqual([]);
  });
  test('PROLOG1 keeps its travelling cast uncompressed, and each model line is its own object, under extra colour 3',()=>{
-  const d=readCutsceneFile(published('prolog1.cut').toString('latin1'));
+  const d=readCutsceneFile(files('prolog1').cut);
   expect(d.cast.map(c=>[c.model,c.anim])).toEqual([['cssuitcase','cssuitcase-1'],['cssuitcase','cssuitcase-2'],['csplay','csplay'],['csstew','csstew'],['cstaxi92','cstaxi92'],['csbogman','csbogman']]);
   expect(d.uncompressed).toEqual(['cssuitcase-1','cssuitcase-2','csplay','cstaxi92','csbogman']);
   expect(d.extraColour).toBe(2);
  });
  test('every clip the cast plays is in its package, compressed unless listed',()=>{
   for(const name of Object.keys(manifest.cutscenes)){
-   const d=readCutsceneFile(published(`${name}.cut`).toString('latin1')),pkg=readIfp(gunzipSync(published(`${name}.ifp.gz`)));
+   const f=files(name),d=readCutsceneFile(f.cut),pkg=readIfp(f.anp3);
    expect(pkg.format).toBe('ANP3');
    for(const member of d.cast){
     const clip=pkg.animations.find(a=>a.name.toLowerCase()===member.anim)!;expect(clip,`${name} ${member.anim}`).toBeDefined();
@@ -45,7 +53,7 @@ describe('the published cutscenes',()=>{
   }
  });
  test('a camera file is four paths: field of view and roll at four floats a key, source and target at ten',()=>{
-  const p=readCutsceneCameraPaths(published('intro1a.dat').toString('latin1'));
+  const p=readCutsceneCameraPaths(files('intro1a').dat);
   expect([p.fov[0],p.roll[0],p.position[0],p.target[0]]).toEqual([49,20,54,54]);
   expect([p.fov.length,p.roll.length,p.position.length,p.target.length]).toEqual([197,81,541,541]);
   expect([...p.fov.subarray(1,5)]).toEqual([0,85,85,85]);
@@ -101,7 +109,7 @@ describe('the fly-by camera',()=>{
   expect(cam.up.x).toBeCloseTo(-1,5);expect(cam.up.y).toBeCloseTo(0,5);expect(cam.up.z).toBeCloseTo(0,5);
  });
  test('INTRO1A runs 100.7 s, inside CJ\'s house',()=>{
-  const d=readCutsceneFile(published('intro1a.cut').toString('latin1')),cam=new FlyByCamera(readCutsceneCameraPaths(published('intro1a.dat').toString('latin1')),d.offset);
+  const d=readCutsceneFile(files('intro1a').cut),cam=new FlyByCamera(readCutsceneCameraPaths(files('intro1a').dat),d.offset);
   let frames=0;while(cam.positionAlongSpline<1&&frames<10000){cam.process(50/30);frames++;
    expect(Math.hypot(cam.source.x-d.offset.x,cam.source.y-d.offset.y)).toBeLessThan(20);expect(Math.abs(cam.source.z-d.offset.z)).toBeLessThan(3);}
   expect(cam.finishTime).toBe(100700);expect(frames).toBe(3023);
@@ -110,11 +118,29 @@ describe('the fly-by camera',()=>{
 
 describe('the fly-by camera at its end',()=>{
  test('INTRO1A\'s field of view, read a key past its end on the finishing frame, keeps its last value',()=>{
-  const d=readCutsceneFile(published('intro1a.cut').toString('latin1')),cam=new FlyByCamera(readCutsceneCameraPaths(published('intro1a.dat').toString('latin1')),d.offset);
+  const d=readCutsceneFile(files('intro1a').cut),cam=new FlyByCamera(readCutsceneCameraPaths(files('intro1a').dat),d.offset);
   cam.process(0);
   // To exactly the finish time: the last FOV segment is 0.3 ms, and its marker steps off the array.
   cam.process(100699/20);expect(cam.positionAlongSpline).toBeLessThan(1);
   cam.process(1/20);expect(cam.positionAlongSpline).toBe(1);expect(Number.isFinite(cam.fov)).toBe(true);
   for(let i=0;i<5;i++){cam.process(0);expect(cam.fov).toBeCloseTo(65.015,2);expect(Number.isFinite(cam.source.x+cam.up.z)).toBe(true);}
+ });
+});
+
+describe('a cutscene bundle',()=>{
+ test('gives back its files and clips bit for bit, compressed and float tracks alike',()=>{
+  const pkg={format:'ANPK' as const,name:'test',animations:[
+   {name:'Packed',flags:0,duration:1,tracks:[{name:'root',boneId:0,frameType:2,times:new Float32Array([0,.5,1]),rotations:new Float32Array([0,0,0,1, .5,.5,.5,.5, -.9,.1,.2,.3]),translations:new Float32Array([0,0,0, 31.9,-31.9,1, -2,4,8])}]},
+   {name:'Floats',flags:0,duration:2,tracks:[{name:'arm',boneId:22,frameType:1,times:new Float32Array([0,2]),rotations:new Float32Array([0,0,0,1, 0,1,0,0])}]}]};
+  const anp3=writeAnp3(pkg,a=>a.name==='Packed'),cut=new TextEncoder().encode('info\noffset 1 2 3\nend\n'),dat=new TextEncoder().encode('1,\n0.0f,70,70,70,\n;\n');
+  const back=decodeCutsceneBundle(encodeCutsceneBundle(cut,dat,anp3));
+  expect(Buffer.from(back.anp3).equals(Buffer.from(anp3))).toBe(true);
+  expect(Buffer.from(back.cut).equals(Buffer.from(cut))).toBe(true);expect(Buffer.from(back.dat).equals(Buffer.from(dat))).toBe(true);
+ });
+ test('refuses a truncated or padded bundle',()=>{
+  const anp3=writeAnp3({format:'ANPK',name:'t',animations:[{name:'a',flags:0,duration:0,tracks:[{name:'r',boneId:0,frameType:1,times:new Float32Array([0]),rotations:new Float32Array([0,0,0,1])}]}]},()=>true);
+  const bundle=encodeCutsceneBundle(new Uint8Array(),new Uint8Array(),anp3);
+  expect(()=>decodeCutsceneBundle(bundle.subarray(0,bundle.length-1))).toThrow();
+  const padded=new Uint8Array(bundle.length+1);padded.set(bundle);expect(()=>decodeCutsceneBundle(padded)).toThrow('Unexpected data');
  });
 });
