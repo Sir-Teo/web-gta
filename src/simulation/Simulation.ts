@@ -196,7 +196,10 @@ export class Simulation {
     // The climb places the ped itself: pushes and shifts from blows or cars are not stored up to be released after it.
     // CTaskComplexInWater replaces the in-air task too: what the drop into the water measured is not carried out of it.
     if (this.player.swimming && this.fall.falling) this.fall = { minVz: 0, falling: false };
-    if (this.climb) { this.collisionPush = { x: 0, z: 0 }; this.collisionShift = { x: 0, z: 0 }; this.stepClimb(dt, controls); }
+    // Held (a cutscene's window elsewhere), the player stands where he is, as a ped with no collision loaded under
+    // him waits for it (m_bIsStaticWaitingForCollision).
+    if (this.playerHeld) { this.collisionPush = { x: 0, z: 0 }; this.collisionShift = { x: 0, z: 0 }; }
+    else if (this.climb) { this.collisionPush = { x: 0, z: 0 }; this.collisionShift = { x: 0, z: 0 }; this.stepClimb(dt, controls); }
     else this.moveCharacter(dt, controls);
     this.stepWorld();
     const center = this.playerBody.translation();
@@ -259,6 +262,8 @@ export class Simulation {
   /** CPedDamageResponseCalculator::AccountForPedArmour: armour absorbs damage first, except falls and drowning. */
   /** CPlayerData::m_bCanBeDamaged, which MAKE_PLAYER_SAFE_FOR_CUTSCENE clears and restores. */
   playerCanBeDamaged=true;
+  /** The player's own movement is not stepped (the world's is): a host holds him while the scene window is elsewhere. */
+  playerHeld=false;
   /** CPlayerInfo::m_bFireProof and CHEAT_INFINITE_HEALTH (playerWeaponProofCheat), which the host answers. */
   playerFireProof?:()=>boolean;playerWeaponProof?:()=>boolean;
   /** SurfacesInfos_c::IsSoftLanding for what the player has just come down on (landingDamage), which the host answers. */

@@ -11759,3 +11759,56 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   molotov and satchel, hud_teargas, flamethrower, hud_detonator, hud_spraycan, hud_extinguisher, and goggles for both
   goggles; any other weapon (the guns, the rocket launchers, the minigun, the camera) draws "shoot". The twenty
   weapon textures join the touch atlas (scripts/content/touch-widgets.mjs, src/input/nativeAttackWidgetArt.ts).
+
+## Cutscenes play (October 10, 2026)
+
+The user's report: Big Smoke's mission "got missed". INTRO1 ran, but its story is two cutscenes (INTRO1A, CJ's house and
+Smoke with the bat; INTRO1B, the funeral), and every cutscene ended the frame it started, as the browser had no data
+for one. ANIM\CUTS.IMG is in no published or iOS source; a PC install's copy on archive.org is (444 entries, a .cut, .dat
+and .ifp for each of 148 cutscenes, every LOAD_CUTSCENE name of main.scm among them). The opening five are published:
+PROLOG1, PROLOG3, INTRO1A, INTRO1B and INTRO2A.
+
+- **The data.** `assets/cutscene.ts` reads the .cut as CCutsceneMgr::LoadCutSceneFile does (gta-reversed, from 0x5B0794):
+  info's offset, the model lines (a line's further clips are repeated slots), the text (start, duration, GXT key,
+  upper-cased), uncompress, attach, remove, peffect, extracol (its first non-zero value less one) and the motion section
+  skipped. The camera's .dat is CCamera::LoadPathSplines, which gta-reversed leaves to the executable: iOS 0x1002e62d8 reads
+  each line through CFileLoader::LoadLine (commas and control characters to spaces), skips "#" lines, takes a section's
+  key count with sscanf and then that many lines float by float (strtok ", \t", atof: "0.000000f" is 0), and waits for
+  a ";" line before the next count. Four sections: the field of view and the roll at four floats a key (time, value,
+  in and out handles), the source and the target at ten (time, point, in handle, out handle).
+- **The clips.** Cutscene clips are ANPK, the older layout (`assets/ifp.ts` reads it: CAnimManager::LoadAnimFile_ANPK
+  conjugates every rotation and skips KRTS's scale). The loader compresses every clip the .cut does not list under
+  uncompress (LoadCutsceneData_postload calls LoadAnimFile with loadCompressed set; iOS 0x1002e7b38 does the same), so
+  the published clips are what the game holds: ANP3 with KeyFrameCompressed's int16s (`assets/ifpWrite.ts`: the
+  rotation × 4096 and the translation × 1024 truncated, the time × 60 rounded, a value past 16 bits wrapping as arm64's
+  saturating fcvtzs and 16-bit store leave it: a few of PROLOG1's csstew keys do). The original data has flaws the
+  loader keeps: zero rotations and a corrupt band of keys at 22.333 s in PROLOG1 (one NaN, read as the compressing
+  load's 0), and keys timed before the one ahead of them (PROLOG3's cshandcuff, 18 ms four times), which the readers now
+  hold at that one's time since sampling needs them in order (the loader's deltas pass them in an instant).
+- **The camera.** CCam::Process_FlyBy (iOS 0x1002e68b0, unreversed in gta-reversed), `engine/nativeFlyByCamera.ts`: its
+  own clock in ms from ms_fTimeStep, m_nFinishTime the source path's last key; each frame each path's marker steps to
+  the first key whose time from the first key's is past the clock; the source and target readers (0x1002e64d4) give a
+  cubic Bézier of a key's point and out handle and the next's in handle and point, or a straight line when the out
+  handle is the point, plus the cutscene offset; the roll and field-of-view reader (0x1002e6764) the same in one value.
+  A segment of 32 ms or less is a cut the readers step over (0x10064e430). The roll in degrees plus 90° tilts the up
+  vector in the world's x-z plane; Front is the target less the source; m_fPositionAlongSpline reaches 1 past the end.
+  At a path's very end a reader can step a key past its array (INTRO1A's field of view does); the executable reads what
+  lies there, and here a value that comes out NaN keeps the last frame's.
+- **The player.** `render/CutscenePlayer.ts` with `ScmMission`'s gate: LOAD_CUTSCENE of a published cutscene stays loading
+  until the cast is made and its scene is in, START_CUTSCENE runs it until the camera's end (HasCutsceneFinished), and
+  the skip button (left mouse, Enter or Space) finishes it (SkipCutscene). The cast: an object per model line from
+  `cutscene.img` (published beside gta_int.img as the world's third archive; every cast member is a skinned clump bound
+  by bone tag), csplay CJ's own clothed body; SetupCutsceneToStart puts each at the offset raised by one with its clip
+  playing at ms_cutsceneTimerS. Update_overlay's text (CMessages::AddMessageJump, one line a frame when its time comes),
+  the fade out over the last second, the preloaded voice (FindCutsceneAudioTrackId's table, iOS 0x1005b6930, the PC's
+  151 entries; CAudioEngine::PreloadCutsceneTrack, played as the cast goes in). LoadCutSceneFile's extra colour (INTRO1A's
+  12, the interior light) and its LoadScene at the offset: the interior of the visible area round it, or the street,
+  the step held while it comes in; the player is hidden, made safe and held where he stands meanwhile, and the window
+  the first cutscene replaced comes back round him once none is loaded (CJ's house stands under its interior, so the
+  script's own area change would have left him over the void). GET_CUTSCENE_TIME is GetCutsceneTimeInMilleseconds:
+  whole seconds × 1000. A cutscene whose mission ends without clearing it is cleared as CLEAR_CUTSCENE would.
+- **Not yet.** The other 143 cutscenes still end as they start until they are published (about 90 MB of clips and 55 MB
+  of voices against the site's budget); csplay is the 32-bone gameplay body, so CJ's face does not move; a repeated
+  model slot's further clips, attachments, removals and particle effects are not played (none of the five has any).
+- Specs: `cutscene-data` (unit: the published files, the readers, the compression, the camera), `native-script-runtime`
+  and `script-speech` (the opening now plays PROLOG1 and PROLOG3).

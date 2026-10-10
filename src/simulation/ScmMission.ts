@@ -1,6 +1,6 @@
 import {searchlightCone,type SearchlightEntity} from '../engine/ScmSearchlights';
 import {CONVERSATION_LINE_MS} from '../engine/ScmConversations';
-import {SPECIAL_MODELS_RESOURCE_ID,SPECIAL_PED_MODELS} from '../engine/ScmCutscene';
+import {SPECIAL_MODELS_RESOURCE_ID,SPECIAL_PED_MODELS,CUTSCENE_LOADING} from '../engine/ScmCutscene';
 import {LAW_ENFORCEMENT_MODELS} from './nativeWanted';
 import {GROUP_TELEPORT_OFFSETS} from './groupFormation';
 import type {CarRecordingFrame} from '../assets/carRecordings';
@@ -319,9 +319,18 @@ export interface ScmMissionWorld {
  modelTriggerPoint?(model:string,index:number):[number,number,number]|undefined;
  /** CWeaponInfo::GetWeaponInfo(type): m_nSlot and m_nModelId1, or nothing before weapon.dat is in. */
  weaponTypeInfo?(weaponType:number):{slot:number;model:number}|undefined;
- /** The cutscene data the script asks for. The browser plays none yet, so a host records the request and the
-  * mission moves the state on itself, which keeps the script's own loop running rather than stalling it. */
- loadCutscene(name:string):void;
+ /** The cutscene data the script asks for (CCutsceneMgr::LoadCutsceneData). A host that plays the cutscene answers
+  * true and moves it on through cutsceneState; for any other the mission moves the state on itself, the data in at
+  * once and the cutscene over as it starts, which keeps the script's own loop running rather than stalling it. */
+ loadCutscene(name:string):boolean|void;
+ /** The host's cutscene, once loadCutscene has answered true: loading or loaded (or failed, which the mission then
+  * treats as a cutscene the host has not), whether its camera has reached the end (HasCutsceneFinished), whether
+  * that was a skip, and GetCutsceneTimeInMilleseconds. */
+ cutsceneState?():{state:'none'|'loading'|'loaded'|'failed';finished:boolean;skipped:boolean;timeMs:number}|undefined;
+ /** CCutsceneMgr::StartCutscene on the host's cutscene; false if it could not start. */
+ startCutscene?():boolean;
+ /** CCutsceneMgr::DeleteCutsceneData. */
+ clearCutscene?():void;
  /** CStreaming's script requests. The browser streams its own world by where the player is rather than by
   * name, so it records what the script asked for. */
  requestModel(model:number|string):void;
@@ -993,6 +1002,8 @@ export class ScmMission {
   * leaves the script its own. */
  private readonly ownFade=new ScmCameraFade();
  get fade(){return this.world.cameraFade??this.ownFade;}
+ /** CCamera::Fade from the host (the cutscene's fade over its last second), as the script's DO_FADE reaches it. */
+ fadeCamera(milliseconds:number,direction:0|1,nowMs:number){const shared=this.fade!==this.ownFade;this.fade.fade(milliseconds,direction,nowMs);if(shared)this.world.showFade?.(direction,milliseconds);}
  /** CPed::CreateDeadPedPickupCoors round a point (native axes): where a dead ped's weapons land, for the street
   * population as for GET_DEAD_CHAR_PICKUP_COORDS. */
  deadPedPickupCoordsAt(at:{x:number;y:number;z:number},command='CreateDeadPedWeaponPickups'){
@@ -1001,9 +1012,10 @@ export class ScmMission {
   return deadPedPickupCoors(at,this.world.playerPed().position,{groundZ:(x,y,z)=>this.world.groundLevel(x,y,z),pickupsInBubble:bubble,
    lineOfSightClear:(a,b,both)=>this.world.lineOfSightClear(a,b,flags(both)),vehicleInSphere:vehicles,random256:()=>Math.floor(Math.random()*256)});
  }
- /** Between START_CUTSCENE and CLEAR_CUTSCENE: the browser has no cutscene to show, so the screen stays faded out
+ /** Between START_CUTSCENE and CLEAR_CUTSCENE of a cutscene the browser has no data for, the screen stays faded out
   * through it rather than fading in on the world the cutscene would have covered. The hold goes with the thread that
-  * started the cutscene, so a mission ended mid-cutscene does not leave the screen black. */
+  * started the cutscene, so a mission ended mid-cutscene does not leave the screen black. A cutscene the host plays
+  * (cutscenePlays) fades in as the script asks. */
  /** The model a script ped is built from. Model ids from MODEL_SPECIAL01 (290) are CStreaming's special-character
   * slots (MODEL_SPECIAL01 to 10), which LOAD_SPECIAL_CHARACTER fills by name (RequestSpecialChar: script slot n is
   * model 289 + n); the host is handed that name, and any other id as it stands (its peds.ide row). The script keeps
@@ -1017,7 +1029,29 @@ export class ScmMission {
   return model;
  }
  private cutsceneThread?:unknown;
- private get cutsceneOpen(){const thread=this.cutsceneThread;return !!thread&&this.runtime.active.some(slot=>slot.thread===thread);}
+ private get cutsceneOpen(){const thread=this.cutsceneThread;return !!thread&&!this.cutscenePlays&&this.runtime.active.some(slot=>slot.thread===thread);}
+ /** The loaded cutscene is the host's to play (loadCutscene answered true), and the thread that loaded it. */
+ private cutscenePlays=false;private cutsceneOwner?:unknown;
+ private abandonCutscene(){
+  const game=this.runtime.game,previous=game.cutscene.previousDensity;
+  if(previous){game.carDensityMultiplier=previous.car;game.pedDensityMultiplier=previous.ped;}
+  game.cutscene.previousDensity=undefined;game.cutscene.clear();game.widescreenOn=false;
+  this.cutscenePlays=false;this.cutsceneThread=undefined;this.cutsceneOwner=undefined;this.world.clearCutscene?.();
+  game.camera.restoreWithJumpCut(this.world.playerCameraState());game.pads.setSafeForCutscene(0,false);game.playerInfo.cutsceneProcessing=false;
+  this.world.makePlayerSafe(false,10000);
+ }
+ /** CCutsceneMgr::Update's part the script sees, before the scripts run: the host's cutscene loaded, its time, and its
+  * end. A host's cutscene that failed to load is one the browser has not: in at once, over as it starts. */
+ private serviceCutscene(){
+  if(!this.cutscenePlays)return;
+  // A cutscene whose mission has gone without clearing it (ended from outside: a save loaded over the opening, free
+  // roam) is cleared as CLEAR_CUTSCENE would, so the player is not left hidden and held.
+  if(!this.runtime.active.some(slot=>slot.thread===this.cutsceneOwner)){this.abandonCutscene();return;}
+  const cutscene=this.runtime.game.cutscene,host=this.world.cutsceneState?.();
+  if(!host||host.state==='failed'||host.state==='none'){this.cutscenePlays=false;if(cutscene.status===CUTSCENE_LOADING)cutscene.loaded();else if(cutscene.running)cutscene.finish();return;}
+  if(cutscene.status===CUTSCENE_LOADING&&host.state==='loaded')cutscene.loaded();
+  if(cutscene.running){cutscene.time=host.timeMs;if(host.finished){if(host.skipped)cutscene.skip();else cutscene.finish();}}
+ }
  readonly runtime:ScmRuntime;
  /** Where the script stopped outright, or nothing while any of it is still running. */
  stopped?:{command:string;offset:number;detail:string};
@@ -2085,9 +2119,8 @@ export class ScmMission {
    pedIsDeadForScript:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().dead:this.peds.isDead(handle),
    pedHealth:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().health:this.peds.healthOf(handle),
    setPlayerControl:(_player,control)=>{this.playerControl=control;this.world.setPlayerControl(control);},
-   // The browser has no cutscene player, so the data counts as in as soon as it is asked for and the cutscene
-   // ends as soon as it starts. That keeps the script's wait loops moving instead of holding a thread forever
-   // on a question nothing here will ever answer.
+   // A cutscene the host has no data for counts as in as soon as it is asked for and ends as soon as it starts. That
+   // keeps the script's wait loops moving instead of holding a thread forever on a question nothing would answer.
    // The browser's streamer works from where the player is, not from names, so a requested model counts as
    // loaded at once. Holding a thread on a question nothing here answers would stop the script instead.
    // CStreaming::LoadScene with a heading, which the browser answers the same way it answers the plain one.
@@ -2153,9 +2186,9 @@ export class ScmMission {
    hasModelLoaded:()=>true,
    markModelNotNeeded:()=>{},
    loadAllModelsNow:()=>{this.runtime.game.animBlocks.service();},
-   loadCutscene:name=>{this.cutscenes.push(name);this.world.loadCutscene(name);this.runtime.game.cutscene.loaded();},
-   startCutscene:()=>{this.cutsceneThread=this.runtime.currentThread;this.runtime.game.cutscene.finish();},
-   clearCutscene:()=>{this.cutsceneThread=undefined;},
+   loadCutscene:name=>{this.cutscenes.push(name);this.cutscenePlays=this.world.loadCutscene(name)===true;this.cutsceneOwner=this.runtime.currentThread;if(!this.cutscenePlays)this.runtime.game.cutscene.loaded();},
+   startCutscene:()=>{this.cutsceneThread=this.runtime.currentThread;if(!(this.cutscenePlays&&this.world.startCutscene?.()))this.runtime.game.cutscene.finish();},
+   clearCutscene:()=>{this.cutsceneThread=undefined;if(this.cutscenePlays)this.world.clearCutscene?.();this.cutscenePlays=false;},
    findNumberTagsTagged:()=>this.world.tagsTagged(),
    percentageTaggedInArea:(x1,y1,x2,y2)=>this.world.tagsPercentageInArea(x1,y1,x2,y2),
    // The handler is unreversed; MAIN.SCM passes 0 or 1, read here as CTagManager::SetAlphaInArea with 0 or 255.
@@ -4299,7 +4332,7 @@ export class ScmMission {
   // CPad::Update for pad 0 before the scripts run: a PRINT of WUZ1_DA or GAR2_10 (iOS) clears DisablePlayerControls,
   // the script's player-safe bit with it; the CPlayerInfo half of MakePlayerSafe is left as it was.
   {const pads=this.runtime.game.pads;if(pads.releaseControls[0]){pads.releaseControls[0]=false;pads.setPlayerSafe(0,false);this.playerControl=true;}}
-  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.world.clearScriptPedEvents?.();if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();this.processObjectBrains(nowMs);this.processPedBrains(nowMs);this.processGarageDoors(nowMs);this.liftCreatedObjects();this.updateConversations(nowMs);this.settlePutDown();if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.runtime.game.objects.advanceFades(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
+  try{this.serviceCutscene();this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.world.clearScriptPedEvents?.();if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();this.processObjectBrains(nowMs);this.processPedBrains(nowMs);this.processGarageDoors(nowMs);this.liftCreatedObjects();this.updateConversations(nowMs);this.settlePutDown();if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.runtime.game.objects.advanceFades(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
    this.processRunners(timeStepMs/1000);
    this.drownRiders(timeStepMs);

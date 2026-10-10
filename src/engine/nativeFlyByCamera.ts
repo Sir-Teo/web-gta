@@ -25,18 +25,23 @@ function readPoint(path: Float32Array, marker: { at: number }, t: number, offset
  if (lastTime < t) u = 1;
  const p0x = path[m - 9], p0y = path[m - 8], p0z = path[m - 7], p1x = path[m - 3], p1y = path[m - 2], p1z = path[m - 1];
  const p2x = path[m + 4], p2y = path[m + 5], p2z = path[m + 6], p3x = path[m + 1], p3y = path[m + 2], p3z = path[m + 3];
+ let x: number, y: number, z: number;
  if (p1x === p0x && p1y === p0y && p1z === p0z) {
-  out.x = p0x + u * (p3x - p0x); out.y = p0y + u * (p3y - p0y); out.z = p0z + u * (p3z - p0z);
+  x = p0x + u * (p3x - p0x); y = p0y + u * (p3y - p0y); z = p0z + u * (p3z - p0z);
  } else {
   const v = 1 - u, a = v * v * v, b = 3 * u * v * v, c = 3 * u * u * v, d = u * u * u;
-  out.x = a * p0x + b * p1x + c * p2x + d * p3x; out.y = a * p0y + b * p1y + c * p2y + d * p3y; out.z = a * p0z + b * p1z + c * p2z + d * p3z;
+  x = a * p0x + b * p1x + c * p2x + d * p3x; y = a * p0y + b * p1y + c * p2y + d * p3y; z = a * p0z + b * p1z + c * p2z + d * p3z;
  }
- out.x += offset.x; out.y += offset.y; out.z += offset.z;
+ if (Number.isNaN(x + y + z)) return;
+ out.x = x + offset.x; out.y = y + offset.y; out.z = z + offset.z;
 }
 
+/* At a path's very end a reader can step its marker a key past the array (its last segment 32 ms or less, the clock
+ * just short of its time, as INTRO1A's field of view ends): the executable then reads what lies past it. Those reads
+ * are NaN here, and a value that comes out NaN keeps the previous frame's. */
 /** The value reader (iOS 0x1002e6764): stride 4, [time, value, in handle, out handle]. Here the segment is measured
  * after the marker moves. */
-function readValue(path: Float32Array, marker: { at: number }, t: number) {
+function readValue(path: Float32Array, marker: { at: number }, t: number, previous: number) {
  const count = Math.trunc(path[0]), last = lastKey(path, 4), lastTime = path[last] * 1000;
  let m = marker.at;
  if (lastTime > t) {
@@ -46,10 +51,9 @@ function readValue(path: Float32Array, marker: { at: number }, t: number) {
  let u = (t - path[m - 4] * 1000) / ((path[m] - path[m - 4]) * 1000);
  u = Number.isNaN(u) ? u : Math.max(Math.min(u, 1), 0);
  if (lastTime < t) u = 1;
- const from = path[m - 3], out = path[m - 1], into = path[m + 2], to = path[m + 1];
- if (out === from) return from + u * (to - from);
- const v = 1 - u;
- return from * v * v * v + out * 3 * u * v * v + into * 3 * u * u * v + to * u * u * u;
+ const from = path[m - 3], out = path[m - 1], into = path[m + 2], to = path[m + 1], v = 1 - u;
+ const value = out === from ? from + u * (to - from) : from * v * v * v + out * 3 * u * v * v + into * 3 * u * u * v + to * u * u * u;
+ return Number.isNaN(value) ? previous : value;
 }
 
 /** Each path's marker steps to the first key whose time (from the first key's) is past the clock. */
@@ -72,7 +76,7 @@ export class FlyByCamera {
  /** CCamera::m_bCutsceneFinished (FinishCutscene): the camera does nothing more. */
  finished = false;
  /** m_bStartingSpline and the clock (CCam +0x68, ms). */
- private started = false; private clock = 0;
+ private started = false; private clock = 0; private roll = 0;
  private readonly markers = { position: { at: 0 }, target: { at: 0 }, roll: { at: 0 }, fov: { at: 0 } };
  constructor(readonly paths: CutsceneCameraPaths, readonly offset: FlyByVector) { this.fov = paths.fov[2]; }
  /** CCamera::FinishCutscene (iOS 0x514950 on PC): the camera's clock jumps to its end. */
@@ -93,14 +97,14 @@ export class FlyByCamera {
    this.positionAlongSpline = t / this.finishTime;
    stepMarker(paths.position, markers.position, 10, t); readPoint(paths.position, markers.position, t, this.offset, this.source);
    stepMarker(paths.target, markers.target, 10, t); readPoint(paths.target, markers.target, t, this.offset, this.target);
-   stepMarker(paths.roll, markers.roll, 4, t); roll = readValue(paths.roll, markers.roll, t);
-   stepMarker(paths.fov, markers.fov, 4, t); this.fov = readValue(paths.fov, markers.fov, t);
+   stepMarker(paths.roll, markers.roll, 4, t); roll = this.roll = readValue(paths.roll, markers.roll, t, this.roll);
+   stepMarker(paths.fov, markers.fov, 4, t); this.fov = readValue(paths.fov, markers.fov, t, this.fov);
   } else {
    // Past the end: every path is read at its last key, and the markers go back to nothing.
    markers.position.at = lastKey(paths.position, 10); markers.target.at = lastKey(paths.target, 10);
    markers.roll.at = lastKey(paths.roll, 4); markers.fov.at = lastKey(paths.fov, 4);
    readPoint(paths.position, markers.position, t, this.offset, this.source); readPoint(paths.target, markers.target, t, this.offset, this.target);
-   roll = readValue(paths.roll, markers.roll, t); this.fov = readValue(paths.fov, markers.fov, t);
+   roll = this.roll = readValue(paths.roll, markers.roll, t, this.roll); this.fov = readValue(paths.fov, markers.fov, t, this.fov);
    this.positionAlongSpline = 1;
    markers.position.at = markers.target.at = markers.roll.at = markers.fov.at = 0;
   }

@@ -107,3 +107,14 @@ describe('the fly-by camera',()=>{
   expect(cam.finishTime).toBe(100700);expect(frames).toBe(3023);
  });
 });
+
+describe('the fly-by camera at its end',()=>{
+ test('INTRO1A\'s field of view, read a key past its end on the finishing frame, keeps its last value',()=>{
+  const d=readCutsceneFile(published('intro1a.cut').toString('latin1')),cam=new FlyByCamera(readCutsceneCameraPaths(published('intro1a.dat').toString('latin1')),d.offset);
+  cam.process(0);
+  // To exactly the finish time: the last FOV segment is 0.3 ms, and its marker steps off the array.
+  cam.process(100699/20);expect(cam.positionAlongSpline).toBeLessThan(1);
+  cam.process(1/20);expect(cam.positionAlongSpline).toBe(1);expect(Number.isFinite(cam.fov)).toBe(true);
+  for(let i=0;i<5;i++){cam.process(0);expect(cam.fov).toBeCloseTo(65.015,2);expect(Number.isFinite(cam.source.x+cam.up.z)).toBe(true);}
+ });
+});

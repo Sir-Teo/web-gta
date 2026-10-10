@@ -241,6 +241,7 @@ import {PlayerScriptTasks} from './simulation/playerScriptTasks';
 import {PlayerPhone} from './simulation/PlayerPhone';
 import {ScriptCarMissions} from './simulation/ScriptCarMissions';
 import {ScriptObjectViews} from './simulation/ScriptObjectViews';
+import {CutscenePlayer} from './render/CutscenePlayer';
 import {weaponById} from './weapons/catalog';
 import {CAR_EXTINGUISHED_HEALTH} from './simulation/nativeCarDamage';
 import {fxIdentity} from './simulation/fx/NativeFx';
@@ -566,6 +567,16 @@ async function boot() {
    return true;
   };
   let scriptObjectViews:ScriptObjectViews|undefined;
+  /** CCutsceneMgr for the cutscenes the browser has (public/play/cuts), made with the scene's objects. */
+  let cutscenes:CutscenePlayer|undefined,cutsceneFixedCamera:typeof render.fixedCamera;
+  /** m_PrevExtraColour and m_PrevExtraColourOn: the extra colour a cutscene's load found, which its clear puts back. */
+  let cutscenePreviousExtraColour:{on:boolean;colour:number}|undefined;
+  /** The cutscene's offset and the area visible as it loaded: the scene it waits for and the terrain follows. */
+  let cutsceneFocus:{x:number;y:number;z:number;area:number}|undefined;
+  /** From a cutscene's clear until the scene window holds the player again (or the time given runs out), he is held. */
+  let cutsceneHoldUntil=0;
+  /** The window a cutscene's own replaced (the area it was), which its clear asks for again round the player. */
+  let cutsceneReturn:{area:number}|undefined;
   let scriptFixedCamera:typeof render.fixedCamera,stuntCamera:typeof render.fixedCamera;
   let scriptGeneratorCount=0;
   let scriptStuntJumpCount=0;
@@ -4317,7 +4328,17 @@ async function boot() {
     // CCamera's fixed mode, which the script takes and gives back. The browser keeps its own camera until the
     // script asks for one, and takes it back as soon as the script restores it — anything else the browser had
     // fixed, a stunt jump above all, is left where it was.
-    if(mission){
+    // The cutscene's fly-by (CCam::Process_FlyBy), native axes to the renderer's.
+    const flyBy=cutscenes?.running?cutscenes.camera:undefined;
+    if(flyBy){const s=flyBy.source,t=flyBy.target,u=flyBy.up;cutsceneFixedCamera=render.fixedCamera={position:new Vector3(s.x,s.z,-s.y),target:()=>new Vector3(t.x,t.z,-t.y),up:new Vector3(u.x,u.z,-u.y),fov:flyBy.fov};}
+    else if(cutsceneFixedCamera){if(render.fixedCamera===cutsceneFixedCamera)render.fixedCamera=undefined;cutsceneFixedCamera=undefined;}
+    // A loaded cutscene's cast is lit as a ped is; the player is held from its load until the scene window holds him.
+    if(cutscenes&&cutscenes.state!=='none'){const rgb=render.lighting.nativeObjectAmbient,m=render.lighting.sunLightMultiplier,a=cutscenes.ambient;if(rgb)a.color.value.set(rgb[0]*m,rgb[1]*m,rgb[2]*m);a.enabled.value=!!rgb;}
+    cutsceneScene();
+    if(cutsceneReturn&&cutsceneHoldUntil)cutsceneHoldUntil=Math.max(cutsceneHoldUntil,performance.now()+1000);
+    if(cutsceneHoldUntil&&(performance.now()>cutsceneHoldUntil||!savedTransfer&&!savedTransferInstalling&&!scriptSceneDirty&&(importedScene?.area===0?!follower?.snapshot().enabled||follower.covers(sim.player.position):!!interiorCentre&&Math.hypot(sim.player.position.x-interiorCentre.x,-sim.player.position.z-interiorCentre.y)<INTERIOR_COLLISION_REACH)))cutsceneHoldUntil=0;
+    sim.playerHeld=!!cutscenes&&cutscenes.state!=='none'||cutsceneHoldUntil>0;
+    if(mission&&!flyBy){
      const scripted=mission.scriptCamera();
      if(scripted){scriptFixedCamera=render.fixedCamera={position:new Vector3(scripted.position.x,scripted.position.y,scripted.position.z),
       target:()=>new Vector3(scripted.target.x,scripted.target.y,scripted.target.z),roll:'roll' in scripted?scripted.roll:undefined,fov:'fov' in scripted?scripted.fov:undefined};}
@@ -4476,6 +4497,15 @@ async function boot() {
       // held (a streaming hold included) and run slower under the stunt jump's or a cheat's time scale.
       if(scriptClockMission!==mission){scriptClockMission=mission;scriptGameTimeExact=gameTimeExact;}
       const scriptStepMs=gameTimeExact-scriptGameTimeExact;scriptGameTimeExact=gameTimeExact;
+      // CCutsceneMgr::Update before CTheScripts::Process: the cast, the text and the camera move on (the camera's clock
+      // in 50ths of a second), the track the load preloaded starts with the cast, and the skip button ends a cutscene
+      // on its spline.
+      if(cutscenes&&cutscenes.state==='loaded'&&cutsceneSceneReady()){
+       const g=mission.runtime.game,wasRunning=cutscenes.running,m=mission;
+       cutscenes.update(scriptStepMs/1000,scriptStepMs/20,(key,ms)=>{if(g.showSubtitles)g.messages.addMessageJump(key,ms,1,true,gameTimeExact);},ms=>m.fadeCamera(ms,0,gameTimeExact));
+       if(!wasRunning&&cutscenes.running&&cutscenes.track>=0)g.cutsceneTrack.play();
+       if(cutscenes.running&&cutsceneSkipNow)cutscenes.skip();
+      }
       mission.step(gameTimeExact,scriptStepMs);
       // The script runtime stops at a command the port cannot run: say so once, with the command, rather than leave the
       // story silently frozen (the world and free roam go on).
@@ -4818,6 +4848,8 @@ async function boot() {
   function scriptSceneTransfer(){
     const game=mission?.runtime.game;if(!game)return;
     if(game.currentArea!==lastScriptArea){lastScriptArea=game.currentArea;scriptSceneDirty=true;}
+    // A loaded cutscene holds its own window; the script's area and teleports are looked at once it is cleared.
+    if(cutscenes&&cutscenes.state!=='none')return;
     if(!scriptSceneDirty||!staticWorld||!importedScene||interiorTransfer||savedTransfer||flightTransfer||installingScene||sim.deathRemaining>0)return;
     scriptSceneDirty=false;
     const want=game.currentArea,p=sim.player.position,here={x:p.x,y:-p.z},height=p.y;
@@ -4829,6 +4861,38 @@ async function boot() {
     savedTransfer={x:here.x,y:here.y,z:height,heading:sim.player.heading,quiet:true,script:true,...(area?{area}:{})};
     staticWorld.request(-1,area?{x:here.x,y:here.y,radius:100,includeCollisionBounds:true,interior:area}:{x:here.x,y:here.y,radius:180,lodRadius:1000,includeCollisionBounds:true});
   }
+  /** LoadCutSceneFile's CStreaming::LoadScene at the offset: the interior of the area the script has made visible round
+   * it, or the street there. The window is asked for by cutsceneScene, between transfers; the step is held while it
+   * comes in, as the original's load blocks. Outside, the terrain then follows the offset until the cutscene is cleared. */
+  function requestCutsceneScene(offset:{x:number;y:number;z:number}){cutsceneFocus={...offset,area:mission?.runtime.game.currentArea??0};}
+  /** Whether the installed window serves a point in an area: its interior round the point, or a street window over it. */
+  function windowHolds(area:number,x:number,y:number){
+    if(!importedScene)return false;
+    return area?importedScene.area===area&&!!interiorCentre&&Math.hypot(x-interiorCentre.x,y-interiorCentre.y)<INTERIOR_COLLISION_REACH
+     :importedScene.area===0&&(!follower?.snapshot().enabled||follower.covers({x,z:-y}));
+  }
+  /** Each frame, with no transfer on its way: a loaded cutscene's window round its offset; once none is loaded, the
+   * window the first cutscene replaced, round the player again (DeleteCutsceneData's way back: CJ's house stands under
+   * its interior, so the script's own area change alone would leave him over the interior's void). */
+  function cutsceneScene(){
+    if(!staticWorld||!importedScene||savedTransfer||savedTransferInstalling||interiorTransfer||installingScene)return;
+    const loaded=!!cutscenes&&cutscenes.state!=='none',f=cutsceneFocus,p=sim.player.position;
+    let want:{x:number;y:number;z:number;area:number}|undefined;
+    if(loaded&&f){if(f.area===0&&importedScene.area===0||windowHolds(f.area,f.x,f.y))return;want=f;cutsceneReturn??={area:importedScene.area};}
+    else if(!loaded&&cutsceneReturn){const back=cutsceneReturn;cutsceneReturn=undefined;if(windowHolds(back.area,p.x,-p.z))return;want={x:p.x,y:-p.z,z:p.y,area:back.area};}
+    if(!want)return;
+    follower?.stop();clearTimeout(followTimer);pendingFollowingData=undefined;
+    savedTransfer={x:want.x,y:want.y,z:want.z,heading:sim.player.heading,quiet:true,script:true,...(want.area?{area:want.area}:{})};
+    staticWorld.request(-1,want.area?{x:want.x,y:want.y,radius:100,includeCollisionBounds:true,interior:want.area}:{x:want.x,y:want.y,radius:180,lodRadius:1000,includeCollisionBounds:true});
+  }
+  /** The cutscene's scene is in: no window on its way, and the installed one is its interior or a street window over
+   * the offset. */
+  function cutsceneSceneReady(){
+    const f=cutsceneFocus;if(!f||!importedScene||savedTransfer||savedTransferInstalling||terrainPause)return false;
+    return f.area?importedScene.area===f.area:importedScene.area===0&&(!follower?.snapshot().enabled||follower.covers({x:f.x,z:-f.y}));
+  }
+  /** Where the terrain follows: a street cutscene's offset while it is loaded, else the player. */
+  const terrainFocus=()=>{const f=cutsceneFocus;return f&&!f.area&&cutscenes&&cutscenes.state!=='none'?{x:f.x,y:f.z,z:-f.y}:sim.player.position;};
   function failFollowing(id:number,message:string){
     if(!follower?.finish(id,false))return;
     clearTimeout(followTimer);pendingFollowingData=undefined;
@@ -4847,13 +4911,14 @@ async function boot() {
     // An aircraft well above the ground needs no collision under it: it flies on while the windows catch up, and
     // the hold only applies when it comes down into terrain that is not there yet.
     const airborne=!!fleet?.occupiedPlane&&fleet.occupiedPlane.altitude>40;
-    if(!paused&&eligible&&!airborne&&follower?.needsPause(sim.player.position))terrainHold(true);
+    const focus=terrainFocus(),focused=focus!==sim.player.position;
+    if(!paused&&eligible&&!airborne&&follower?.needsPause(focus))terrainHold(true);
     // A terrain pause is self-healing: once the follower has nothing in flight
     // and nothing is waiting to install, the game resumes itself. A follower
     // that was deliberately stopped keeps its own menu instead.
     // The installed window must cover him: between one window going in and the next being asked for nothing is
     // pending, and letting the step run there dropped a player the script had put past the window.
-    if(terrainPause&&!installingScene&&!pendingFollowingData&&follower?.snapshot().enabled===true&&(airborne||follower.snapshot().pending===null&&(!eligible||follower.covers(sim.player.position)))){
+    if(terrainPause&&!installingScene&&!pendingFollowingData&&follower?.snapshot().enabled===true&&(airborne||follower.snapshot().pending===null&&(!eligible||follower.covers(focus)))){
       terrainHold(false);return;
     }
     // Following that stopped for good releases the hold; failFollowing has opened the menu with the reason.
@@ -4868,7 +4933,7 @@ async function boot() {
     // held for terrain again and again with the world half drawn.
     const motion=fleet?.occupiedPlane?.body.linvel()??(worldCar?.occupied?worldCar.car.body.linvel():undefined)??fleet?.occupiedBoat?.body.linvel()??fleet?.occupiedBike?.body.linvel()??(playerPassenger&&!playerPassenger.car.disposed?playerPassenger.car.car.body.linvel():undefined);
     const followVelocity=motion?{x:motion.x,z:motion.z}:{x:Math.sin(sim.player.heading)*sim.player.speed,z:Math.cos(sim.player.heading)*sim.player.speed};
-    const request=follower?.request(sim.player.position,eligible,followVelocity);
+    const request=follower?.request(focus,eligible,focused?{x:0,z:0}:followVelocity);
     if(!request)return;
     followResume=loadRequest;followBoundaryPaused=false;
     followTimer=setTimeout(()=>failFollowing(request.id,'The terrain request timed out.'),staticWorld?45000:30000);requestedAt.set(request.id,performance.now());
@@ -4876,7 +4941,7 @@ async function boot() {
     if(staticWorld)staticWorld.request(request.id,request.region,[...new Set([...residentModels.keys(),...(importedScene?.retiredModels().keys()??[])])]);else sceneChannel!.postMessage({type:'region-request',...request});
     // A window asked for a player already outside the installed one (a script teleport) holds at once, before the
     // step can run him over ground that is not there.
-    if(eligible&&!airborne&&follower?.needsPause(sim.player.position))terrainHold(true);
+    if(eligible&&!airborne&&follower?.needsPause(focus))terrainHold(true);
   }
   /** A window may be asked for and installed under a player who stands, flies, or falls: a parachutist or a jumper
    * over ground that is not streamed in yet would otherwise fall out of the world while the window waited for him
@@ -5434,6 +5499,15 @@ async function boot() {
                // CObjectData's physics for a script object CPhysical moves, as an uprooted prop takes them.
                scriptObjectViews.physicsOf=model=>{const values=objectDefValues(model);if(!values)return undefined;const air=values.airResistance??.99;return {turnMass:values.turnMass,elasticity:values.elasticity??0,damping:air>.1&&air<1?-50*Math.log(air):0};};
                scriptObjectViews.animation=(block,name)=>pedestrians?.scriptAnimation(block,name)??Promise.resolve(undefined);
+               // The cutscenes' player. csplay is CJ in the clothes the browser dresses him in, blended by his fat and muscle
+               // (CClothes::RebuildCutscenePlayer); his face's bones are not on that body, so its tracks are left alone.
+               cutscenes??=new CutscenePlayer(render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,new URL(`${import.meta.env.BASE_URL}play/`,location.href).href,async()=>{
+                const body=playerBody;if(!body)return undefined;
+                const {readPlayerFiles}=await import('./assets/readPlayerFiles'),built=await readPlayerFiles(body.files,body.ratios,'classic');
+                return {model:built.model,textures:built.textures};});
+               // LoadCutSceneFile: the offset's scene (CStreaming::LoadScene) and the extra colour (StartExtraColour, or
+               // StopExtraColour for a cutscene that names none).
+               cutscenes.onDefinition=d=>{if(d.extraColour!==undefined)localLighting.startExtraColour(d.extraColour,false);else localLighting.stopExtraColour(false);requestCutsceneScene(d.offset);};
                const byId=new Map<number,import('./assets/ide').IdeAssociation>(),byName=new Map<string,import('./assets/ide').IdeAssociation>();
                const doors=new Set<string>();
                for(const record of data.ideRecords as import('./assets/ide').IdeAssociation[]){
@@ -6475,7 +6549,6 @@ async function boot() {
                  // text rather than keys. The GXT may still be loading at the mission's start; the request waits for it.
                  loadMissionText:name=>{const load=(t:import('./assets/gxt').NativeText)=>{try{t.loadMissionText(name);}catch(e){console.warn(`Mission text ${name}: ${(e as Error).message}`);}};
                   if(theText)load(theText);else void import('./assets/gxt').then(m=>m.loadNativeText(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href)).then(load).catch(()=>{});},
-                 // The browser plays no cutscenes; the request is recorded so the script's loop carries on.
                  // The browser's own tag manager and gang wars answer these three.
                  tagsTagged:()=>tagManager?.numTagged??0,
                  tagsPercentageInArea:(x1,y1,x2,y2)=>tagManager?.percentageTaggedInArea(x1,y1,x2,y2)??0,
@@ -6485,7 +6558,26 @@ async function boot() {
                  territoryUnderControlPercentage:()=>Math.round((gangWars?.territoryUnderControlPercentage??0)*100),
                  // CCutsceneMgr::LoadCutsceneData: ResetSprintEnergy, the player's stamina back to full.
                  // ... CClothes::RebuildPlayerIfNeeded, and CWanted::ClearQdCrimes: a crime still waiting to be reported is dropped.
-                 loadCutscene:()=>{sim.player.stamina=100;sim.player.sprintExhausted=false;rebuildPlayerIfNeeded();law.native.clearQueuedCrimes();},
+                 loadCutscene:name=>{sim.player.stamina=100;sim.player.sprintExhausted=false;rebuildPlayerIfNeeded();law.native.clearQueuedCrimes();
+                  // A cutscene the browser has plays; any other ends as it starts.
+                  if(!cutscenes?.begin(name))return false;
+                  const e=localLighting.extraColour;cutscenePreviousExtraColour={on:e.on,colour:e.hour+(e.weather-21)*8};
+                  // LoadCutsceneData_preload: the track preloaded, the player hidden, made safe (MakePlayerSafe(true)) and
+                  // held where he stands while the cutscene's scene is in.
+                  if(cutscenes.track>=0)mission?.runtime.game.cutsceneTrack.preloadCutsceneTrack(cutscenes.track);
+                  render.scriptPlayerHidden=true;sim.playerCanBeDamaged=false;law.native.everybodyBackOff=true;sim.playerHeld=true;cutsceneHoldUntil=0;
+                  return true;},
+                 // The cutscene is in once its cast is made and its scene is round its offset.
+                 cutsceneState:()=>cutscenes&&{state:cutscenes.state==='loaded'&&!cutsceneSceneReady()?'loading':cutscenes.state,finished:cutscenes.finished,skipped:cutscenes.skipped,timeMs:cutscenes.timeMs},
+                 // StartCutscene: the spline camera and the widescreen.
+                 startCutscene:()=>{if(!cutscenes?.start())return false;if(mission)mission.runtime.game.widescreenOn=true;return true;},
+                 // DeleteCutsceneData: the cast and the track go, the extra colour the load found comes back and the player is
+                 // seen again; he stays held until the scene window holds him (the script's next area or teleport).
+                 clearCutscene:()=>{
+                  cutscenes?.clear();mission?.runtime.game.cutsceneTrack.stop();
+                  const was=cutscenePreviousExtraColour;cutscenePreviousExtraColour=undefined;
+                  if(was?.on)localLighting.startExtraColour(was.colour,false);else localLighting.stopExtraColour(false);
+                  render.scriptPlayerHidden=false;cutsceneFocus=undefined;cutsceneHoldUntil=performance.now()+10000;scriptSceneDirty=true;},
                  requestModel:()=>{},
                  setPlayerControl:()=>{},
                  buildPlayerModel:()=>{},

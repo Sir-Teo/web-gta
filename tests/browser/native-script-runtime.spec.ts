@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 /** CGame::Initialise starts MAIN.SCM. The published game boots the original script, runs its opening in the
  * frame loop and stops at the first command the runtime has not ported, which its snapshot reports. */
 test('the published game runs the original script’s opening',async({page})=>{
- test.setTimeout(180000);
+ test.setTimeout(300000);
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
@@ -12,8 +12,9 @@ test('the published game runs the original script’s opening',async({page})=>{
  // threads to be started rather than for a thread to stop.
  await expect.poll(async()=>await page.evaluate(()=>((window as any).__game.scm()?.threads?.length??0)),{timeout:30000}).toBeGreaterThanOrEqual(26);
  // The intro plays two cutscenes and sets its own time of day while it does; waiting for them keeps this test
- // reading one moment of the script rather than whichever moment the machine happened to reach.
- await expect.poll(async()=>await page.evaluate(()=>((window as any).__game.scm()?.cutscenes??0)),{timeout:30000}).toBeGreaterThanOrEqual(2);
+ // reading one moment of the script rather than whichever moment the machine happened to reach. PROLOG1 plays (22 s
+ // at the airport) before PROLOG3 is asked for.
+ await expect.poll(async()=>await page.evaluate(()=>((window as any).__game.scm()?.cutscenes??0)),{timeout:120000}).toBeGreaterThanOrEqual(2);
  const scm=await page.evaluate(()=>(window as any).__game.scm());
  console.log('SCM '+JSON.stringify(scm));
  // The clock the script set, the relationships it declared and the wanted ceiling it chose.
@@ -45,9 +46,9 @@ test('the published game runs the original script’s opening',async({page})=>{
  // The intro asked for two cutscenes, a model and an area clear on its way through.
  expect(scm.cutscenes).toBe(2);
  expect(scm.requestedModels).toBeGreaterThan(0);
- // All twenty-six threads the opening starts are running their own waits.
- expect(scm.threads.length).toBe(26);
- for(const name of ['A_CONT','APCHECK','COLLS','CRANES','GFAGNT','GYM','HJ','INTMAN','INTRO','MAIN','TRAINSL'])
+ // All twenty-seven threads the opening has started by PROLOG3 are running their own waits (PLCHUTE the last).
+ expect(scm.threads.length).toBe(27);
+ for(const name of ['A_CONT','APCHECK','COLLS','CRANES','GFAGNT','GYM','HJ','INTMAN','INTRO','MAIN','PLCHUTE','TRAINSL'])
   expect(scm.threads.map((thread:{name:string})=>thread.name)).toContain(name);
  // INTRO loaded its own block of mission text.
  expect(scm.missionText).toBe('INTRO1');

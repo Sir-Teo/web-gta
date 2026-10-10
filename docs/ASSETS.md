@@ -13,6 +13,7 @@ The playable world uses original native content from the inspected public datase
 | Native footstep banks | `scripts/content/feet-sources.json` and the published world resource manifest |
 | PC sound banks (GENRL, combat, event volumes) | `public/play/audio/banks.json`, `combat.json`, `eventvol.json`; packaged by `scripts/content/package-native-audio.mjs`, `package-combat-audio.mjs`, `package-eventvol.mjs` |
 | Banks, mission dialogue, pain cries, beat, ambience and emergency-channel tracks from the iOS port's bundle (github.com/Google61/gta3sa.app) | `public/play/audio/ios-banks.json`, `script/`, `pain/`, `streams/`; packaged by `scripts/content/package-ios-sound-banks.mjs`, `package-script-speech.mjs`, `package-stream-tracks.mjs` |
+| Cutscenes: `anim/cuts.img` (PC, from an archive.org copy of the install, hash in `scripts/content/cutscene-sources.json`); the cast's models from `models/cutscene.img` (noclip); the voices from the iOS bundle's `CUTSCENE.osw` | `public/play/cuts/` (only the cutscenes `cutscene-sources.json` lists), `public/play/world/cut/`, `public/play/audio/streams/track-626..766.mp3`; packaged by `tests/build-cutscenes.test.ts`, `tests/build-interior-archive.test.ts` and `scripts/content/package-stream-tracks.mjs` |
 | Touch widget art from the iOS port's texture database | `public/play/touch/widgets.png`; packaged by `scripts/content/touch-widgets.mjs` |
 | UnifrakturCook Bold | Google Fonts; bundled SIL Open Font License at `public/fonts/OFL.txt` |
 | HUD | Native sprites from `models/hud.txd` in the published world (`src/ui/nativeHudSprites.ts`) |
@@ -29,8 +30,10 @@ Checked against the iOS bundle at revision `67f70cb7`:
   byte for byte (line endings aside). `handling.cfg` differed in 18 flying rows (roll stabilisation tripled for the planes and the
   Sparrows, RUSTLER's vertical speed resistance 0 to 10, MAVERICK/POLMAV/RC helicopters' horizontal speed resistance
   raised to 1, RCRAIDER's `0.1s` typo fixed) and is now the iOS file.
-- Not published, by decision (1 GB Pages cap): radio stations, ped speech packs, `CUTSCENE.osw`.
-- Not in any source: the cutscene `.cut`/`.ifp` data for PROLOG and INTRO.
+- Not published, by decision (1 GB Pages cap): radio stations, ped speech packs, and the `CUTSCENE.osw` tracks of the
+  cutscenes not yet published.
+- The cutscenes' `.cut`, `.dat` and `.ifp` are in no iOS or noclip source; the PC `anim/cuts.img` comes from an archive.org
+  copy of the install (2026-10-10).
 - Open: `timecyc.dat` (what iOS loads, CTimeCycle::Initialise iOS 0x1002f5f68) differs from the published PC
   `timecycp.dat`. Its colour-correction alphas are 255 where PC has 127, but both store `uint8(a * 2)` = 254, so that
   difference is moot. Its rows have 51 fields: the directional multiplier local is set to 1.28 once before the loop
