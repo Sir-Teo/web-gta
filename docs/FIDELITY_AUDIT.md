@@ -11798,7 +11798,11 @@ PROLOG1, PROLOG3, INTRO1A, INTRO1B and INTRO2A.
   until the cast is made and its scene is in, START_CUTSCENE runs it until the camera's end (HasCutsceneFinished), and
   the skip button (left mouse, Enter or Space) finishes it (SkipCutscene). The cast: an object per model line from
   `cutscene.img` (published beside gta_int.img as the world's third archive; every cast member is a skinned clump bound
-  by bone tag), csplay CJ's own clothed body; SetupCutsceneToStart puts each at the offset raised by one with its clip
+  by bone tag), csplay CJ in his clothes as CClothes::RebuildCutscenePlayer builds him: ConstructPedModel with
+  bCutscenePlayer, the clothes on csplay's 61-bone skeleton (gta3.img) with PLAYER.IMG's cs_head and cs_hands in place of
+  head and hands (skinned to the face's 50xx bones and the thumbs'), so the clips move his face; on the 32-bone gameplay
+  body the clips' deltoid keys (301 and 302 hang from the upper arms in csplay, from the spine in player.dff) stood his
+  shoulders out like flaps. SetupCutsceneToStart puts each at the offset raised by one with its clip
   playing at ms_cutsceneTimerS. Update_overlay's text (CMessages::AddMessageJump, one line a frame when its time comes),
   the fade out over the last second, the preloaded voice (FindCutsceneAudioTrackId's table, iOS 0x1005b6930, the PC's
   151 entries; CAudioEngine::PreloadCutsceneTrack, played as the cast goes in). LoadCutSceneFile's extra colour (INTRO1A's
@@ -11808,7 +11812,9 @@ PROLOG1, PROLOG3, INTRO1A, INTRO1B and INTRO2A.
   script's own area change would have left him over the void). GET_CUTSCENE_TIME is GetCutsceneTimeInMilleseconds:
   whole seconds × 1000. A cutscene whose mission ends without clearing it is cleared as CLEAR_CUTSCENE would.
 - **Not yet.** The other 143 cutscenes still end as they start until they are published (about 90 MB of clips and 55 MB
-  of voices against the site's budget); csplay is the 32-bone gameplay body, so CJ's face does not move; a repeated
-  model slot's further clips, attachments, removals and particle effects are not played (none of the five has any).
-- Specs: `cutscene-data` (unit: the published files, the readers, the compression, the camera), `native-script-runtime`
+  of voices against the site's budget); a repeated model slot's further clips, attachments, removals and particle
+  effects are not played (none of the five has any); CJ's haircut and hats are the classic outfit's (the cs_ hair and
+  hat models are not packaged).
+- Specs: `cutscene-data` (unit: the published files, the readers, the compression, the camera), `player-base-body` (the
+  cutscene player's body), `native-script-runtime`
   and `script-speech` (the opening now plays PROLOG1 and PROLOG3).

@@ -3269,6 +3269,9 @@ async function boot() {
     scriptObjectViews:()=>scriptObjectViews,
     /** The mission itself, so a measurement can step it on its own and see what a frame of script costs. */
     missionForProfiling:()=>mission,
+    // The cutscene player: what is loaded, how far it has run, and the cast's skeletons (csplay's 62 frames, or the
+    // gameplay body's 33 without its cutscene files).
+    cutscene:()=>cutscenes&&{name:cutscenes.name,state:cutscenes.state,running:cutscenes.running,timeMs:Math.trunc(cutscenes.timerSeconds*1000),cast:cutscenes.castFrames(),error:cutscenes.error},
     /** CTimer::m_snTimeInMilliseconds as the game frames count it. */
     gameTimeMs:()=>gameTimeMs,
     /** The car recordings streamed so far, and the last failure. */
@@ -5499,11 +5502,22 @@ async function boot() {
                // CObjectData's physics for a script object CPhysical moves, as an uprooted prop takes them.
                scriptObjectViews.physicsOf=model=>{const values=objectDefValues(model);if(!values)return undefined;const air=values.airResistance??.99;return {turnMass:values.turnMass,elasticity:values.elasticity??0,damping:air>.1&&air<1?-50*Math.log(air):0};};
                scriptObjectViews.animation=(block,name)=>pedestrians?.scriptAnimation(block,name)??Promise.resolve(undefined);
-               // The cutscenes' player. csplay is CJ in the clothes the browser dresses him in, blended by his fat and muscle
-               // (CClothes::RebuildCutscenePlayer); his face's bones are not on that body, so its tracks are left alone.
-               cutscenes??=new CutscenePlayer(render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,new URL(`${import.meta.env.BASE_URL}play/`,location.href).href,async()=>{
+               // The cutscenes' player. csplay is CJ in the clothes the browser dresses him in, blended by his fat and muscle,
+               // on csplay's 61-bone skeleton with his cs_head and cs_hands (CClothes::RebuildCutscenePlayer), so the clips'
+               // face and thumbs move him; without those files, the gameplay body, the face's tracks left alone.
+               const worldBase=new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href;
+               cutscenes??=new CutscenePlayer(render.scene,worldBase,new URL(`${import.meta.env.BASE_URL}play/`,location.href).href,async()=>{
                 const body=playerBody;if(!body)return undefined;
-                const {readPlayerFiles}=await import('./assets/readPlayerFiles'),built=await readPlayerFiles(body.files,body.ratios,'classic');
+                const {readPlayerFiles}=await import('./assets/readPlayerFiles');
+                try{
+                 const [{openStaticWorld},{readImgEntry}]=await Promise.all([import('./assets/staticWorldArchive'),import('./assets/img')]);
+                 const world=await openStaticWorld(worldBase),entry=world.entry('csplay.dff');
+                 const parts=['cs_head.dff','cs_hands.dff'].map(name=>world.manifest.resources.find(r=>r.path===`player/${name}`));
+                 if(entry&&parts.every(r=>!!r)){
+                  const files=[new File([await readImgEntry(world.file,entry)],'csplay.dff'),...await Promise.all(parts.map(async r=>new File([await world.resource(r!)],r!.path.slice('player/'.length))))];
+                  const built=await readPlayerFiles([...body.files,...files],body.ratios,'classic',true);return {model:built.model,textures:built.textures};}
+                }catch(error){console.warn(`The cutscene player's body: ${String(error)}`);}
+                const built=await readPlayerFiles(body.files,body.ratios,'classic');
                 return {model:built.model,textures:built.textures};});
                // LoadCutSceneFile: the offset's scene (CStreaming::LoadScene) and the extra colour (StartExtraColour, or
                // StopExtraColour for a cutscene that names none).

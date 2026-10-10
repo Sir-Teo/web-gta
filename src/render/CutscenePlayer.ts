@@ -17,7 +17,7 @@ import { FlyByCamera } from '../engine/nativeFlyByCamera';
  * clips running (SetupCutsceneToStart); each frame the timer moves the clips and the text on (Update_overlay). */
 export interface CutsceneCastSource { model: DffModel; textures: ModelTexture[] }
 interface Published { cut: { file: string }; dat: { file: string }; ifp: { file: string }; track?: number }
-interface CastMember { group: Group; dispose(): void; sample?(seconds: number): void }
+interface CastMember { model: string; frames: number; group: Group; dispose(): void; sample?(seconds: number): void }
 /** Update_overlay's fade: the camera fades out over the last second (g_bCutSceneFinishing). */
 const FINISH_FADE_MS = 1000;
 export type CutsceneState = 'none' | 'loading' | 'loaded' | 'failed';
@@ -111,7 +111,7 @@ export class CutscenePlayer {
   // A clip's tracks for frames the model has not (csplay's face on the 32-bone body) are left alone, as
   // RpAnimBlendClumpInit finds no node for them.
   const binding = clip ? bindAnimation(asset.model, built.root, withoutForeignTracks(asset.model, clip)) : undefined;
-  return { group, dispose: () => { group.removeFromParent(); built.dispose(); }, sample: binding ? seconds => { binding.sample(seconds, false); } : undefined };
+  return { model: name, frames: asset.model.frames.length, group, dispose: () => { group.removeFromParent(); built.dispose(); }, sample: binding ? seconds => { binding.sample(seconds, false); } : undefined };
  }
  /** CCutsceneMgr::StartCutscene: the camera takes the spline from the offset; the cast goes in on the next update. */
  start() {
@@ -160,6 +160,8 @@ export class CutscenePlayer {
   this.state = 'none'; this.name = undefined; this.definition = undefined; this.paths = undefined; this.camera = undefined;
   this.running = false; this.starting = false; this.timerSeconds = 0; this.textIndex = 0; this.finishing = false; this.track = -1;
  }
+ /** Each cast member's model and its frame count, for the dev hook. */
+ castFrames() { return this.cast.map(member => `${member.model}:${member.frames}`); }
  /** The manifest, for a host that wants to know before it asks. */
  whenReady() { return this.ready; }
  dispose() { this.clear(); }

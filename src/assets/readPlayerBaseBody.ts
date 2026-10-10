@@ -8,11 +8,14 @@ import {blendPlayerGeometry,blendPlayerTextures,type PlayerBodyRatios} from './b
 export const PLAYER_BASE_FILES=['player.dff',...PLAYER_BODY_PARTS.map(name=>`${name}.dff`),
  'player_torso.txd','player_face.txd','player_legs.txd','player_feet.txd'] as const;
 export const PLAYER_CLASSIC_FILES=[...PLAYER_BASE_FILES,'vest.dff','vest.txd','jeans.dff','jeansdenim.txd','sneaker.dff','sneakerbincblk.txd'] as const;
+/** The cutscene player's own parts (CClothes::RebuildCutscenePlayer, ConstructPedModel with bCutscenePlayer): PLAYER.IMG's
+ * cs_head and cs_hands, skinned to the face's and thumbs' bones, on csplay's 61-bone skeleton (gta3.img). */
+export const PLAYER_CUTSCENE_FILES=['csplay.dff','cs_head.dff','cs_hands.dff'] as const;
 export type PlayerBodyVariant='normal'|'fat'|'ripped';
 /** Read native body variants with acquired vest, jeans and sneaker options: one of the three bodies whole, or the
  * three blended by CClothesBuilder's ratios (`blendPlayerBody.ts`), skin textures and all. Other clothing slots remain
  * a separate step. */
-export function readPlayerBaseBody(files:ReadonlyMap<string,Uint8Array>,variant:PlayerBodyVariant|PlayerBodyRatios='normal',outfit:'bare'|'vest'|'classic'='bare'){
+export function readPlayerBaseBody(files:ReadonlyMap<string,Uint8Array>,variant:PlayerBodyVariant|PlayerBodyRatios='normal',outfit:'bare'|'vest'|'classic'='bare',cutscene=false){
  const ratios=typeof variant==='object'?variant:undefined;
  requireAsset(!ratios||[ratios.normal,ratios.fat,ratios.ripped].every(r=>Number.isFinite(r)&&r>=0&&r<=1),'Invalid player body ratios.');
  const clump=ratios?2:{normal:2,fat:1,ripped:0}[variant as PlayerBodyVariant];
@@ -28,12 +31,14 @@ export function readPlayerBaseBody(files:ReadonlyMap<string,Uint8Array>,variant:
   model.geometries[model.atomics[0].geometry]=blendPlayerGeometry(body(model),fat,ripped,ratios);
   return model;
  };
- const parts=Object.fromEntries(PLAYER_BODY_PARTS.map(name=>[name,read(`${name}.dff`)])) as Record<PlayerBodyPart,ReturnType<typeof readDff>>;
+ // The cutscene player's head and hands are their cs_ models (CClothesBuilder::PreprocessClothesDesc with bCutscenePlayer).
+ const partFile=(name:PlayerBodyPart)=>cutscene&&(name==='head'||name==='hands')?`cs_${name}.dff`:`${name}.dff`;
+ const parts=Object.fromEntries(PLAYER_BODY_PARTS.map(name=>[name,read(partFile(name))])) as Record<PlayerBodyPart,ReturnType<typeof readDff>>;
  if(outfit!=='bare')parts.torso=read('vest.dff');
  if(outfit==='classic'){parts.legs=read('jeans.dff');parts.feet=read('sneaker.dff');}
  const suffix=ratios||variant==='normal'?'':`_${variant}`;
  const bindings={torso:`torso${suffix}`,head:'face',hands:`torso${suffix}`,legs:`legs${suffix}`,feet:'foot'};
- const model=assemblePlayerBody(readDff(bytes('player.dff')),parts,bindings);
+ const model=assemblePlayerBody(readDff(bytes(cutscene?'csplay.dff':'player.dff')),parts,bindings);
  if(!ratios)model.warnings.push('One body whole: stat blending is not applied.');
  const slots=[['player_torso.txd',bindings.torso],['player_face.txd',bindings.head],
   ['player_legs.txd',bindings.legs],['player_feet.txd',bindings.feet]];
