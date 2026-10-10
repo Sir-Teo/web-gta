@@ -10,11 +10,12 @@ export interface AnimationTrack {
   translations?: Float32Array;
 }
 export interface NativeAnimation { name: string; flags: number; duration: number; tracks: AnimationTrack[] }
-export interface AnimationPackage { format: 'ANP2' | 'ANP3'; name: string; animations: NativeAnimation[] }
-/** PC ANP2/ANP3 only. No axes or skeleton conventions are silently changed here. */
+export interface AnimationPackage { format: 'ANP2' | 'ANP3' | 'ANPK'; name: string; animations: NativeAnimation[] }
+/** PC ANP2/ANP3, and the older ANPK the cutscenes' clips use. No axes or skeleton conventions are silently changed here. */
 export function readIfp(bytes: Uint8Array): AnimationPackage {
   requireAsset(bytes.length <= 64 * 1024 * 1024, 'IFP exceeds 64 MiB.');
   const input = new BinaryReader(bytes), format = input.name(4);
+  if (format === 'ANPK') return readAnpk(bytes);
   requireAsset(format === 'ANP2' || format === 'ANP3', 'Unsupported IFP format; expected ANP2 or ANP3.');
   const size = input.u32();
   const r = new BinaryReader(input.take(size));
@@ -51,12 +52,18 @@ export function readIfp(bytes: Uint8Array): AnimationPackage {
       for (let f = 0; f < frames; f++) {
         for (let q = 0; q < 4; q++) rotations[f * 4 + q] = compressed ? short() / 4096 : float();
         const norm = Math.hypot(rotations[f * 4], rotations[f * 4 + 1], rotations[f * 4 + 2], rotations[f * 4 + 3]);
-        requireAsset(norm > 1e-6 && norm < 2, 'Invalid IFP quaternion.');
+        // Any finite rotation is kept, as the loader keeps it: PROLOG1's csplay has zero ones and a corrupt band of keys,
+        // and a compressed one can reach 8 a component once its store wraps. Sampling normalizes.
+        requireAsset(Number.isFinite(norm), 'Invalid IFP quaternion.');
         const time = Math.fround(compressed ? short() / 60 : float());
-        requireAsset(time >= 0 && time <= 86400 && (!f || time >= times[f - 1]), 'Invalid or decreasing IFP timestamp.'); times[f] = time;
+        // A key timed before the one ahead of it is held at that one's time: the loader's deltas make it a negative
+        // step the sequence passes in an instant (PROLOG3's cshandcuff steps back 18 ms four times, PROLOG1's csplay a
+        // float's noise), and sampling needs the times in order.
+        requireAsset(time >= 0 && time <= 86400, 'Invalid IFP timestamp.'); times[f] = f ? Math.max(time, times[f - 1]) : time;
         if (translations) for (let axis = 0; axis < 3; axis++) {
           const value = compressed ? short() / 1024 : float();
-          requireAsset(Math.abs(value) <= 1e7, 'IFP translation exceeds coordinate limit.'); translations[f * 3 + axis] = value;
+          // Finite is all the loader asks: PROLOG1's clips carry a corrupt band of keys at 22.333 s (1e29 and the like).
+          requireAsset(Number.isFinite(value), 'IFP translation is not finite.'); translations[f * 3 + axis] = value;
         }
       }
       r.position = at;
@@ -79,4 +86,54 @@ export function resolveTrackBones(clip:NativeAnimation,pack:AnimationPackage):Na
  for(const c of pack.animations)for(const t of c.tracks)if(t.boneId>=0){const name=t.name.trim().toLowerCase();if(!names.has(name))names.set(name,new Set());names.get(name)!.add(t.boneId);}
  const aliases:Record<string,string>={'r fingers':'r finger','l fingers':'l finger','root l finger01':'l finger01','root r finger01':'r finger01'};
  return {...clip,tracks:clip.tracks.map(t=>{if(t.boneId>=0)return t;const name=t.name.trim().toLowerCase(),ids=names.get(aliases[name]??name);if(ids?.size!==1)throw new Error(`Unresolved animation bone: ${t.name}.`);return {...t,boneId:[...ids][0]};})};
+}
+
+/** ANPK (CAnimManager::LoadAnimFile_ANPK, gta-reversed AnimManager.cpp from 0x4D4863): chunks of a four-letter id and a
+ * length rounded up to four. INFO (count, block name), then per clip NAME, DGAN, INFO (sequence count) and per sequence
+ * CPAN, ANIM (a 28-byte name, the frame count, next and previous, and a bone tag when the chunk is 44 bytes) and the
+ * keys: KR00 (rotation), KRT0 (and translation) or KRTS (and a scale, skipped), each followed by its time. The loader
+ * conjugates every rotation, so the tracks here hold the engine's rotations, as ANP3's do. A sequence with no frames
+ * binds nothing and is left out. */
+function readAnpk(bytes: Uint8Array): AnimationPackage {
+  // A non-finite value reads as 0, as the compressing load stores it (fcvtzs of a NaN): PROLOG1 has one garbage key in
+  // a toe of csplay's and of csstew's clips.
+  const r = new BinaryReader(bytes), round = (n: number) => n + (4 - n % 4) % 4;
+  const chunk = (id?: string) => { const name = r.name(4), size = r.u32(); requireAsset(!id || name === id, `Expected IFP chunk ${id}.`); return { name, size }; };
+  r.sanitizeNonFinite = true;
+  const outer = chunk('ANPK');requireAsset(8 + outer.size <= bytes.length, 'Truncated IFP package.');
+  const info = chunk('INFO'), infoStart = r.position, count = r.u32(), name = r.name(Math.max(0, info.size - 4));r.position = infoStart + round(info.size);
+  requireAsset(count <= 2048, 'IFP exceeds 2048 animations.');
+  const animations: NativeAnimation[] = [], names = new Set<string>();let totalFrames = 0;
+  for (let a = 0; a < count; a++) {
+    const named = chunk('NAME'), nameStart = r.position, clipName = r.name(named.size);r.position = nameStart + round(named.size);
+    const key = clipName.toLowerCase();requireAsset(clipName.length && !names.has(key), 'Empty or duplicate IFP animation name.');names.add(key);
+    chunk('DGAN');
+    const seqInfo = chunk('INFO'), seqStart = r.position, sequences = r.u32();r.position = seqStart + round(seqInfo.size);
+    requireAsset(sequences <= 512, 'IFP track budget exceeded.');
+    const tracks: AnimationTrack[] = [];let duration = 0;
+    for (let t = 0; t < sequences; t++) {
+      chunk('CPAN');
+      const anim = chunk('ANIM'), animStart = r.position, trackName = r.name(28), frames = r.u32();r.u32();r.u32();
+      const boneId = anim.size >= 44 ? r.i32() : -1;r.position = animStart + round(anim.size);
+      if (!frames) continue;
+      const keys = chunk(), translated = keys.name[2] === 'T', scaled = keys.name[3] === 'S';
+      requireAsset(['KR00', 'KRT0', 'KRTS'].includes(keys.name), 'Unsupported IFP keyframe chunk.');
+      const stride = 20 + (translated ? 12 : 0) + (scaled ? 12 : 0);
+      requireAsset(frames * stride <= keys.size, 'Truncated IFP keyframes.');
+      totalFrames += frames;requireAsset(totalFrames <= 4_000_000, 'IFP exceeds four million keyframes.');
+      const keysStart = r.position, times = new Float32Array(frames), rotations = new Float32Array(frames * 4), translations = translated ? new Float32Array(frames * 3) : undefined;
+      for (let f = 0; f < frames; f++) {
+        const x = r.f32(), y = r.f32(), z = r.f32(), w = r.f32();
+        rotations.set([-x, -y, -z, w], f * 4);
+        if (translations) { translations[f * 3] = r.f32(); translations[f * 3 + 1] = r.f32(); translations[f * 3 + 2] = r.f32(); }
+        if (scaled) r.position += 12;
+        const time = Math.fround(r.f32());requireAsset(time >= 0 && time <= 86400, 'Invalid IFP timestamp.');times[f] = f ? Math.max(time, times[f - 1]) : time;
+      }
+      r.position = keysStart + round(keys.size);
+      duration = Math.max(duration, times[frames - 1]);
+      tracks.push({ name: trackName, boneId, frameType: translated ? 2 : 1, times, rotations, translations });
+    }
+    animations.push({ name: clipName, flags: 0, duration, tracks });
+  }
+  return { format: 'ANPK', name, animations };
 }

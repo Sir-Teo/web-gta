@@ -988,6 +988,13 @@
       "bytes": 150024192,
       "sha256": "b54a61ddbcd3914d309e951ba87534bad569a505f38e7936dd5bfde7266d2591",
       "base": "int/"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/cutscene.img",
+      "path": "cutscene.img",
+      "bytes": 26947584,
+      "sha256": "e065f1b47ec81736e19762d1fa50ae207e51f782acb74778b80efba931092643",
+      "base": "cut/"
     }
   ]
 }

@@ -1,0 +1,10 @@
+{
+  "note": "ANIM\\CUTS.IMG is not in the published depot (noclip answers 404 under anim/) nor in the iOS bundle's repository. This copy is the PC install's, served out of a user-uploaded archive.org zip of unknown provenance (2024-03); its 444 entries are a .cut, .dat and .ifp for each of 148 cutscenes, every one of main.scm's 135 LOAD_CUTSCENE names among them. Only the cutscenes listed in `published` are packaged (tests/build-cutscenes.test.ts). The voices are the iOS bundle's CUTSCENE.osw, packaged by package-stream-tracks.mjs for the same list.",
+  "cutsImg": {
+    "url": "https://archive.org/download/gta-san-andreas-full-game/GTA%20San%20Andreas%20full%20game.zip/GTA%20San%20Andreas%2Fanim%2Fcuts.img",
+    "path": "cuts.img",
+    "bytes": 270096384,
+    "sha256": "28d9b9002ac5479106c06ce0fc390120f24e0ac2a2395517badbcbd0adf502cb"
+  },
+  "published": ["prolog1", "prolog3", "intro1a", "intro1b", "intro2a"]
+}

@@ -1,0 +1,28 @@
+info
+offset 2469.22 -1697.03 1012.51
+end
+model
+1, Cs9MM, Cs9MM
+1, CsCigRydr3, CsCigRydr3
+1, csplay, csplay
+1, csryder, csryder
+end
+extracol
+12
+end
+text
+3437,928,INT2a02
+5117,1949,INT2a03
+7248,2250,INT2a04
+9984,1666,INT2a05
+11930,3368,INT2a99
+15872,1413,INT2a06
+17794,2394,INT2a07
+20469,2192,INT2a08
+22869,1717,INT2a09
+25861,1336,INT2a10
+30421,3754,INT2a11
+end
+peffect
+cigarette_smoke,0,-1,2,3,0.0,0.0,0.0,0.0,0.0,-1.0
+end

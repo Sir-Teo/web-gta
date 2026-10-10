@@ -1,0 +1,54 @@
+info
+offset 912.140015 -1060.410034 24.392000
+end
+model
+1, csflower, csflower
+1, cskendl, cskendl
+1, csplay, csplay
+1, csryder, csryder
+1, cssmoke, cssmoke
+1, cssweet, cssweet
+end
+text
+2775,4500,INT1b25
+10012,2920,INT1b00
+12733,2258,INT1b26
+19704,1737,INT1b01
+22600,3495,INT1b02
+26883,1312,INT1b03
+28191,1954,INT1b04
+31016,1479,INT1b05
+32116,2620,INT1b06
+34641,1091,INT1b07
+35883,3704,INT1b08
+38545,2066,INT1b09
+40441,1275,INT1b10
+41412,3000,INT1b11
+44508,2200,INT1b13
+46770,1632,INT1b15
+48029,1170,INT1b16
+49270,1641,INT1b17
+50537,920,INT1b18
+51720,2420,INT1b29
+53975,3137,INT1b19
+57458,766,INT1b20
+59600,1750,INT1b21
+62745,4587,INT1b22
+68008,2691,INT1b23
+71258,5183,INT1b24
+end
+uncompress
+end
+motion
+range off
+quick off
+csFlowers:root(tag0),0
+cskendl_x:Root,1
+csplay_x:root,1
+csryder_x:root,1
+cssmoke_x:root,1
+cssweet_x:root,1
+end
+
+
+

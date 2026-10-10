@@ -42,16 +42,19 @@ test('reader rejects every truncated prefix and tolerates only zero archive padd
   padded[2047] = 1; expect(() => readIfp(padded)).toThrow('after IFP');
 });
 test('reader rejects unsupported types, count overflow, compression mismatch and bad keyframe size', () => {
-  expect(() => readIfp(mutate((_, b) => b.set(new TextEncoder().encode('ANPK'))))).toThrow('Unsupported IFP');
+  expect(() => readIfp(mutate((_, b) => b.set(new TextEncoder().encode('ANPX'))))).toThrow('Unsupported IFP');
   expect(() => readIfp(mutate(v => v.setUint32(32, 0xffffffff, true)))).toThrow('2048');
   expect(() => readIfp(mutate(v => v.setUint32(96, 5, true)))).toThrow('keyframe type');
   expect(() => readIfp(mutate(v => v.setUint32(100, 0xffffffff, true)))).toThrow('million');
   expect(() => readIfp(mutate(v => v.setUint32(68, 0, true)))).toThrow('compression flag');
   expect(() => readIfp(mutate(v => v.setUint32(64, 1, true)))).toThrow('byte count');
 });
-test('reader rejects zero quaternions, reversed time and invalid bone IDs', () => {
-  expect(() => readIfp(mutate((_, b) => b.fill(0, 108, 116)))).toThrow('quaternion');
-  expect(() => readIfp(mutate(v => v.setInt16(148, 30, true)))).toThrow('timestamp');
+test('reader keeps a zero quaternion, holds a key timed before its predecessor at that time, and rejects invalid bone IDs', () => {
+  // The loader keeps both as they are (PROLOG1's csplay has zero rotations, PROLOG3's cshandcuff steps back 18 ms):
+  // sampling normalizes a zero rotation to none, and the times stay in order for it.
+  expect([...readIfp(mutate((_, b) => b.fill(0, 108, 116))).animations[0].tracks[0].rotations.subarray(0, 4)]).toEqual([0, 0, 0, 0]);
+  const held = readIfp(mutate(v => v.setInt16(148, 30, true))).animations[0].tracks[0].times;
+  expect([...held]).toEqual([0, 1, 1]);
   expect(() => readIfp(mutate(v => v.setInt32(104, -2, true)))).toThrow('bone ID');
 });
 test('standalone and selected IMG animation reads preserve the same package and source label', async () => {

@@ -1,0 +1,41 @@
+info
+offset 2496.729980 -1691.670044 1013.760010
+end
+model
+1, csbat, csbat
+1, csframe, csframe
+1, csmomchair, csmomchair
+1, csplay, csplay
+1, cssmoke, cssmoke
+end
+extracol
+12
+end
+text
+19580,4026,INT1a17
+25343,1761,INT1a02
+29490,1774,INT1a03
+46799,1610,INT1a05
+49441,2598,INT1a06
+53613,9003,INT1a07
+62793,2453,INT1a08
+66599,1718,INT1a09
+68720,3293,INT1a10
+72819,1554,INT1a11
+75005,3784,INT1a12
+80344,931,INT1a13
+81536,3573,INT1a14
+86107,2209,INT1a15
+88527,2743,INT1a16
+end
+uncompress
+end
+motion
+range on 79.000000 3100.000000
+quick off
+csbat:Root(tag0),1
+csframe:Root(tag0),2
+csmomchair:Root(tag0),1
+csplay_x:root,1
+cssmoke_x:root,1
+end

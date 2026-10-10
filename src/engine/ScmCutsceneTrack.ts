@@ -10,6 +10,33 @@ const S0=0,S1=1,S2=2,PLAYING=3,STOP_REQUESTED=4,S5=5,S6=6,S7=7,S8=8;
 const TRACK_READY=-2,TRACK_STOPPED=-6;
 /** gBeatTrackLookup (0x8AE538), read from the iOS port's executable: a beat track's number to its stream track. */
 export const BEAT_TRACK_LOOKUP:readonly number[]=[180,175,178,179,178,175,175,175,175,176,184,183,182,181];
+/** FindCutsceneAudioTrackId's table (iOS 0x1005b6930, the PC's 0x8D0AA8): a cutscene's stream track, its name compared
+ * without case. The finale has none (CCutsceneMgr::IsPlayingCSTheFinale skips the preload). */
+const CUTSCENE_AUDIO_TRACKS:readonly (readonly [string,number])[]=[
+ ['BCESAR2',626],['BCESAR4',627],['BCESA4W',628],['BCESAR5',629],['BCESA5W',630],['BCRAS1',631],['BCRAS2',632],
+ ['BHILL1',633],['BHILL2',634],['BHILL3a',635],['BHILL3b',636],['BHILL3c',637],['BHILL5a',638],['BHILL5b',639],
+ ['CAS_1a',640],['CAS_1b',642],['CAS_2',643],['CAS_3',644],['CAS_4a',645],['CAS_4b',646],['CAS_4c',647],
+ ['CAS_5a',648],['CAS_6a',649],['CAS6b_1',650],['CAS6b_2',651],['CAS_7b',652],['CAS_9a1',653],['CAS_9a2',654],
+ ['CAS_11a',641],['CAT_1',655],['CAT_2',656],['CAT_3',657],['CAT_4',658],['CESAR1A',659],['CESAR2A',660],
+ ['CRASH1A',661],['CRASH2A',662],['CRASH3A',663],['CRASHV1',664],['CRASv2a',665],['CRASv2b',666],['D10_ALT',667],
+ ['D8_ALT',668],['DESERT1',671],['DESERT2',672],['DESERT3',673],['DESERT4',674],['DESERT6',675],['DESERT8',676],
+ ['DESERT9',677],['DES_10A',678],['DES_10B',679],['DOC_2',680],['EPILOG',681],['FARL_2A',682],['FARL_3A',683],
+ ['FARL_3B',684],['FARL_4A',685],['FARL_5A',686],['FINAL1A',687],['FINAL2A',688],['FINAL2B',689],['GARAG1B',690],
+ ['GARAG1C',691],['GARAG3A',692],['GROVE1a',693],['GROVE1b',694],['GROVE1c',695],['GROVE2',696],['HEIST1a',697],
+ ['HEIST2a',698],['HEIST4a',699],['HEIST5a',700],['HEIST6a',701],['HEIST8a',702],['INTRO1A',703],['INTRO1B',704],
+ ['INTRO2A',705],['PROLOG1',706],['PROLOG2',707],['PROLOG3',708],['RIOT_1a',709],['RIOT_1b',710],['RIOT_2',711],
+ ['RIOT_4a',712],['RIOT_4b',713],['RIOT_4c',714],['RIOT_4d',715],['RIOT4e1',716],['RIOT4e2',717],['RYDER1A',718],
+ ['RYDER2A',719],['RYDER3A',720],['SCRASH1',721],['SCRASH2',722],['SMOKE1A',723],['SMOKE1B',724],['SMOKE2A',725],
+ ['SMOKE2B',726],['SMOKE3A',727],['SMOKE4A',728],['STEAL_1',729],['STEAL_2',730],['STEAL_4',731],['STEAL_5',732],
+ ['STRAP1A',733],['STRAP2A',734],['STRAP3A',735],['STRAP4A',736],['STRP4B1',737],['STRP4B2',738],['SWEET1A',739],
+ ['SWEET1B',740],['SWEET1C',741],['SWEET2A',742],['SWEET2B',743],['SWEET3A',744],['SWEET3B',745],['SWEET4A',746],
+ ['SWEET5A',747],['SWEET6A',748],['SWEET6B',749],['SWEET7A',750],['SYND_2A',751],['SYND_2B',752],['SYND_3A',753],
+ ['SYND_4A',754],['SYND_4B',755],['SYND_7',756],['TRUTH_1',758],['TRUTH_2',757],['W2_ALT',759],['WOOZI1A',761],
+ ['WOOZI1B',762],['WOOZIE2',760],['WOOZIE4',763],['ZERO_1',764],['ZERO_2',765],['ZERO_4',766],['DATE1a',670],
+ ['DATE1b',669],['DATE2a',670],['DATE2b',669],['DATE3a',670],['DATE3b',669],['DATE4a',670],['DATE4b',669],
+ ['DATE5a',670],['DATE5b',669],['DATE6a',670],['DATE6b',669]];
+/** FindCutsceneAudioTrackId (gta-reversed CutsceneMgr.cpp 0x5AFA50): -1 for a cutscene with no track. */
+export function findCutsceneAudioTrackId(name:string){const key=name.toLowerCase();return CUTSCENE_AUDIO_TRACKS.find(([n])=>n.toLowerCase()===key)?.[1]??-1;}
 /** tTrackInfo::tBeat: a beat's time into the track in ms and its key (the dance's arrows, the lowrider's moves). */
 export type TrackBeat=readonly [time:number,key:number];
 /** The stream a host plays the tracks on: it loads a track (resolving with its beats and length, or nothing when it
@@ -56,6 +83,8 @@ export class ScmCutsceneTrack {
  /** CAudioEngine::PreloadBeatTrack: the radio or the ambience stops, then CAECutsceneTrackManager::PreloadBeatTrack
   * through gBeatTrackLookup, and PreloadCutsceneTrack without waiting. */
  preloadBeatTrack(beat:number){this.audio?.stopForTrack();this.trackId=BEAT_TRACK_LOOKUP[beat]??-1;this.status=S0;this.audio?.holdAmbience?.();}
+ /** CAudioEngine::PreloadCutsceneTrack: as a beat track's, with the cutscene's stream track itself. */
+ preloadCutsceneTrack(track:number){this.audio?.stopForTrack();this.trackId=track;this.status=S0;this.audio?.holdAmbience?.();}
  /** PlayPreloadedBeatTrack(missionComplete): PlayPreloadedCutsceneTrack. */
  play(missionComplete=false){this.playRequest=true;this.paused=false;this.missionComplete=missionComplete;}
  /** StopBeatTrack: StopCutsceneTrack(true), which waits the track out and brings the radio back. */

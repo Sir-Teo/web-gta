@@ -1,0 +1,57 @@
+info
+offset 2484.087891 -1722.250000 12.620000
+end
+model
+1, cs9mm, cs9mm-1
+1, cs9mm, cs9mm-2
+1, cscopcarla92, cscopcarla92
+1, csgizmo, csgizmo
+1, cshandcuff, cshandcuff
+1, cshernandez, cshernandez
+1, csmoneystck, csmoneystck
+1, csplay, csplay
+1, cspulaski, cspulaski
+1, cstaxi92, cstaxi92
+1, cstenpenny, cstenpenny
+end
+text
+8154,1897,PRO@09
+14629,3060,PRO@53
+20271,1198,PRO@54
+23263,1149,PRO@70
+32924,1322,PRO@58
+34251,2011,PRO@57
+36774,1611,PRO@16
+38750,877,PRO@59
+39632,2355,PRO@18
+45014,2875,PRO@15
+49326,2341,PRO@17
+51734,1540,PRO@19
+53364,1899,PRO@20
+56556,782,PRO@22
+58287,1304,PRO@60
+63525,601,PRO@61
+64502,1145,PRO@63
+66596,1782,PRO@23
+68996,1203,PRO@65
+71170,967,PRO@66
+72712,2608,PRO@67
+end
+uncompress
+cstaxi92
+end
+motion
+range on 500.000000 2900.000000
+quick off
+Cs9MM_hern:Root(tag0),2
+Cs9MM_Pul:Root(tag0),2
+cscopcarla:copcarla,0
+csgizmo:DummyRoot,0
+cshandcuff:DummyRoot,0
+cshernandez:root,1
+csmoneystck:Dummy01,0
+csplay_x:root,1
+cspulaski_x:Root,1
+cstaxi92:taxi,4
+cstenpenny_x:root,1
+end
