@@ -3269,6 +3269,8 @@ async function boot() {
     scriptObjectViews:()=>scriptObjectViews,
     /** The mission itself, so a measurement can step it on its own and see what a frame of script costs. */
     missionForProfiling:()=>mission,
+    /** CCutsceneMgr::SkipCutscene on a running cutscene, as the skip button does (the mission sweep's). */
+    skipCutscene:()=>{if(cutscenes?.running)cutscenes.skip();},
     // The cutscene player: what is loaded, how far it has run, and the cast's skeletons (csplay's 62 frames, or the
     // gameplay body's 33 without its cutscene files).
     cutscene:()=>cutscenes&&{name:cutscenes.name,state:cutscenes.state,running:cutscenes.running,timeMs:Math.trunc(cutscenes.timerSeconds*1000),cast:cutscenes.castFrames(),error:cutscenes.error},

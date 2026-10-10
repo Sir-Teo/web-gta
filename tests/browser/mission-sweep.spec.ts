@@ -11,8 +11,7 @@ import {missionBotTick} from './missionBot';
  * Each mission is started as MAIN would start it (LOAD_AND_LAUNCH_MISSION_INTERNAL) from free roam at Grove Street.
  * An autopilot stands in for the player where it can: while the mission thread waits in a loop on a locate or
  * area test with literal coordinates, CJ is put at the point, and while it waits for him in a car it names he is
- * put in it; he is kept alive and unwanted; cutscenes end at once
- * already. It cannot drive a chase, win a fight or pick a menu item, so a mission it cannot finish is reported with
+ * put in it; he is kept alive and unwanted; a cutscene that plays is skipped as the player's skip button would. It cannot drive a chase, win a fight or pick a menu item, so a mission it cannot finish is reported with
  * the instruction it was waiting on. What the report proves is where the port stops a mission (a command it gave up
  * on, a thread error, a page error), not that a mission plays as the original does.
  *
@@ -106,6 +105,8 @@ test('mission sweep',async({page})=>{
       return original.apply(this,args);};}
     // Keep CJ alive and out of trouble.
     try{r.world.setPedHealth(1,100);}catch{}g.setWantedLevel(0);
+    // A published cutscene plays: skipped, as the player's skip button would (SkipCutscene), so a sweep is not minutes of them.
+    if(r.game.cutscene.running)g.skipCutscene?.();
     // The autopilot. Its candidates are the locate and area tests with literal coordinates round where the thread
     // waits, nearest ahead first; while the thread stays put it moves on to the next every fifteen seconds, since
     // the loop's own exit test and the triggers inside it look alike from here.
