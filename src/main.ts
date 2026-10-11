@@ -825,6 +825,8 @@ async function boot() {
   animation:(file,name)=>pedestrians?.scriptAnimation(file,name)??Promise.resolve(undefined),
   duck:crouch=>{sim.setCrouched(crouch);},
   mobilePhone:start=>{phoneFor('player').use(start);},
+  planNodeRoute:(feet,target,options)=>pedestrians?.planNodeRouteFrom(feet,target,options as never),
+  groundUnder:(x,z,top)=>pedestrians?.groundUnder(x,z,top),
   // The ped's origin, where CTaskSimpleUseGun's target entity stands.
   pedPoint:handle=>{try{const p=mission?.runtime.world?.pedPosition?.(handle);return p&&{x:p.x,y:p.z,z:-p.y};}catch{return undefined;}},
   aimAt:point=>{scriptAim=point&&new Vector3(point.x,point.y,point.z);},

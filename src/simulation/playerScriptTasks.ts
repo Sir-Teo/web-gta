@@ -2,6 +2,7 @@ import type {NativeAnimation} from '../assets/ifp';
 import {PED_ORIGIN_HEIGHT} from './nativeSwim';
 import {achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {NATIVE_PLAYER_HEADING_CHANGE_RATE} from './nativePlayerLocomotion';
+import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARGET_TOLERANCE} from './nativeFollowNodeRoute';
 
 /* The tasks a script gives the player's own ped (scplayer): CPedIntelligence's primary task, run instead of
  * CTaskSimplePlayerOnFoot while it lasts. The missions mostly do this with SET_PLAYER_CONTROL off, walking CJ to a
@@ -24,6 +25,8 @@ type Running=
  /** CTaskSimpleUseGun aiming at a point (renderer coordinates), or at a script ped where it stands each frame, for
   * the seconds left. */
  |{kind:'gunAt';point:{x:number;y:number;z:number};target?:number;remaining:number}
+ /** CTaskComplexFollowNodeRoute: the planned points (renderer coordinates) one after another to the target. */
+ |{kind:'followNodeRoute';target:{x:number;y:number;z:number};points:{x:number;y:number;z:number}[];nodes:readonly unknown[];at:number;lastIsTarget:boolean;moveState:number;remaining:number;tolerance:number}
  /** CTaskComplexUseMobilePhone as his primary task: on the call until TASK_USE_MOBILE_PHONE stops it. */
  |{kind:'mobilePhone'};
 
@@ -65,6 +68,11 @@ export interface PlayerTaskWorld{
  endCarTask?():void;
  /** CTaskComplexUseMobilePhone on the player: the phone comes out (PlayerPhone), as TASK_USE_MOBILE_PHONE's own does. */
  mobilePhone?(start:boolean):void;
+ /** CTaskComplexFollowNodeRoute's ComputePathNodes and ComputeRoute from his feet to the target (renderer
+  * coordinates), as a script ped's route is planned; `currentNode` resumes past the last one reached. */
+ planNodeRoute?(feet:{x:number;y:number;z:number},target:{x:number;y:number;z:number},options:{keepNodesHeadingAway?:boolean;currentNode?:never}):{points:{x:number;y:number;z:number}[];nodes:readonly unknown[];lastIsTarget:boolean;resumeAt:number}|undefined;
+ /** The ground's height under a point (renderer coordinates), looked for down from `top`. */
+ groundUnder?(x:number,z:number,top:number):number|undefined;
  /** Where a script ped's handle stands (renderer coordinates), for a task aimed at him; none once he is gone. */
  pedPoint?(handle:number):{x:number;y:number;z:number}|undefined;
  /** TASK_AIM_GUN_AT_COORD on the player: his weapon aims at the point (renderer coordinates) until undefined. */
@@ -103,7 +111,7 @@ export class PlayerScriptTasks{
  /** The kinds the player can carry out; anything else the thread gives up on. */
  static runs(order:ScriptedPedOrder){return order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim'||order.kind==='lookAt'||order.kind==='clearLookAt'||order.kind==='followRoute'||order.kind==='duck'&&order.seconds===undefined||
   order.kind==='enterCar'&&order.seat==='driver'||order.kind==='leaveCar'||order.kind==='carTempAction'||order.kind==='carDriveToCoord'||
-  order.kind==='lookAtPoint'||order.kind==='die'||order.kind==='diveAndGetUp'||order.kind==='mobilePhone'||order.kind==='gunAt'&&(!!order.point||order.target!==undefined)&&!order.fire;}
+  order.kind==='lookAtPoint'||order.kind==='die'||order.kind==='diveAndGetUp'||order.kind==='mobilePhone'||order.kind==='followNodeRoute'||order.kind==='gunAt'&&(!!order.point||order.target!==undefined)&&!order.fire;}
  /** Whether a task of the script's runs on the player (GET_SCRIPT_TASK_STATUS). */
  get active(){return !!(this.running||this.sequence);}
  /** A TASK_PLAY_ANIM_NON_INTERRUPTABLE clip runs on him: the in-air event's fall and landing do not take over. */
@@ -166,6 +174,16 @@ export class PlayerScriptTasks{
      if(!animation||!body.view){own.phase='playing';own.remaining=0;return;}
      body.view.installReactions({[clip]:animation});own.phase='ready';
     });
+    break;
+   }
+   // TASK_FOLLOW_PATH_NODES_TO_COORD (CAT3 walks CJ to the tanker): the target a unit over the ground under it (a
+   // point on the map's floor looked for from above him), the route planned as a script ped's.
+   case 'followNodeRoute':{
+    const q=body.position,top=order.z>MAP_Z_LOW_LIMIT?order.z+1:q.y+PED_ORIGIN_HEIGHT+50,ground=this.world.groundUnder?.(order.x,-order.y,top);
+    const target={x:order.x,y:ground===undefined?Math.max(order.z,q.y+PED_ORIGIN_HEIGHT):ground+1,z:-order.y};
+    const plan=this.world.planNodeRoute?.(q,target,{keepNodesHeadingAway:true});
+    if(plan&&plan.points.length)this.running={kind:'followNodeRoute',target,points:plan.points,nodes:plan.nodes,at:plan.resumeAt,lastIsTarget:plan.lastIsTarget,
+     moveState:order.moveState,remaining:order.seconds,tolerance:order.tolerance??FOLLOW_NODE_TARGET_TOLERANCE};
     break;
    }
    case 'followRoute':this.running={kind:'followRoute',points:order.points.map(q=>({x:q.x,y:q.z,z:-q.y})),at:0,mode:order.mode,traversals:0,moveState:order.moveState};break;
@@ -260,6 +278,31 @@ export class PlayerScriptTasks{
     if(goToPointArrived(distance,o.y===undefined?undefined:q.y+PED_ORIGIN_HEIGHT-o.y,o.radius,body.speed*dt)){this.next(body);return {kind:'hold'};}
     const moveState=goToPointMoveState(o.moveState,distance,o.moveStateRadius);
     return {kind:'move',yaw:Math.atan2(gx,gz),walk:moveState<=5,sprint:moveState>=7};
+   }
+   case 'followNodeRoute':{
+    // Out of time, the stand-still sub-task puts him on the target and the task is over.
+    if(o.remaining!==Number.POSITIVE_INFINITY){o.remaining-=dt;if(o.remaining<=0){this.world.placeOnGround(o.target.x,o.target.z,o.target.y);this.next(body);return {kind:'hold'};}}
+    const q=body.position;
+    // The legs between nodes are CTaskSimpleGoToPoint at the task's move state; the last, to the target,
+    // CTaskComplexGoToPointAndStandStill with the task's tolerance and slow-down distance. A plan run out is planned
+    // again on from its last node.
+    for(let legs=0;;legs++){
+     // Several points reached at once: on to the next frame.
+     if(legs===4)return {kind:'hold'};
+     const point=o.points[o.at];if(!point)break;
+     const gx=point.x-q.x,gz=point.z-q.z,distance=Math.hypot(gx,gz),last=o.lastIsTarget&&o.at===o.points.length-1;
+     if(!goToPointArrived(distance,q.y+PED_ORIGIN_HEIGHT-point.y,last?o.tolerance:FOLLOW_NODE_POINT_RADIUS,body.speed*dt)){
+      const moveState=last?goToPointMoveState(o.moveState,distance,FOLLOW_NODE_SLOW_DOWN_DISTANCE):o.moveState;
+      return {kind:'move',yaw:Math.atan2(gx,gz),walk:moveState<=5,sprint:moveState>=7};
+     }
+     if(last)break;
+     if(++o.at>=o.points.length){
+      const plan=this.world.planNodeRoute?.(q,o.target,{keepNodesHeadingAway:true,currentNode:o.nodes[o.points.length-1] as never});
+      if(!plan||!plan.points.length)break;
+      Object.assign(o,{points:plan.points,nodes:plan.nodes,lastIsTarget:plan.lastIsTarget,at:plan.resumeAt});
+     }
+    }
+    this.next(body);return {kind:'hold'};
    }
    case 'followRoute':{
     const q=body.position,point=o.points[o.at],gx=point.x-q.x,gz=point.z-q.z,distance=Math.hypot(gx,gz);

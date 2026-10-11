@@ -12037,3 +12037,10 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   sunk car rather than drown. Whether CJ leaves a sinking car by himself is not settled: CTaskSimpleCarDrive's
   ProcessPed (iOS 0x1003d5c58) never reads the car's bIsDrowning bit (bit 30 of the word at 0x568, as IS_CAR_DEAD reads
   it at 0x1001d1564).
+- **CAT3 gave up as it walked CJ to the tanker.** With the tow link in, CAT3 ran on to TASK_FOLLOW_PATH_NODES_TO_COORD on
+  the player, which his tasks refused. It now runs as a script ped's CTaskComplexFollowNodeRoute does: the target a unit
+  over the ground under it, the route planned by the same ComputePathNodes and ComputeRoute (from his feet), the legs
+  between nodes at the task's move state and the last to the target with its tolerance and slow-down distance, a plan
+  run out planned again on from its last node, and out of time he is put on the target. The corner easing the peds'
+  CTaskSimpleGoToPointFine gives is left out: the player moves through the pad's walk, run and sprint. Specs:
+  `script-player-node-route` (browser), `player-script-tasks` (unit).

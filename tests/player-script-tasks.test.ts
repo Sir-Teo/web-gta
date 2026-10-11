@@ -186,3 +186,36 @@ test('TASK_AIM_GUN_AT_COORD on the player holds his weapon on the point, facing 
  tasks.give({kind:'gunAt',point:{x:1,y:0,z:1},fire:false,seconds:10},body());tasks.clear(body());
  expect(aims.at(-1)).toBeUndefined();
 });
+
+test('TASK_FOLLOW_PATH_NODES_TO_COORD on the player walks the planned nodes, planning on when they run out (CAT3)',()=>{
+ const plans:unknown[]=[];
+ // Two plans: two nodes north, then the target to the east of the last.
+ const tasks=new PlayerScriptTasks({...world,groundUnder:()=>0,planNodeRoute:(feet,target,options)=>{
+  plans.push({feet:{...feet},target:{...target},resume:options.currentNode});
+  return plans.length===1?{points:[{x:0,y:1,z:-10},{x:0,y:1,z:-20}],nodes:['a','b'],lastIsTarget:false,resumeAt:0}
+   :{points:[{x:15,y:1,z:-20}],nodes:['c'],lastIsTarget:true,resumeAt:0};}});
+ expect(PlayerScriptTasks.runs({kind:'followNodeRoute',x:15,y:20,z:0,moveState:4,seconds:Number.POSITIVE_INFINITY})).toBe(true);
+ tasks.give({kind:'followNodeRoute',x:15,y:20,z:0,moveState:4,seconds:Number.POSITIVE_INFINITY},body());
+ // The target a unit over the ground under it, in the renderer's terms.
+ expect(plans[0]).toEqual({feet:{x:0,y:0,z:0},target:{x:15,y:1,z:-20},resume:undefined});
+ // North at a walk to the first node.
+ expect(tasks.step(.1,body())).toEqual({kind:'move',yaw:Math.atan2(0,-10),walk:true,sprint:false});
+ // At it, on to the second.
+ expect(tasks.step(.1,body(0,-9.8))).toEqual({kind:'move',yaw:Math.atan2(0,-10.2),walk:true,sprint:false});
+ // At the second the plan has run out: planned again from its last node, east to the target.
+ const east=tasks.step(.1,body(0,-19.9));
+ expect(plans[1]).toMatchObject({resume:'b'});
+ expect(east).toEqual({kind:'move',yaw:Math.atan2(15,-.1),walk:true,sprint:false});
+ // At the target the task is over.
+ expect(tasks.step(.1,body(14.8,-20))).toEqual({kind:'hold'});expect(tasks.active).toBe(false);
+});
+
+test('a timed node route puts the player on the target when its time runs out',()=>{
+ const placed:unknown[]=[];
+ const tasks=new PlayerScriptTasks({...world,placeOnGround:(x,z,y)=>{placed.push({x,z,y});},groundUnder:()=>2,
+  planNodeRoute:()=>({points:[{x:0,y:3,z:-50}],nodes:['a'],lastIsTarget:true,resumeAt:0})});
+ tasks.give({kind:'followNodeRoute',x:0,y:50,z:0,moveState:6,seconds:1},body());
+ expect(tasks.step(.5,body())).toMatchObject({kind:'move',walk:false,sprint:false});
+ tasks.step(.6,body());
+ expect(placed).toEqual([{x:0,z:-50,y:3}]);expect(tasks.active).toBe(false);
+});

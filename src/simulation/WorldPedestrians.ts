@@ -2231,10 +2231,12 @@ export class WorldPedestrians {
  }
  /** CTaskComplexFollowNodeRoute::SetTarget's ComputePathNodes and ComputeRoute from where the ped stands, in the
   * renderer's terms. */
- private planNodeRoute(ped:Pedestrian,target:{x:number;y:number;z:number},options:NodeRouteOptions={}){
-  const q=ped.actor.player.position,areas=this.catalog?.areas??new Map();
+ private planNodeRoute(ped:Pedestrian,target:{x:number;y:number;z:number},options:NodeRouteOptions={}){return this.planNodeRouteFrom(ped.actor.player.position,target,options);}
+ /** The same from a ped's feet (the player's, for PlayerScriptTasks). */
+ planNodeRouteFrom(feet:{x:number;y:number;z:number},target:{x:number;y:number;z:number},options:NodeRouteOptions={}){
+  const areas=this.catalog?.areas??new Map();
   const plan=planFollowNodeRoute({areas,clear:(from,to,maxHeightChange)=>this.wanderPathClear(from,to,maxHeightChange)},
-   {x:q.x,y:-q.z,z:q.y+PED_ORIGIN_HEIGHT},{x:target.x,y:-target.z,z:target.y},options);
+   {x:feet.x,y:-feet.z,z:feet.y+PED_ORIGIN_HEIGHT},{x:target.x,y:-target.z,z:target.y},options);
   return {points:plan.points.map(n=>({x:n.x,y:n.z,z:-n.y})),nodes:plan.nodes,lastIsTarget:plan.lastIsTarget,resumeAt:plan.resumeAt};
  }
  /** CPedGeometryAnalyser::IsWanderPathClear(from, to, maxHeightChange, 4) == CLEAR, as the iOS executable runs it
