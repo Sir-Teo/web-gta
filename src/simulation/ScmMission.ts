@@ -377,6 +377,8 @@ export interface ScmMissionWorld {
  scriptPedVelocity?(ped:unknown):{x:number;y:number;z:number};
  scriptPedStanding(ped:unknown):boolean;
  scriptPedSubmerged(ped:unknown):boolean;
+ /** CAutomobile::NitrousControl(count) on a car: nitro fitted with that many boosts. */
+ giveScriptVehicleNitro?(car:unknown,boosts:number):void;
  /** SET_SWIM_SPEED: the speed of the ped's swim task, when it has one. */
  setScriptPedSwimSpeed?(ped:unknown,speed:number):void;
  scriptPedOnScreen(ped:unknown):boolean;
@@ -1514,6 +1516,9 @@ export class ScmMission {
     if(handle===PLAYER_PED_HANDLE){this.host('attachPlayerToVehicle','ATTACH_CHAR_TO_CAR')(this.liveVehicle(vehicle),offset,position,angleLimit,weapon);return;}
     this.peds.attachToCar(handle,vehicle,offset);
    },
+   // GIVE_NON_PLAYER_CAR_NITRO (iOS 0x1002052cc; STEAL2's rivals): CAutomobile::NitrousControl(1) (0x100445310), the
+   // nitro fitted (bNosInst) full, with one boost; a car the game drives fires it on its own.
+   giveNonPlayerCarNitro:handle=>{this.host('giveScriptVehicleNitro','GIVE_NON_PLAYER_CAR_NITRO')(this.liveVehicle(handle),1);},
    // ATTACH_CHAR_TO_BIKE (iOS 0x1001f2640, CPed::AttachPedToBike 0x10032c89c): AttachPedToEntity as the car form, and
    // the second limit kept in m_nTurretPosnMode (SYN1 seats CJ with his camera on a hidden, frozen bike at its photo
    // spot: 110 and 70). Nothing here reads that second limit.

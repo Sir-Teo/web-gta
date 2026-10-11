@@ -6109,6 +6109,7 @@ async function boot() {
                  playerSwimming:()=>sim.player.swimming,
                  // A script's ped swims only under TASK_SWIM_TO_COORD; the world's peds drown in deep water.
                  scriptPedSwimming:ped=>{const p=onFoot(ped);return !!p&&p.order?.kind==='swim'&&p.actor.player.swimming;},
+                 giveScriptVehicleNitro:(car,boosts)=>{const c=car as Partial<ScriptCar>;c.car?.nitrousControl?.(boosts,0,0,undefined,false);},
                  setScriptPedSwimSpeed:(ped,speed)=>{const p=onFoot(ped);if(p)pedestrians?.setSwimSpeed(p,speed);},
                  playerSwimState:()=>sim.player.swimming?sim.player.swimState:0,
                  gangWarFightingGoingOn:()=>!!gangWars?.gangWarFightingGoingOn(),

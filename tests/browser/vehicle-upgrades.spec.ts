@@ -40,5 +40,13 @@ test('a mod shop lists and fits upgrades on the player\'s Landstalker',async({pa
  await shop(1009,true);expect((await landstalker(page))!.upgrades[8]).toBe(1009);expect((await landstalker(page))!.nitro.boosts).toBe(2);
  // The slots read back as GET_CURRENT_CAR_MOD's host answers them (the nitro's 8, the hydraulics' 9).
  expect(await page.evaluate(()=>{const m=(window as any).__game.missionForProfiling(),c=[...(window as any).__game.fleet().cars].find((c:any)=>c.modelId===400);return [m.world.scriptVehicleUpgradeInSlot(c,8),m.world.scriptVehicleUpgradeInSlot(c,9)];})).toEqual([1009,1087]);
+ // GIVE_NON_PLAYER_CAR_NITRO (STEAL2's rivals; iOS 0x1002052cc): CAutomobile::NitrousControl(1), the nitro fitted
+ // with a single boost, on a car with none.
+ const given=await page.evaluate(async()=>{const g=(window as any).__game,m=g.missionForProfiling(),p=g.state().player.position;
+  const h=m.vehicles.create(411,{x:p.x+10,y:-p.z+10,z:-100},0);
+  for(let i=0;i<200&&!m.vehicles.entity(h);i++)await new Promise(r=>setTimeout(r,100));
+  const before=m.vehicles.entity(h).car.nitro.installed;m.runtime.world.giveNonPlayerCarNitro(h);
+  return {before,after:m.vehicles.entity(h).car.nitro};});
+ expect(given.before).toBe(false);expect(given.after).toMatchObject({installed:true,boosts:1});
  expect(errors).toEqual([]);
 });

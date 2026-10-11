@@ -12100,3 +12100,7 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   limit kept in m_nTurretPosnMode; it now attaches as ATTACH_CHAR_TO_CAR does. Nothing here reads that second limit.
   Spec: `script-player-attached-bike` (SYN1's own call on a frozen mountain bike: attached, at the offset, the camera
   in hand).
+- **GIVE_NON_PLAYER_CAR_NITRO** (STEAL2's rivals) was skipped. The iOS handler (0x1002052cc) calls
+  CAutomobile::NitrousControl with a count of 1 (0x100445310): the nitro fitted (bNosInst), full, with one boost, and
+  its old effects cleared. It now does what the mod shop's nitro does with one boost; a car the game drives fires it on
+  its own (NitrousControl for STATUS_PHYSICS). Spec: `vehicle-upgrades` (a car without nitro has it, with one boost).
