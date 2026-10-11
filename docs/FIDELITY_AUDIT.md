@@ -12254,3 +12254,8 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   does (0.009 a frame); at the player on the jetpack it flies as a plain rocket, the port's heat-seekers chasing only
   vehicles. Specs: `sam-site` (a site at Area 69 turns on the player's plane held near it and fires at it),
   `sam-site` (unit).
+- **A script could not make an RC aircraft.** ZERO1's CREATE_CAR 464 (its RC Barons) made nothing, and the next
+  command on the car (SET_CAR_HEALTH) gave the mission up: the RC Baron, RC Raider and RC Goblin were not among the
+  aircraft the port builds, so the request went down the car path and failed. They are built as aircraft now (the
+  Baron a plane on FlyingControl's RC Baron model, the other two helicopters); their AI flies with bIsRCVehicle's limits
+  (lifting off at 7, banking no more than 0.7). They are not in the map's hangar.

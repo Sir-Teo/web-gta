@@ -21,7 +21,9 @@ import {MISSION_PLANE_ATTACK_PLAYER,MISSION_PLANE_ATTACK_PLAYER_POLICE,MISSION_P
 import {applyNativeBuoyancy,nativeBuoyancySplashEdges,nativeSplashParticles,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
 import type {NativeAnimation} from '../assets/ifp';
 import {vehicleAnimation,VEHICLE_ANIM,type VehicleAnimGroupData} from '../assets/vehicleAnimGroups';
-export const PLAYABLE_PLANES:Readonly<Record<number,string>>={476:'Rustler',511:'Beagle',512:'Cropduster',513:'Stuntplane',519:'Shamal',553:'Nevada',593:'Dodo',417:'Leviathan',425:'Hunter',447:'Seasparrow',469:'Sparrow',487:'Maverick',488:'News Maverick',497:'Police Maverick',548:'Cargobob',563:'Raindance',520:'Hydra'};
+export const PLAYABLE_PLANES:Readonly<Record<number,string>>={476:'Rustler',511:'Beagle',512:'Cropduster',513:'Stuntplane',519:'Shamal',553:'Nevada',593:'Dodo',417:'Leviathan',425:'Hunter',447:'Seasparrow',469:'Sparrow',487:'Maverick',488:'News Maverick',497:'Police Maverick',548:'Cargobob',563:'Raindance',520:'Hydra',
+ /* The RC aircraft (bIsRCVehicle), which a script makes (ZERO1's barons) or the player flies by remote control. */
+ 464:'RC Baron',465:'RC Raider',501:'RC Goblin'};
 /** Entry/exit clip slots resolved through the model's handling anim group (AssocGroupId
  * 88+n): align comes from the file where its flag bit clears (rustler/shamal for detailed
  * aircraft, ped CAR_align elsewhere), while getin/getout almost always fall back to ped
