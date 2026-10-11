@@ -149,7 +149,7 @@ export function resolveVehicleProps(o:VehiclePropContacts){
   };
   // The step's pairs when the vehicle has read them already (a car reads them once for this and its collisions).
   if(o.pairs){for(const [collider,other] of o.pairs)if(!(other as {removed?:boolean}).removed)visit(collider,other);}
-  else for(let i=0;i<body.numColliders();i++){const collider=body.collider(i);o.world.contactPairsWith(collider,other=>visit(collider,other));}
+  else for(let i=0;i<body.numColliders();i++){const collider=body.collider(i);o.world.contactPairsWith(collider,other=>{if(other)visit(collider,other);});}
   if(changed&&!otherImpact&&others)for(const [collider,other] of others){
    o.world.contactPair(collider,other,(manifold,flipped)=>{
     if(otherImpact||!manifold.numSolverContacts())return;

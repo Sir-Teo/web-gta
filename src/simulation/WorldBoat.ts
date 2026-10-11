@@ -362,7 +362,7 @@ export class WorldBoat {
   // every step, and a boat spun on and on); the hull touches when the pair has a contact point.
   let wall=false;
   for(let i=0;i<this.body.numColliders()&&!wall;i++){const collider=this.body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
-   if(wall||!(other.parent()?.isFixed()??true))return;
+   if(wall||!other||!(other.parent()?.isFixed()??true))return;
    this.sim.world.contactPair(collider,other,manifold=>{if(manifold.numContacts()>0)wall=true;});
   });}
   this.hitWall=wall;

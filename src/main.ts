@@ -2145,7 +2145,7 @@ async function boot() {
   const touchesBuildingOrVehicle=(body:import('@dimforge/rapier3d-compat').RigidBody)=>{
     let touching=false;
     for(let i=0;i<body.numColliders()&&!touching;i++){const collider=body.collider(i);sim.world.contactPairsWith(collider,other=>{
-      if(touching||other.isSensor()||other.handle===sim.playerCollider.handle)return;const owner=other.parent();if(!owner||owner.handle===body.handle)return;
+      if(touching||!other||other.isSensor()||other.handle===sim.playerCollider.handle)return;const owner=other.parent();if(!owner||owner.handle===body.handle)return;
       let contact=false;sim.world.contactPair(collider,other,m=>{if(m.numSolverContacts()||m.numContacts())contact=true;});if(!contact)return;
       const kind=importedScene?.sources.get(other.handle)?.entityKind;
       if(owner.isFixed()&&kind!=='dummy'&&kind!=='object')touching=true;
@@ -3266,7 +3266,7 @@ async function boot() {
     revivedProps:()=>[...(importedScene?.sources.entries()??[])].filter(([handle,source])=>source.placement&&smashedPlacements.has(placementKey(source.modelName,source.placement.position))&&sim.world.getCollider(handle)?.parent()?.isEnabled()).length,
     carContacts:()=>{
       if(!worldCar)return null;const body=worldCar.car.body,out:{model:string|null;kind:string|null;fixed:boolean|null;handle:number}[]=[];
-      for(let i=0;i<body.numColliders();i++)sim.world.contactPairsWith(body.collider(i),other=>{const source=importedScene?.sources.get(other.handle);out.push({model:source?.modelName??null,kind:source?.entityKind??null,fixed:other.parent()?.isFixed()??null,handle:other.handle});});
+      for(let i=0;i<body.numColliders();i++)sim.world.contactPairsWith(body.collider(i),other=>{if(!other)return;const source=importedScene?.sources.get(other.handle);out.push({model:source?.modelName??null,kind:source?.entityKind??null,fixed:other.parent()?.isFixed()??null,handle:other.handle});});
       return out;
     },
     proceduralPixelProbe:()=>{

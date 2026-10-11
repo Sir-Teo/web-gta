@@ -595,7 +595,7 @@ export class WorldPlane {
  private touchingFixed(){
   let contact=false;
   for(let i=0;i<this.body.numColliders()&&!contact;i++){const collider=this.body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
-   if(contact||other.parent()&&!other.parent()!.isFixed())return;
+   if(contact||!other||other.parent()&&!other.parent()!.isFixed())return;
    this.sim.world.contactPair(collider,other,manifold=>{if(manifold.numContacts()>0)contact=true;});
   });}
   return contact;

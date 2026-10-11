@@ -97,7 +97,7 @@ export class WorldBike {
  private stepPairs:(readonly [RAPIER.Collider,RAPIER.Collider])[]=[];private stepPairsRead=false;
  private readStepPairs(){
   const pairs=this.stepPairs,body=this.body;pairs.length=0;this.stepPairsRead=true;if(!body.isEnabled())return;
-  for(let i=0;i<body.numColliders();i++){const collider=body.collider(i);this.sim.world.contactPairsWith(collider,other=>{pairs.push([collider,other]);});}
+  for(let i=0;i<body.numColliders();i++){const collider=body.collider(i);this.sim.world.contactPairsWith(collider,other=>{if(other)pairs.push([collider,other]);});}
  }
  private contactPairs(){if(!this.stepPairsRead)this.readStepPairs();return this.stepPairs;}
  readonly body:RAPIER.RigidBody;readonly root=new Group();
@@ -656,7 +656,7 @@ export class WorldBike {
   for(let i=0;i<this.body.numColliders();i++){
    const collider=this.body.collider(i),wheel=this.wheelColliders.has(collider.handle);
    this.sim.world.contactPairsWith(collider,other=>{
-    if(other.isSensor()||other.handle===this.sim.playerCollider.handle||other.parent()?.handle===this.body.handle)return;
+    if(!other||other.isSensor()||other.handle===this.sim.playerCollider.handle||other.parent()?.handle===this.body.handle)return;
     this.sim.world.contactPair(collider,other,(manifold,flipped)=>{
      if(!manifold.numContacts())return;
      const m=manifold.normal(),normal=flipped?{x:m.x,y:m.y,z:m.z}:{x:-m.x,y:-m.y,z:-m.z};

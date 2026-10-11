@@ -11896,6 +11896,11 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
 - **A bike's contacts too.** A bike walked its contact pairs for the props it hit each step and again for what it
   touched each frame; the pairs are read once a step, when first asked for (a resting bike with no step speed has no
   props pass and reads none). The bike specs pass (18).
+- **A pair whose other collider is gone.** LA1FIN2's sweep threw from the car's props pass ("reading 'removed'" of
+  null): a collider removed since the step (a prop another vehicle's pass knocked over that step) keeps its contact
+  pair until the next one, and `World.contactPairsWith` hands it back as null. The read-once lists skip it, and every
+  other contact-pair walk (the cars' crush and collision-damage scans, the bike's, boat's and plane's, the player's)
+  passes over it, as the old per-collider walk would have needed to.
 - **SET_CAMERA_POSITION_UNFIXED.** The iOS handler (0x1002050d0; the command is unregistered in gta-reversed) puts its
   two floats in the active camera's `m_fVerticalAngle` and `m_fHorizontalAngle` and, in MODE_FOLLOWPED, runs
   `Process_FollowPed_SA` once at once. The port read the command and had no host for it, so MUSIC1's framing of CJ at

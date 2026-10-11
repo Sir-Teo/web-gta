@@ -532,7 +532,7 @@ export class WorldCar {
   if(this.modelId!==432||this.wrecked||!this.car.body.isEnabled())return;
   const v=this.car.body.linvel();if(Math.hypot(v.x,v.y,v.z)<5)return;
   for(let i=0;i<this.car.body.numColliders();i++){const collider=this.car.body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
-   const parent=other.parent();if(!parent||parent.isFixed())return;
+   if(!other)return;const parent=other.parent();if(!parent||parent.isFixed())return;
    let touching=false;this.sim.world.contactPair(collider,other,manifold=>{if(manifold.numContacts()>0)touching=true;});if(!touching)return;
    const hit:CrushableVehicle|undefined=this.otherCar?.(parent.handle)??this.otherVehicle?.(parent.handle);if(!hit||hit===this||hit.modelId===432||hit.wrecked)return;
    hit.blowUp();this.onCrushCar?.(hit);
@@ -1200,7 +1200,7 @@ export class WorldCar {
   let piece:number=COLLISION_COMPONENT.default,point:{x:number;y:number;z:number}|undefined,building=true,rammedByPlayer=false,damager:WorldCar|undefined;
   const player=this.playerVehicle?.(),playerBike=this.playerBikeBody?.();
   for(let i=0;i<this.car.body.numColliders();i++){const collider=this.car.body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
-   if(other.isSensor()||other.handle===this.sim.playerCollider.handle)return;const parent=other.parent();
+   if(!other||other.isSensor()||other.handle===this.sim.playerCollider.handle)return;const parent=other.parent();
    let touching=false;this.sim.world.contactPair(collider,other,manifold=>{if(manifold.numContacts()>0)touching=true;});if(!touching)return;
    if(parent&&!parent.isFixed()){building=false;if(player&&player!==this&&parent.handle===player.car.body.handle||playerBike!==undefined&&parent.handle===playerBike)rammedByPlayer=true;const hit=this.otherCar?.(parent.handle);if(hit&&hit!==this){this.recordVehicleCollision(hit);damager=hit;}}
    const flags=this.pieceOf(collider.handle);if(flags!==undefined&&flags!==COLLISION_COMPONENT.default||!point){piece=flags??piece;point={...collider.translation()};}
@@ -1434,7 +1434,8 @@ export class WorldCar {
  private stepPairs:(readonly [RAPIER.Collider,RAPIER.Collider])[]=[];
  private readStepPairs(){
   const pairs=this.stepPairs,body=this.car.body;pairs.length=0;if(!body.isEnabled())return;
-  for(let i=0;i<body.numColliders();i++){const collider=body.collider(i);this.sim.world.contactPairsWith(collider,other=>{pairs.push([collider,other]);});}
+  // A collider removed since the step (a prop the last car's pass knocked over) still has its pair, and comes back null.
+  for(let i=0;i<body.numColliders();i++){const collider=body.collider(i);this.sim.world.contactPairsWith(collider,other=>{if(other)pairs.push([collider,other]);});}
  }
  afterStep(seconds=1/60){
   // CVehicle::UpdateClumpAlpha from CAutomobile::ProcessControl: 16 a frame, at the frame limiter's 30 fps.
