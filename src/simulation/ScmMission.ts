@@ -1274,6 +1274,9 @@ export class ScmMission {
    pedWeaponInSlot:(handle,slot)=>this.host('pedWeaponInSlot','GET_CHAR_WEAPON_IN_SLOT')(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle),slot),
    // CPathFind's area of nodes loaded for the script's cars. The browser keeps every node the paths stream in.
    loadPathNodesInArea:()=>{},
+   // RELEASE_PATH_NODES (iOS 0x1001e84c4): ThePaths.ReleaseRequestedNodes (0x1001b9590), the area above given back to
+   // the streaming. With every node kept there is nothing to give back.
+   releasePathNodes:()=>{},
    setLaRiots:active=>{this.laRiots=active;this.world.setLaRiots(active);},
    groundLevel:(x,y,z)=>this.world.groundLevel(x,y,z),
    // CEntity::GetDistanceFromCentreOfMassToBaseOfModel: minus the lowest z of the model's COL box, which CREATE_OBJECT
@@ -1378,6 +1381,17 @@ export class ScmMission {
     if(this.peds.rideOf(handle)){this.stopDriving(handle);this.peds.detachFromCar(handle,at);return;}
     this.world.warpScriptPedToCoord(this.livePed(handle),at);
     this.peds.setPosition(handle,at);
+   },
+   // REMOVE_CHAR_FROM_CAR_MAINTAIN_POSITION (iOS 0x100205d8c; TORENO2 takes Toreno out of his car): the ped's
+   // CTaskSimpleCarSetPedOut is run at once, then he is put back where he was, which for a ped riding here is where the
+   // port has him, his car's position. Not in a car, nothing happens.
+   removePedFromCarMaintainPosition:handle=>{
+    if(handle===PLAYER_PED_HANDLE){
+     if((this.world.playerVehicleEntity?.()??undefined)===undefined)return;
+     this.clearTasks(handle,'REMOVE_CHAR_FROM_CAR_MAINTAIN_POSITION');this.host('warpPlayerFromCarToCoord','REMOVE_CHAR_FROM_CAR_MAINTAIN_POSITION')({...this.world.playerPed().position});return;
+    }
+    const at=this.ridingIn(handle);
+    if(at&&this.peds.rideOf(handle)){this.stopDriving(handle);this.peds.detachFromCar(handle,{...at});}
    },
    // CTheScripts' elegant removal: a mission ped on foot is handed back to the game rather than taken out of
    // the world. A browser ped a script made is never in a vehicle, so that is the whole of it.

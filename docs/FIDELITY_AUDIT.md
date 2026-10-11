@@ -12057,3 +12057,12 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   run out planned again on from its last node, and out of time he is put on the target. The corner easing the peds'
   CTaskSimpleGoToPointFine gives is left out: the player moves through the pad's walk, run and sprint. Specs:
   `script-player-node-route` (browser), `player-script-tasks` (unit).
+- **TORENO2 gave up at its first sequence, and skipped two commands.** It walks CJ up to Toreno with
+  TASK_GOTO_CHAR_OFFSET in a player sequence, which his tasks refused. The player now runs the seek as a script ped's
+  gotoPed does (CTaskComplexSeekEntity): the target, or the point out from it at the angle from its facing, followed
+  each frame; a walk inside two units; on arrival a turn to face the ped, and the task is over (the follow, sprint and
+  give-up variants too). REMOVE_CHAR_FROM_CAR_MAINTAIN_POSITION (iOS 0x100205d8c) runs the ped's
+  CTaskSimpleCarSetPedOut at once and puts him back where he was, for a riding ped here his car's position.
+  RELEASE_PATH_NODES (iOS 0x1001e84c4) is ThePaths.ReleaseRequestedNodes, the requested area given back to the
+  streaming; the port keeps every node, so there is nothing to release, as LOAD_PATH_NODES_IN_AREA has nothing to load.
+  Specs: `script-player-goto-char` (browser), `player-script-tasks` (unit).

@@ -827,6 +827,8 @@ async function boot() {
   mobilePhone:start=>{phoneFor('player').use(start);},
   planNodeRoute:(feet,target,options)=>pedestrians?.planNodeRouteFrom(feet,target,options as never),
   groundUnder:(x,z,top)=>pedestrians?.groundUnder(x,z,top),
+  // GET_CHAR_HEADING's degrees clockwise from north, as the renderer's yaw (plus half a turn).
+  pedYaw:handle=>{try{const d=mission?.runtime.world?.pedHeading?.(handle);return d===undefined?undefined:d*Math.PI/180+Math.PI;}catch{return undefined;}},
   // The ped's origin, where CTaskSimpleUseGun's target entity stands.
   pedPoint:handle=>{try{const p=mission?.runtime.world?.pedPosition?.(handle);return p&&{x:p.x,y:p.z,z:-p.y};}catch{return undefined;}},
   aimAt:point=>{scriptAim=point&&new Vector3(point.x,point.y,point.z);},

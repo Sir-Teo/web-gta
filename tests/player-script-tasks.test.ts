@@ -219,3 +219,19 @@ test('a timed node route puts the player on the target when its time runs out',(
  tasks.step(.6,body());
  expect(placed).toEqual([{x:0,z:-50,y:3}]);expect(tasks.active).toBe(false);
 });
+
+test('TASK_GOTO_CHAR_OFFSET on the player runs to the point off the ped\'s facing, walks the last two units, then faces him (TORENO2)',()=>{
+ // The ped ten units north (renderer -z), facing south toward the player: yaw 0 looks along +z.
+ const tasks=new PlayerScriptTasks({...world,pedPoint:h=>h===5?{x:0,y:1,z:-10}:undefined,pedYaw:h=>h===5?0:undefined});
+ expect(PlayerScriptTasks.runs({kind:'gotoPed',target:5,radius:.5,seconds:10})).toBe(true);
+ // Three units out in front of him: the native offset at angle 0 is straight ahead of the target.
+ tasks.give({kind:'gotoPed',target:5,radius:.5,seconds:10,offset:{radius:3,angle:0}},body());
+ expect(tasks.step(.1,body())).toEqual({kind:'move',yaw:Math.atan2(0,-7),walk:false,sprint:false});
+ expect(tasks.step(.1,body(0,-5.5))).toEqual({kind:'move',yaw:Math.atan2(0,-1.5),walk:true,sprint:false});
+ // There: he turns to face the ped, then the task is over.
+ expect(tasks.step(.1,body(0,-6.8))).toEqual({kind:'hold'});
+ for(let i=0;i<60&&tasks.active;i++)tasks.step(.1,body(0,-6.8,Math.PI));
+ expect(tasks.active).toBe(false);
+ // A ped who is gone ends it at once; none to start with gives none.
+ tasks.give({kind:'gotoPed',target:6,radius:.5,seconds:10},body());expect(tasks.active).toBe(false);
+});

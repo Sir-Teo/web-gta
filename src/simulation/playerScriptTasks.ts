@@ -3,6 +3,8 @@ import {PED_ORIGIN_HEIGHT} from './nativeSwim';
 import {achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {NATIVE_PLAYER_HEADING_CHANGE_RATE} from './nativePlayerLocomotion';
 import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARGET_TOLERANCE} from './nativeFollowNodeRoute';
+/** The seek task's walk inside 2 units of its target, as a script ped's (WorldPedestrians). */
+const GO_TO_PED_WALK_DISTANCE=2;
 
 /* The tasks a script gives the player's own ped (scplayer): CPedIntelligence's primary task, run instead of
  * CTaskSimplePlayerOnFoot while it lasts. The missions mostly do this with SET_PLAYER_CONTROL off, walking CJ to a
@@ -27,6 +29,8 @@ type Running=
  |{kind:'gunAt';point:{x:number;y:number;z:number};target?:number;remaining:number}
  /** CTaskComplexFollowNodeRoute: the planned points (renderer coordinates) one after another to the target. */
  |{kind:'followNodeRoute';target:{x:number;y:number;z:number};points:{x:number;y:number;z:number}[];nodes:readonly unknown[];at:number;lastIsTarget:boolean;moveState:number;remaining:number;tolerance:number}
+ /** CTaskComplexSeekEntity on a script ped (TASK_GOTO_CHAR and its kin), as a script ped's gotoPed runs. */
+ |{kind:'gotoPed';target:number;radius:number;remaining:number;offset?:{radius:number;angle:number};follow?:boolean;sprint?:boolean;giveUp?:number}
  /** CTaskComplexUseMobilePhone as his primary task: on the call until TASK_USE_MOBILE_PHONE stops it. */
  |{kind:'mobilePhone'};
 
@@ -73,6 +77,8 @@ export interface PlayerTaskWorld{
  planNodeRoute?(feet:{x:number;y:number;z:number},target:{x:number;y:number;z:number},options:{keepNodesHeadingAway?:boolean;currentNode?:never}):{points:{x:number;y:number;z:number}[];nodes:readonly unknown[];lastIsTarget:boolean;resumeAt:number}|undefined;
  /** The ground's height under a point (renderer coordinates), looked for down from `top`. */
  groundUnder?(x:number,z:number,top:number):number|undefined;
+ /** The way a script ped's handle faces (the renderer's yaw); none once he is gone. */
+ pedYaw?(handle:number):number|undefined;
  /** Where a script ped's handle stands (renderer coordinates), for a task aimed at him; none once he is gone. */
  pedPoint?(handle:number):{x:number;y:number;z:number}|undefined;
  /** TASK_AIM_GUN_AT_COORD on the player: his weapon aims at the point (renderer coordinates) until undefined. */
@@ -111,7 +117,7 @@ export class PlayerScriptTasks{
  /** The kinds the player can carry out; anything else the thread gives up on. */
  static runs(order:ScriptedPedOrder){return order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim'||order.kind==='lookAt'||order.kind==='clearLookAt'||order.kind==='followRoute'||order.kind==='duck'&&order.seconds===undefined||
   order.kind==='enterCar'&&order.seat==='driver'||order.kind==='leaveCar'||order.kind==='carTempAction'||order.kind==='carDriveToCoord'||
-  order.kind==='lookAtPoint'||order.kind==='die'||order.kind==='diveAndGetUp'||order.kind==='mobilePhone'||order.kind==='followNodeRoute'||order.kind==='gunAt'&&(!!order.point||order.target!==undefined)&&!order.fire;}
+  order.kind==='lookAtPoint'||order.kind==='die'||order.kind==='diveAndGetUp'||order.kind==='mobilePhone'||order.kind==='followNodeRoute'||order.kind==='gotoPed'||order.kind==='gunAt'&&(!!order.point||order.target!==undefined)&&!order.fire;}
  /** Whether a task of the script's runs on the player (GET_SCRIPT_TASK_STATUS). */
  get active(){return !!(this.running||this.sequence);}
  /** A TASK_PLAY_ANIM_NON_INTERRUPTABLE clip runs on him: the in-air event's fall and landing do not take over. */
@@ -176,6 +182,8 @@ export class PlayerScriptTasks{
     });
     break;
    }
+   // TASK_GOTO_CHAR_OFFSET and its kin (TORENO2's opening walks CJ up to Toreno): a script ped's seek, followed each frame.
+   case 'gotoPed':if(this.world.pedPoint?.(order.target))this.running={kind:'gotoPed',target:order.target,radius:order.radius,remaining:order.seconds,offset:order.offset,follow:order.follow,sprint:order.sprint,giveUp:order.giveUp};break;
    // TASK_FOLLOW_PATH_NODES_TO_COORD (CAT3 walks CJ to the tanker): the target a unit over the ground under it (a
    // point on the map's floor looked for from above him), the route planned as a script ped's.
    case 'followNodeRoute':{
@@ -278,6 +286,21 @@ export class PlayerScriptTasks{
     if(goToPointArrived(distance,o.y===undefined?undefined:q.y+PED_ORIGIN_HEIGHT-o.y,o.radius,body.speed*dt)){this.next(body);return {kind:'hold'};}
     const moveState=goToPointMoveState(o.moveState,distance,o.moveStateRadius);
     return {kind:'move',yaw:Math.atan2(gx,gz),walk:moveState<=5,sprint:moveState>=7};
+   }
+   case 'gotoPed':{
+    const holder=this.world.pedPoint?.(o.target),yaw=this.world.pedYaw?.(o.target);
+    if(o.remaining!==Number.POSITIVE_INFINITY)o.remaining-=dt;
+    if(!holder||o.remaining<=0){this.next(body);return {kind:'hold'};}
+    // The offset point (CEntitySeekPosCalculatorRadiusAngleOffset): out from the target at the angle from its facing.
+    const a=(yaw??0)-Math.PI+(o.offset?.angle??0),target=o.offset?{x:holder.x-Math.sin(a)*o.offset.radius,z:holder.z-Math.cos(a)*o.offset.radius}:holder;
+    const q=body.position,gx=target.x-q.x,gz=target.z-q.z,distance=Math.hypot(gx,gz);
+    // Too far behind (CTaskComplexWalkAlongsidePed's give-up distance), the task is over.
+    if(o.giveUp!==undefined&&distance>=o.giveUp){this.next(body);return {kind:'hold'};}
+    // Following, he waits where he is until the target moves off again.
+    if(distance<=o.radius&&o.follow)return {kind:'hold'};
+    // There: CTaskComplexTurnToFaceEntityOrCoord (bFaceEntityWhenDone), then the task is over.
+    if(distance<=o.radius){this.running={kind:'achieveHeading',heading:o.offset?Math.atan2(holder.x-q.x,holder.z-q.z):Math.atan2(gx,gz)};return {kind:'hold'};}
+    return {kind:'move',yaw:Math.atan2(gx,gz),walk:!o.sprint&&(!!o.follow||goToPointMoveState(6,distance,GO_TO_PED_WALK_DISTANCE)<6),sprint:!!o.sprint};
    }
    case 'followNodeRoute':{
     // Out of time, the stand-still sub-task puts him on the target and the task is over.
