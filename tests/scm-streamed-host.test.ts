@@ -78,3 +78,23 @@ test('a trigger point 2d effect carries the index FindTriggerPointCoors looks it
  const [effect]=readTwoDEffects(bytes);
  expect(effect.position).toEqual([1,2,3]);expect(effect.triggerPoint).toBe(5);
 });
+
+test('releasing a streamed file leaves its count of running instances alone (MAIN\'s CRANES starts crane2.scm while none runs)',async()=>{
+ const {ScmThread}=await import('../src/engine/ScmThread');
+ const {readScmHeader,decodeScmInstructions}=await import('../src/assets/scm');
+ const bytes=main(),{runtime,header}=ScmRuntime.load(bytes),scripts=runtime.game.streamedScripts,files=scriptImg();
+ for(const file of files)scripts.registerScript(file.name);
+ scripts.readStreamedScriptData(header.streamed,header.largestStreamedSize);
+ const crane=scripts.properIndexFromScriptIndex(68);
+ expect(scripts.filename(crane).toLowerCase()).toBe('crane2');
+ scripts.loadStreamedScript(crane,files.find(f=>f.name.toLowerCase()==='crane2')!.bytes);
+ runtime.startNewStreamedScript(crane,[]);
+ expect(scripts.at(crane).users).toBe(1);
+ // CRANES' own MARK_STREAMED_SCRIPT_AS_NO_LONGER_NEEDED 68, which it runs every tenth of a second while crane2 runs.
+ const main0=readScmHeader(bytes),mark=decodeScmInstructions(bytes,main0.entry,main0.mainSize)
+  .find(i=>i.name==='MARK_STREAMED_SCRIPT_AS_NO_LONGER_NEEDED'&&(i.parameters[0] as {value?:unknown})?.value===68)!;
+ expect(mark).toBeDefined();
+ const thread=new ScmThread(bytes,mark.offset,0,undefined,{startScript(){throw new Error('unexpected');},game:runtime.game,world:{fade(){}} as never});
+ try{thread.run(0,1);}catch{/* the commands after it ask for a world this test has not got */}
+ expect(scripts.at(crane).users).toBe(1);
+});

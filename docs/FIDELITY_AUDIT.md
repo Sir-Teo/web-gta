@@ -12173,3 +12173,11 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   frames at rest (natively gravity is in its speed when ProcessControl averages it), so one let go falls instead of
   staying where it hung. Spec: `script-crane-pickup` (the dock crane let down onto a container takes it, lifts it with a
   car attached in it, and lets it fall).
+- **MAIN's CRANES started crane2.scm until the script pool ran out.** Near the dock crane, CRANES asks
+  GET_NUMBER_OF_INSTANCES_OF_STREAMED_SCRIPT 68 every tenth of a second: none running, it starts the file; one running,
+  it calls MARK_STREAMED_SCRIPT_AS_NO_LONGER_NEEDED 68. The port took one off the running count there, so the next tenth
+  of a second read none and started another, until all 96 threads were taken and CRANES itself gave up (the STEAL4
+  sweep at the docks). The iOS handler (0x100201dc4) only releases the streaming request
+  (CStreaming::SetMissionDoesntRequireModel); the count (the slot's byte at +8, what GET_NUMBER_OF_INSTANCES reads, iOS
+  0x100202128) moves only as instances start and end. Every streamed world script MAIN runs that way (the SF, LV and
+  quarry cranes too) did the same. Spec: `scm-streamed-host` (CRANES' own release leaves the running crane2 counted).

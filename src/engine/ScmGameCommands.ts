@@ -2985,9 +2985,12 @@ const handlers:Record<string,ScmCommandHandler>={
   requireAsset(index>=0,'START_NEW_STREAMED_SCRIPT names a file the registry has not read.');
   host.startStreamedScript(index,p.slice(1).map(parameter=>t.readInt(parameter)));
  },
+ // The iOS handler (0x100201dc4) only releases the streaming request (CStreaming::SetMissionDoesntRequireModel on the
+ // file's model index, 26230 on): the count of running instances is left to the threads. script.img is held whole here,
+ // so there is nothing to release. (Taking one off the count let MAIN's CRANES, which asks for the file again whenever
+ // no instance runs and releases it while one does, start crane2.scm every tenth of a second until the pool ran out.)
  MARK_STREAMED_SCRIPT_AS_NO_LONGER_NEEDED:(t,p,i)=>{
-  const scripts=game(t,i).streamedScripts,index=scripts.properIndexFromScriptIndex(t.readInt(p[0]));
-  if(index>=0)scripts.at(index).users=Math.max(0,scripts.at(index).users-1);
+  game(t,i).streamedScripts.properIndexFromScriptIndex(t.readInt(p[0]));
  },
  REMOVE_STREAMED_SCRIPT:(t,p,i)=>{
   const scripts=game(t,i).streamedScripts,index=scripts.properIndexFromScriptIndex(t.readInt(p[0]));
