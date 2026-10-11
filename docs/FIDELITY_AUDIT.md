@@ -11893,3 +11893,6 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   Rapier after the step itself. The pairs are read once (`World.contactPairsWith`) and both passes walk the list, a
   prop the first removed left out of the second: the after-step went from 738 ms to 505 in 20 s of driving at 4×.
   `native-prop-smash` (browser) passes; it now starts from free roam, as INTRO holds CJ for its ride and F did nothing.
+- **A bike's contacts too.** A bike walked its contact pairs for the props it hit each step and again for what it
+  touched each frame; the pairs are read once a step, when first asked for (a resting bike with no step speed has no
+  props pass and reads none). The bike specs pass (18).

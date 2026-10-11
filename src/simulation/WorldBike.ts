@@ -85,13 +85,21 @@ export class WorldBike {
  /** CPhysical::m_nNumEntitiesCollided this step: the bodies it touches, or the ground its wheels rest on. */
  entitiesCollided(){
   const body=this.body,touched=new Set<number>();
-  for(let i=0;i<body.numColliders();i++){const collider=body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
-   if(other.isSensor()||other.handle===this.sim.playerCollider.handle||other.parent()?.handle===body.handle)return;
+  for(const [collider,other] of this.contactPairs()){
+   if((other as {removed?:boolean}).removed||other.isSensor()||other.handle===this.sim.playerCollider.handle||other.parent()?.handle===body.handle)continue;
    let touching=false;this.sim.world.contactPair(collider,other,manifold=>{if(manifold.numContacts()>0)touching=true;});
    if(touching)touched.add(other.parent()?.handle??other.handle);
-  });}
+  }
   return touched.size+(!touched.size&&this.wheelsDown()?1:0);
  }
+ /** The bike's collider pairs in contact, read once a step (World.contactPairsWith) for the props pass and for what it
+  * touched, which the frame asks after the step: read when first asked for after each step. */
+ private stepPairs:(readonly [RAPIER.Collider,RAPIER.Collider])[]=[];private stepPairsRead=false;
+ private readStepPairs(){
+  const pairs=this.stepPairs,body=this.body;pairs.length=0;this.stepPairsRead=true;if(!body.isEnabled())return;
+  for(let i=0;i<body.numColliders();i++){const collider=body.collider(i);this.sim.world.contactPairsWith(collider,other=>{pairs.push([collider,other]);});}
+ }
+ private contactPairs(){if(!this.stepPairsRead)this.readStepPairs();return this.stepPairs;}
  readonly body:RAPIER.RigidBody;readonly root=new Group();
  /** CCustomCarEnvMapPipeline's reflection state (every vehicle model uses the car pipeline). */
  readonly reflection=new NativeCarReflection();readonly name:string;readonly modelId:number;
@@ -559,9 +567,12 @@ export class WorldBike {
  }
  /** Pin the embarked player to the bike; knock-offs eject through the reversed force formula. */
  afterStep(){
+  // A new step: its pairs are read when first asked for (a resting bike with no step speed has no props pass).
+  this.stepPairsRead=false;
   if(this.body.isEnabled()){
+   const props=!!this.propFor&&!!this.stepVelocity&&!!this.stepTurn&&!this.wrecked;
    const out=resolveVehicleProps({world:this.sim.world,body:this.body,playerColliderHandle:this.sim.playerCollider.handle,pre:this.stepVelocity,preTurn:this.stepTurn,
-    mass:this.assets.handling.values.mass,turnMass:this.assets.handling.values.turnMass,occupied:this.occupied,wrecked:this.wrecked,bike:true,propFor:this.propFor});
+    mass:this.assets.handling.values.mass,turnMass:this.assets.handling.values.turnMass,occupied:this.occupied,wrecked:this.wrecked,bike:true,propFor:this.propFor,pairs:props?this.contactPairs():undefined});
    this.propsSmashed+=out.smashed;this.propsUprooted+=out.uprooted;
   }
   this.collisionKnockOff();
