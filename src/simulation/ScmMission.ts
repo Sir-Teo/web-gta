@@ -919,6 +919,8 @@ const HAND_SIGNAL_PED_TYPES:ReadonlySet<number>=new Set([7,8,9,11,14]);
 const MODEL_BMOCHIL=168,MODEL_HOTDOG=588;
 /** COMMAND_TASK_USE_ATTRACTOR and COMMAND_TASK_PLAY_ANIM_SECONDARY, the task records those commands leave. */
 const TASK_USE_ATTRACTOR_COMMAND=0x74C,TASK_PLAY_ANIM_SECONDARY_COMMAND=0xA1A;
+/** CREATE_SWAT_ROPE's opcode, the task record its ped's rope ride is kept under. */
+const CREATE_SWAT_ROPE_COMMAND=0x0503;
 /** ePedType::PED_TYPE_CIVMALE, which is what the random civilian forms create. */
 const PED_TYPE_CIVMALE=4;
 /* The original MAIN.SCM running inside the browser. CTheScripts::Process is driven a frame at a time; a
@@ -2218,6 +2220,15 @@ export class ScmMission {
    // CREATE_CHAR from a mission script: the ped stands static until the collision under it is in (III's handler, and
    // SA's own CREATE_CHAR_AT_ATTRACTOR: bIsStaticWaitingForCollision with the mission cleanup). SWEET1B makes the crack
    // den's dealers in the interior while CJ is still in the street; without the wait they fell through the void.
+   // CREATE_SWAT_ROPE (iOS 0x1001e3ff4): CRopes::CreateRopeForSwatPed at the point, a mission ped of the type and model
+   // made there by CPopulation::AddPed (in the air, not waiting for collision), its primary task
+   // CTaskComplexUseSwatRope on that rope, recorded for GET_SCRIPT_TASK_STATUS as the command's own (DRUGS4 waits for
+   // each SWAT's to finish before sending him on). The ped is put on the rope once it is built.
+   createSwatRope:(pedType,model,x,y,z)=>{
+    const handle=this.forCleanup(this.cleanupPeds,this.peds.create(pedType,model,{x,y,z}));
+    this.recordTask(handle,CREATE_SWAT_ROPE_COMMAND,false);this.swatRopeRiders.set(handle,{x,y,z});
+    return handle;
+   },
    createChar:(pedType,model,x,y,z)=>{
     this.nextPedWaitsForCollision=!!this.runtime?.currentThread?.usesMissionCleanup;
     try{return this.forCleanup(this.cleanupPeds,this.peds.create(pedType,model,{x,y,z}));}finally{this.nextPedWaitsForCollision=false;}
@@ -3168,6 +3179,16 @@ export class ScmMission {
    this.adapterRef.requestStreamedScript?.(index);
    const handle=this.peds.adopt(c.ped,c.pedType,c.model,c.position,c.heading,c.health);
    this.runtime.startNewStreamedScript(index,[handle],EXTERNAL_PED_BRAIN);
+  }
+ }
+ /** Peds CREATE_SWAT_ROPE made that have not yet been put on their rope (the point, the script's coordinates). */
+ private readonly swatRopeRiders=new Map<number,{x:number;y:number;z:number}>();
+ private settleSwatRopeRiders(){
+  for(const [ped,top] of this.swatRopeRiders){
+   if(!this.peds.exists(ped)){this.swatRopeRiders.delete(ped);continue;}
+   try{this.world.giveScriptPedOrder(this.livePed(ped),{kind:'abseil',...top});}
+   catch(error){if(error instanceof ScmEntityPending)continue;}
+   this.swatRopeRiders.delete(ped);
   }
  }
  /** Peds CREATE_CHAR_AT_ATTRACTOR made that have not yet been set at their attractor. */
@@ -4359,7 +4380,7 @@ export class ScmMission {
   // CPad::Update for pad 0 before the scripts run: a PRINT of WUZ1_DA or GAR2_10 (iOS) clears DisablePlayerControls,
   // the script's player-safe bit with it; the CPlayerInfo half of MakePlayerSafe is left as it was.
   {const pads=this.runtime.game.pads;if(pads.releaseControls[0]){pads.releaseControls[0]=false;pads.setPlayerSafe(0,false);this.playerControl=true;}}
-  try{this.serviceCutscene();this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.world.clearScriptPedEvents?.();if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();this.processObjectBrains(nowMs);this.processPedBrains(nowMs);this.processGarageDoors(nowMs);this.liftCreatedObjects();this.updateConversations(nowMs);this.settlePutDown();if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.runtime.game.objects.advanceFades(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
+  try{this.serviceCutscene();this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.world.clearScriptPedEvents?.();if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();if(this.swatRopeRiders.size)this.settleSwatRopeRiders();this.processObjectBrains(nowMs);this.processPedBrains(nowMs);this.processGarageDoors(nowMs);this.liftCreatedObjects();this.updateConversations(nowMs);this.settlePutDown();if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.runtime.game.objects.advanceFades(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
    this.processRunners(timeStepMs/1000);
    this.drownRiders(timeStepMs);

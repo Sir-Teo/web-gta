@@ -11924,3 +11924,14 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   seven minutes. The HUD draws it in the subtitles font, headings white, the rest 210 grey, each over its black copy,
   under the widescreen bars. AUTHORED: SCREEN_HEIGHT is the 448 the HUD is laid out over (iOS's is the device's).
   Spec: `scm-credits` (unit).
+- **DRUGS4's SWAT come down their ropes.** CREATE_SWAT_ROPE was skipped, so its handle read -1 and the next command on
+  it (GIVE_WEAPON_TO_CHAR) gave the mission up as the police helicopter arrived at the motel. The iOS handler
+  (0x1001e3ff4) registers a SWAT rope at the point (CRopes::CreateRopeForSwatPed: RegisterRope 0x10025f220 hangs its
+  32 nodes 20/31 apart straight down, for 4000 ms), makes a mission ped of the type and model there and gives it
+  CTaskComplexUseSwatRope, recorded as the command's own script task (DRUGS4 waits on that status before sending each
+  SWAT on). The ped (`abseil` order) is put where FindCoorsAlongRope (0x10025fe18: a share of the rope times its 31
+  spans) has it, 0.003 of the rope a frame, turning 0.05 a frame in CTaskSimpleAbseil's clip, until within 2 of the
+  ground under it, where the task ends and he falls the rest; the rope is drawn as CRope::Render's black half-alpha
+  line for its 4 s. AUTHORED: past those 4 s the native task holds the ped where FindCoorsAlongRope fails; here he
+  lets go. The rope's own swinging (CRope::Update) is not run: nothing holds a script SWAT rope. Specs:
+  `script-swat-rope` (browser), `swat-rope` (unit).

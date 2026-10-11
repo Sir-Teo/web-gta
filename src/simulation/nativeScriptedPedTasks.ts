@@ -14,6 +14,9 @@ export type ScriptedPedOrder=
  /** CTaskSimpleSlideToCoord (iOS ProcessPed 0x10040d958): the ped is slid a share of the way left each frame toward the
   * point while it turns to the heading; over within 0.05 and 0.1 rad of them, or after two seconds. */
  |{kind:'slideToCoord';x:number;y:number;z:number;degrees:number;speed:number}
+ /** CTaskComplexUseSwatRope on the rope CREATE_SWAT_ROPE registers at the point (the script's coordinates): the ped
+  * slides down it and the task ends near the ground (swatRopePoint). */
+ |{kind:'abseil';x:number;y:number;z:number}
  /** CTaskComplexWanderStandard: back to walking the path nodes, which is what a street ped does unasked. */
  |{kind:'wander'}
  /** CTaskComplexDie, with the named clip of TASK_DIE_NAMED_ANIM when one is given. */
@@ -369,4 +372,18 @@ export function achieveHeadingStep(current:number,desired:number,headingChangeDe
  const turn=headingChangeDegrees*Math.PI/180*ACHIEVE_HEADING_RATE*50*seconds;
  const step=Math.max(-turn,Math.min(turn,delta));
  return {heading:current+step,done:Math.abs(delta-step)<=ACHIEVE_HEADING_TOLERANCE};
+}
+
+/** CRopes::CreateRopeForSwatPed registers a SWAT rope (CRopes::RegisterRope, iOS 0x10025f220): 32 nodes hanging straight
+ * down from its point, 20/31 apart (a rope 20 long), for 4000 ms. */
+export const SWAT_ROPE_LENGTH=20,SWAT_ROPE_SECONDS=4,SWAT_ROPE_NODES=32;
+/** CTaskComplexUseSwatRope::ControlSubTask (gta-reversed 0x65A460): the ped's place on the rope moves on 0.003 of it a
+ * frame (CTimer's step, 50 a second). */
+export const SWAT_ROPE_SHARE_PER_SECOND=.003*50;
+/** CRopes::FindCoorsAlongRope (iOS 0x10025fe18): a share of the rope (0 at its top, held under 1) times its 31 spans,
+ * between the two nodes it falls between, each node resting no lower than the ground under it. Native heights. */
+export function swatRopePoint(top:number,ground:number,share:number){
+ const along=Math.max(0,Math.min(share,.999))*(SWAT_ROPE_NODES-1),i=Math.floor(along),f=along-i,span=SWAT_ROPE_LENGTH/(SWAT_ROPE_NODES-1);
+ const node=(n:number)=>Math.max(ground,top-n*span);
+ return node(i)*(1-f)+node(i+1)*f;
 }

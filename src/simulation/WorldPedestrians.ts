@@ -27,7 +27,7 @@ import {WALK_ROUND_PAD,walkRoundCar} from '../ped/nativeWalkRoundCar';
 import {WalkRoundBuildingRoute,buildingCollisionFacing,type V3 as NativeV3} from '../ped/nativeWalkRoundBuilding';
 import {followersToRemove} from '../ped/nativePedGroup';
 import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARGET_TOLERANCE,cornerMoveRatio,cornerSlowing,planFollowNodeRoute,type CornerSlowing,type NodeRouteOptions} from './nativeFollowNodeRoute';
-import {GO_STRAIGHT_MOVE_STATE_RADIUS,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,patrolRouteStart,type ScriptedPedOrder,slideToCoordStep,SLIDE_HEADING_TOLERANCE} from './nativeScriptedPedTasks';
+import {GO_STRAIGHT_MOVE_STATE_RADIUS,SWAT_ROPE_LENGTH,SWAT_ROPE_NODES,SWAT_ROPE_SECONDS,SWAT_ROPE_SHARE_PER_SECOND,swatRopePoint,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,patrolRouteStart,type ScriptedPedOrder,slideToCoordStep,SLIDE_HEADING_TOLERANCE} from './nativeScriptedPedTasks';
 import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NATIVE_PED_TYPES,NativeAcquaintance,nativePedType} from '../ped/nativeAcquaintance';
 import {characterMovement} from './characterMovement';
 import {ANIM_ID,NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
@@ -57,7 +57,7 @@ import {findNextNodeWandering,wanderSector,wanderStep,wanderTargetOffset} from '
 import {TRAFFIC_LIGHT,nativeTrafficLights} from '../world/nativeTrafficLights';
 import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, separationPush, maxGroupMembers, PED_SEEING_RANGE, TURF_KILL_THREATS_CHANCE, gangPedType, ACQUAINTANCE_SCAN_SECONDS, ACQUAINTANCE_RAISED_SCAN_SECONDS, ACQUAINTANCE_FIRST_SCAN_SECONDS, ACQUAINTANCE_EYE_HEIGHT } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
-import {Quaternion,Vector3,type Scene} from 'three';
+import {BufferGeometry,Line,LineBasicMaterial,Quaternion,Vector3,type Scene} from 'three';
 import {modelObject} from '../assets/ModelObjects';
 import type {WantedSystem} from './WantedSystem';
 import {CRIME} from './nativeWanted';
@@ -174,6 +174,9 @@ export interface Pedestrian {
    * task of the script's own, which GET_SCRIPT_TASK_STATUS does not count as one. */
   isDefault?:boolean}|{kind:'achieveHeading';heading:number}
   |{kind:'slideToCoord';x:number;z:number;heading:number;speed:number;remaining:number}
+  /** CTaskComplexUseSwatRope: a renderer point for the rope's top (`top` its height), the share of the rope come down,
+   * the seconds it has hung and the ground under it once looked up; the rope drawn while it lasts. */
+  |{kind:'abseil';x:number;z:number;top:number;share:number;seconds:number;ground?:number}
   /** CTaskComplexGoToPointAndStandStill(Timed): a renderer point, with its origin height (undefined for a point the
    * script put on the ground), eMoveState and radii, and the seconds left of a timed task (Infinity otherwise). */
   |{kind:'goToPoint';x:number;z:number;y?:number;moveState:number;radius:number;moveStateRadius:number;remaining:number}
@@ -1922,6 +1925,12 @@ export class WorldPedestrians {
    // The script's degrees clockwise from north are the browser's yaw plus half a turn.
    case 'achieveHeading':ped.order={kind:'achieveHeading',heading:order.degrees*Math.PI/180+Math.PI};break;
    case 'slideToCoord':ped.order={kind:'slideToCoord',x:order.x,z:-order.y,heading:order.degrees*Math.PI/180+Math.PI,speed:order.speed,remaining:2};ped.flee=0;ped.loiter=false;break;
+   case 'abseil':{
+    ped.order={kind:'abseil',x:order.x,z:-order.y,top:order.z,share:0,seconds:0};ped.flee=0;ped.loiter=false;
+    // CTaskSimpleAbseil's clip, from the ped block.
+    if(!ped.view.hasReaction('abseil'))void this.catalog?.scriptAnimation('ped','abseil').then(animation=>{if(animation&&!this.disposed)ped.view.installReactions({abseil:animation});});
+    break;
+   }
    // Wandering is what the ped does with no task at all, so it ends the sequence rather than joining it.
    case 'wander':ped.sequence=undefined;ped.flee=0;ped.loiter=false;this.chooseTarget(ped);break;
    case 'killPed':{
@@ -2149,6 +2158,40 @@ export class WorldPedestrians {
  }
  /** CPedPlacement::FindZCoorForPed then SetPosn: the highest ground under two probes from half a unit above the
   * point (its origin height, or well above for a point on the ground), the ped's feet set on it. */
+ /** CTaskComplexUseSwatRope::ControlSubTask (gta-reversed 0x65A460) on CREATE_SWAT_ROPE's rope: the ped's place is
+  * CRopes::FindCoorsAlongRope at its share of the rope (swatRopePoint), which moves on 0.003 a frame; its aiming
+  * rotation is set 0.05 a frame behind its heading, so it turns as it comes down, and CTaskSimpleAbseil's clip plays.
+  * Within 2 above the ground under it (CPedPlacement::FindZCoorForPed) the task ends and the ped, its collision back,
+  * falls the rest. AUTHORED: once the rope's 4 s are up FindCoorsAlongRope finds nothing and the task holds the ped
+  * where it is; here it lets go and falls. CRope::Render's line (black at half alpha) is drawn for the rope's 4 s.
+  * Answers whether the ped still hangs. */
+ /** The SWAT ropes drawn (CRope::Render), each until its registration runs out. */
+ private swatRopes:{line:Line;remaining:number}[]=[];
+ private stepSwatRopes(dt:number){
+  for(let i=this.swatRopes.length-1;i>=0;i--){const r=this.swatRopes[i];r.remaining-=dt;if(r.remaining>0)continue;
+   this.scene.remove(r.line);r.line.geometry.dispose();(r.line.material as LineBasicMaterial).dispose();this.swatRopes.splice(i,1);}
+ }
+ private stepAbseil(p:Pedestrian,dt:number){
+  const o=p.order as Extract<NonNullable<Pedestrian['order']>,{kind:'abseil'}>,state=p.actor.player;
+  o.ground??=this.groundUnder(o.x,o.z,o.top+.5)??o.top-SWAT_ROPE_LENGTH;o.seconds+=dt;
+  if(o.seconds===dt){
+   const ground=o.ground,points=Array.from({length:SWAT_ROPE_NODES},(_,n)=>new Vector3(o.x,Math.max(ground,o.top-n*SWAT_ROPE_LENGTH/(SWAT_ROPE_NODES-1)),o.z));
+   const line=new Line(new BufferGeometry().setFromPoints(points),new LineBasicMaterial({color:0,transparent:true,opacity:128/255}));
+   this.scene.add(line);this.swatRopes.push({line,remaining:SWAT_ROPE_SECONDS});
+  }
+  const origin=state.position.y+PED_ORIGIN_HEIGHT;
+  if(o.seconds>dt&&origin-2<o.ground||o.seconds>SWAT_ROPE_SECONDS){
+   if(p.view.reactionName==='abseil')p.view.clearReaction();
+   this.startNextOrder(p);return false;
+  }
+  o.share+=dt*SWAT_ROPE_SHARE_PER_SECOND;
+  const feet=swatRopePoint(o.top,o.ground,o.share)-PED_ORIGIN_HEIGHT;
+  state.position={x:o.x,y:feet,z:o.z};
+  p.body.setTranslation({x:o.x,y:feet+.9,z:o.z},true);p.collider.setTranslation({x:o.x,y:feet+.9,z:o.z});
+  state.heading-=.05*50*dt;
+  if(p.view.hasReaction('abseil')&&p.view.reactionName!=='abseil')p.view.playReaction('abseil',Infinity,false,0,true);
+  return true;
+ }
  private placeOnGround(ped:Pedestrian,x:number,z:number,originY?:number){
   const ground=this.groundUnder(x,z,(originY??ped.actor.player.position.y+PED_ORIGIN_HEIGHT+50)+.5);
   if(ground===undefined)return;
@@ -3607,6 +3650,7 @@ export class WorldPedestrians {
    for(let i=this.pendingStrikes.length-1;i>=0;i--){const s=this.pendingStrikes[i];s.delay-=dt;if(s.delay<=0){this.pendingStrikes.splice(i,1);this.resolveStrike(s);}}
    this.installPlayerReactions();
    const bodies=this.people.filter(p=>p.health>0&&p.down===0).map(p=>p.actor.player.position);
+   this.stepSwatRopes(dt);
    for(const p of this.people){
     const state=p.actor.player;if(p.health<=0)p.deadTime+=dt;state.previous={...state.position};
     if(p.collisionWait){if(this.collisionArrived(p,dt))p.collisionWait=undefined;else continue;}
@@ -3616,6 +3660,8 @@ export class WorldPedestrians {
     // down at a path node by the player (a Grove ped was found in San Fierro). A dead one lies where it fell the same
     // way: SWEET3's Ballas driver, shot at the drive-thru, sank under the map once CJ had driven off with the window.
     else if(p.mission&&!p.frozen&&p.flags?.loadsCollision!==false&&!(this.sim.collisionLoaded?.(state.position.x,state.position.z)??true)){p.collisionWait={seconds:.5,reground:false};continue;}
+    // CTaskComplexUseSwatRope: on the rope the ped is out of the physics, put where the rope has it.
+    if(p.order?.kind==='abseil'&&p.health>0&&this.stepAbseil(p,dt))continue;
    // Crowd separation: standing bodies push apart before anything steers.
    // Scaled by the impulse decay so overlapping peds part at ~push speed.
    if(p.health>0&&p.down===0){
@@ -3934,6 +3980,7 @@ export class WorldPedestrians {
      const turned=achieveHeadingStep(state.heading,o.heading,p.headingChange,dt);state.heading=turned.heading;
      const off=Math.abs(Math.atan2(Math.sin(o.heading-state.heading),Math.cos(o.heading-state.heading)));
      if(o.remaining<=0||step.reached&&off<SLIDE_HEADING_TOLERANCE)this.startNextOrder(p);
+    }else if(p.order.kind==='abseil'){dx=0;dz=0;
     }else{
      dx=0;dz=0;
      const turned=achieveHeadingStep(state.heading,p.order.heading,p.headingChange,dt);
