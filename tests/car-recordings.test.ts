@@ -106,6 +106,18 @@ describe('playback',()=>{
   h.recordings.setSpeed(7,2);saveOrRetrieveDataForThisFrame(h,1200);
   expect(playback.runningTime).toBe(900);expect(frames[currentFrameIndex(playback)].time).toBeLessThanOrEqual(900);expect(frames[currentFrameIndex(playback)+1].time).toBeGreaterThan(900);
  });
+ test('a paused playback keeps its clock and holds the car where the recording has it (iOS 0x1001c6244)',()=>{
+  const frames=[frame(0,[0,0,0]),frame(100,[10,0,0]),frame(200,[20,0,0])];
+  const car=testVehicle(),h=host({1:frames},{1:car});startPlaybackRecordedCar(h,1,1,false,false);
+  saveOrRetrieveDataForThisFrame(h,4*50);
+  const playback=h.recordings.playbacks[0]!;expect(playback.runningTime).toBe(50);
+  h.recordings.setPaused(1,true);
+  for(let i=0;i<5;i++)saveOrRetrieveDataForThisFrame(h,4*50);
+  expect(playback.runningTime).toBe(50);expect(car.matrix.position[0]).toBeCloseTo(5,6);
+  expect(h.recordings.isPlaybackGoingOn(1)).toBe(true);
+  h.recordings.setPaused(1,false);saveOrRetrieveDataForThisFrame(h,4*50);
+  expect(playback.runningTime).toBe(100);
+ });
  test('interpolation between two frames',()=>{
   const frames=[frame(0,[0,0,0],{gas:1}),frame(100,[10,20,0],{velocity:[0.5,0,0],right:[0,1,0],top:[-1,0,0]}),frame(200,[20,20,0])];
   const car=testVehicle(),h=host({1:frames},{1:car});startPlaybackRecordedCar(h,1,1,false,false);

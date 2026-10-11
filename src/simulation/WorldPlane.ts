@@ -62,6 +62,9 @@ export function aircraftWeaponDamageScale(modelId:number,weapon:number){
 }
 
 export class WorldPlane {
+ /** m_autoPilot.m_vehicleRecordingId and the controls a playback sets (recordingBody.ts): CVehicleRecording plays an
+  * aircraft's recording as a car's. DRUGS4's police Maverick holds its recording paused, which the script waits on. */
+ recordingSlot=-1;recordingControls?:{steerAngle:number;gas:number;brake:number;handbrake:boolean};
  readonly body:RAPIER.RigidBody;readonly root=new Group();
  /** CCustomCarEnvMapPipeline's reflection state (every vehicle model uses the car pipeline). */
  readonly reflection=new NativeCarReflection();readonly name:string;readonly modelId:number;
@@ -422,11 +425,15 @@ export class WorldPlane {
  beforeStep(dt:number,input:{throttle:number;pitch:number;roll:number;rudder:number;brake:boolean}){
   // An AI pilot's helicopter flies on however far off it is (SteerAICarWithPhysics has no range); it is drawn only near.
   const piloted=this.helicopter&&!!this.heliPilot?.mission&&!this.occupied&&this.health>0;
-  const nearby=this.occupied||this.distance()<250,active=(nearby||piloted)&&!this.frozen&&(this.occupied||!!this.autopilot||this.startedInAir||this.collisionLoaded(dt));
+  const recorded=this.recordingSlot>=0&&this.body.bodyType()===RAPIER.RigidBodyType.KinematicVelocityBased;
+  const nearby=this.occupied||this.distance()<250,active=recorded||(nearby||piloted)&&!this.frozen&&(this.occupied||!!this.autopilot||this.startedInAir||this.collisionLoaded(dt));
   this.body.setEnabled(active);this.root.visible=nearby;if(!active)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};this.stepDt=dt;
   // Attached to another vehicle (ATTACH_CAR_TO_CAR): a kinematic body the host sets on it after the step.
   if(this.body.bodyType()===RAPIER.RigidBodyType.KinematicPositionBased)return;
+  // A playback without car AI moves the body itself (a kinematic body on the recording's speeds); a helicopter's rotor
+  // runs at speed meanwhile, as one made already flying.
+  if(recorded){if(this.helicopter){this.rotorSpeed=HELI_ROTOR_FULL;this.propAngle=(this.propAngle+dt*95)%(Math.PI*2);}return;}
   const p=this.body.translation(),hit=this.sim.world.castRay(new RAPIER.Ray(p,{x:0,y:-1,z:0}),3000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
   this.altitude=hit?hit.timeOfImpact:Math.max(0,p.y);const clearance=Math.max(1.5,-this.assets.collision!.bounds.min[2]+.8);this.grounded=!!hit&&hit.timeOfImpact<clearance;
    if(this.helicopter)this.steerAIHeli(dt);

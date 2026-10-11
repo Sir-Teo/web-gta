@@ -9,9 +9,11 @@ import type {ScmPlayback,ScmVehicleRecordings} from './ScmVehicleRecordings';
  * offset (frame * 0x20) exactly as the source keeps it. Everything is native (Z up); the browser mapping is the host's.
  *
  * Not verifiable from the reversed source, so not modelled:
- * - bPlaybackPaused is set by PAUSE_PLAYBACK_RECORDED_CAR but nothing reversed reads it: SaveOrRetrieveDataForThisFrame
- *   advances a paused playback like any other, RestoreInfoForCar's `pause` argument is never passed true, and
- *   IsPlaybackPausedForCar always answers false. The port follows that.
+ * - bPlaybackPaused is set by PAUSE_PLAYBACK_RECORDED_CAR. Nothing in the reversed PC source reads it, but the iOS
+ *   SaveOrRetrieveDataForThisFrame (0x1001c6244) does: a paused playback's running time is not stepped (the time it
+ *   has is read back as it is), and the car is still put on the recording at that time, so it holds there.
+ *   RestoreInfoForCar's `pause` argument is still never passed true, and IsPlaybackPausedForCar always answers
+ *   false. DRUGS4 starts its police Maverick's recording, pauses it and waits for it to be going on.
  * - A playback using car AI (bUseCarAI) is skipped here; MISSION_FOLLOW_RECORDED_PATH's steering along the frames lives
  *   in CCarCtrl/CCarAI code that is not reversed, so how it reads PlaybackIndex is unknown.
  * - SetRecordingToPointClosestToCoors stores the frame number itself in PlaybackIndex, not frame * 0x20; kept as is.
@@ -122,7 +124,7 @@ export function saveOrRetrieveDataForThisFrame(host:CarRecordingPlaybackHost,tim
   const vehicle=host.vehicle(playback.vehicle);
   if(!vehicle||vehicle.renderScorched){stopPlaybackWithIndex(host,slot);return;}
   if(playback.useCarAI)return;
-  playback.runningTime=f32(playback.runningTime+f32(f32(f32(timeSpanMs>>>0)*playback.speed)/4));
+  if(!playback.paused)playback.runningTime=f32(playback.runningTime+f32(f32(f32(timeSpanMs>>>0)*playback.speed)/4));
   const frames=host.frames(playback.fileNumber)??[],start=currentFrameIndex(playback);
   let current=start;
   // The source binds `next` to frames[start + 1] once, so the walk runs to the end whenever that frame is behind the

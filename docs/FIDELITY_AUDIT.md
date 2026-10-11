@@ -11946,3 +11946,11 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   0.95 a timestep, until 600 ms are up (constants read from the executable's data). ADD_BIG_GUN_FLASH (0x1001e6684) is
   CPointLights::AddLight at the first point for the frame (radius 5, colour 1, 0.8, 0) and Fx_c::TriggerGunshot from it
   toward the second. Spec: `script-player-attached`.
+- **DRUGS4 waited on the police helicopter's recording.** At the motel the script makes its police Maverick, starts
+  recording 352 on it, pauses it and, before its camera follows the helicopter in, waits for
+  IS_PLAYBACK_GOING_ON_FOR_CAR. Two things stopped it: recordings resolved only cars and bikes, so an aircraft's
+  playback was stopped on its first frame (WorldPlane now carries the recording slot and controls, and a recorded
+  aircraft is a kinematic body the recording moves, its own flight skipped and a helicopter's rotor at speed); and the
+  port advanced a paused playback, as the reversed PC source does, while the iOS SaveOrRetrieveDataForThisFrame
+  (0x1001c6244) leaves a paused playback's running time where it is and keeps the car on the recording there.
+  Specs: `script-heli-recording` (browser), `car-recordings` (unit).

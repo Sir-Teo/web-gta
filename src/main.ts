@@ -6178,7 +6178,7 @@ async function boot() {
                  // CVehicleRecording: carrec.img's files streamed on request, and a script car as a playback moves it.
                  requestCarRecording:(fileNumber,loaded)=>{carRecordings.request(fileNumber,loaded);},
                  carRecordingFrames:fileNumber=>carRecordings.framesOf(fileNumber),
-                 carRecordingVehicle:car=>car&&typeof car==='object'&&'recordingSlot' in car?recordingVehicle(car as ScriptCar|import('./simulation/WorldBike').WorldBike):undefined,
+                 carRecordingVehicle:car=>car&&typeof car==='object'&&'recordingSlot' in car?recordingVehicle(car as ScriptCar|import('./simulation/WorldBike').WorldBike|import('./simulation/WorldPlane').WorldPlane):undefined,
                  // CTrain: the fleet's mission trains, from native points.
                  spawnMissionTrain:(type,position,clockwise)=>fleet?fleet.spawnMissionTrain(type,position,clockwise,gameTimeMs):Promise.resolve(undefined),
                  trainCarriageOf:(train,index)=>train instanceof WorldTrain?fleet?.trainFor(findCarriage(train.carriage,index)):undefined,
