@@ -160,6 +160,9 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     }
   };
   return {root,setComponentDamage(states:Record<string,number>){componentStates={...states};applyDamage();},body:physical.body,sources:physical.sources,dispose,update,setAlpha,materialBindings:allBindings,
+    /** What CAutomobile::PlaceOnRoadProperly reads: the front wheel line's y, the rear one's (negated), and
+     * m_fFrontHeightAboveRoad and m_fRearHeightAboveRoad (SetupSuspensionLines, at rest). */
+    roadPose:{frontY:lines.frontLeft.start.y,rearY:-lines.rearRight.start.y,frontHeight:wheelPose.frontHeight,rearHeight:wheelPose.rearHeight} as const,
     /** CVehicle::CreateUpgradeAtomic (0x6D3510, reversed): a tuning part's atomic under the car, its frame taking the
      * upgrade position the model's `frameName` frame gives (that frame's own matrix, under the component it hangs
      * from), lit, reflecting, painted and faded as the car's own atomics are. The returned call takes it off. */

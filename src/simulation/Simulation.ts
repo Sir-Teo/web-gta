@@ -144,17 +144,41 @@ export class Simulation {
    * pairs, both ways, whose contacts every step drops. The filter reads handles only; nothing touches the world from
    * inside it. */
   readonly ignoredBodyPairs=new Set<string>();
+  /** A trailer and its tractor (CAutomobile::ProcessEntityCollision's didHideTriangles): body-handle pairs whose
+   * collision meshes do not meet each other; their spheres and boxes still do. (Natively the pair's contacts are
+   * soft, ApplySoftCollision, which Rapier does not have.) */
+  private readonly towBodyPairs=new Set<string>();
+  /** The linked vehicles' mesh colliders, each with the number of links it is in (a baggage cart can be in two). */
+  private readonly towMeshColliders=new Map<number,number>();
   readonly physicsHooks={
-    filterContactPair:(_c1:number,_c2:number,b1:number,b2:number)=>this.ignoredBodyPairs.has(b1<b2?`${b1}:${b2}`:`${b2}:${b1}`)?null:RAPIER.SolverFlags.COMPUTE_IMPULSE,
+    filterContactPair:(c1:number,c2:number,b1:number,b2:number)=>{
+      const key=b1<b2?`${b1}:${b2}`:`${b2}:${b1}`;
+      if(this.ignoredBodyPairs.has(key))return null;
+      if((this.towMeshColliders.has(c1)||this.towMeshColliders.has(c2))&&this.towBodyPairs.has(key))return null;
+      return RAPIER.SolverFlags.COMPUTE_IMPULSE;
+    },
     filterIntersectionPair:()=>true,
   };
+  /** Links (or unlinks) a trailer and its tractor for the contact filter: their mesh colliders run the hook while linked. */
+  setTowPair(a:{body:RAPIER.RigidBody;sources:ReadonlyMap<number,{kind:string}>},b:{body:RAPIER.RigidBody;sources:ReadonlyMap<number,{kind:string}>},linked:boolean){
+    if(!a.body.isValid()||!b.body.isValid())return;
+    const x=a.body.handle,y=b.body.handle,key=x<y?`${x}:${y}`:`${y}:${x}`;
+    if(linked===this.towBodyPairs.has(key))return;
+    if(linked)this.towBodyPairs.add(key);else this.towBodyPairs.delete(key);
+    for(const car of [a,b])for(const [handle,source] of car.sources){
+      if(source.kind!=='mesh')continue;
+      const links=(this.towMeshColliders.get(handle)??0)+(linked?1:-1);
+      if(links>0)this.towMeshColliders.set(handle,links);else this.towMeshColliders.delete(handle);
+      this.world.getCollider(handle)?.setActiveHooks(links>0?RAPIER.ActiveHooks.FILTER_CONTACT_PAIRS:RAPIER.ActiveHooks.NONE);
+    }
+  }
   /** Rapier's JS World.step hands the hooks on only through stepWithEvents, which it takes when given an event queue. */
   private readonly hookEvents=new RAPIER.EventQueue(true);
   /** One world step; with the hooks only while a pair is being ignored, so the usual step stays the plain one. */
   /** What the host does once the world has stepped, before anything reads the bodies (PositionAttachedEntity for the
    * vehicles a script attached to others). */
   afterWorldStep?:()=>void;
-  stepWorld(){if(this.ignoredBodyPairs.size)this.world.step(this.hookEvents,this.physicsHooks);else this.world.step();this.afterWorldStep?.();}
+  stepWorld(){if(this.ignoredBodyPairs.size||this.towBodyPairs.size)this.world.step(this.hookEvents,this.physicsHooks);else this.world.step();this.afterWorldStep?.();}
   /** CPhysical::SetVelocity on the player (SET_CHAR_VELOCITY), in native units per 50th of a second: the air carries
    * the horizontal part as his jump momentum, and a rise takes him off the ground; standing, the next step's
    * animation drives him again, as CPed's own move speed does. */

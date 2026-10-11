@@ -24,12 +24,13 @@ import {NATIVE_CAR_WHEELS} from './nativeDriveContacts';
 import {nativeSurfaceGrip,nativeWetGripByte} from './nativeSurfaceGrip';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 import RAPIER from '@dimforge/rapier3d-compat';
-import {Quaternion,Vector3,type Scene} from 'three';
+import {Euler,Quaternion,Vector3,type Scene} from 'three';
 import {sampleNativeChassis} from './nativeChassis';
 import {applyNativeWheelDeltas} from './nativeWheelMotion';
 import {nativeVehicleSuspension} from './nativeVehicleSuspension';
 import {resolveCarWheelFrames} from '../assets/carWheelFrames';
-import {BAGGAGE_TRAILERS,stepTrailerSupport,stepTrailerSupportExtension,trailerSupportLines,type TrailerSupportLine} from './nativeTrailerSupport';
+import {BAGGAGE_TRAILERS,stepTrailerSupport,stepTrailerSupportExtension,trailerSupportLines,trailerWeightShare,type TrailerSupportLine} from './nativeTrailerSupport';
+import {MODEL as TOW_MODEL,TOW_LINK_SCAN_RANGE,TOWED_MOVING_SPEED_SQ,towBarPoint,towBarReachesHitch,towHitchPoint,towLinkHolds,tractorLinkImpulse,trailerLegReach,trailerLinkImpulse,type TowBody,type TowLinkPair,type TowModel} from './nativeTowLink';
 import type {Simulation} from './Simulation';
 import {vehicleSolverGroups} from './solverGroups';
 import {burstCompressionRandomUpper} from './nativeGroundCompression';
@@ -356,9 +357,10 @@ export class WorldCar {
   const h=assets.handling.values;this.mass=h.mass;this.turnMass=h.turnMass;this.collisionDamageMultiplier=h.collisionDamageMultiplier;this.boundsMaxX=Math.max(.5,assets.collision.bounds.max[0]);
   this.groupColliders();
   // CTrailer: a trailer other than the baggage ones stands on two support legs at its front while nothing tows it.
-  if(assets.vehicle.type==='trailer'&&!BAGGAGE_TRAILERS.has(this.modelId)&&assets.vehicle.frontWheelSize!==undefined){
+  if(assets.vehicle.type==='trailer'&&assets.vehicle.frontWheelSize!==undefined){
    const wheels=nativeVehicleSuspension(assets.vehicle,assets.handling,assets.model,assets.wheelFrames??resolveCarWheelFrames(assets.model));
-   this.trailerLegs={lines:trailerSupportLines(wheels,assets.collision.bounds,h.suspensionForce,assets.vehicle.frontWheelSize),extension:1};
+   this.trailerHeightAboveRoad=trailerWeightShare(wheels,assets.collision.bounds,h.suspensionForce,assets.vehicle.frontWheelSize).heightAboveRoad;
+   if(!BAGGAGE_TRAILERS.has(this.modelId))this.trailerLegs={lines:trailerSupportLines(wheels,assets.collision.bounds,h.suspensionForce,assets.vehicle.frontWheelSize),extension:1};
   }
   // CAutomobile's constructor fits a car with hydraulic geometry with hydraulics one time in four.
   if(h.handlingFlags&HANDLING_HYDRAULIC_GEOM&&Math.floor(Math.random()*0x8000)%4===0)this.fitHydraulics();
@@ -1362,7 +1364,7 @@ export class WorldCar {
   * vehicles). */
  private stepTrailerLegs(seconds:number){
   const legs=this.trailerLegs;if(!legs)return;
-  const timeStep=seconds*50;legs.extension=stepTrailerSupportExtension(legs.extension,false,timeStep);
+  const timeStep=seconds*50,towed=!!this.towingVehicle;legs.extension=stepTrailerSupportExtension(legs.extension,towed,timeStep);
   const body=this.car.body,p=body.translation(),r=body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),chassis=sampleNativeChassis(body);
   const world=(v:{x:number;y:number;z:number})=>new Vector3(v.x,v.z,-v.y).applyQuaternion(q).add(p as Vector3);
   const native=(v:{x:number;y:number;z:number})=>({x:Math.fround(v.x),y:Math.fround(-v.z),z:Math.fround(v.y)});
@@ -1375,7 +1377,137 @@ export class WorldCar {
    return {share:hit.timeOfImpact/length,point:native({x:at.x-p.x,y:at.y-p.y,z:at.z-p.z}),normal:native(hit.normal)};
   });
   applyNativeWheelDeltas(body,stepTrailerSupport({linear:chassis.linear,angular:chassis.angular,centerOfMass:chassis.centerOfMass,mass:this.mass,turnMass:this.turnMass,
-   down:chassis.direction,timeStep,reach:legs.extension,contacts,frameLimit:this.input.suspension.frameLimit,springLimitMultiplier:this.input.suspension.springLimitMultiplier}));
+   down:chassis.direction,timeStep,reach:trailerLegReach(legs.extension,towed),contacts,frameLimit:this.input.suspension.frameLimit,springLimitMultiplier:this.input.suspension.springLimitMultiplier}));
+ }
+ /** CTrailer's m_fFrontHeightAboveRoad and m_fRearHeightAboveRoad, from SetupSuspensionLines' weight share. */
+ private trailerHeightAboveRoad?:number;
+ /** CVehicle::m_pTowingVehicle: what tows this trailer. */
+ towingVehicle?:WorldCar;
+ /** CVehicle::m_pVehicleBeingTowed: the trailer this vehicle tows. */
+ towedVehicle?:WorldCar;
+ get isTrailer(){return this.assets.vehicle.type==='trailer';}
+ /** A model frame's point in the model's space (native axes), carried up through its parents to the clump's root, as
+  * CVehicleModelInfo's dummy positions are. */
+ modelFramePoint(name:string){
+  const frames=this.assets.model.frames,lower=name.toLowerCase();let i=frames.findIndex(frame=>frame.name.toLowerCase()===lower);
+  if(i<0)return undefined;
+  let x=0,y=0,z=0;
+  // The root frame's own matrix is the entity's.
+  for(;i>=0&&frames[i].parent>=0;i=frames[i].parent){
+   const m=frames[i].matrix;[x,y,z]=[m[0]*x+m[4]*y+m[8]*z+m[12],m[1]*x+m[5]*y+m[9]*z+m[13],m[2]*x+m[6]*y+m[10]*z+m[14]];
+  }
+  return {x:Math.fround(x),y:Math.fround(y),z:Math.fround(z)};
+ }
+ private towModelCache?:TowModel;
+ /** What the tow points are made from: the bounds, the height above the road and the hookup and misc_a frames. */
+ get towModel():TowModel{
+  if(!this.towModelCache){
+   const b=this.assets.collision.bounds;
+   this.towModelCache={model:this.modelId,trailer:this.isTrailer,boundsMin:b.min,boundsMax:b.max,frontHeightAboveRoad:this.trailerHeightAboveRoad??this.car.roadPose.frontHeight,
+    hookup:this.isTrailer?this.modelFramePoint('hookup'):undefined,miscA:this.modelFramePoint('misc_a')};
+  }
+  return this.towModelCache;
+ }
+ /** A point of the model's (native axes) in the world's native axes. */
+ private nativeWorldPoint(local:{x:number;y:number;z:number}){const w=this.worldPoint(local);return {x:w.x,y:-w.z,z:w.y};}
+ /** GetTowHitchPos and GetTowBarPos: the point in the world (native axes), or none. */
+ towHitchPos(checkModelInfo:boolean,other?:WorldCar){const p=towHitchPoint(this.towModel,checkModelInfo,other?.towModel);return p&&this.nativeWorldPoint(p);}
+ towBarPos(checkModelInfo:boolean,other?:WorldCar){const p=towBarPoint(this.towModel,checkModelInfo,other?.towModel);return p&&this.nativeWorldPoint(p);}
+ /** The body as the tow link reads it (native axes and speeds). */
+ private towBody():TowBody{
+  const body=this.car.body,c=sampleNativeChassis(body),p=body.translation();
+  return {position:{x:p.x,y:-p.z,z:p.y},forward:c.forward,up:{x:-c.direction.x,y:-c.direction.y,z:-c.direction.z},linear:c.linear,angular:c.angular,centerOfMass:c.centerOfMass,mass:this.mass,turnMass:this.turnMass};
+ }
+ /** CTrailer::SetTowLink (iOS 0x100470334): the trailer is linked to `tractor`. Hitched where it stands, the tractor
+  * takes the jolt of the trailer's speed at its bar (UpdateTractorLink(true, false), on the tractor, not the trailer as
+  * gta-reversed has it); put on the bar (ATTACH_TRAILER_TO_CAB), the legs are up at once, it is turned to the
+  * tractor's heading, moved so its hitch is on the bar, given the tractor's speed and set on the road. */
+ setTowLink(tractor:WorldCar,setMyPosToTowBar:boolean){
+  if(!this.isTrailer||tractor===this||this.wrecked||this.disposed||tractor.disposed)return false;
+  if(this.towingVehicle&&this.towingVehicle.towedVehicle===this)this.towingVehicle.towedVehicle=undefined;
+  this.towingVehicle=tractor;tractor.towedVehicle=this;this.sim.setTowPair(this.car,tractor.car,true);
+  if(!setMyPosToTowBar){
+   const pair=this.towPair();
+   if(pair&&tractor.car.body.isDynamic())applyNativeWheelDeltas(tractor.car.body,[tractorLinkImpulse(pair,true,false)]);
+   return true;
+  }
+  if(this.trailerLegs)this.trailerLegs.extension=0;
+  const body=this.car.body,f=tractor.worldOffset({x:0,y:1,z:0}),yaw=Math.atan2(-f.x,-f.z);
+  body.setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},true);
+  const hitch=this.towHitchPos(true,this),bar=tractor.towBarPos(true,this);if(!hitch||!bar)return false;
+  const p=body.translation();
+  body.setTranslation({x:bar.x-(hitch.x-p.x),y:bar.z-(hitch.z-p.y),z:-(bar.y-(hitch.y+p.z))},true);
+  body.setLinvel(tractor.car.body.linvel(),true);
+  this.placeOnRoadProperly();
+  return true;
+ }
+ /** CTrailer::BreakTowLink: the trailer is free (STATUS_ABANDONED). */
+ breakTowLink(){
+  const tractor=this.towingVehicle;if(!tractor)return false;
+  if(tractor.towedVehicle===this)tractor.towedVehicle=undefined;
+  this.towingVehicle=undefined;this.sim.setTowPair(this.car,tractor.car,false);
+  return true;
+ }
+ /** The two tow points and both bodies, or none when either point is missing. */
+ private towPair(points?:{hitch:{x:number;y:number;z:number};bar:{x:number;y:number;z:number}}):TowLinkPair|undefined{
+  const tractor=this.towingVehicle;if(!tractor)return undefined;
+  const hitch=points?.hitch??this.towHitchPos(true,tractor),bar=points?.bar??tractor.towBarPos(true,this);if(!hitch||!bar)return undefined;
+  return {trailer:this.towBody(),tractor:tractor.towBody(),hitch,bar,baggage:BAGGAGE_TRAILERS.has(this.modelId),timeStep:0};
+ }
+ /** A towed trailer's part of CAutomobile::ProcessControl (iOS 0x1004440dc): while either moves the tractor's half of
+  * the speed, then the trailer's whole; then the pull that closes the gap, the tractor's then the trailer's. A wrecked
+  * trailer, a link that no longer holds or a tow point gone breaks it. */
+ stepTowLink(seconds:number){
+  const tractor=this.towingVehicle;if(!tractor)return;
+  if(this.wrecked||this.disposed||tractor.disposed){this.breakTowLink();return;}
+  const body=this.car.body,cab=tractor.car.body;
+  if(!body.isEnabled()||!cab.isEnabled()||!body.isDynamic())return;
+  const hitch=this.towHitchPos(true,tractor),bar=tractor.towBarPos(true,this);
+  if(!hitch||!bar){this.breakTowLink();return;}
+  const timeStep=seconds*50,pair=()=>({...this.towPair({hitch,bar})!,timeStep});
+  const v=cab.linvel(),w=body.linvel(),moving=v.x!==0||v.y!==0||v.z!==0||(w.x*w.x+w.y*w.y+w.z*w.z)/2500>TOWED_MOVING_SPEED_SQ;
+  const towCab=cab.isDynamic()&&moving;
+  for(const pull of [false,true]){
+   if(towCab)applyNativeWheelDeltas(cab,[tractorLinkImpulse(pair(),false,pull)]);
+   const p=pair();if(!towLinkHolds(p)){this.breakTowLink();return;}
+   applyNativeWheelDeltas(body,[trailerLinkImpulse(p,false,pull)]);
+  }
+ }
+ /** CTrailer::ProcessAI's ScanForTowLink, for a trailer standing free with its legs over half out (or a baggage cart):
+  * the first vehicle within ten units of its hitch whose tow bar is within 0.4 across and a unit up or down of it
+  * takes it. Not while a recording plays it, and never the farm trailer. */
+ scanForTowLink(vehicles:Iterable<WorldCar>){
+  if(this.towingVehicle||!this.isTrailer||this.wrecked||this.disposed||this.recordingSlot>=0||this.modelId===TOW_MODEL.farmtr1)return;
+  if(!(BAGGAGE_TRAILERS.has(this.modelId)||(this.trailerLegs?.extension??0)>.5)||!this.car.body.isEnabled())return;
+  const hitch=this.towHitchPos(false,this);if(!hitch)return;
+  let found=0;
+  for(const other of vehicles){
+   if(other===this||other.disposed||!other.car.body.isEnabled())continue;
+   const p=other.car.body.translation();if(Math.hypot(p.x-hitch.x,-p.z-hitch.y)>=TOW_LINK_SCAN_RANGE)continue;
+   // CWorld::FindObjectsInRange hands back at most sixteen.
+   if(++found>16)return;
+   const bar=other.towBarPos(false,this);
+   if(bar&&towBarReachesHitch(bar,hitch)){this.setTowLink(other,false);return;}
+  }
+ }
+ /** CAutomobile::PlaceOnRoadProperly (0x6AF420): the ground under the front and rear wheel lines (the nearer of what
+  * lies within five units above and below each), the car stood on it at its heights above the road, its heading kept. */
+ placeOnRoadProperly(){
+  const body=this.car.body,pose=this.car.roadPose,front=this.trailerHeightAboveRoad??pose.frontHeight,rear=this.trailerHeightAboveRoad??pose.rearHeight;
+  const p=body.translation(),fwd=this.worldOffset({x:0,y:1,z:0}),flat=Math.hypot(fwd.x,fwd.z)||1,fx=fwd.x/flat,fz=fwd.z/flat;
+  const ground=(x:number,z:number)=>{
+   let best:number|undefined;
+   for(const dir of [1,-1]){
+    const hit=this.sim.world.castRay(new RAPIER.Ray({x,y:p.y,z},{x:0,y:dir,z:0}),5,true,RAPIER.QueryFilterFlags.ONLY_FIXED|RAPIER.QueryFilterFlags.EXCLUDE_SENSORS);
+    if(hit&&(best===undefined||hit.timeOfImpact<Math.abs(best-p.y)))best=p.y+dir*hit.timeOfImpact;
+   }
+   return best??p.y;
+  };
+  const fy=ground(p.x+fx*pose.frontY,p.z+fz*pose.frontY)+front,ry=ground(p.x-fx*pose.rearY,p.z-fz*pose.rearY)+rear;
+  const length=pose.frontY+pose.rearY,pitch=Math.atan2(fy-ry,length),yaw=Math.atan2(-fx,-fz);
+  const q=new Quaternion().setFromEuler(new Euler(pitch,yaw,0,'YXZ'));
+  body.setRotation({x:q.x,y:q.y,z:q.z,w:q.w},true);
+  body.setTranslation({x:p.x,y:(fy*pose.rearY+ry*pose.frontY)/length,z:p.z},true);
  }
  /** Car colliders skip solver contact with pedestrians, whose impacts are native. */
  private groupedColliders=0;

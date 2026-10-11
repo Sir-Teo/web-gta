@@ -11972,10 +11972,37 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   of the leg (ApplySpringCollisionAlt, force 1.5) and damps it (0.1); ProcessControl extends the legs untowed by 0.002 a
   timestep (0.0005 under a tenth) and retracts them as fast while towed. The lines meet only the map and its fixed
   objects (ProcessEntityCollision drops them against peds and vehicles). The baggage trailers stand on four wheels.
-  Not yet: the legs' grip (ProcessCarWheelPair on the legs as a burst-wheel pair), their drawn extension (PreRender's
-  misc_a), the tow link and hitching, and IS_TRAILER_ATTACHED_TO_CAB, ATTACH_ and DETACH_TRAILER_TO_CAB.
+  Not yet: the legs' grip (ProcessCarWheelPair on the legs as a burst-wheel pair) and their drawn extension
+  (PreRender's misc_a). (The tow link and the trailer commands follow.)
   Specs: `trailer-rest` (browser: PETROTR, ARTICT1, UTILTR1 and BAGBOXA stand within 5 degrees of level and keep still),
   `trailer-support` (unit).
+- **The tow link, hitching and the three script commands.** CVehicle::UpdateTrailerLink and UpdateTractorLink are
+  unreversed in gta-reversed; they are read from iOS (0x100481eb4 and 0x100482240, called from CAutomobile::ProcessControl
+  at 0x1004440dc) into `simulation/nativeTowLink.ts`. Each step a towed trailer, once every car has its controls: while
+  the tractor moves at all or the trailer by |v|² over 0.01, the tractor takes half the speed between its tow bar and
+  the hitch, scaled by the trailer's share of the two masses; the trailer then takes all of it; then a second pass pulls
+  the points together, the trailer by 0.3 and the tractor by 0.1 of the gap over max(timestep, 1). Each is the impulse
+  that stops the point's speed along its own direction (1 / (1/m + |r × n|²/I), applied as ApplyForce with the turn); a
+  baggage cart's carries nothing along its up axis. The link breaks with the points over max(timestep, 0.7) apart, the
+  two forwards' dot under -0.4 or their ups' under 0, a tow point gone, or the trailer wrecked. Towed, the legs come up
+  (0.002 a step) and reach at least 0.9 (TRAILER_TOWED_MINRATIO). The tow points are reversed (CTrailer and CAutomobile
+  GetTowHitchPos and GetTowBarPos): a trailer's hookup dummy, the rigs' misc_a (PETRO, RDTRAIN, LINERUN), the Utility
+  Van's for its trailer, the tugs' for their carts and stairs; the dummies are carried up through their parent frames.
+  A free trailer with its legs over half out (ProcessAI's ScanForTowLink) takes the first vehicle within ten units whose
+  bar is within 0.4 across and a unit up or down of its hitch; that SetTowLink jolts the tractor to the trailer's speed
+  at the bar, UpdateTractorLink(true, false) on the tractor (iOS 0x100470420; gta-reversed calls it on the trailer). Its
+  other form, ATTACH_TRAILER_TO_CAB's (iOS 0x1001feba8), raises the legs at once, turns the trailer to the tractor's
+  heading (iOS; gta-reversed sets the trailer's own), puts the hitch on the bar, gives it the tractor's speed and sets it
+  on the road: CAutomobile::PlaceOnRoadProperly, the nearer ground within five units above or below the front and rear
+  wheel lines (a trailer's are both behind it), now a WorldCar method. DETACH_TRAILER_FROM_CAB breaks the trailer's link
+  whatever cab it names (iOS 0x1001f9650); IS_TRAILER_ATTACHED_TO_CAB compares the trailer's tractor with the cab, or with
+  no cab asks for any (0x1001f95e0). The pair's collision meshes do not meet (ProcessEntityCollision's
+  didHideTriangles); their spheres and boxes do, as Rapier contacts where the native's are soft (ApplySoftCollision).
+  AUTHORED: that contact response. Not modelled: the tow truck's and tractor's hoist (taken as down, which never blocks
+  the link), the attach and detach sounds, and the follow camera's allowance for a trailer (the camera stays at the
+  cab's distance, so the tanker fills the view). Specs: `trailer-tow` (browser: ATTACH puts the tanker on a PETRO's bar,
+  it follows the rig driven 10 units and more with the points within 0.7, and DETACH frees it; a PETRO backed under a
+  parked tanker takes it and pulls it away), `tow-link` (unit).
 
 ## The next chapter's missions under the bot (October 11, 2026)
 

@@ -4013,6 +4013,9 @@ async function boot() {
           // ProcessControlInputs' automaticallyHandBrake: the exit button held (not through a jump-out) or the driver under arrest.
           car.exitHeld=car.occupied&&carEntry.phase!=='jumpOut'&&(input.down('KeyF')&&!padSwitchedOff('enterCar')&&!playerControlsDisabled()||law.arrested);
           car.beforeStep(step,steerAxes,input.down('Space'),importedScene?.sources);}
+        // CTrailer, once every car has its controls: a towed trailer's link (CAutomobile::ProcessControl, the tractor
+        // having gone first) and a free one's look for a tow bar at its hitch (ProcessAI's ScanForTowLink).
+        for(const car of fleet?.cars??[])if(car.isTrailer){if(car.towingVehicle)car.stepTowLink(step);else car.scanForTowLink(fleet!.cars);}
         // The touch stick is the yoke: pushed forward the nose goes down, as a pad's left stick flies (on the port's steering
         // curve, its GetSteeringLeftRight and UpDown); the keys otherwise.
         const yoke=input.stick&&Math.hypot(input.stick.x,input.stick.y)>.12?input.stick:undefined,yokeCurve=input.stickFromPad?(v:number)=>v:stickSteering;

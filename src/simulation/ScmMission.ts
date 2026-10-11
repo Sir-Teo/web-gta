@@ -81,6 +81,8 @@ const STEAL_REACH=1.5,STEAL_SEARCH_AHEAD=.75,STEAL_HOLD_NODE=1,STEAL_HOLD_OFFSET
  * arms round the load, is CTaskSimpleHoldEntity's partial clip in all three. */
 const CARRY_GROUPS=[{below:.2,suffix:'105',putDownAt:.433333},{below:.7,suffix:'05',putDownAt:.366667},{below:Infinity,suffix:'',putDownAt:.6}] as const;
 const carryGroupFor=(origin:number,surface:number|undefined)=>surface===undefined?CARRY_GROUPS[2]:CARRY_GROUPS.find(g=>origin-g.below<=surface)!;
+/** WorldCar's CTrailer parts the tow commands reach. */
+interface TowVehicle {setTowLink(tractor:TowVehicle,setMyPosToTowBar:boolean):boolean;breakTowLink():boolean;towingVehicle?:unknown}
 export interface ScmCarComponents {
  popDoor(door:number,visible:boolean):void;popPanel(panel:number,visible:boolean):void;popBoot():void;
  fixDoor(door:number):void;fixPanel(panel:number):void;fixTyre(wheel:number):void;
@@ -1184,6 +1186,16 @@ export class ScmMission {
    setPlaneUndercarriageUp:(handle,up)=>{this.host('setScriptPlaneGear','SET_PLANE_UNDERCARRIAGE_UP')(this.liveVehicle(handle),up);},
    getPlaneUndercarriagePosition:handle=>this.host('scriptPlaneGearStatus','GET_PLANE_UNDERCARRIAGE_POSITION')(this.liveVehicle(handle)),
    planeStartsInAir:handle=>{this.host('scriptPlaneStartsInAir','PLANE_STARTS_IN_AIR')(this.liveVehicle(handle));},
+   // A trailer's tow link (WorldCar, nativeTowLink): ATTACH_TRAILER_TO_CAB is the trailer's SetTowLink(cab, true) (iOS
+   // 0x1001feba8), DETACH_TRAILER_FROM_CAB its BreakTowLink whatever the cab (0x1001f9650), and IS_TRAILER_ATTACHED_TO_CAB
+   // whether the cab tows it, or with no cab whether anything does (0x1001f95e0). A handle to nothing does nothing.
+   attachTrailerToCab:(handle,cab)=>{const trailer=this.towVehicle(handle),tractor=this.towVehicle(cab);if(trailer&&tractor)trailer.setTowLink(tractor,true);},
+   detachTrailerFromCab:handle=>{this.towVehicle(handle)?.breakTowLink();},
+   trailerIsAttachedToCab:(handle,cab)=>{
+    const trailer=this.towVehicle(handle);if(!trailer)return false;
+    const tractor=this.towVehicle(cab);
+    return tractor?trailer.towingVehicle===tractor:!!trailer.towingVehicle;
+   },
    // SET_CAR_CAN_GO_AGAINST_TRAFFIC: CAutoPilot's bCantGoAgainstTraffic, the inverse of the operand. Nothing reversed
    // reads the bit, so it is kept and does nothing more.
    setVehicleIsConsideredByPlayer:(handle,state)=>{this.host('setScriptVehicleConsideredByPlayer','SET_VEHICLE_IS_CONSIDERED_BY_PLAYER')(this.liveVehicle(handle),state);},
@@ -3619,6 +3631,12 @@ export class ScmMission {
   if(handle===PLAYER_VEHICLE_HANDLE)this.world.placeScriptVehicle(this.liveVehicle(handle),at,this.playerPose(handle).heading);
   else this.vehicles.setPosition(handle,at,addOffset&&car===undefined?arrived=>this.world.scriptVehicleBaseOffset?.(arrived)??0:undefined);
   if(car!==undefined){this.world.clearSpaceForScriptVehicle?.(car);this.world.rejoinScriptVehicleRoads?.(car);}
+ }
+ /** A vehicle that can tow or be towed (WorldCar), or none for a handle to nothing or another kind of vehicle. */
+ private towVehicle(handle:number){
+  if(handle<0||!this.vehicles.exists(handle))return undefined;
+  const car=this.liveVehicle(handle) as Partial<TowVehicle>;
+  return typeof car.setTowLink==='function'?car as TowVehicle:undefined;
  }
  private liveVehicle(handle:number){
   // The player's own car is not one the script made: the host hands it over while the player drives it.

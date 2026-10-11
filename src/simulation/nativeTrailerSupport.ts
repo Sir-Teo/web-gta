@@ -20,11 +20,17 @@ export interface TrailerSupportLine {start:Vec3;end:Vec3}
  * collision bounds, handling suspension force and front wheel size. */
 export function trailerSupportLines(wheels:Record<CarWheel,NativeSuspensionLine>,bounds:{min:readonly number[];max:readonly number[]},suspensionForce:number,frontWheelSize:number):[TrailerSupportLine,TrailerSupportLine]{
  const start=(i:number):Vec3=>({x:f(i===0?bounds.min[0]:-bounds.min[0]),y:f(bounds.max[1]),z:f(bounds.max[2])});
+ const {weightRatio,heightAboveRoad}=trailerWeightShare(wheels,bounds,suspensionForce,frontWheelSize);
+ const top=start(0).z,endZ=f(top-f(f(top+heightAboveRoad)/f(1-f(f(1-weightRatio)/f(TRAILER_SUSPENSION_FORCE*2)))));
+ return [0,1].map(i=>({start:start(i),end:{...start(i),z:endZ}})) as [TrailerSupportLine,TrailerSupportLine];
+}
+/** SetupSuspensionLines' share of the weight on the legs and the height above the road it gives: a CTrailer's
+ * m_fFrontHeightAboveRoad and m_fRearHeightAboveRoad both. */
+export function trailerWeightShare(wheels:Record<CarWheel,NativeSuspensionLine>,bounds:{max:readonly number[]},suspensionForce:number,frontWheelSize:number){
  const supportLegY=Math.abs(bounds.max[1]),avgWheelY=f(f(Math.abs(wheels.frontLeft.start.y)+Math.abs(wheels.rearLeft.start.y))*.5);
  const weightRatio=f(supportLegY/f(avgWheelY+supportLegY));
  const heightAboveRoad=f(f(f(wheels.frontLeft.springLength*f(1-f(weightRatio/f(suspensionForce*4))))+f(frontWheelSize/2))-wheels.frontLeft.start.z);
- const top=start(0).z,endZ=f(top-f(f(top+heightAboveRoad)/f(1-f(f(1-weightRatio)/f(TRAILER_SUSPENSION_FORCE*2)))));
- return [0,1].map(i=>({start:start(i),end:{...start(i),z:endZ}})) as [TrailerSupportLine,TrailerSupportLine];
+ return {weightRatio,heightAboveRoad};
 }
 /** ProcessControl's leg travel for one step of `timeStep` (CTimer units): out toward 1 untowed, in toward 0 towed. */
 export function stepTrailerSupportExtension(extension:number,towed:boolean,timeStep:number){
