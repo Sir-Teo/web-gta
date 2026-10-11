@@ -56,6 +56,10 @@ const headingFrame=(heading:number)=>({
 import {ScmDecisionMakers} from '../engine/ScmDecisionMakers';
 import {scriptedPedOrder,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {PlayerScriptTasks} from './playerScriptTasks';
+import {ScmRopes} from './ScmRopes';
+import {ROPE_HEIGHT_OBJECT} from './nativeRope';
+import {BUTTON} from '../engine/ScmPads';
+import {CRANE_NONE} from '../engine/ScmPlayerInfo';
 import {findMostFavoriteRadioStation} from '../audio/native/NativeRadioTrackManager';
 /** STAT_CITY_UNLOCKED. */
 const STAT_CITY_UNLOCKED=181;
@@ -1521,6 +1525,13 @@ export class ScmMission {
    // GIVE_NON_PLAYER_CAR_NITRO (iOS 0x1002052cc; STEAL2's rivals): CAutomobile::NitrousControl(1) (0x100445310), the
    // nitro fitted (bNosInst) full, with one boost; a car the game drives fires it on its own.
    giveNonPlayerCarNitro:handle=>{this.host('giveScriptVehicleNitro','GIVE_NON_PLAYER_CAR_NITRO')(this.liveVehicle(handle),1);},
+   // CObject::GetRopeHeight and SetRopeHeight (iOS 0x1002d9d88, 0x1002d9db0): the crane's rope's height as it stands, unclamped.
+   // The original reads through FindRope's -1 for an object with no rope; here such an object reads a crane rope's first
+   // height and takes none.
+   getRopeHeightForObject:handle=>{this.runtime.game.objects.at(handle);return this.ropes.find(handle)?.height??ROPE_HEIGHT_OBJECT;},
+   setRopeHeightForObject:(handle,height)=>{this.runtime.game.objects.at(handle);const rope=this.ropes.find(handle);if(rope)rope.height=height;},
+   // CTheScripts' three crane flags (iOS 0x1002002ec): whether the player may raise, lower and let go.
+   enableCraneControls:(up,down,release)=>{this.ropes.enable=[up,down,release];},
    // ATTACH_CHAR_TO_BIKE (iOS 0x1001f2640, CPed::AttachPedToBike 0x10032c89c): AttachPedToEntity as the car form, and
    // the second limit kept in m_nTurretPosnMode (SYN1 seats CJ with his camera on a hidden, frozen bike at its photo
    // spot: 110 and 70). Nothing here reads that second limit.
@@ -3783,6 +3794,22 @@ export class ScmMission {
   * the moving player (player_parachute's canopy) would otherwise be drawn where he was a frame before, as CPhysical's
   * PositionAttachedEntity has it follow its host within the world's own process. */
  refreshAttachments(){this.followAttachments();}
+ private ropeHost?:ScmRopes;
+ /** CRopes: the cranes' ropes and their hooks, on the script's objects. */
+ get ropes(){
+  return this.ropeHost??=new ScmRopes(this.runtime.game.objects,{
+   cameraPosition:()=>this.world.cameraSource(),
+   groundBelow:p=>this.world.groundLevel(p.x,p.y,p.z),
+   objectBounds:model=>this.world.objectModelBounds?.(model),
+   winchSound:holder=>{if(holder?.kind==='object')this.runtime.game.missionAudio.report(104,{kind:'object',handle:holder.handle});},
+  });
+ }
+ /** CObject::ProcessControlLogic's ropes for the crane arms, then CRopes::Update, a frame of `seconds`. The crane's
+  * buttons are read only while the player works a crane (so a touch screen puts them up only then). */
+ stepRopes(seconds:number){
+  const game=this.runtime.game,crane=game.playerInfo.controlsCrane,pads=game.pads,read=(b:number)=>crane===CRANE_NONE?0:pads.state(0,b);
+  this.ropes.step(seconds,this.clockMs,{playerControlsCrane:crane,raise:read(BUTTON.square),lower:read(BUTTON.cross),release:read(BUTTON.circle)});
+ }
  private followAttachments(){
   for(const object of this.runtime.game.objects.all){
    const attached=object.attachedTo;if(!attached)continue;

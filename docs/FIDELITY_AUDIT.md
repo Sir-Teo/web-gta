@@ -12117,3 +12117,40 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   boards: the door clips are not played. The timed form sets him in when its time is out. Riding as a passenger counts
   as seated for the player's tasks, and GET_DRIVER_OF_CAR no longer names the player as the driver of a car he rides in
   as a passenger. Specs: `script-player-enter-passenger` (browser), `player-script-tasks` (unit).
+
+## Cranes and their ropes (October 11, 2026)
+
+- **The cranes had no ropes.** INITIAL builds the Easter Basin dock crane (MagnoCrane_03 as $2729), the San Fierro
+  building-site and Las Venturas tower cranes (TwrCrane_M_02 trolleys) and the Hunter Quarry crane (quarry_cranearm) as
+  script objects, and CObject::ProcessControlLogic (reversed) registers a rope for each arm every frame: 36.64 along the
+  dock crane's arm and 1.69 under it, the trolley's own origin, 59 up the quarry arm, the top lowered by what of the
+  wound length the whole wound nodes leave. gta-reversed has neither CRope::Update nor CRopes::RegisterRope nor
+  CRope::UpdateWeightInRope; they are read from the iOS build (0x10025d76c, 0x10025f220, 0x10025f900) into
+  `nativeRope.ts`:
+  - RegisterRope takes the first of eight slots: 50 long for the dock crane, 68 for the wrecking ball, quarry and Las
+    Venturas cranes, 20 for a helicopter's winch, 10 for the RC magnet, its 32 nodes a 31st of that apart, half wound
+    (0.9 under a vehicle), its hook made at the last node (INDUS_MAGNET for the cranes' magnets, DYN_WREKING_BALL for the
+    San Fierro trolley west of x = 0, mini_magnet, CJ_PLAYER_HARNESS), a decoration object attached so it never settles.
+  - Update: within 200 of the camera across, each hanging node drops 0.15 a time step, stays 0.3 over the ground under the
+    top (found every 8th frame) and is pulled back to a spacing from the node above; the node speeds the code jitters and
+    blends first are overwritten before use. The hook (or its load) is a body of its own: within the rope's reach the
+    slack rope is solved six times over to follow it; out of reach it is held at the end of the straight rope, its speed
+    away from the top taken off (the holder taking 0.06 of the change, more for a heavier load) and it turns its up along
+    the rope (ForceUpVector; a load a tenth of the way a step).
+  - The crane's buttons, while the player works that crane (PLAYER_ENTERED_*_CRANE): Square (PED_JUMPING, as QUAR_1 and
+    CONS_3 name it) winds up and Cross (PED_SPRINT) lets out, a 100000th of the button a time step, 0.01 to 0.9, the winch
+    sounding (mission audio event 104 on the arm). ENABLE_CRANE_CONTROLS' three flags (iOS 0x1002002ec) allow raising,
+    lowering and letting go; CTheScripts::Init sets all three.
+  - GET/SET_ROPE_HEIGHT_FOR_OBJECT (iOS 0x1002d9d88/0x1002d9db0) read and write that height unclamped (crane1-3.scm,
+    DECON, STEAL4); the original reads through FindRope's -1 for an object with no rope, which here reads 0.5.
+  - CRope::Render: a black line at half alpha through the nodes within 120 of the camera, the quarry crane's also to its
+    cab at (709.32, 916.20, 53).
+  gta-reversed's CRope field names do not fit their use (m_fMass is the length, m_fTotalLength the spacing,
+  m_fSegmentLength the height), and its GetObjectCarriedWithRope returns the hook where iOS (0x1002d9de4) returns what the
+  hook carries. Its CObject::Init keeps bCanBeAttachedToMagnet with `&=`; iOS (0x1002d6590) sets it on every object.
+- **A moving script object far from the loaded world fell through it.** The crane hooks, made with the cranes at the
+  start of a game, dropped without end under unloaded ground. A moving script object now holds still while the world's
+  collision is not in where it is (CEntity::m_bIsStaticWaitingForCollision, the wait the script's cars and peds already
+  keep), and carries on once it is.
+  Specs: `script-crane-rope` (the dock crane's magnet hangs within the rope's reach; GET_ROPE_HEIGHT reads 0.5 and SET
+  0.2 lets the magnet down), `rope` (unit).

@@ -242,6 +242,8 @@ import {PlayerScriptTasks} from './simulation/playerScriptTasks';
 import {PlayerPhone} from './simulation/PlayerPhone';
 import {ScriptCarMissions} from './simulation/ScriptCarMissions';
 import {ScriptObjectViews} from './simulation/ScriptObjectViews';
+import {NativeRopes} from './render/NativeRopes';
+import {ROPE_RENDER_RANGE} from './simulation/nativeRope';
 import {CutscenePlayer} from './render/CutscenePlayer';
 import {weaponById} from './weapons/catalog';
 import {CAR_EXTINGUISHED_HEALTH} from './simulation/nativeCarDamage';
@@ -575,6 +577,7 @@ async function boot() {
    return true;
   };
   let scriptObjectViews:ScriptObjectViews|undefined;
+  let ropeViews:NativeRopes|undefined;
   /** CCutsceneMgr for the cutscenes the browser has (public/play/cuts), made with the scene's objects. */
   let cutscenes:CutscenePlayer|undefined,cutsceneFixedCamera:typeof render.fixedCamera;
   /** m_PrevExtraColour and m_PrevExtraColourOn: the extra colour a cutscene's load found, which its clear puts back. */
@@ -4367,7 +4370,10 @@ async function boot() {
       }
       broken.length=0;
       mission.refreshAttachments();
+      // The crane arms' ropes (CObject::ProcessControlLogic) and CRopes::Update move the hooks and loads before their bodies sync.
+      mission.stepRopes(paused?0:dt*timeScale());
       scriptObjectViews.update(mission.scriptObjects(),paused?0:dt*timeScale());
+      {const c=render.camera.position;(ropeViews??=new NativeRopes(render.scene)).update(mission.ropes.visible({x:c.x,y:-c.z,z:c.y},ROPE_RENDER_RANGE));}
     }
     // CPickups' own array holds the script's pickups beside the world's, so the browser's pickup world takes
     // them too. The IDE associations name the dff and txd a model id stands for, which is the one thing the
@@ -5576,6 +5582,7 @@ async function boot() {
               if(Array.isArray(data.ideRecords)&&!scriptObjectViews){
                scriptObjectViews=new ScriptObjectViews(render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,data.ideRecords,sim.world);
                scriptObjectViews.visibleArea=()=>render.lighting.area;
+               scriptObjectViews.collisionLoaded=(x,z)=>sim.collisionLoaded?.(x,z)??true;
                // CObjectData's physics for a script object CPhysical moves, as an uprooted prop takes them.
                scriptObjectViews.physicsOf=model=>{const values=objectDefValues(model);if(!values)return undefined;const air=values.airResistance??.99;return {turnMass:values.turnMass,elasticity:values.elasticity??0,damping:air>.1&&air<1?-50*Math.log(air):0};};
                scriptObjectViews.animation=(block,name)=>pedestrians?.scriptAnimation(block,name)??Promise.resolve(undefined);

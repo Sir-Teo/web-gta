@@ -85,6 +85,11 @@ export interface ScmObject {
  dontApplySpeed:boolean;
  /** CEntity::m_bIsStatic, the inverse of what SET_OBJECT_DYNAMIC asks for. */
  isStatic:boolean;
+ /** CPhysical::physicalFlags.bAttachedToEntity: a rope's hook, or what hangs on one. CObject::ProcessControl never lets
+  * such an object come to rest. */
+ attachedToEntity?:boolean;
+ /** physicalFlags.bCarriedByRope: on a rope's hook (CRopes::IsCarriedByRope). */
+ carriedByRope?:boolean;
  /** SET_OBJECT_AS_STEALABLE: the player may pick it up with the enter/exit button and carry it. */
  stealable?:boolean;
  /** CPhysical::physicalFlags' five proofs, in the order SET_CAR_PROOFS and SET_CHAR_PROOFS take them. */
@@ -135,6 +140,8 @@ export class ScmObjects {
  get handles(){return [...this.objects.keys()];}
  /** Every record, for a host mirroring them into the world it draws. */
  get all():readonly ScmObject[]{return [...this.objects.values()];}
+ /** The records without a copy, for a host that walks them every frame. */
+ values(){return this.objects.values();}
  /** CreateObject: the script's object at a position. CREATE_OBJECT drops the point to the ground and lifts the
   * object by the distance from its centre of mass to the base of its model; CREATE_OBJECT_NO_OFFSET does
   * neither, so the host's ground and base-offset lookups are only needed by the first. */

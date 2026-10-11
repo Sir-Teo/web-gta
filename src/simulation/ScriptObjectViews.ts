@@ -64,8 +64,12 @@ export class ScriptObjectViews{
   anim?:{name:string;binding?:ReturnType<typeof bindObjectAnimation>;time:number};
   /** While the object is a moving CPhysical: what was last written into its record from the body (to tell the
    * script's own writes apart) and CObject::ProcessControl's settling state. */
+  /** CEntity::m_bIsStaticWaitingForCollision: the moving body is held, the world's collision not in where it is. */
+  waiting?:boolean;
   dyn?:{pos:{x:number;y:number;z:number};vel:{x:number;y:number;z:number};turn:{x:number;y:number;z:number};heading:number;rot:{x:number;y:number;z:number};
-   force:{x:number;y:number;z:number};torque:{x:number;y:number;z:number};still:number;clock:number}}>();
+   force:{x:number;y:number;z:number};torque:{x:number;y:number;z:number};still:number;clock:number;
+   /** The matrix this host last wrote into the record: another one there was set by the runtime (a rope). */
+   matrix?:ScmObject['matrix']}}>();
  /** OBJECT.DAT's turn mass, elasticity and air resistance (as damping) for a model; the mass is the record's. */
  physicsOf?:(model:number|string)=>{turnMass?:number;elasticity:number;damping:number}|undefined;
  /** A clip from a script's animation block, which PLAY_OBJECT_ANIM names. */
@@ -196,7 +200,14 @@ export class ScriptObjectViews{
      const wanted=ScriptObjectViews.moves(object);
      if(wanted&&!view.dyn)this.startMoving(object,view);
      else if(!wanted&&view.dyn)this.stopMoving(object,view);
-     if(view.dyn)this.syncMoving(object,view,seconds);
+     if(view.dyn){
+      // A moving object where the world's collision is not in yet holds still until it is (CEntity::
+      // m_bIsStaticWaitingForCollision), as the script's cars and peds do, rather than fall through the unloaded ground.
+      const waiting=!!this.collisionLoaded&&!this.collisionLoaded(object.position.x,-object.position.y);
+      if(waiting!==!!view.waiting){view.waiting=waiting;view.physical.body.setEnabled(!waiting);}
+      if(!waiting)this.syncMoving(object,view,seconds);
+     }
+     else if(view.waiting){view.waiting=false;view.physical.body.setEnabled(true);}
     }
     // Most of a script's objects never move again after it puts them down, so the transform is rebuilt only
     // when the record says something about it has changed.
@@ -298,7 +309,9 @@ export class ScriptObjectViews{
   const body=view.physical!.body,d=view.dyn!;
   const p=object.position,v=object.velocity,r=object.rotation;
   if(p.x!==d.pos.x||p.y!==d.pos.y||p.z!==d.pos.z)body.setTranslation({x:p.x,y:p.z,z:-p.y},true);
-  if(object.heading!==d.heading||r.x!==d.rot.x||r.y!==d.rot.y||r.z!==d.rot.z){object.matrix=undefined;body.setRotation(ScriptObjectViews.orientation(object,POSE),true);}
+  // A whole matrix the runtime set (a rope turning its load or hook) turns the body; otherwise the heading and tilts do.
+  if(object.matrix&&object.matrix!==d.matrix)body.setRotation(ScriptObjectViews.orientation(object,POSE),true);
+  else if(object.heading!==d.heading||r.x!==d.rot.x||r.y!==d.rot.y||r.z!==d.rot.z){object.matrix=undefined;body.setRotation(ScriptObjectViews.orientation(object,POSE),true);}
   if(v.x!==d.vel.x||v.y!==d.vel.y||v.z!==d.vel.z)body.setLinvel({x:v.x*50,y:v.z*50,z:-v.y*50},true);
   // The turn speed is an axial vector; the native-to-renderer swap of axes is a proper rotation, so it maps as a point.
   const w=object.turnSpeed;if(w.x!==d.turn.x||w.y!==d.turn.y||w.z!==d.turn.z)body.setAngvel({x:w.x*50,y:w.z*50,z:-w.y*50},true);
@@ -309,7 +322,8 @@ export class ScriptObjectViews{
    d.torque={x:(d.torque.x+av.x/50)/2,y:(d.torque.y+av.y/50)/2,z:(d.torque.z+av.z/50)/2};
    const still=Math.hypot(d.force.x,d.force.y,d.force.z)<limit&&Math.hypot(d.torque.x,d.torque.y,d.torque.z)<limit;
    d.still=still?d.still+1:0;
-   if(d.still>10){object.isStatic=true;break;}
+   // physicalFlags.bAttachedToEntity keeps it moving (a rope's hook and its load).
+   if(d.still>10&&!object.attachedToEntity){object.isStatic=true;break;}
   }
   const t=body.translation(),q=body.rotation(),lv=body.linvel(),av=body.angvel();
   object.position={x:t.x,y:-t.z,z:t.y};
@@ -318,7 +332,7 @@ export class ScriptObjectViews{
   const quat=POSE.set(q.x,q.y,q.z,q.w),right=EAST.clone().applyQuaternion(quat),forward=NORTH.clone().negate().applyQuaternion(quat),up=UP.clone().applyQuaternion(quat);
   object.matrix={right:{x:right.x,y:-right.z,z:right.y},forward:{x:forward.x,y:-forward.z,z:forward.y},up:{x:up.x,y:-up.z,z:up.y}};
   object.heading=Math.atan2(-object.matrix.forward.x,object.matrix.forward.y);
-  d.pos={...object.position};d.vel={...object.velocity};d.turn={...object.turnSpeed};d.heading=object.heading;d.rot={...object.rotation};
+  d.pos={...object.position};d.vel={...object.velocity};d.turn={...object.turnSpeed};d.heading=object.heading;d.rot={...object.rotation};d.matrix=object.matrix;
   if(object.isStatic)this.stopMoving(object,view);
  }
  /* Native axes to the renderer's: x stays, the script's z is up here and its y runs the other way. CEntity's
@@ -365,6 +379,8 @@ export class ScriptObjectViews{
  }
  /** The area the camera is in, which decides whether an object with an area of its own is drawn. */
  visibleArea?:()=>number;
+ /** CColStore::HasCollisionLoaded at a point (the renderer's x and z). */
+ collisionLoaded?:(x:number,z:number)=>boolean;
  private remove(handle:number){
   const view=this.views.get(handle);if(!view)return;
   view.group.removeFromParent();view.dispose();this.views.delete(handle);
