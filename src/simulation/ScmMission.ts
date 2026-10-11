@@ -839,6 +839,10 @@ export interface ScmMissionWorld {
  attachPlayerToVehicle?(car:unknown,offset:{x:number;y:number;z:number},side:number,limit:number,weapon:number):boolean;
  detachPlayerFromVehicle?():void;playerAttachedVehicle?():unknown;
  setAttachedPlayerHeading?(heading:number,speed:number):boolean;
+ /** IS_ATTACHED_PLAYER_HEADING_ACHIEVED: whether the turn SET_HEADING_FOR_ATTACHED_PLAYER started is spent. */
+ attachedPlayerHeadingAchieved?():boolean;
+ /** SET_HEADING_LIMIT_FOR_ATTACHED_CHAR on the player: the attachment's direction (0 to 3) and turn limit (radians). */
+ setAttachedPlayerHeadingLimit?(side:number,limit:number):void;
  attachPlayerToObject?(object:number,offset:{x:number;y:number;z:number},side:number,limit:number,weapon:number):boolean;playerAttachedObject?():number|undefined;
  /** The player's health (SET_CHAR_HEALTH), and his death at none. */
  setPlayerHealth?(health:number):void;killPlayer?():void;
@@ -1470,6 +1474,13 @@ export class ScmMission {
    },
    // SET_HEADING_FOR_ATTACHED_PLAYER: the angle and the turn a frame, in degrees; the camera swings while he hangs.
    setHeadingForAttachedPlayer:(_player,heading,speed)=>{this.world.setAttachedPlayerHeading?.(heading,speed);},
+   // IS_ATTACHED_PLAYER_HEADING_ACHIEVED (iOS 0x1001fd9b4): the turn a frame SET_HEADING_FOR_ATTACHED_PLAYER stored
+   // (0x10079d210) is 0, as the attached camera leaves it on reaching the heading (and as it starts). DRUGS4 waits on
+   // it before handing CJ his aim on the truck.
+   isAttachedPlayerHeadingAchieved:_player=>this.host('attachedPlayerHeadingAchieved','IS_ATTACHED_PLAYER_HEADING_ACHIEVED')(),
+   // SET_HEADING_LIMIT_FOR_ATTACHED_CHAR (iOS 0x1001fd860): the ped's turret direction (CPed +0x958) and range (+0x95c,
+   // made radians), the two ATTACH_CHAR_TO_CAR sets. Only the player aims from an attachment here.
+   setHeadingLimitForAttachedPed:(handle,heading,range)=>{if(handle===PLAYER_PED_HANDLE)this.host('setAttachedPlayerHeadingLimit','SET_HEADING_LIMIT_FOR_ATTACHED_CHAR')(heading,range);},
    // ATTACH_CHAR_TO_OBJECT: CPed::AttachPedToEntity on a script object. The player's attachment is the host's; a script
    // ped (SMOKE3, CASINO5) is kept at the offset in the object's frame each step (PositionAttachedPed, as the car form
    // has it: facing the object's heading turned by the side, 0 ahead, 1 left, 2 behind, 3 right), frozen, with the

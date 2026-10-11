@@ -26,11 +26,22 @@ test('the player rides on a car at an offset with a given gun, and is let go wit
  await expect.poll(async()=>{const d=await where();return Math.hypot(d.dx,d.dy+1.5);},{timeout:15000}).toBeLessThan(.5);
  // SET_HEADING_FOR_ATTACHED_PLAYER 0, 10 a frame: the first-person camera's horizontal angle, which is world-absolute,
  // swings to 0, and his heading is Beta + 90 degrees: west, whichever way the car points. His limit is a whole turn.
+ // IS_ATTACHED_PLAYER_HEADING_ACHIEVED answers whether the turn is spent: yes before any is set, no while it swings,
+ // yes once it lands (DRUGS4 waits on it).
+ expect(await w('isAttachedPlayerHeadingAchieved',0)).toBe(true);
  await w('setHeadingForAttachedPlayer',0,0,10);
+ expect(await w('isAttachedPlayerHeadingAchieved',0)).toBe(false);
  // His native heading in degrees (the browser's heading is it plus a half turn), anticlockwise from north.
  const heading=()=>page.evaluate(()=>{const h=(window as any).__game.state().player.heading-Math.PI;return Math.atan2(Math.sin(h),Math.cos(h))*180/Math.PI;});
  await expect.poll(heading,{timeout:5000}).toBeGreaterThan(89);
  expect(await heading()).toBeLessThan(91);
+ await expect.poll(()=>w('isAttachedPlayerHeadingAchieved',0),{timeout:5000}).toBe(true);
+ // SET_HEADING_LIMIT_FOR_ATTACHED_CHAR 0, 60 (DRUGS4's): facing the car's front, 60 degrees either way.
+ // His 90 is turned back to 60 from the pickup's own heading.
+ await w('setHeadingLimitForAttachedPed',1,0,Math.PI/3);
+ const offFront=async()=>{const h=await heading(),c=await w('vehicleHeading',car) as number,d=((h-c)%360+540)%360-180;return Math.abs(d);};
+ await expect.poll(offFront,{timeout:5000}).toBeLessThan(61);
+ expect(await offFront()).toBeGreaterThan(59);
  await w('detachPedFromCar',1);
  expect(await w('isCharAttachedToAnyCar',1)).toBe(false);
  const back=await page.evaluate(()=>{const inv=(window as any).__game.weapons().inventory,a=inv.ammo.get(22),ak=inv.ammo.get(30);return {selected:inv.selected,pistol:a.clip+a.reserve,ak:ak.clip+ak.reserve};});

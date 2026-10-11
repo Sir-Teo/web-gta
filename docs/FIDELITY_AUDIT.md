@@ -11905,3 +11905,10 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
 - Also watched from their missions, unskipped: SWEET2A and SWEET2B's mission SWEET3, SWEET3A (SWEET2, in Sweet's
   house), RYDER3A (RYDER3, in Ryder's house, its three smoke effects) and SMOKE4A (DRUGS1); each plays to its end and
   hands CJ back where the script puts him.
+- **DRUGS4 waited forever on the truck.** After SET_HEADING_FOR_ATTACHED_PLAYER the mission's stage loops on
+  IS_ATTACHED_PLAYER_HEADING_ACHIEVED, which had no host: skipped, a condition answers false, so the mission could never
+  hand CJ his aim. iOS (0x1001fd9b4) answers whether the turn a frame the heading command stored (0x10079d210) is 0,
+  which the attached camera leaves it on reaching the heading and which it is before any is set; the port's swing
+  spends its step the same way. SET_HEADING_LIMIT_FOR_ATTACHED_CHAR (0x1001fd860) writes the ped's turret direction
+  (CPed +0x958) and range (+0x95c, made radians), the two ATTACH_CHAR_TO_CAR sets: the player's attachment takes them
+  (DRUGS4's 0 and 60 keep his aim to the truck's front). Spec: `script-player-attached`.

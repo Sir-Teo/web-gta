@@ -6716,6 +6716,8 @@ async function boot() {
                  // horizontal angle, Beta, and the player's heading is Beta + π/2 (Process_Rocket's, gta-reversed).
                  // The attachment's own turn limit is not touched.
                  setAttachedPlayerHeading:(heading,speed)=>{attachedHeadingSwing={yaw:(heading+90)*Math.PI/180,step:speed*Math.PI/180};return true;},
+                 attachedPlayerHeadingAchieved:()=>!attachedHeadingSwing||attachedHeadingSwing.step===0,
+                 setAttachedPlayerHeadingLimit:(side,limit)=>{if(playerAttached){playerAttached.side=side&3;playerAttached.limit=limit;}},
                  playerAttachedVehicle:()=>playerAttached?.car,
                  setPlayerMaxArmour:maxArmour=>{sim.player.armour=maxArmour;},
                  // The script's native x and y become the browser's x and negated z.
