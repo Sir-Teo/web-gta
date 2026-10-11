@@ -79,6 +79,18 @@ test('the camera goes where the script puts it and comes back when it is restore
  // The camera sits along its own direction from the ped, so behind him is his facing turned half round.
  expect(swung.behind).toBeLessThan(.2);
  expect(swung.front).toBeLessThan(.2);
+ // SET_CAMERA_POSITION_UNFIXED (MUSIC1's 0.031, -2.152): the follow camera's vertical and horizontal angles, the
+ // camera at the target plus (cos β cos α, sin β cos α, −sin α) native.
+ const unfixed=await page.evaluate(async()=>{
+  const game=(window as any).__game,adapter=(game.missionForProfiling() as any).runtime.world,render=game.render();
+  adapter.setActiveCameraAngles(.031,-2.152);
+  await new Promise(r=>setTimeout(r,300));
+  const c=render.camera.position,t=render.target,d={x:c.x-t.x,y:-(c.z-t.z),z:c.y-t.y},n=Math.hypot(d.x,d.y,d.z);
+  return {x:d.x/n,y:d.y/n,z:d.z/n};
+ });
+ const alpha=.031,beta=-2.152;
+ expect(unfixed.x).toBeCloseTo(Math.cos(beta)*Math.cos(alpha),2);expect(unfixed.y).toBeCloseTo(Math.sin(beta)*Math.cos(alpha),2);
+ expect(unfixed.z).toBeCloseTo(-Math.sin(alpha),2);
 
  expect(errors).toEqual([]);
 });

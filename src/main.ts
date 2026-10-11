@@ -5603,6 +5603,9 @@ async function boot() {
                  setPlayerRotation:(x,y,z)=>{sim.player.heading=scriptYaw(z);sim.player.tilt=scriptTilt(x,y);},
                  // CCamera::SetCameraDirectlyBehindForFollowPed_CamOnAString.
                  setCameraBehindPlayer:()=>{render.camDirectlyBehind=sim.player.heading;},
+                 // The follow camera sits at the target plus (cos β cos α, sin β cos α, −sin α) native, the renderer's at
+                 // (sin yaw cos pitch, −cos yaw cos pitch, sin pitch): yaw = β + π/2, pitch = −α.
+                 setActiveCameraAngles:(vertical,horizontal)=>{render.yaw=horizontal+Math.PI/2;render.pitch=-vertical;},
                  loadScene:()=>{},
                  setLaRiots:active=>{laRiots=active;},
                  // CPopulation::AddPed through the street population the browser already runs. The script's

@@ -219,6 +219,9 @@ export interface ScmMissionWorld {
  /** (Each answers false for what it does not carry out: a player on a bike, boat or plane, or already in a car.) */
  /** CCamera::SetCameraDirectlyBehindForFollowPed_CamOnAString. */
  setCameraBehindPlayer():void;
+ /** SET_CAMERA_POSITION_UNFIXED: the active camera's vertical and horizontal angles (CCam::m_fVerticalAngle and
+  * m_fHorizontalAngle, radians). */
+ setActiveCameraAngles?(vertical:number,horizontal:number):void;
  /** CStreaming::LoadScene and the collision request that goes before it. */
  loadScene(x:number,y:number,z:number):void;
  /** CGameLogic::SetLaRiotsActive. */
@@ -1217,6 +1220,10 @@ export class ScmMission {
    setPedKeepTask:(handle,keep)=>{if(handle!==PLAYER_PED_HANDLE)this.peds.setKeepTask(handle,keep);},
    makeRoomInPlayerGangForMissionPeds:count=>{this.host('makeRoomInPlayerGang','MAKE_ROOM_IN_PLAYER_GANG_FOR_MISSION_PEDS')(count,this.group(PLAYER_GROUP_HANDLE).countFollowers());},
    setCameraBehindPlayer:()=>{this.world.setCameraBehindPlayer();},
+   // SET_CAMERA_POSITION_UNFIXED (iOS 0x1002050d0; unregistered in gta-reversed): the two floats go to the active
+   // CCam's m_fVerticalAngle and m_fHorizontalAngle, and a camera in MODE_FOLLOWPED is processed once at once
+   // (Process_FollowPed_SA 0x10021171c on FindPlayerPed's position). MUSIC1 frames CJ at the beach this way.
+   setActiveCameraAngles:(vertical,horizontal)=>{this.host('setActiveCameraAngles','SET_CAMERA_POSITION_UNFIXED')(vertical,horizontal);},
    // SetCharHeading (CharacterCommands.cpp): a ped in a vehicle keeps the heading it has, and one on foot
    // takes the angle for both its aiming and its current rotation.
    setCharHeading:(ped,degrees)=>{

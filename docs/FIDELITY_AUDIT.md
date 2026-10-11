@@ -11896,3 +11896,12 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
 - **A bike's contacts too.** A bike walked its contact pairs for the props it hit each step and again for what it
   touched each frame; the pairs are read once a step, when first asked for (a resting bike with no step speed has no
   props pass and reads none). The bike specs pass (18).
+- **SET_CAMERA_POSITION_UNFIXED.** The iOS handler (0x1002050d0; the command is unregistered in gta-reversed) puts its
+  two floats in the active camera's `m_fVerticalAngle` and `m_fHorizontalAngle` and, in MODE_FOLLOWPED, runs
+  `Process_FollowPed_SA` once at once. The port read the command and had no host for it, so MUSIC1's framing of CJ at
+  the beach (0.031, −2.152) was dropped. The follow camera sits at the target plus (cos β cos α, sin β cos α, −sin α)
+  native and the renderer's at (sin yaw cos pitch, −cos yaw cos pitch, sin pitch), so yaw = β + π/2 and pitch = −α
+  (checked: SET_CAMERA_BEHIND_PLAYER on a ped facing north leaves yaw 0 and the camera south). Spec: `script-camera`.
+- Also watched from their missions, unskipped: SWEET2A and SWEET2B's mission SWEET3, SWEET3A (SWEET2, in Sweet's
+  house), RYDER3A (RYDER3, in Ryder's house, its three smoke effects) and SMOKE4A (DRUGS1); each plays to its end and
+  hands CJ back where the script puts him.
