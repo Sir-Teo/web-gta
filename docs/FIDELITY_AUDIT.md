@@ -11811,10 +11811,40 @@ PROLOG1, PROLOG3, INTRO1A, INTRO1B and INTRO2A.
   the first cutscene replaced comes back round him once none is loaded (CJ's house stands under its interior, so the
   script's own area change would have left him over the void). GET_CUTSCENE_TIME is GetCutsceneTimeInMilleseconds:
   whole seconds × 1000. A cutscene whose mission ends without clearing it is cleared as CLEAR_CUTSCENE would.
-- **Not yet.** The other 143 cutscenes still end as they start until they are published (about 90 MB of clips and 55 MB
-  of voices against the site's budget); a repeated model slot's further clips, attachments, removals and particle
-  effects are not played (none of the five has any); CJ's haircut and hats are the classic outfit's (the cs_ hair and
+- **Not yet.** (Superseded below: all 147 are published, with their effects and removals.) A repeated model slot's
+  further clips and attachments are not played (no scene in cuts.img has either); CJ's haircut and hats are the classic outfit's (the cs_ hair and
   hat models are not packaged).
 - Specs: `cutscene-data` (unit: the published files, the readers, the compression, the camera), `player-base-body` (the
   cutscene player's body), `native-script-runtime`
   and `script-speech` (the opening now plays PROLOG1 and PROLOG3).
+
+## Every cutscene watched past the opening, and the build's raw world files (October 11, 2026)
+
+All 147 scenes of cuts.img but CUTTEST were published on the 10th (one CSB1 bundle each, 36.4 MB, and 137 CUTSCENE.osw
+tracks). Fourteen beyond the opening were loaded, played and skipped headless: SWEET1A, SWEET2A, SMOKE2A, RYDER1A,
+RYDER3A, GARAG1B, CAS_4C, RIOT_4D, DES_10A, CRASHV1, FINAL2B, WOOZIE4, ZERO_2 and CAT_3. Each loads its whole cast (the
+gta3.img peds and props among them, ballas1 and ballas3 in FINAL2B, through the IDE's txd), with no page error.
+
+- **Subtitles.** Every scene's 2,717 text lines name a key american.gxt has, in MAIN or the table of the mission that
+  loads the scene (SWEET1A's are SWEET1's, SWEET2A's SWEET3's): a scene loaded without its mission's LOAD_MISSION_TEXT
+  shows the raw key, as the game would.
+- **Effects.** The peffect lines make their systems through the world's particle manager on their cast member's frame
+  and play from their start: RYDER3A's three (two cigarettes and the vent), DES_10A's two jetpack jets, SWEET2A's and
+  FINAL2B's cigarettes; RIOT_4D's door explosions and CRASHV1's small explosion wait for their start time.
+- **Removals.** CCutsceneMgr::HideRequestedObjects finds the objects with CWorld::FindObjectsOfTypeInRange, which takes
+  the script's objects as well as the map's. The host hid only the map's placements; it now hides a mission object of
+  the model within 1.5 too (SetIsVisible, collision left) and shows it again on clear. ZERO_2 hides both the map's
+  wardrobe and one the script made there. The interior scenes need the mission's SET_AREA_VISIBLE first: loaded by
+  hand in area 0 they stand in the void with nothing to hide.
+- **GET_CUTSCENE_TIME.** gta-reversed's GetCutsceneTimeInMilleseconds (0x5B0550) is `(uint64)ms_cutsceneTimerS * 1000`,
+  whole seconds, as the player gives it. The iOS function has not been checked.
+- **The texture warning.** "THREE.Texture: Unable to serialize Texture" was the placement fade's Material.clone(),
+  which round-trips userData through JSON and so serialised an env-mapped placement's texture (seen loading CAS_4C's
+  scene); it carries `nativeEnv` over by hand, as buildingMaterial does.
+- **handling.cfg.** The world manifest's record and packed copy still described the PC file after the raw file became
+  the iOS one, so the browser read the PC handling. Both follow the iOS file now (only that resource repacked).
+- **The site's raw world files.** A resource with a packed copy is read only through it, so the build leaves its raw
+  file out of dist (175 files, 21.5 MB; dist 940 to 919 MB of the 1 GB cap). script.img, the one packed file fetched
+  raw, comes through the world manifest. A built preview played into the opening with no failed request.
+- Specs: `cutscene-removals` (browser: ZERO_2's wardrobe hidden and shown again), `placement-fade` (unit: the env data
+  carried over, no warning).

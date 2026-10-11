@@ -13,7 +13,7 @@ The playable world uses original native content from the inspected public datase
 | Native footstep banks | `scripts/content/feet-sources.json` and the published world resource manifest |
 | PC sound banks (GENRL, combat, event volumes) | `public/play/audio/banks.json`, `combat.json`, `eventvol.json`; packaged by `scripts/content/package-native-audio.mjs`, `package-combat-audio.mjs`, `package-eventvol.mjs` |
 | Banks, mission dialogue, pain cries, beat, ambience and emergency-channel tracks from the iOS port's bundle (github.com/Google61/gta3sa.app) | `public/play/audio/ios-banks.json`, `script/`, `pain/`, `streams/`; packaged by `scripts/content/package-ios-sound-banks.mjs`, `package-script-speech.mjs`, `package-stream-tracks.mjs` |
-| Cutscenes: `anim/cuts.img` (PC, from an archive.org copy of the install, hash in `scripts/content/cutscene-sources.json`); the cast's models from `models/cutscene.img` (noclip); the voices from the iOS bundle's `CUTSCENE.osw`; the cutscene player's `cs_head.dff` and `cs_hands.dff` from noclip's `models/player.img` (the same image the published head and hands match byte for byte) | `public/play/cuts/` (only the cutscenes `cutscene-sources.json` lists), `public/play/world/cut/`, `public/play/world/files/player/cs_*.dff`, `public/play/audio/streams/track-626..766.mp3`; packaged by `tests/build-cutscenes.test.ts`, `tests/build-interior-archive.test.ts` and `scripts/content/package-stream-tracks.mjs` |
+| Cutscenes: `anim/cuts.img` (PC, from an archive.org copy of the install, hash in `scripts/content/cutscene-sources.json`); the cast's models from `models/cutscene.img` (noclip); the voices from the iOS bundle's `CUTSCENE.osw`; the cutscene player's `cs_head.dff` and `cs_hands.dff` from noclip's `models/player.img` (the same image the published head and hands match byte for byte) | `public/play/cuts/` (all 147 scenes but CUTTEST, one gzipped CSB1 bundle each, 36.4 MB), `public/play/world/cut/`, `public/play/world/files/player/cs_*.dff`, `public/play/audio/streams/track-626..766.mp3`; packaged by `tests/build-cutscenes.test.ts`, `tests/build-interior-archive.test.ts` and `scripts/content/package-stream-tracks.mjs` |
 | Touch widget art from the iOS port's texture database | `public/play/touch/widgets.png`; packaged by `scripts/content/touch-widgets.mjs` |
 | UnifrakturCook Bold | Google Fonts; bundled SIL Open Font License at `public/fonts/OFL.txt` |
 | HUD | Native sprites from `models/hud.txd` in the published world (`src/ui/nativeHudSprites.ts`) |
@@ -29,9 +29,12 @@ Checked against the iOS bundle at revision `67f70cb7`:
   `procobj.dat`, `shopping.dat`, `surface.dat`, `surfaud.dat`, `surfinfo.dat` and `water.dat` match the published files
   byte for byte (line endings aside). `handling.cfg` differed in 18 flying rows (roll stabilisation tripled for the planes and the
   Sparrows, RUSTLER's vertical speed resistance 0 to 10, MAVERICK/POLMAV/RC helicopters' horizontal speed resistance
-  raised to 1, RCRAIDER's `0.1s` typo fixed) and is now the iOS file.
-- Not published, by decision (1 GB Pages cap): radio stations, ped speech packs, and the `CUTSCENE.osw` tracks of the
-  cutscenes not yet published.
+  raised to 1, RCRAIDER's `0.1s` typo fixed) and is now the iOS file; the world manifest's record and packed copy
+  follow it since 2026-10-11 (until then the browser still read the PC file through the packed copy).
+- Not published, by decision (1 GB Pages cap): radio stations and ped speech packs. Every cutscene's `CUTSCENE.osw`
+  track is published (137 tracks; the dates share two).
+- The site leaves out a world resource's raw file when it has a packed copy (`vite.config.ts`, `worldPackedOnly`): 175
+  files, 21.5 MB. They stay in `public/play/world/files/` for the tools and tests; the browser reads the packed copy.
 - The cutscenes' `.cut`, `.dat` and `.ifp` are in no iOS or noclip source; the PC `anim/cuts.img` comes from an archive.org
   copy of the install (2026-10-10).
 - Open: `timecyc.dat` (what iOS loads, CTimeCycle::Initialise iOS 0x1002f5f68) differs from the published PC
