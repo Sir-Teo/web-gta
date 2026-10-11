@@ -42,3 +42,10 @@ test('on its wheels it holds the heading it was made with by the rudder and lift
  expect(ai.gearUp).toBe(false);
  expect(steerAIPlane(ai,body(),pilot({mission:0}),open,103000,false,1)).toBe(false);
 });
+
+test('following an entity it heads for it at the entity\'s height, and does nothing once the entity has gone',()=>{
+ const ai=newPlaneAI(0);
+ expect(steerAIPlane(ai,body(),pilot({mission:37}),open,100000,true,1,[0,500,240])).toBe(true);
+ expect(ai.heading).toBeCloseTo(Math.PI/2,5);expect(ai.maxAltitude).toBe(240);expect(ai.altitude).toBe(240);
+ expect(steerAIPlane(ai,body(),pilot({mission:37}),open,100000,true,1,undefined)).toBe(false);
+});

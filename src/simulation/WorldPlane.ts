@@ -17,7 +17,7 @@ import {MISSION_HELI_ATTACK_PLAYER,MISSION_HELI_ATTACK_PLAYER_FLY_AWAY,MISSION_H
 import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
 import {stepBombTimer} from '../vehicle/nativeCarBomb';
 import {stepPlaneWheelRoll,type PlaneWheelRoll} from './planeWheelRoll';
-import {MISSION_PLANE_FLYINDIRECTION,MISSION_PLANE_FLYTOCOORS,atanOfXY,newPlaneAI,planeSearchDue,steerAIPlane,type PlaneAI,type PlanePilot} from './nativePlaneAI';
+import {MISSION_PLANE_FLYINDIRECTION,MISSION_PLANE_FLYTOCOORS,MISSION_PLANE_FOLLOW_ENTITY,atanOfXY,newPlaneAI,planeSearchDue,steerAIPlane,type PlaneAI,type PlanePilot} from './nativePlaneAI';
 import {applyNativeBuoyancy,nativeBuoyancySplashEdges,nativeSplashParticles,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
 import type {NativeAnimation} from '../assets/ifp';
 import {vehicleAnimation,VEHICLE_ANIM,type VehicleAnimGroupData} from '../assets/vehicleAnimGroups';
@@ -174,7 +174,7 @@ export class WorldPlane {
   pilot.target=target;pilot.heliTargetDist=Math.trunc(distance)&0xff;pilot.ai.minAltitude=minAltitude;pilot.cruiseSpeed=100;
  }
  /** A plane's AI pilot: the CAutoPilot fields and CPlane's own the native steering flies it by (nativePlaneAI.ts). */
- planePilot?:PlanePilot&{ai:PlaneAI};
+ planePilot?:PlanePilot&{ai:PlaneAI;target?:()=>NV|undefined};
  /** CTimer's clock for the plane AI's once-a-second search and its time off the ground, ms; it starts well on, as the
   * game's has by the time a script makes a plane. */
  private planeClockMs=60000;
@@ -183,7 +183,7 @@ export class WorldPlane {
   * and the greater of the sixth and the destination's height as m_maxAltitude, STATUS_PHYSICS, the engine on. */
  tellPlaneToGoToCoors(x:number,y:number,z:number,minAltitude:number,maxAltitude:number){
   const pilot=this.aiPlanePilot();if(!pilot)return;
-  pilot.mission=MISSION_PLANE_FLYTOCOORS;pilot.destination=[x,y,z];pilot.ai.minAltitude=minAltitude;pilot.ai.maxAltitude=Math.max(maxAltitude,z);
+  pilot.mission=MISSION_PLANE_FLYTOCOORS;pilot.destination=[x,y,z];pilot.target=undefined;pilot.ai.minAltitude=minAltitude;pilot.ai.maxAltitude=Math.max(maxAltitude,z);
  }
  /** PLANE_FLY_IN_DIRECTION (iOS 0x1001f65f8): MISSION_PLANE_FLYINDIRECTION unless it is crashing, the heading (degrees from
   * the x axis) as the one it wants and takes, and the two altitudes. */
@@ -191,6 +191,13 @@ export class WorldPlane {
   const pilot=this.aiPlanePilot();if(!pilot)return;
   if(pilot.mission!==57&&pilot.mission!==58)pilot.mission=MISSION_PLANE_FLYINDIRECTION;
   pilot.ai.heading=pilot.ai.headingPrev=degrees*Math.PI/180;pilot.ai.minAltitude=minAltitude;pilot.ai.maxAltitude=maxAltitude;
+ }
+ /** PLANE_FOLLOW_ENTITY (iOS 0x1001f6440): MISSION_PLANE_FOLLOW_ENTITY on the entity (`target` its native position, or
+  * nothing once it has gone) unless the plane is crashing, the command's height as m_minAltitude, the engine on. */
+ tellPlaneToFollowEntity(target:()=>NV|undefined,minAltitude:number){
+  const pilot=this.aiPlanePilot();if(!pilot)return;
+  if(pilot.mission!==57&&pilot.mission!==58)pilot.mission=MISSION_PLANE_FOLLOW_ENTITY;
+  pilot.target=target;pilot.ai.minAltitude=minAltitude;
  }
  /** SET_PLANE_THROTTLE (iOS 0x1001f6df0): m_fAccelerationBreakStatusPrev, the throttle the AI flies at. */
  setPlaneThrottle(throttle:number){const pilot=this.aiPlanePilot();if(pilot)pilot.ai.accelPrev=throttle;}
@@ -212,7 +219,8 @@ export class WorldPlane {
    const t=hit.timeOfImpact/l;return [from[0]+(to[0]-from[0])*t,from[1]+(to[1]-from[1])*t,from[2]+(to[2]-from[2])*t];
   };
   const body={position:b.position,moveSpeed:b.moveSpeed,right:b.right,forward:b.forward,up:b.up,onGround:this.grounded};
-  if(!steerAIPlane(pilot.ai,body,pilot,{lineOfSight},this.planeClockMs,planeSearchDue(this.planeClockMs,previous,this.heliSeed),dt*50))return;
+  const target=pilot.mission===MISSION_PLANE_FOLLOW_ENTITY?pilot.target?.():undefined;
+  if(!steerAIPlane(pilot.ai,body,pilot,{lineOfSight},this.planeClockMs,planeSearchDue(this.planeClockMs,previous,this.heliSeed),dt*50,target))return;
   const ai=pilot.ai;this.autopilot={throttle:ai.accel,pitch:ai.pitch,roll:ai.roll,rudder:ai.rudder,brake:false};
   if(ai.gearUp)this.gearUp=true;
  }

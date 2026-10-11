@@ -2703,6 +2703,12 @@ export class ScmMission {
    // 0x1001f6df0) on the plane's AI (nativePlaneAI.ts).
    planeGotoCoords:(handle,x,y,z,minAltitude,maxAltitude)=>{(this.liveVehicle(handle) as {tellPlaneToGoToCoors?:(x:number,y:number,z:number,min:number,max:number)=>void}).tellPlaneToGoToCoors?.(x,y,z,minAltitude,maxAltitude);},
    planeFlyInDirection:(handle,heading,minAltitude,maxAltitude)=>{(this.liveVehicle(handle) as {tellPlaneToFlyInDirection?:(h:number,min:number,max:number)=>void}).tellPlaneToFlyInDirection?.(heading,minAltitude,maxAltitude);},
+   planeFollowEntity:(handle,ped,vehicle,minAltitude)=>{
+    const plane=this.liveVehicle(handle) as {tellPlaneToFollowEntity?:(target:()=>[number,number,number]|undefined,min:number)=>void};
+    // The vehicle when one is given, else the ped (the handler reads the ped and then lets a given vehicle replace it).
+    const where=vehicle>=0?this.scriptEntityPosition(-1,vehicle):this.scriptEntityPosition(ped,-1);
+    plane.tellPlaneToFollowEntity?.(()=>{const p=where();return p?[p.x,p.y,p.z]:undefined;},minAltitude);
+   },
    setPlaneThrottle:(handle,throttle)=>{(this.liveVehicle(handle) as {setPlaneThrottle?:(t:number)=>void}).setPlaneThrottle?.(throttle);},
    heliGotoCoords:(handle,x,y,z,minAltitude,maxAltitude)=>{(this.liveVehicle(handle) as {tellHeliToGoToCoors?:(x:number,y:number,z:number,min:number,max:number)=>void}).tellHeliToGoToCoors?.(x,y,z,minAltitude,maxAltitude);},
    // HELI_FOLLOW_ENTITY (iOS 0x1001f5edc): the ped, or with none (-1) the vehicle, as m_TargetEntity, followed until it

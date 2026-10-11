@@ -12226,3 +12226,8 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   axis and the two as they are, unless the plane is crashing. A plane with an AI mission flies however far it is from
   the player, as the helicopters do. Specs: `script-plane-goto` (a Rustler over the sea heading north comes round to a
   point west of it, staying aloft), `plane-ai` (unit).
+- **PLANE_FOLLOW_ENTITY** (MANSIO2) was skipped. The iOS handler (0x1001f6440) sets MISSION_PLANE_FOLLOW_ENTITY unless
+  the plane is crashing, on the given vehicle (or the ped when no vehicle is given), the command's height as
+  m_minAltitude, the engine on; the mission's case (0x1001995e4) heads for the entity and takes its height as
+  m_maxAltitude, then flies as in a direction. Specs: `script-plane-goto` (a plane over the sea heading east comes round
+  to the player on the beach), `plane-ai` (unit).
