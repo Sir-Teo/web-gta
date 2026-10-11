@@ -11954,3 +11954,20 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   port advanced a paused playback, as the reversed PC source does, while the iOS SaveOrRetrieveDataForThisFrame
   (0x1001c6244) leaves a paused playback's running time where it is and keeps the car on the recording there.
   Specs: `script-heli-recording` (browser), `car-recordings` (unit).
+
+## Trailers (October 11, 2026)
+
+- **A trailer is made, and stands on its legs.** The car builder refused every vehicle of the trailer type, so a
+  script's CREATE_CAR of one (CAT3's tanker, TORENO2's, the trucking missions') made nothing and the mission gave up at
+  its next command on it. A trailer is a CTrailer, a CAutomobile: it is built as a car (its four wheel lines are a car's,
+  and PETROTR and UTILTR1, which have no vehiclelights128, are let through as the Vortex is). CTrailer's support legs
+  are `simulation/nativeTrailerSupport.ts`: SetupSuspensionLines (0x6CF1A0) puts two lines at the front corners of the
+  collision bounds, from the top down to a depth that shares the weight between them and the wheels; ProcessSuspension
+  (0x6CF6A0), after the wheels' own pass, springs each touching leg along the trailer's down axis at its contact's share
+  of the leg (ApplySpringCollisionAlt, force 1.5) and damps it (0.1); ProcessControl extends the legs untowed by 0.002 a
+  timestep (0.0005 under a tenth) and retracts them as fast while towed. The lines meet only the map and its fixed
+  objects (ProcessEntityCollision drops them against peds and vehicles). The baggage trailers stand on four wheels.
+  Not yet: the legs' grip (ProcessCarWheelPair on the legs as a burst-wheel pair), their drawn extension (PreRender's
+  misc_a), the tow link and hitching, and IS_TRAILER_ATTACHED_TO_CAB, ATTACH_ and DETACH_TRAILER_TO_CAB.
+  Specs: `trailer-rest` (browser: PETROTR, ARTICT1, UTILTR1 and BAGBOXA stand within 5 degrees of level and keep still),
+  `trailer-support` (unit).

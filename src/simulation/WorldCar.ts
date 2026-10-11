@@ -25,6 +25,11 @@ import {nativeSurfaceGrip,nativeWetGripByte} from './nativeSurfaceGrip';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Quaternion,Vector3,type Scene} from 'three';
+import {sampleNativeChassis} from './nativeChassis';
+import {applyNativeWheelDeltas} from './nativeWheelMotion';
+import {nativeVehicleSuspension} from './nativeVehicleSuspension';
+import {resolveCarWheelFrames} from '../assets/carWheelFrames';
+import {BAGGAGE_TRAILERS,stepTrailerSupport,stepTrailerSupportExtension,trailerSupportLines,type TrailerSupportLine} from './nativeTrailerSupport';
 import type {Simulation} from './Simulation';
 import {vehicleSolverGroups} from './solverGroups';
 import {burstCompressionRandomUpper} from './nativeGroundCompression';
@@ -350,6 +355,11 @@ export class WorldCar {
   const self=this;
   const h=assets.handling.values;this.mass=h.mass;this.turnMass=h.turnMass;this.collisionDamageMultiplier=h.collisionDamageMultiplier;this.boundsMaxX=Math.max(.5,assets.collision.bounds.max[0]);
   this.groupColliders();
+  // CTrailer: a trailer other than the baggage ones stands on two support legs at its front while nothing tows it.
+  if(assets.vehicle.type==='trailer'&&!BAGGAGE_TRAILERS.has(this.modelId)&&assets.vehicle.frontWheelSize!==undefined){
+   const wheels=nativeVehicleSuspension(assets.vehicle,assets.handling,assets.model,assets.wheelFrames??resolveCarWheelFrames(assets.model));
+   this.trailerLegs={lines:trailerSupportLines(wheels,assets.collision.bounds,h.suspensionForce,assets.vehicle.frontWheelSize),extension:1};
+  }
   // CAutomobile's constructor fits a car with hydraulic geometry with hydraulics one time in four.
   if(h.handlingFlags&HANDLING_HYDRAULIC_GEOM&&Math.floor(Math.random()*0x8000)%4===0)this.fitHydraulics();
   this.modelFlags=h.modelFlags;this.animGroup=assets.animGroup??DEFAULT_VEHICLE_ANIM_GROUP;this.doors=createCarDoors(h.modelFlags,this.modelId);this.debris=new FlyingComponents(sim.world,scene);
@@ -836,6 +846,7 @@ export class WorldCar {
   if(!this.car.body.isDynamic()){this.car.markStepStart();this.steerAngle=this.recordingControls?.steerAngle??this.steerAngle;this.gasPedal=this.recordingControls?.gas??this.gasPedal;return;}
   {const v=this.car.body.linvel();this.prevSpeed=Math.hypot(v.x,v.y,v.z)/50;}
   const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle,hover});this.latch=result.alreadySkidding;
+  this.stepTrailerLegs(seconds);
   {const previous=this.lastCompression;this.lastCompression=result.sampled.compression;if(this.occupied&&previous)this.roadShake(previous,result.sampled.compression,seconds*50);}
   this.steerAngle=result.steeringInput.angle;this.gasPedal=result.pedals.gas;this.gear=result.state.drivetrain.transmission.gear;
   this.updateAudioState(seconds*50,result.state.drivetrain.contacts,result.state.wheels,result.pedals);
@@ -1342,6 +1353,29 @@ export class WorldCar {
    const dummy=this.car.root.getObjectByName(name);if(dummy)out.push({wheel,center:dummy.getWorldPosition(new Vector3()),radius});
   }
   return out;
+ }
+ /** CTrailer's support legs (nativeTrailerSupport) and how far out they are (m_fTrailerTowedRatio); none on other
+  * vehicles and the baggage trailers. */
+ private trailerLegs?:{lines:[TrailerSupportLine,TrailerSupportLine];extension:number};
+ /** CTrailer::ProcessControl's leg travel and ProcessSuspension's support springs, after the wheels' own pass. A leg's
+  * line meets only the map and its fixed objects (CTrailer::ProcessEntityCollision drops the lines against peds and
+  * vehicles). */
+ private stepTrailerLegs(seconds:number){
+  const legs=this.trailerLegs;if(!legs)return;
+  const timeStep=seconds*50;legs.extension=stepTrailerSupportExtension(legs.extension,false,timeStep);
+  const body=this.car.body,p=body.translation(),r=body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),chassis=sampleNativeChassis(body);
+  const world=(v:{x:number;y:number;z:number})=>new Vector3(v.x,v.z,-v.y).applyQuaternion(q).add(p as Vector3);
+  const native=(v:{x:number;y:number;z:number})=>({x:Math.fround(v.x),y:Math.fround(-v.z),z:Math.fround(v.y)});
+  const contacts=legs.lines.map(line=>{
+   const a=world(line.start),b=world(line.end),length=a.distanceTo(b);if(!(length>0))return undefined;
+   const d=b.clone().sub(a).divideScalar(length);
+   const hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray(a,d),length,true,RAPIER.QueryFilterFlags.ONLY_FIXED|RAPIER.QueryFilterFlags.EXCLUDE_SENSORS);
+   if(!hit)return undefined;
+   const at=a.clone().addScaledVector(d,hit.timeOfImpact);
+   return {share:hit.timeOfImpact/length,point:native({x:at.x-p.x,y:at.y-p.y,z:at.z-p.z}),normal:native(hit.normal)};
+  });
+  applyNativeWheelDeltas(body,stepTrailerSupport({linear:chassis.linear,angular:chassis.angular,centerOfMass:chassis.centerOfMass,mass:this.mass,turnMass:this.turnMass,
+   down:chassis.direction,timeStep,reach:legs.extension,contacts,frameLimit:this.input.suspension.frameLimit,springLimitMultiplier:this.input.suspension.springLimitMultiplier}));
  }
  /** Car colliders skip solver contact with pedestrians, whose impacts are native. */
  private groupedColliders=0;

@@ -88,7 +88,8 @@ export async function loadFixedWorldCar(catalog:Awaited<ReturnType<typeof openSt
  const asset=await catalog.load(generator.modelId,{plateRegion:generator.plateRegion,plateText:generator.plateText?.()}),id=handlingIdOf(catalog,asset.vehicle.handling);
  // A monster truck (Monster, Dumper, Dune) is a CAutomobile whose own suspension routines are not reversed; it is built
  // as a car on its handling line.
- requireAsset((asset.vehicle.type==='car'||asset.vehicle.type==='mtruck'||asset.vehicle.id===539)&&id!==undefined,'Generator does not resolve to a supported ordinary car.');
+ // A trailer is a CTrailer, a CAutomobile with support legs (nativeTrailerSupport): a script makes one as a car.
+ requireAsset((asset.vehicle.type==='car'||asset.vehicle.type==='mtruck'||asset.vehicle.type==='trailer'||asset.vehicle.id===539)&&id!==undefined,'Generator does not resolve to a supported ordinary car.');
  requireAsset(!asset.vehicle.issues.length&&!asset.handling.issues.length&&!asset.missingTextures.length&&asset.collision,'Unresolved native car resources.');
  const wheelFrames=resolveCarWheelFrames(asset.model);prepareCarModel(asset.model,wheelFrames);
  // CVehicleModelInfo::ChooseVehicleColour: the model's rotation picks the variation, re-rolled once when it would
@@ -106,7 +107,8 @@ export async function loadFixedWorldCar(catalog:Awaited<ReturnType<typeof openSt
   const rgb=catalog.colors.palette[index]?.rgb;requireAsset(rgb,`Unresolved generator paint index ${index}.`);colors[slot]=[...rgb!];
  }
  const lightTexture=asset.textures.find(t=>t.name.toLowerCase()==='vehiclelights128');
- requireAsset((lightTexture)||asset.vehicle.id===539,'Native car light texture is missing.');
+ // The Vortex and some trailers (PETROTR, UTILTR1) have no vehiclelights128 among their textures.
+ requireAsset((lightTexture)||asset.vehicle.id===539||asset.vehicle.type==='trailer','Native car light texture is missing.');
  const handling=prepareHandling(asset.handling,id);
  return {vehicle:asset.vehicle,handling,model:asset.model,collision:asset.collision!,textures:catalog.lightsOnTexture&&lightTexture?[...asset.textures,catalog.lightsOnTexture]:asset.textures,lightsOnTexture:lightTexture?catalog.lightsOnTexture:undefined,wheelFrames,colors,colourIndices:chosen.indices,colourVariation:variationCount?variation:0,lightTexture,plate:asset.plate,raining:generator.raining,animGroup:readVehicleAnimGroups(catalog.handling.supplements).get(handling.values.animationGroup)};
 }

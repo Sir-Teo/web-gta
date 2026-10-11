@@ -9,7 +9,8 @@ import {resolveCarWheelFrames} from '../assets/carWheelFrames';
  * conventional car dummy names. Frame array order never determines wheel identity. */
 export function nativeVehicleSuspension(vehicle:VehicleIdeRecord,handling:ReturnType<typeof prepareHandling>,model:Pick<DffModel,'frames'>,frameIndices?:Record<CarWheel,number>){
   // A CMonsterTruck sets its lines up with CMonsterTruck::SetupSuspensionLines, which is not reversed: it uses the car's.
-  requireAsset(vehicle.type==='car'||vehicle.type==='mtruck'||vehicle.id===539,'Only ordinary car suspension geometry is supported.');
+  // A CTrailer's four wheel lines are a car's (SetupSuspensionLines 0x6CF1A0); its support legs are nativeTrailerSupport's.
+  requireAsset(vehicle.type==='car'||vehicle.type==='mtruck'||vehicle.type==='trailer'||vehicle.id===539,'Only ordinary car suspension geometry is supported.');
   requireAsset(vehicle.frontWheelSize!==undefined&&vehicle.rearWheelSize!==undefined,'Vehicle requires explicit front and rear wheel sizes.');
   const indices=frameIndices??resolveCarWheelFrames(model);
   requireAsset(new Set(NATIVE_CAR_WHEELS.map(w=>indices[w])).size===4,'Vehicle wheels require four distinct frame identities.');
