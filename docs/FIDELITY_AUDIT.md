@@ -12084,3 +12084,8 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   (iOS 0x100207d14) sets m_fAnimSpeed on the ped's swim task, when it has one (GetTaskSwim). The stroke speeds are the
   measured swim.ifp ones, not the clips' root motion played through. Specs: `script-ped-swim` (browser: at the surface,
   faster on the crawl at SYN5's 2.3, treading at the point), `native-swim-core` (unit).
+- **A blip on a train threw every frame.** SCRASH2 blips the train it has CJ chase; CRadar::Draw3dMarkers' cone stands
+  over the vehicle's box top, and the host read that from a car's assets, which a train carriage does not have, so the
+  marker pass threw on every frame (the sweep's page errors). The box top (and the script's base offset) now come from
+  whichever bounds the vehicle has: a car's, bike's, boat's or plane's collision, or a carriage's own asset. Spec:
+  `script-mission-train` (a blip on the engine places its cone, with no page error).

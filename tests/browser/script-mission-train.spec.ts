@@ -20,7 +20,12 @@ test('a mission train runs along its track at its cruise speed',async({page})=>{
  expect(Math.hypot(first.engine.x-2278.18,first.engine.y+1144.88)).toBeLessThan(40);
  const gap=Math.hypot(first.engine.x-first.carriage.x,first.engine.y-first.carriage.y);
  expect(gap).toBeGreaterThan(10);expect(gap).toBeLessThan(25);
+ // ADD_BLIP_FOR_CAR on the engine (SCRASH2 follows its train so): its cone stands over the carriage's box, which the
+ // marker read from a car's assets and threw on every frame.
+ await page.evaluate(h=>{const r=(window as any).__game.missionForProfiling().runtime;r.game.radar.setEntityBlip(1,h,3);},train);
  await page.waitForTimeout(6000);
+ const markers=await page.evaluate(()=>(window as any).__game.missionForProfiling().radarMarkers(false));
+ expect(markers.some((m:any)=>m.kind==='cone')).toBe(true);
  const later=await read();
  expect(Math.hypot(later.engine.x-first.engine.x,later.engine.y-first.engine.y)).toBeGreaterThan(5);
  const gapLater=Math.hypot(later.engine.x-later.carriage.x,later.engine.y-later.carriage.y);

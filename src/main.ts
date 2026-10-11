@@ -6101,7 +6101,7 @@ async function boot() {
                   const w=add?body.angvel():{x:0,y:0,z:0};body.setAngvel({x:w.x+speed.x,y:w.y+speed.z,z:w.z-speed.y},true);
                  },
                  explosionInArea:(type,min,max)=>weapons.explosionSlots.inArea(type,min,max),
-                 scriptVehicleBaseOffset:car=>-(car as ScriptCar).assets.collision.bounds.min[2],
+                 scriptVehicleBaseOffset:car=>{const v=car as {nativeBody?:{boundsMin:{z:number}};assets?:{collision?:{bounds:{min:number[]}}}};return -(v.nativeBody?.boundsMin.z??v.assets?.collision?.bounds.min[2]??0);},
                  clearSpaceForScriptVehicle:car=>{const c=car as ScriptCar,t=c.car.body.translation(),r=c.car.body.rotation();fleet?.clearSpaceFor({x:t.x,y:t.y,z:t.z},2*Math.atan2(r.y,r.w),c.assets.collision.bounds);},
                  rejoinScriptVehicleRoads:car=>{if(isScriptDrivable(car))scriptCars.rejoinRoads(car);},
                  createScriptUser3dMarker:(x,y,z,colour)=>markers3d.userMarkerSet(x,y,z,HUD_COLOURS[colour]??[0,0,0]),
@@ -6424,7 +6424,9 @@ async function boot() {
                   if(target.occupied||(target as {playerPassengerSeat?:unknown}).playerPassengerSeat){const p=body.translation();sim.player.previous={x:p.x,y:p.y,z:p.z};sim.player.position={x:p.x,y:p.y,z:p.z};}
                  },
                  scriptVehiclePosition:car=>{const p=(car as ScriptCar).car.body.translation();return {x:p.x,y:-p.z,z:p.y};},
-                 scriptVehicleBoxTop:car=>(car as ScriptCar).assets.collision.bounds.max[2],
+                 // A car's, bike's, boat's or plane's collision bounds, or a train carriage's (its own asset).
+                 scriptVehicleBoxTop:car=>{const v=car as {nativeBody?:{boundsMax:{z:number}};assets?:{collision?:{bounds:{max:number[]}}};asset?:{collision?:{bounds:{max:number[]}}}};
+                  return v.nativeBody?.boundsMax.z??v.assets?.collision?.bounds.max[2]??v.asset?.collision?.bounds.max[2]??0;},
                  scriptVehicleHeading:car=>{const degrees=((car as ScriptCar).heading()-Math.PI)*180/Math.PI;return ((degrees%360)+360)%360;},
                  scriptVehicleAlive:car=>!(car as ScriptCar).disposed,
                  // CVehicle's destructor flags its driver (FlagToDestroyWhenNextProcessed): the player, whom it does not
