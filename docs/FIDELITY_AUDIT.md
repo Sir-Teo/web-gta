@@ -12231,3 +12231,9 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   m_minAltitude, the engine on; the mission's case (0x1001995e4) heads for the entity and takes its height as
   m_maxAltitude, then flies as in a direction. Specs: `script-plane-goto` (a plane over the sea heading east comes round
   to the player on the beach), `plane-ai` (unit).
+- **PLANE_ATTACK_PLAYER** (DESERT6) was skipped. The iOS handler (0x1001f63d0) sets MISSION_PLANE_ATTACK_PLAYER unless
+  the plane is crashing, the command's height as m_minAltitude. GetAIPlaneToAttackPlayer (iOS 0x10019d134; the police
+  mission 59 shares it) heads for FindPlayerCoors plus 50 frames of FindPlayerSpeed at its height and flies as in a
+  direction. After the flying it sets bFireGun when the player is within 150 and ahead (TestWhetherToFirePlaneGuns,
+  iOS 0x10019fa50) and fires a heat-seeking rocket at most once a second from 30 to 160 off (iOS 0x10019fb60): those,
+  like the helicopters' guns and rockets, are not ported yet. Specs: `script-plane-goto`, `plane-ai`.

@@ -17,7 +17,7 @@ import {MISSION_HELI_ATTACK_PLAYER,MISSION_HELI_ATTACK_PLAYER_FLY_AWAY,MISSION_H
 import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
 import {stepBombTimer} from '../vehicle/nativeCarBomb';
 import {stepPlaneWheelRoll,type PlaneWheelRoll} from './planeWheelRoll';
-import {MISSION_PLANE_FLYINDIRECTION,MISSION_PLANE_FLYTOCOORS,MISSION_PLANE_FOLLOW_ENTITY,atanOfXY,newPlaneAI,planeSearchDue,steerAIPlane,type PlaneAI,type PlanePilot} from './nativePlaneAI';
+import {MISSION_PLANE_ATTACK_PLAYER,MISSION_PLANE_ATTACK_PLAYER_POLICE,MISSION_PLANE_FLYINDIRECTION,MISSION_PLANE_FLYTOCOORS,MISSION_PLANE_FOLLOW_ENTITY,atanOfXY,newPlaneAI,planeSearchDue,steerAIPlane,type PlaneAI,type PlanePilot} from './nativePlaneAI';
 import {applyNativeBuoyancy,nativeBuoyancySplashEdges,nativeSplashParticles,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
 import type {NativeAnimation} from '../assets/ifp';
 import {vehicleAnimation,VEHICLE_ANIM,type VehicleAnimGroupData} from '../assets/vehicleAnimGroups';
@@ -199,6 +199,13 @@ export class WorldPlane {
   if(pilot.mission!==57&&pilot.mission!==58)pilot.mission=MISSION_PLANE_FOLLOW_ENTITY;
   pilot.target=target;pilot.ai.minAltitude=minAltitude;
  }
+ /** PLANE_ATTACK_PLAYER (iOS 0x1001f63d0): MISSION_PLANE_ATTACK_PLAYER unless the plane is crashing, the command's height
+  * as m_minAltitude. */
+ tellPlaneToAttackPlayer(minAltitude:number){
+  const pilot=this.aiPlanePilot();if(!pilot)return;
+  if(pilot.mission!==57&&pilot.mission!==58)pilot.mission=MISSION_PLANE_ATTACK_PLAYER;
+  pilot.ai.minAltitude=minAltitude;
+ }
  /** SET_PLANE_THROTTLE (iOS 0x1001f6df0): m_fAccelerationBreakStatusPrev, the throttle the AI flies at. */
  setPlaneThrottle(throttle:number){const pilot=this.aiPlanePilot();if(pilot)pilot.ai.accelPrev=throttle;}
  private aiPlanePilot(){
@@ -219,7 +226,10 @@ export class WorldPlane {
    const t=hit.timeOfImpact/l;return [from[0]+(to[0]-from[0])*t,from[1]+(to[1]-from[1])*t,from[2]+(to[2]-from[2])*t];
   };
   const body={position:b.position,moveSpeed:b.moveSpeed,right:b.right,forward:b.forward,up:b.up,onGround:this.grounded};
-  const target=pilot.mission===MISSION_PLANE_FOLLOW_ENTITY?pilot.target?.():undefined;
+  // The attack's target: FindPlayerCoors plus 50 frames of FindPlayerSpeed.
+  const attack=pilot.mission===MISSION_PLANE_ATTACK_PLAYER||pilot.mission===MISSION_PLANE_ATTACK_PLAYER_POLICE;
+  const me=this.sim.player.position,v=attack?this.sim.playerVelocity():undefined;
+  const target=pilot.mission===MISSION_PLANE_FOLLOW_ENTITY?pilot.target?.():v?[me.x+v.x,-me.z-v.z,me.y+v.y] as NV:undefined;
   if(!steerAIPlane(pilot.ai,body,pilot,{lineOfSight},this.planeClockMs,planeSearchDue(this.planeClockMs,previous,this.heliSeed),dt*50,target))return;
   const ai=pilot.ai;this.autopilot={throttle:ai.accel,pitch:ai.pitch,roll:ai.roll,rudder:ai.rudder,brake:false};
   if(ai.gearUp)this.gearUp=true;

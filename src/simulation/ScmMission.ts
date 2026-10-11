@@ -2709,6 +2709,8 @@ export class ScmMission {
     const where=vehicle>=0?this.scriptEntityPosition(-1,vehicle):this.scriptEntityPosition(ped,-1);
     plane.tellPlaneToFollowEntity?.(()=>{const p=where();return p?[p.x,p.y,p.z]:undefined;},minAltitude);
    },
+   // PLANE_ATTACK_PLAYER (iOS 0x1001f63d0): the player is the one player there is.
+   planeAttackPlayer:(handle,_player,minAltitude)=>{(this.liveVehicle(handle) as {tellPlaneToAttackPlayer?:(min:number)=>void}).tellPlaneToAttackPlayer?.(minAltitude);},
    setPlaneThrottle:(handle,throttle)=>{(this.liveVehicle(handle) as {setPlaneThrottle?:(t:number)=>void}).setPlaneThrottle?.(throttle);},
    heliGotoCoords:(handle,x,y,z,minAltitude,maxAltitude)=>{(this.liveVehicle(handle) as {tellHeliToGoToCoors?:(x:number,y:number,z:number,min:number,max:number)=>void}).tellHeliToGoToCoors?.(x,y,z,minAltitude,maxAltitude);},
    // HELI_FOLLOW_ENTITY (iOS 0x1001f5edc): the ped, or with none (-1) the vehicle, as m_TargetEntity, followed until it

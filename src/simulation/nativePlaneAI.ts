@@ -15,7 +15,8 @@ import type {NativeVec} from './nativeFlyingControl';
  * is m_fAccelerationBreakStatusPrev, which SET_PLANE_THROTTLE sets and the constructor makes 1.
  *
  * Native units: world axes x east, y north, z up; moveSpeed in units a 50 Hz step; `ts` CTimer::ms_fTimeStep. */
-export const MISSION_PLANE_FLYTOCOORS=22,MISSION_PLANE_FLYINDIRECTION=36,MISSION_PLANE_FOLLOW_ENTITY=37;
+export const MISSION_PLANE_FLYTOCOORS=22,MISSION_PLANE_ATTACK_PLAYER=35,MISSION_PLANE_FLYINDIRECTION=36,MISSION_PLANE_FOLLOW_ENTITY=37,
+ MISSION_PLANE_ATTACK_PLAYER_POLICE=59;
 /** CPlane's fields the AI flies by (gta-reversed's Plane.h names, iOS +0xbc8 on): the four controls FlyingControl takes
  * (the rudder, the pitch, the roll and the throttle), the throttle the AI copies in, the roll it last read
  * (m_fSteeringFactor), the heading it was made with, the altitudes (TellPlaneToGoToCoors' two and the height it is
@@ -136,10 +137,17 @@ export function flyAIPlaneInCertainDirection(ai:PlaneAI,body:PlaneAIBody,pilot:P
 }
 
 /** SteerAICarWithPhysics for a plane's mission (iOS 0x100198e04): flying to coordinates sets the heading there first
- * (0x10019939c); following an entity (0x1001995e4) the heading to it and its height as m_maxAltitude; flying in a
- * direction keeps the one it was given. Nothing for another mission, or for a followed entity that has gone. */
+ * (0x10019939c); following an entity (0x1001995e4) the heading to it and its height as m_maxAltitude; attacking the
+ * player (GetAIPlaneToAttackPlayer, 0x10019d134) the same for where the player will be in 50 frames (`target`, his
+ * place and speed); flying in a direction keeps the one it was given. Nothing for another mission, or for a followed
+ * entity that has gone. (The attack's guns and rockets after the flying, iOS 0x10019fa50 and 0x10019fb60, are not
+ * ported, as the helicopters' are not.) */
 export function steerAIPlane(ai:PlaneAI,body:PlaneAIBody,pilot:PlanePilot,world:PlaneAIWorld,nowMs:number,searchDue:boolean,ts:number,target?:NativeVec){
  if(pilot.mission===MISSION_PLANE_FLYTOCOORS)ai.heading=atanOfXY(pilot.destination[0]-body.position[0],pilot.destination[1]-body.position[1]);
+ else if(pilot.mission===MISSION_PLANE_ATTACK_PLAYER||pilot.mission===MISSION_PLANE_ATTACK_PLAYER_POLICE){
+  if(!target)return false;
+  ai.heading=atanOfXY(target[0]-body.position[0],target[1]-body.position[1]);ai.maxAltitude=target[2];
+ }
  else if(pilot.mission===MISSION_PLANE_FOLLOW_ENTITY){
   if(!target)return false;
   ai.heading=atanOfXY(target[0]-body.position[0],target[1]-body.position[1]);ai.maxAltitude=target[2];

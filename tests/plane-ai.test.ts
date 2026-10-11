@@ -49,3 +49,11 @@ test('following an entity it heads for it at the entity\'s height, and does noth
  expect(ai.heading).toBeCloseTo(Math.PI/2,5);expect(ai.maxAltitude).toBe(240);expect(ai.altitude).toBe(240);
  expect(steerAIPlane(ai,body(),pilot({mission:37}),open,100000,true,1,undefined)).toBe(false);
 });
+
+test('attacking the player it heads for where he will be, at his height',()=>{
+ const ai=newPlaneAI(0);
+ expect(steerAIPlane(ai,body(),pilot({mission:35}),open,100000,true,1,[-300,300,15])).toBe(true);
+ expect(ai.heading).toBeCloseTo(Math.PI*3/4,5);expect(ai.maxAltitude).toBe(15);
+ expect(steerAIPlane(ai,body(),pilot({mission:59}),open,100000,true,1,[0,300,15])).toBe(true);
+ expect(ai.heading).toBeCloseTo(Math.PI/2,5);
+});
