@@ -12237,3 +12237,20 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   direction. After the flying it sets bFireGun when the player is within 150 and ahead (TestWhetherToFirePlaneGuns,
   iOS 0x10019fa50) and fires a heat-seeking rocket at most once a second from 30 to 160 off (iOS 0x10019fb60): those,
   like the helicopters' guns and rockets, are not ported yet. Specs: `script-plane-goto`, `plane-ai`.
+
+## SAM sites (October 11, 2026)
+
+- **The SAM sites stood still.** Area 69's (mil_samsite) and the San Fierro carrier's (samsite_SFXRF) were part of
+  the map, and SET_AREA51_SAM_SITE and SET_AIRCRAFT_CARRIER_SAM_SITE (MANSIO2, 5 times) switched nothing.
+  CPopulation::FindDummyDistForModel (reversed) makes the two models real objects within 750 of the player (80 for
+  every other map object), and CObject::ProcessSamSiteBehaviour (reversed) runs on them: a site east of x = -1000
+  obeys the Area 51 switch, one west of it the carrier's (bAircraftCarrierSamSiteDisabled starts set on iOS,
+  0x10064cad8; the Area 51 flag starts clear). While the player flies or sails (FindPlayerVehicle not a car or a bike)
+  or wears the jetpack, no more than 2 under the site and south of y = 2100, it turns toward him a twentieth of a radian
+  a step; lined up within 0.1 and within 120 across, it fires a heat-seeking rocket (CProjectileInfo::AddProjectile,
+  WEAPON_ROCKET_HS) from 2 along and 4 up as the clock passes each 4-second mark, along its forward and up; otherwise it
+  sweeps round a two-hundredth of a radian a step. The port takes each site within 750 from the map as an object (so it
+  turns), gives it back beyond, and the rocket chases the player's aircraft or boat as a rocket the player did not fire
+  does (0.009 a frame); at the player on the jetpack it flies as a plain rocket, the port's heat-seekers chasing only
+  vehicles. Specs: `sam-site` (a site at Area 69 turns on the player's plane held near it and fires at it),
+  `sam-site` (unit).

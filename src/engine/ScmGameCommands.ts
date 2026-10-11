@@ -2434,7 +2434,7 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  WINCH_CAN_PICK_VEHICLE_UP:(t,p,i)=>{world(t,i,'winchCanPickVehicleUp')(t.readInt(p[0]),bool(t,p[1]));},
  SET_NIGHT_VISION:(t,p,i)=>{world(t,i,'setNightVision')(bool(t,p[0]));},
- SET_AIRCRAFT_CARRIER_SAM_SITE:(t,p,i)=>{world(t,i,'setAircraftCarrierSamSite')(bool(t,p[0]));},
+ SET_AIRCRAFT_CARRIER_SAM_SITE:(t,p,i)=>{game(t,i).aircraftCarrierSamSite=bool(t,p[0]);},
  CREATE_SCRIPT_ROADBLOCK:(t,p,i)=>{world(t,i,'createScriptRoadblock')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readInt(p[6]));},
  // CMessages::AddMessageJumpQWithString: the first key's text with its ~a~ replaced by the second key's (a zone's
  // name in "There's a fire in ~a~"). The queue keeps the key to insert; the HUD looks both up.

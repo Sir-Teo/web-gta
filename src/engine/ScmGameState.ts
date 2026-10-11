@@ -341,8 +341,10 @@ export class ScmGameState {
  ambientPlanes=true;
  /** CStreaming::ms_disableStreaming (SWITCH_STREAMING off). */
  disableStreaming=false;
- /** SET_AREA51_SAM_SITE's switch. */
+ /** SET_AREA51_SAM_SITE's switch (iOS 0x1001f8424 keeps it as bArea51SamSiteDisabled, clear at the start). */
  area51SamSite=true;
+ /** SET_AIRCRAFT_CARRIER_SAM_SITE's switch (iOS 0x100205e2c keeps bAircraftCarrierSamSiteDisabled, set at the start). */
+ aircraftCarrierSamSite=false;
  /** CGangWars::bCanTriggerGangWarWhenOnAMission. */
  canTriggerGangWarWhenOnAMission=false;
  /** CTheScripts::bUseMessageFormatting, and the margin and width SET_MESSAGE_FORMATTING gives with it. */

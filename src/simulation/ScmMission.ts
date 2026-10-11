@@ -57,6 +57,7 @@ import {ScmDecisionMakers} from '../engine/ScmDecisionMakers';
 import {scriptedPedOrder,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {PlayerScriptTasks} from './playerScriptTasks';
 import {ScmRopes} from './ScmRopes';
+import {SAM_SITE_DUMMY_DISTANCE,SAM_SITE_MODELS,samSiteStep} from './nativeSamSite';
 import {ROPE_HEIGHT_OBJECT} from './nativeRope';
 import {BUTTON} from '../engine/ScmPads';
 import {CRANE_NONE} from '../engine/ScmPlayerInfo';
@@ -733,6 +734,10 @@ export interface ScmMissionWorld {
  ropeVehicleBody?(car:unknown):import('./ScmRopes').RopeVehicle|undefined;
  /** physicalFlags.bCarriedByRope of a vehicle a crane's hook takes or lets go. */
  scriptVehicleCarriedByRope?(car:unknown,carried:boolean):void;
+ /** What a SAM site aims at: the player's aircraft or boat, or the player on the jetpack (native), if any. */
+ samSiteTarget?():{x:number;y:number;z:number}|undefined;
+ /** CProjectileInfo::AddProjectile of a SAM site's heat-seeking rocket at the player (native point and direction). */
+ fireSamRocket?(origin:{x:number;y:number;z:number},direction:{x:number;y:number;z:number}):void;
  /** WINCH_CAN_PICK_VEHICLE_UP: CVehicle's bWinchCanPickMeUp, which the constructor sets. */
  setScriptVehicleWinchCanPickUp?(car:unknown,state:boolean):void;
  /** DETACH_CAR: CPhysical::DettachEntityFromEntity, the push's turns in radians and its size in units a frame. */
@@ -939,6 +944,8 @@ const GARAGE_DOOR_STREAM_RADIUS=150,GARAGE_DOOR_DEFAULT_HEIGHT=4,GARAGE_FLAG_DOO
 /** CPopulation::FindDummyDistForModel (0x610ED0, reversed) for every brain model: a map object is made real within 80
  * units of the player and goes back to its dummy beyond that. */
 const OBJECT_DUMMY_DISTANCE=80;
+/** The SAM sites' models, as the map names them (lower case). */
+const SAM_MODELS:ReadonlySet<string>=new Set(SAM_SITE_MODELS);
 /** CTaskComplexSignalAtPed's start: the player's car above 0.2 units a frame (speed squared over 0.04) stops it. */
 const HAND_SIGNAL_PLAYER_CAR_SPEED=.2;
 /** CTaskComplexPlayHandSignalAnim's GetAnimIdForPed: the ped types that sign (Ballas, Grove, Vagos, Da Nang, Aztecas). */
@@ -3084,6 +3091,35 @@ export class ScmMission {
   }
  }
  private nextBrainScan=0;
+ /** The SAM sites made real near the player, by placement key, and the clock their 4-second fire marks run on. */
+ private readonly samSites=new Map<string,number>();private nextSamScan=0;private samClockMs?:number;
+ /** CObject::ProcessSamSiteBehaviour (reversed) for the SAM sites within 750 of the player (FindDummyDistForModel's
+  * figure for MI_SAMSITE and MI_SAMSITE2): each is taken from the map as an object (drawn by the object host so it
+  * can turn), turned and fired as nativeSamSite.ts says, and given back to the map once the player is past 750. */
+ private processSamSites(nowMs:number,timeStepMs:number){
+  const near=this.world.worldObjectsNear,objects=this.runtime.game.objects;if(!near)return;
+  const previous=this.samClockMs??nowMs;this.samClockMs=nowMs;
+  if(nowMs>=this.nextSamScan){
+   this.nextSamScan=nowMs+500;
+   const player=this.world.playerPed().position,found=near(SAM_MODELS,player.x,player.y,SAM_SITE_DUMMY_DISTANCE),seen=new Set<string>();
+   for(const f of found){
+    seen.add(f.key);if(this.samSites.has(f.key))continue;
+    const [x,y,z]=f.position,site=objects.adoptWorld(f.model,{x,y,z},f.heading,f.key);
+    if(this.world.takeWorldObject?.(f.key,true))site.worldPlacement=undefined;
+    this.samSites.set(f.key,site.handle);
+   }
+   for(const [key,handle] of this.samSites)if(!seen.has(key)){if(objects.exists(handle))objects.remove(handle);this.world.takeWorldObject?.(key,false);this.samSites.delete(key);}
+  }
+  if(!this.samSites.size||!(timeStepMs>0))return;
+  const game=this.runtime.game,target=this.world.samSiteTarget?.(),enabled={area51:game.area51SamSite,carrier:game.aircraftCarrierSamSite};
+  for(const handle of this.samSites.values()){
+   if(!objects.exists(handle))continue;
+   const site=objects.at(handle);
+   const step=samSiteStep({position:site.position,heading:site.heading,broken:site.broken},target,enabled,timeStepMs/20,nowMs,previous);
+   if(step.heading!==site.heading){site.heading=step.heading;site.matrix=undefined;}
+   if(step.fire)this.world.fireSamRocket?.(step.fire.origin,step.fire.direction);
+  }
+ }
  /** The map objects brains are allocated to near the player, for the dev API and the browser tests. */
  brainObjectsSnapshot(){
   const objects=this.runtime.game.objects;
@@ -4545,7 +4581,7 @@ export class ScmMission {
   // CPad::Update for pad 0 before the scripts run: a PRINT of WUZ1_DA or GAR2_10 (iOS) clears DisablePlayerControls,
   // the script's player-safe bit with it; the CPlayerInfo half of MakePlayerSafe is left as it was.
   {const pads=this.runtime.game.pads;if(pads.releaseControls[0]){pads.releaseControls[0]=false;pads.setPlayerSafe(0,false);this.playerControl=true;}}
-  try{this.serviceCutscene();this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.world.clearScriptPedEvents?.();if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();if(this.swatRopeRiders.size)this.settleSwatRopeRiders();this.processObjectBrains(nowMs);this.processPedBrains(nowMs);this.processGarageDoors(nowMs);this.liftCreatedObjects();this.updateConversations(nowMs);this.settlePutDown();if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.runtime.game.objects.advanceFades(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
+  try{this.serviceCutscene();this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.world.clearScriptPedEvents?.();if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();if(this.swatRopeRiders.size)this.settleSwatRopeRiders();this.processObjectBrains(nowMs);this.processSamSites(nowMs,timeStepMs);this.processPedBrains(nowMs);this.processGarageDoors(nowMs);this.liftCreatedObjects();this.updateConversations(nowMs);this.settlePutDown();if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.runtime.game.objects.advanceFades(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
    this.processRunners(timeStepMs/1000);
    this.drownRiders(timeStepMs);

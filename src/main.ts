@@ -6238,6 +6238,18 @@ async function boot() {
                  ropeVehicleBody:car=>ropeVehicleBody(car as object),
                  scriptVehicleCarriedByRope:(car,carried)=>{const v=car as {carriedByRope?:boolean};if('carriedByRope' in v)v.carriedByRope=carried;},
                  setScriptVehicleWinchCanPickUp:(car,state)=>{if(state)winchRefused.delete(car as object);else winchRefused.add(car as object);},
+                 // CObject::ProcessSamSiteBehaviour's target: the player's vehicle unless a car or bike (FindPlayerVehicle's
+                 // appearance), else the player himself on the jetpack.
+                 samSiteTarget:()=>{
+                  const v=fleet?.occupiedPlane??fleet?.occupiedBoat;
+                  if(v){const t=v.body.translation();return {x:t.x,y:-t.z,z:t.y};}
+                  if(sim.jetPack){const p=sim.player.position;return {x:p.x,y:-p.z,z:p.y};}
+                  return undefined;
+                 },
+                 fireSamRocket:(origin,direction)=>{
+                  const target=(fleet?.occupiedPlane??fleet?.occupiedBoat)?.body.handle;
+                  weapons.launchHeatSeeker({x:origin.x,y:origin.z,z:-origin.y},{x:direction.x,y:direction.z,z:-direction.y},target);
+                 },
                  detachScriptVehicle:(child,x,y,push,turn)=>detachVehicle(child as object,x,y,push,turn),
                  scriptVehicleMatrix:car=>{
                   const body=(car as ScriptCar).car.body,q=body.rotation(),p=body.translation();

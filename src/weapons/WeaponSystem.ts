@@ -254,6 +254,15 @@ export class WeaponSystem {
  get native(){return this.inventory.native;}
  /** CProjectileInfo::RemoveAllProjectiles: every grenade, rocket and satchel in flight or stuck is gone, unexploded. */
  removeAllProjectiles(){this.projectiles=[];}
+ /** CProjectileInfo::AddProjectile of WEAPON_ROCKET_HS from something that is not a ped or a vehicle (a SAM site):
+  * along `direction` at the rocket's speed, chasing the vehicle body `target` and turning as a rocket the player did not
+  * fire does (a plain rocket with no target). The browser's axes. */
+ launchHeatSeeker(origin:Vec3,direction:Vec3,target:number|undefined){
+  if(this.projectiles.length>=MAX_PROJECTILES)return false;
+  const forward=normalize(direction),kind=target===undefined?'rocket':'guided';
+  this.projectiles.push({id:this.serial++,weapon:36,position:{...origin},velocity:launchVelocity(kind,forward),fuse:projectileFuse(kind,true),stuck:false,target,kind,owner:-1,forward});
+  return true;
+ }
  snapshot(){return {...this.inventory.snapshot(),throwing:this.throwing,attackButtonCounter:+this.attackButtonCounter.toFixed(3),lastThrowForce:+this.lastThrowForce.toFixed(4),native:!!this.native,ready:this.ready,aircraftShots:this.aircraftShots,hits:this.hits,explosions:this.explosions,projectiles:this.projectiles.length,bullets:this.bullets.length,hazards:this.hazards.length,heatSeek:{target:this.hsLock.marked??null,locked:this.hsLock.locked(this.nowMs)},fires:this.fires.active.length,pedFires:this.fires.active.flatMap(f=>f.target?.kind==='ped'?[f.target.key as number]:[]),areaShots:this.shots.length,shotProbe:this.shots.slice(-3).map(s=>({o:[+s.origin.x.toFixed(2),+s.origin.y.toFixed(2),+s.origin.z.toFixed(2)],v:+Math.hypot(s.velocity.x,s.velocity.y,s.velocity.z).toFixed(2),range:s.range,executed:s.executed,age:+s.age.toFixed(2)})),hand:this.lastHand,lock:this.lock?.handle??null,satchels:this.projectiles.filter(p=>p.weapon===39).length,vision:this.vision,parachute:this.parachute};}
  /** Every bullet line, as CWeapon's instant-hit fire hands it to CBirds::HandleGunShot. */
  onBulletLine?:(from:Vec3,to:Vec3)=>void;
