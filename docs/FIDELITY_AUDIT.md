@@ -12094,3 +12094,9 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   (0x1001ee1e4) looks the handle up (CScriptsForFX::GetActualScriptThingIndex) and does nothing when there is no slot or
   no system in it; PLAY_, PLAY_AND_KILL_, KILL_FX_SYSTEM and ATTACH_FX_SYSTEM_TO_CHAR_BONE now do nothing for such a
   handle too. Spec: `script-fx`.
+- **ATTACH_CHAR_TO_BIKE** (SYN1) was skipped, so CJ stood where he was at the photo spot, without the camera the
+  mission's photos need. The iOS handler (0x1001f2640) calls CPed::AttachPedToBike (0x10032c89c), which is
+  AttachPedToEntity (the car form's: the offset, the side, the heading limit made radians, the weapon) with the second
+  limit kept in m_nTurretPosnMode; it now attaches as ATTACH_CHAR_TO_CAR does. Nothing here reads that second limit.
+  Spec: `script-player-attached-bike` (SYN1's own call on a frozen mountain bike: attached, at the offset, the camera
+  in hand).

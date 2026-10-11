@@ -1514,6 +1514,13 @@ export class ScmMission {
     if(handle===PLAYER_PED_HANDLE){this.host('attachPlayerToVehicle','ATTACH_CHAR_TO_CAR')(this.liveVehicle(vehicle),offset,position,angleLimit,weapon);return;}
     this.peds.attachToCar(handle,vehicle,offset);
    },
+   // ATTACH_CHAR_TO_BIKE (iOS 0x1001f2640, CPed::AttachPedToBike 0x10032c89c): AttachPedToEntity as the car form, and
+   // the second limit kept in m_nTurretPosnMode (SYN1 seats CJ with his camera on a hidden, frozen bike at its photo
+   // spot: 110 and 70). Nothing here reads that second limit.
+   attachPedToBike:(handle,vehicle,offset,position,angleLimit,_turretPosnMode,weapon)=>{
+    if(handle===PLAYER_PED_HANDLE){this.host('attachPlayerToVehicle','ATTACH_CHAR_TO_BIKE')(this.liveVehicle(vehicle),offset,position,angleLimit,weapon);return;}
+    this.peds.attachToCar(handle,vehicle,offset);
+   },
    // SET_HEADING_FOR_ATTACHED_PLAYER: the angle and the turn a frame, in degrees; the camera swings while he hangs.
    setHeadingForAttachedPlayer:(_player,heading,speed)=>{this.world.setAttachedPlayerHeading?.(heading,speed);},
    // IS_ATTACHED_PLAYER_HEADING_ACHIEVED (iOS 0x1001fd9b4): the turn a frame SET_HEADING_FOR_ATTACHED_PLAYER stored
