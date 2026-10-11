@@ -2,6 +2,7 @@ import {limitRadarPoint,radarNorth,radarPoint,RADAR_MIN_RANGE} from './nativeRad
 import {RADAR_SPRITE_NAMES,type ScmRadarBlip} from '../assets/scmRadarBlips';
 import {ZONE_SQUARES,type NativeZonesVisited} from '../world/nativeZonesVisited';
 import {FrontendMapView,FRONTEND_MAP_PAN_STEP,FRONTEND_MAP_TICK_MS,FRONTEND_MAP_WHEEL_STEP,FRONTEND_MAP_ZOOM_STEP} from './frontendMapView';
+import {elementSize} from './elementSize';
 /** CRadar::DisplayThisBlip for a player who cannot see outside: only traces and the centre, north,
  * waypoint, mafia casino, school, triad casino and cash sprites (the menu's blip-category toggles do not exist here). */
 const INDOOR_SPRITES=new Set([0,1,2,3,4,25,36,41,44,52]);
@@ -161,7 +162,7 @@ export class NativeMap {
   if(zones&&zones.revealed<80){c.fillStyle='rgba(111,137,170,0.784)';const cell=scale/ZONE_SQUARES;for(let x=0;x<ZONE_SQUARES;x++)for(let y=0;y<ZONE_SQUARES;y++)if(!zones.visited[x*ZONE_SQUARES+y])c.fillRect(x*cell-ox*scale,y*cell-oy*scale,cell,cell);}
   if(this.hideMapBlips)return;
   const revealed=(x:number,z:number,shortRange?:boolean)=>!zones||zones.blipRevealed(x,-z,!!shortRange);
-  const shown=this.full.clientHeight||w,u=(innerHeight/448)*(w/shown),at=(x:number,z:number)=>{const m=worldToMap(x,z);return {x:(m.x-ox)*scale,y:(m.y-oy)*scale};};
+  const shown=elementSize(this.full).height||w,u=(innerHeight/448)*(w/shown),at=(x:number,z:number)=>{const m=worldToMap(x,z);return {x:(m.x-ox)*scale,y:(m.y-oy)*scale};};
   for(const blip of this.liveBlips){
    if(blip.sprite!==undefined&&this.blipSprites.has(blip.sprite))continue;
    const q=at(blip.x,blip.z),dz=blip.dz??0,colour=blip.colour??'#fff';
@@ -201,7 +202,7 @@ export class NativeMap {
    const px=(p.x-ox)*scale,py=(p.y-oy)*scale;
    // The frontend map has no north blip and no line to the waypoint: the waypoint's own sprite at its spot, drawn
    // after the other blips, and the player as DrawYouAreHereSprite (below).
-   const shown=this.full.clientHeight||w,u=(innerHeight/448)*(w/shown);
+   const shown=elementSize(this.full).height||w,u=(innerHeight/448)*(w/shown);
    if(this.waypoint){const target=worldToMap(this.waypoint.x,this.waypoint.z),tx=(target.x-ox)*scale,ty=(target.y-oy)*scale;
     if(this.sprites.waypoint)c.drawImage(this.sprites.waypoint,tx-8*u,ty-8*u,16*u,16*u);
     else{c.fillStyle='#f765ce';c.strokeStyle='#1a1321';c.lineWidth=3;c.beginPath();c.arc(tx,ty,8*u,0,Math.PI*2);c.fill();c.stroke();}}

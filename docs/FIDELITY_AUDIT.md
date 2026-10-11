@@ -11862,3 +11862,17 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   at its command and runs again the next frame, as every other car command does (liveVehicle). GUNS1 now goes on to
   the drive with Ryder.
 - Specs: `script-sequence-pending-car` (browser).
+
+## A phone's frame on the CPU (October 11, 2026)
+
+- **Measured.** A phone-shaped page (844×390 at 3×, touch, `?touch=1`) with the main thread slowed 4× (CDP CPU
+  throttling), standing at Grove Street for 15 s and then driving 20 s from it, one run at a time. Software GL in the
+  headless browser puts the GL calls' own time on the CPU, so only script time is compared. Main-thread frames a second
+  (the frame limiter asks 30): High 21 standing and 17 driving, Medium 23 and 20, Low 30 and 25. At High a game frame
+  is about 23 ms of three's scene walk and draw calls, 14 of fixed steps (cars, peds, Rapier) and 3 to 5 between; the
+  Low preset takes about a third off both.
+- **Layout reads each frame.** The big messages, the intro text, the menus, the occlusion camera, the full map and the
+  camera's projection read `clientWidth`/`clientHeight` every frame, and the HUD and touch buttons change every frame,
+  so each read laid the page out again: 177 ms in 15 s standing and 319 in 20 s driving at 4×. They read the sizes a
+  ResizeObserver keeps now (`ui/elementSize.ts`), and the profile has none. Spec: `element-size` (unit); the HUD message,
+  menu, occlusion, map and touch layout specs pass.

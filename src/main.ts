@@ -315,6 +315,7 @@ import {bindLocalObjectData} from './ui/localObjectData';
 import {bindLocalSunTexture} from './ui/localSunTexture';
 import { NativeMap } from './ui/NativeMap';
 import { Hud } from './ui/Hud';
+import {elementSize} from './ui/elementSize';
 import { NativeGameLogic, STAT_DAYS_PASSED_IN_GAME, GAMELOGIC_STATE_PLAYING, GAMELOGIC_STATE_WASTED, GAMELOGIC_STATE_BUSTED, SKIP_IN_PROGRESS, type GameLogicWorld, type SkipWorld } from './simulation/nativeGameLogic';
 import { LEVEL_COUNTRYSIDE, NativeRestart } from './simulation/nativeRestart';
 import { ScmCameraFade } from './engine/ScmCameraFade';
@@ -2029,7 +2030,7 @@ async function boot() {
   colourFilterState={extraMult:SCREEN_EXTRA_MULT_INITIAL,lastMs:0},
   /** CalcScreenCoors' camera: the renderer's view, the projection's half-angle tangents and the canvas in pixels. */
   occlusionCamera=():OcclusionCamera=>{const cam=render.camera,m=cam.matrixWorldInverse.elements,p=cam.projectionMatrix.elements,canvas=render.renderer.domElement;
-    return {position:[cam.position.x,-cam.position.z,cam.position.y],view:q=>{const x=q[0],y=q[2],z=-q[1];return {x:m[0]*x+m[4]*y+m[8]*z+m[12],y:m[1]*x+m[5]*y+m[9]*z+m[13],z:-(m[2]*x+m[6]*y+m[10]*z+m[14])};},tanHalfWidth:1/p[0],tanHalfHeight:1/p[5],width:Math.max(1,canvas.clientWidth),height:Math.max(1,canvas.clientHeight),fov:render.fov};},movingFog=new NativeMovingFog(render.scene),birdsMesh=new NativeBirdsMesh(render.scene);
+    return {position:[cam.position.x,-cam.position.z,cam.position.y],view:q=>{const x=q[0],y=q[2],z=-q[1];return {x:m[0]*x+m[4]*y+m[8]*z+m[12],y:m[1]*x+m[5]*y+m[9]*z+m[13],z:-(m[2]*x+m[6]*y+m[10]*z+m[14])};},tanHalfWidth:1/p[0],tanHalfHeight:1/p[5],width:Math.max(1,elementSize(canvas).width),height:Math.max(1,elementSize(canvas).height),fov:render.fov};},movingFog=new NativeMovingFog(render.scene),birdsMesh=new NativeBirdsMesh(render.scene);
   /** CCoronas for the world's 2d effect lights, and the frame clock their flashing reads. */
   const coronaReflections=new NativeCoronaReflections(render.scene);let coronaReflectionCandidates=0;
   const coronaFlaresMesh=new NativeCoronaFlaresMesh(render.scene),flareRaster=new Vector2(),flareRay=new Vector3();let flareSun:[number,number]|null=null;
@@ -4694,7 +4695,7 @@ async function boot() {
         const current=menus.menus[menus.currentMenuInUse];if(menus.inUse[menus.currentMenuInUse]&&current)draws.push(layoutMenu(current,true,menuText));
        }
        hud.menus(draws);}
-      hud.bigMessages(hudBigMessages.draw(Math.max(0,gameTimeMs-hudBigMessagesClock),hud.element.clientWidth||innerWidth,game.drawOddJobTitleBeforeFade,()=>{
+      hud.bigMessages(hudBigMessages.draw(Math.max(0,gameTimeMs-hudBigMessagesClock),elementSize(hud.element).width||innerWidth,game.drawOddJobTitleBeforeFade,()=>{
        hud.names.hideZoneName();game.help.set(undefined,true,false,false,game.messages);}));
       hud.missionTitleShowing=hudBigMessages.missionTitleShowing;hudBigMessagesClock=gameTimeMs;
       // Each set is drawn afresh, the same text included; a stat update's "+" or "-" is drawn by displayStatUpdate itself.
@@ -4708,7 +4709,7 @@ async function boot() {
     {const colour=mission?.runtime.game.fadeColour;if(colour)hud.fadeColour(colour.red,colour.green,colour.blue);}
     {const game=mission?.runtime.game,shown=game&&!paused&&!game.messages.big[0][0];
      scriptText.draw(shown?{lines:game.introText.lines,count:game.introText.count,rectangles:game.introRectangles.rectangles,rectangleCount:game.introRectangles.count}:undefined,
-      (key,first,second)=>gxtHudText(insertNumbers(gxtText(key,key),first,second)),hud.element.clientWidth||innerWidth,hud.element.clientHeight||innerHeight,Math.min(2,devicePixelRatio||1));}
+      (key,first,second)=>gxtHudText(insertNumbers(gxtText(key,key),first,second)),elementSize(hud.element).width||innerWidth,elementSize(hud.element).height||innerHeight,Math.min(2,devicePixelRatio||1));}
     {const shown=mission&&!paused?mission.onscreenDisplay():undefined,label=(key:string)=>key?gxtHudText(gxtText(key,key)):'';
      hud.missionTimers(shown&&{clock:shown.clock&&{text:shown.clock.text,label:label(shown.clock.key)},counters:shown.counters.map(c=>({text:c.text,label:label(c.key),type:c.type,value:c.value,colour:HUD_COLOURS[c.colour]??HUD_COLOURS[3]}))});}
     // CTheZones::Update, while the game runs: the map squares the player has explored, which fog the frontend map.

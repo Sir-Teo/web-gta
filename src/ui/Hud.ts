@@ -3,6 +3,7 @@ import type { AudioSettings } from '../audio/settings';
 import {healthBarHidden,armourBarHidden,hudMoney,healthBarWidth,barFill} from './nativeHudBars';
 import { NativeHudNames } from './nativeHudNames';
 import type { DrawnHudBigMessages } from './nativeHudBigMessages';
+import {elementSize} from './elementSize';
 import type { Simulation } from '../simulation/Simulation';
 
 /** How far a box (a script menu) moves to stand clear of another (a touch screen's pause button) by `margin`: right if
@@ -311,7 +312,7 @@ export class Hud {
     this.element.classList.toggle('white-middle', !!text);
     this.whiteMiddleUntil = text ? this.messageClock() + milliseconds : 0;
     if (text) {
-      const width = this.element.clientWidth || innerWidth, height = this.element.clientHeight || innerHeight;
+      const {width:w, height:h} = elementSize(this.element), width = w || innerWidth, height = h || innerHeight;
       // The gothic sprite glyphs fill most of their 32-texel cell; the web font's capitals fill about 0.65 em.
       el.style.fontSize = `${1.25 * 16 * 2.1 * height / 448}px`;
       el.style.transform = `translate(-50%, -100%) scaleX(${(width / 640) / (height / 448)})`;
@@ -327,7 +328,7 @@ export class Hud {
   bigMessages(d: DrawnHudBigMessages) {
     const q = (c: string) => this.element.querySelector<HTMLElement>(`.${c}`)!;
     const e = this.bigEls ??= { title: q('mission-title'), oddJob: q('oddjob-title'), lightBlue: q('light-blue-top'), middleSmaller: q('middle-smaller'), whiteMiddleSmaller: q('white-middle-smaller') };
-    const width = this.element.clientWidth || innerWidth, height = this.element.clientHeight || innerHeight;
+    const {width:w, height:h} = elementSize(this.element), width = w || innerWidth, height = h || innerHeight;
     const show = (el: HTMLElement, text: string | undefined, sx: number, sy: number, centre?: number) => {
       if (el.hidden !== !text) el.hidden = !text;
       if (!text) return;
@@ -354,7 +355,7 @@ export class Hud {
     const el = this.element.querySelector<HTMLElement>('.script-menus')!;
     if (el.hidden !== !draws.length) el.hidden = !draws.length;
     if (!draws.length) { el.dataset.key = ''; return; }
-    const width = this.element.clientWidth || innerWidth, height = this.element.clientHeight || innerHeight;
+    const {width:w, height:h} = elementSize(this.element), width = w || innerWidth, height = h || innerHeight;
     const key = JSON.stringify(draws) + `|${width}|${height}`;
     if (el.dataset.key === key) return;
     el.dataset.key = key; el.replaceChildren();
