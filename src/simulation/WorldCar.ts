@@ -29,7 +29,8 @@ import {sampleNativeChassis} from './nativeChassis';
 import {applyNativeWheelDeltas} from './nativeWheelMotion';
 import {nativeVehicleSuspension} from './nativeVehicleSuspension';
 import {resolveCarWheelFrames} from '../assets/carWheelFrames';
-import {BAGGAGE_TRAILERS,stepTrailerSupport,stepTrailerSupportExtension,trailerSupportLines,trailerWeightShare,type TrailerSupportLine} from './nativeTrailerSupport';
+import {BAGGAGE_TRAILERS,stepTrailerLegGrip,stepTrailerSupport,stepTrailerSupportExtension,trailerSupportLines,trailerWeightShare,type TrailerSupportLine} from './nativeTrailerSupport';
+import type {WheelSurfaceInput} from './nativeWheelParameters';
 import {MODEL as TOW_MODEL,TOW_LINK_SCAN_RANGE,TOWED_MOVING_SPEED_SQ,towBarPoint,towBarReachesHitch,towHitchPoint,towLinkHolds,tractorLinkImpulse,trailerLegReach,trailerLinkImpulse,type TowBody,type TowLinkPair,type TowModel} from './nativeTowLink';
 import type {Simulation} from './Simulation';
 import {vehicleSolverGroups} from './solverGroups';
@@ -347,6 +348,8 @@ export class WorldCar {
  /** m_wheelSkidmarkBloodState, in eCarWheel order. */
  readonly wheelBlood=[false,false,false,false];
  private lastRoad=new Map<string,{normal:{x:number;y:number;z:number};groundSpeed:{x:number;y:number;z:number}}>();
+ /** The last ground surface each wheel stood on (a trailer's, for its legs' grip). */
+ private readonly wheelSurfaces=new Map<string,WheelSurfaceInput>();
  private input:NativeRaycastPlayerInput;
  private sourceOwner?:ReadonlyMap<number,{source:NativeCollisionSource}>;
  private sources=new Map<number,NativeCollisionSource>();
@@ -387,7 +390,10 @@ export class WorldCar {
     if(contact){this.lastRoad.set(wheel,{normal:{...contact.normal},groundSpeed:{...contact.groundSpeed}});this.audio.contactSurface=material;}
     const t=this.car.body.translation(),index=CAR_WHEEL_INDEX[wheel];
     this.wheelGround[index]=contact?{x:t.x+contact.point.x,y:-t.z+contact.point.y,z:t.y+contact.point.z,material}:null;
-    return {ground:{status:status===2?'missing':burst?'burst':'normal',burstSample:burst?Math.floor(Math.random()*burstCompressionRandomUpper(forwardSpeed)):undefined,sandGroup:record?.adhesionGroup==='SAND',railTrack:material===178,rhino:this.modelId===432,wetRoads:this.wetRoads,rotation:0,wheelSpeed:0},suspension:this.suspensionTerms(wheel),surface:nativeSurfaceGrip(material,road.records,road.rows,nativeWetGripByte(record?.wetGrip??0),this.wetRoads,{burst,burstNoise:burst?(Math.random()*2-1)*BURST_TYRE_MOD:undefined}),fallback:this.lastRoad.get(wheel)};
+    const surface=nativeSurfaceGrip(material,road.records,road.rows,nativeWetGripByte(record?.wetGrip??0),this.wetRoads,{burst,burstNoise:burst?(Math.random()*2-1)*BURST_TYRE_MOD:undefined});
+    // A trailer's legs borrow the front-left and rear-left wheels' ground (stepTrailerLegs).
+    if(contact&&this.trailerLegs)this.wheelSurfaces.set(wheel,surface);
+    return {ground:{status:status===2?'missing':burst?'burst':'normal',burstSample:burst?Math.floor(Math.random()*burstCompressionRandomUpper(forwardSpeed)):undefined,sandGroup:record?.adhesionGroup==='SAND',railTrack:material===178,rhino:this.modelId===432,wetRoads:this.wetRoads,rotation:0,wheelSpeed:0},suspension:this.suspensionTerms(wheel),surface,fallback:this.lastRoad.get(wheel)};
    }};
  }
  /** Weapon damage: CVehicle::InflictDamage (unreversed in gta-reversed; iOS 0x1004781b4), the weapon's damage off the
@@ -851,7 +857,7 @@ export class WorldCar {
   if(!this.car.body.isDynamic()){this.car.markStepStart();this.steerAngle=this.recordingControls?.steerAngle??this.steerAngle;this.gasPedal=this.recordingControls?.gas??this.gasPedal;return;}
   {const v=this.car.body.linvel();this.prevSpeed=Math.hypot(v.x,v.y,v.z)/50;}
   const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle,hover});this.latch=result.alreadySkidding;
-  this.stepTrailerLegs(seconds);
+  this.stepTrailerLegs(seconds,result);
   {const previous=this.lastCompression;this.lastCompression=result.sampled.compression;if(this.occupied&&previous)this.roadShake(previous,result.sampled.compression,seconds*50);}
   this.steerAngle=result.steeringInput.angle;this.gasPedal=result.pedals.gas;this.gear=result.state.drivetrain.transmission.gear;
   this.updateAudioState(seconds*50,result.state.drivetrain.contacts,result.state.wheels,result.pedals);
@@ -1365,7 +1371,7 @@ export class WorldCar {
  /** CTrailer::ProcessControl's leg travel and ProcessSuspension's support springs, after the wheels' own pass. A leg's
   * line meets only the map and its fixed objects (CTrailer::ProcessEntityCollision drops the lines against peds and
   * vehicles). */
- private stepTrailerLegs(seconds:number){
+ private stepTrailerLegs(seconds:number,wheels:ReturnType<WorldCar['car']['stepPlayer']>){
   const legs=this.trailerLegs;if(!legs)return;
   const timeStep=seconds*50,towed=!!this.towingVehicle;legs.extension=stepTrailerSupportExtension(legs.extension,towed,timeStep);
   const body=this.car.body,p=body.translation(),r=body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),chassis=sampleNativeChassis(body);
@@ -1385,6 +1391,14 @@ export class WorldCar {
   // CTrailer::PreRender (0x6CFAC0): the legs' frame drawn down by the legs' extension, no further than where they meet
   // the ground (m_supportRatios: a leg's contact share, or its reach), taken in the proportion the frame stands along
   // the legs' line from the front height above the road, and never over the height it was modelled at.
+  // ProcessSuspension's tail, untowed: the legs' grip, a braked pair of wheels at their contacts (stepTrailerLegGrip).
+  if(!towed){
+   const after=sampleNativeChassis(body),state=wheels.state,surface=(w:CarWheel)=>this.wheelSurfaces.get(w),road=(w:CarWheel)=>this.lastRoad.get(w)?.normal;
+   const legWheel=(w:CarWheel)=>({counted:state.drivetrain.contacts[w]>0,normal:road(w),surface:surface(w),state:state.wheels[w]});
+   const grip=stepTrailerLegGrip({forward:after.forward,linear:after.linear,angular:after.angular,centerOfMass:after.centerOfMass,mass:this.mass,turnMass:this.turnMass,timeStep,
+    reach,contacts,wheels:[legWheel('frontLeft'),legWheel('rearLeft')],contactWheels:wheels.tires.contactCount,alreadySkidding:this.latch,handling:this.assets.handling.values});
+   applyNativeWheelDeltas(body,grip.motions);
+  }
   const frame=this.trailerLegFrame;
   if(frame){
    const line=legs.lines[0],ratios=contacts.map(c=>c?Math.min(c.share,reach):reach),k=frame.localY/line.start.y;

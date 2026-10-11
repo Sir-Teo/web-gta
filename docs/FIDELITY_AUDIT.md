@@ -11972,8 +11972,7 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   of the leg (ApplySpringCollisionAlt, force 1.5) and damps it (0.1); ProcessControl extends the legs untowed by 0.002 a
   timestep (0.0005 under a tenth) and retracts them as fast while towed. The lines meet only the map and its fixed
   objects (ProcessEntityCollision drops them against peds and vehicles). The baggage trailers stand on four wheels.
-  Not yet: the legs' grip (ProcessCarWheelPair on the legs as a burst-wheel pair). (The tow link, the trailer
-  commands and the drawn legs follow.)
+  (The legs' grip, the tow link, the trailer commands and the drawn legs follow.)
   Specs: `trailer-rest` (browser: PETROTR, ARTICT1, UTILTR1 and BAGBOXA stand within 5 degrees of level and keep still),
   `trailer-support` (unit).
 - **The tow link, hitching and the three script commands.** CVehicle::UpdateTrailerLink and UpdateTractorLink are
@@ -12002,6 +12001,14 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   the link) and the attach and detach sounds. Specs: `trailer-tow` (browser: ATTACH puts the tanker on a PETRO's bar,
   it follows the rig driven 10 units and more with the points within 0.7, and DETACH frees it; a PETRO backed under a
   parked tanker takes it and pulls it away), `tow-link` (unit).
+- **The legs grip.** ProcessSuspension's tail, for an untowed trailer, runs CAutomobile::ProcessCarWheelPair on the
+  front-left and rear-left wheels with the legs' contact points and speeds: no steer or thrust, a brake of 1000 (times
+  twice the brake bias), a quarter of the base traction (tractionMultiplier × 0.004 × 0.25, times twice the traction bias)
+  over the borrowed wheel's ground surface, a leg off the ground passing as a burst wheel at the origin (which moves
+  nothing). Each leg borrows its wheel's ground normal, surface, contact memory (m_WheelCounts) and state, as the native
+  does; `stepTrailerLegGrip` builds it from the port's ProcessWheel (`nativeWheelResponse`, `nativeWheelVelocityDelta`).
+  Not written back: the leg's resulting state into the borrowed wheel's m_WheelStates. A rig pushing a parked tanker
+  nose to nose now moves it 48 units in 6 s rather than 52. Specs: `trailer-support` (unit).
 - **The legs are drawn where they stand.** CTrailer::PreRender (0x6CFAC0, reversed) moves the legs' frame (misc_a) down
   by their extension, no further than where they meet the ground (m_supportRatios: a leg's contact share, or its reach),
   in the proportion the frame stands along the legs' line from the front height above the road, and never above the
