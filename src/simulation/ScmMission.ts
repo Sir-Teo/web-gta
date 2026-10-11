@@ -1555,6 +1555,14 @@ export class ScmMission {
    // WINCH_CAN_PICK_OBJECT_UP (iOS 0x1002011f4): objectFlags.bCanBeAttachedToMagnet (bit 18 at +0x1a4).
    winchCanPickObjectUp:(handle,state)=>{this.runtime.game.objects.at(handle).magnetic=state;},
    // WINCH_CAN_PICK_VEHICLE_UP (iOS 0x100200030): bit 44 of the vehicle's flags, bWinchCanPickMeUp.
+   // ATTACH_WINCH_TO_HELI, GRAB_ENTITY_ON_WINCH and RELEASE_ENTITY_FROM_WINCH: CVehicle::InitWinch, QueryPickedUpEntityWithWinch
+   // and ReleasePickedUpEntityWithWinch on the helicopter's rope (HEIST5's Leviathan magnet).
+   attachWinchToHeli:(handle,type)=>{this.liveVehicle(handle);this.ropes.attachWinch(handle,type);},
+   grabEntityOnWinch:handle=>{
+    this.liveVehicle(handle);const c=this.ropes.winchRope(handle)?.carried;
+    return {vehicle:c?.kind==='vehicle'?c.handle:-1,char:c?.kind==='ped'?c.handle:-1,object:c?.kind==='object'?c.handle:-1};
+   },
+   releaseEntityFromWinch:handle=>{this.liveVehicle(handle);const rope=this.ropes.winchRope(handle);if(rope)this.ropes.release(rope);},
    winchCanPickVehicleUp:(handle,state)=>{this.host('setScriptVehicleWinchCanPickUp','WINCH_CAN_PICK_VEHICLE_UP')(this.liveVehicle(handle),state);},
    // ATTACH_CHAR_TO_BIKE (iOS 0x1001f2640, CPed::AttachPedToBike 0x10032c89c): AttachPedToEntity as the car form, and
    // the second limit kept in m_nTurretPosnMode (SYN1 seats CJ with his camera on a hidden, frozen bike at its photo
@@ -3843,8 +3851,11 @@ export class ScmMission {
  /** CObject::ProcessControlLogic's ropes for the crane arms, then CRopes::Update, a frame of `seconds`. The crane's
   * buttons are read only while the player works a crane (so a touch screen puts them up only then). */
  stepRopes(seconds:number){
-  const game=this.runtime.game,crane=game.playerInfo.controlsCrane,pads=game.pads,read=(b:number)=>crane===CRANE_NONE?0:pads.state(0,b);
-  this.ropes.step(seconds,this.clockMs,{playerControlsCrane:crane,raise:read(BUTTON.square),lower:read(BUTTON.cross),release:read(BUTTON.circle)});
+  const game=this.runtime.game,crane=game.playerInfo.controlsCrane,pads=game.pads,winch=this.ropes.winches.size>0;
+  const read=(b:number)=>crane===CRANE_NONE?0:pads.state(0,b);
+  // A helicopter's winch takes the turret stick and the fire button whatever crane the player works (DoControlsApply).
+  this.ropes.step(seconds,this.clockMs,{playerControlsCrane:crane,raise:read(BUTTON.square),lower:read(BUTTON.cross),
+   release:winch||crane!==CRANE_NONE?pads.state(0,BUTTON.circle):0,winch:winch?pads.state(0,BUTTON.rightStickY):0});
  }
  private followAttachments(){
   for(const object of this.runtime.game.objects.all){

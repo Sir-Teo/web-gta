@@ -1592,7 +1592,9 @@ async function boot() {
     scorched:!!(v as {wrecked?:boolean}).wrecked,riddenBike:ridden(v),
     setPosition:p=>body.setTranslation({x:p.x,y:p.z,z:-p.y},true),
     setVelocity:u=>body.setLinvel({x:u.x*50,y:u.z*50,z:-u.y*50},true),
-    setMatrix:m=>{const q=rowsToPortQuaternion(m).normalize();body.setRotation({x:q.x,y:q.y,z:q.z,w:q.w},true);}};
+    setMatrix:m=>{const q=rowsToPortQuaternion(m).normalize();body.setRotation({x:q.x,y:q.y,z:q.z,w:q.w},true);},
+    pointSpeed:o=>{const a=body.angvel(),w={x:a.x/50,y:-a.z/50,z:a.y/50};
+     return {x:lv.x/50+w.y*o.z-w.z*o.y,y:-lv.z/50+w.z*o.x-w.x*o.z,z:lv.y/50+w.x*o.y-w.y*o.x};}};
   };
   const scriptObjectParent=(handle:number)=>{
    let parent=scriptObjectParents.get(handle);

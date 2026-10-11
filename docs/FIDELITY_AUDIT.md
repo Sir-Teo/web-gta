@@ -12191,3 +12191,15 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   the speed the fake physics averages before the rope takes it off, and the original's objects do not sleep; here the
   car's fake physics starts its count again and the physics engine's sleep is woken, or a car let go hung where it was.
   Spec: `script-crane-pickup` (a car WINCH_CAN_PICK_VEHICLE_UP refuses is left, then taken, lifted and dropped).
+- **The Leviathan's winch (HEIST5) did nothing.** ATTACH_WINCH_TO_HELI (iOS 0x1001f8a70, CVehicle::InitWinch
+  0x100481c94) keeps its number as the helicopter's rope type in two bits at +0x61a (1 the magnet, 2 the harness, 3 the
+  RC magnet), which the port's handler had turned into a flag. CHeli::ProcessControl's CVehicle::UpdateWinch (iOS
+  0x100481ca4, reversed) registers that rope every frame 0.6 under the helicopter (0.2 for the RC magnet) less the wound
+  remainder; a winch starts 0.9 wound and winds no further than 0.84, by the turret stick (VEHICLE_TURRETUP and DOWN,
+  as WINCH_V names them), and lets go on the fire button, whichever crane the player works (DoControlsApply takes every
+  winch). On a taut winch rope the top's speed is the helicopter's at that point (CPhysical::GetSpeed) and the helicopter
+  is pulled by its share of the load. GRAB_ENTITY_ON_WINCH gives the vehicle, the ped and the object in that order (iOS
+  0x1001f8d48, as the crane's command does); the port's handler wrote the ped first, so HEIST5's check of the first
+  output against its van could never hold. RELEASE_ENTITY_FROM_WINCH lets the load go. The +0x61a bits are also what the
+  hook's vehicle scan skips: a helicopter with a winch is never taken. Spec: `script-heli-winch` (a Leviathan held over
+  the runway lets its magnet down onto a car, lifts it and drops it), `rope` (unit: the winch's stick and stop).

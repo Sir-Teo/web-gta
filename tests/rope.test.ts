@@ -120,3 +120,18 @@ test('the hook takes what it may within 2.5 of the top of its bounds; a containe
  expect(heightAfterPickup(.5,10,5,50,50/31)).toBeCloseTo(.5-5/50-1/31,6);
  expect(heightAfterPickup(.5,4,5,50,50/31)).toBe(.5);
 });
+
+test('a helicopter\'s winch winds by its stick, down with the first flag and up with the second, no further than 0.84',()=>{
+ const ropes:(Rope<string>|undefined)[]=[];
+ const rope=registerRope(ropes,1,1,{x:0,y:0,z:50},false,0,true,'heli',true,20000,0)!;
+ const enable=[true,true,true] as const;
+ // Any crane worked or none, the winch takes its stick.
+ windRope(rope,1,{playerControlsCrane:CRANE_NONE,enable,raise:0,lower:0,stick:0});
+ expect(rope.height).toBeCloseTo(.84,6);
+ windRope(rope,10,{playerControlsCrane:CRANE_NONE,enable,raise:0,lower:0,stick:128});
+ expect(rope.height).toBeCloseTo(.84-.0128,6);
+ windRope(rope,10,{playerControlsCrane:CRANE_NONE,enable:[true,false,true],raise:0,lower:0,stick:128});
+ expect(rope.height).toBeCloseTo(.84-.0128,6);
+ windRope(rope,10,{playerControlsCrane:CRANE_NONE,enable,raise:0,lower:0,stick:-128});
+ expect(rope.height).toBeCloseTo(.84,6);
+});

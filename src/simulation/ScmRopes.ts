@@ -1,6 +1,6 @@
 import type {Vec3} from '../core/math';
 import type {ScmObject,ScmObjects} from '../engine/ScmObjects';
-import {CRANE_ARM_MODELS,MAX_ROPES,ROPE_CRANE_MAGNET1,ROPE_CRANE_MAGNO,ROPE_CRANE_TROLLEY,ROPE_PICKUP_DELAY,ROPE_PICKUP_RANGE,
+import {CRANE_ARM_MODELS,MAX_ROPES,ROPE_CRANE_MAGNET1,ROPE_CRANE_MAGNO,ROPE_CRANE_TROLLEY,ROPE_MAGNET,ROPE_PICKUP_DELAY,ROPE_PICKUP_RANGE,
  ROPE_REMOVE_BELOW_Z,ROPE_UPDATE_RANGE,blendLoadMatrix,craneArmRope,findRopePickup,forceUpVector,heightAfterPickup,pointAbove,
  registerRope,ropeControlsApply,ropeHookModel,ropeLoadFactor,ropePicksUpObject,stepRopeNodes,tautRopeSpeeds,turnContainer,
  updateWeightInRope,windRope,type Rope,type RopeCandidate,type RopeMatrix} from './nativeRope';
@@ -19,6 +19,8 @@ const CONTAINERS=new Set(['KMB_CONTAINER_RED','KMB_CONTAINER_YEL','KMB_CONTAINER
 export interface RopeBody {
  position:Vec3;velocity:Vec3;matrix:RopeMatrix;mass:number;model:number|string;top:number;
  setPosition(p:Vec3):void;setVelocity(v:Vec3):void;setMatrix(m:RopeMatrix):void;
+ /** CPhysical::GetSpeed: the speed of a point (an offset from its place), turn included. */
+ pointSpeed?(offset:Vec3):Vec3;
 }
 /** A vehicle as the rope reads it: its body, and what lets a load go (bRenderScorched: blown up; a bike someone rides). */
 export interface RopeVehicle extends RopeBody {scorched:boolean;riddenBike:boolean}
@@ -42,8 +44,13 @@ export interface ScmRopesHost {
  vehicleCarried?(handle:number,carried:boolean):void;
 }
 /** The crane controls a frame: which crane the player works (CRopes::PlayerControlsCrane) and the pad's raise (Square),
- * lower (Cross) and release (Circle) buttons, 0 to 255. */
-export interface RopeControls {playerControlsCrane:number;raise:number;lower:number;release:number}
+ * lower (Cross) and release (Circle) buttons, 0 to 255, and the winch's stick (VEHICLE_TURRETUP and DOWN, -128 to 128). */
+export interface RopeControls {playerControlsCrane:number;raise:number;lower:number;release:number;winch?:number}
+/** The ids of the helicopters' winch ropes: the vehicle's handle past this (the original's id is an address in the
+ * vehicle, which no object's handle can be). */
+const WINCH_ROPE_ID=0x40000000;
+/** CVehicle::UpdateWinch's rope top under the helicopter: the RC magnet's 0.2 under its origin, the others' 0.6. */
+const WINCH_DROP_RC=-.2,WINCH_DROP=-.6;
 export class ScmRopes {
  /** CRopes::aRopes. */
  readonly ropes:(Rope<RopeRef>|undefined)[]=Array.from({length:MAX_ROPES},()=>undefined);
@@ -54,6 +61,12 @@ export class ScmRopes {
  private frame=0;
  /** The release button as it was last frame: the hook lets go when it is first pressed. */
  private releaseHeld=false;
+ /** CVehicle's m_ropeType (2 bits at +0x61a on iOS) for the helicopters ATTACH_WINCH_TO_HELI gave a winch, by handle. */
+ readonly winches=new Map<number,number>();
+ /** ATTACH_WINCH_TO_HELI (iOS 0x1001f8a70, CVehicle::InitWinch 0x100481c94): the winch's rope type, none for 0. */
+ attachWinch(handle:number,type:number){if(type&3)this.winches.set(handle,type&3);else this.winches.delete(handle);}
+ /** The rope a helicopter's winch hangs, once it has one. */
+ winchRope(handle:number){return this.find(WINCH_ROPE_ID+handle);}
  constructor(private readonly objects:ScmObjects,private readonly host:ScmRopesHost){}
  /** CRopes::FindRope by its id (the holder's handle stands for the original's pointer). */
  find(id:number){return this.ropes.find(r=>r&&r.type&&r.id===id);}
@@ -69,6 +82,15 @@ export class ScmRopes {
    const rope=this.find(o.handle),arm=craneArmRope(model,o.position,this.objects.matrix(o.handle),rope);
    if(!arm)continue;
    const registered=registerRope<RopeRef>(this.ropes,o.handle,arm.type,arm.top,false,arm.wound,true,{kind:'object',handle:o.handle},false,20000,nowMs);
+   if(registered&&!this.hookObject(registered))this.createHook(registered);
+  }
+  // CHeli::ProcessControl's CVehicle::UpdateWinch (iOS 0x100481ca4): the winch's rope under the helicopter, the top
+  // lowered by the wound remainder as the crane arms' is.
+  for(const [handle,type] of this.winches){
+   const body=this.host.vehicle?.(handle);if(!body){this.winches.delete(handle);continue;}
+   const id=WINCH_ROPE_ID+handle,rope=this.find(id),wound=rope?Math.trunc(rope.height*32)&0xff:0;
+   const drop=(type===ROPE_MAGNET?WINCH_DROP_RC:WINCH_DROP)+(rope?rope.length*rope.height-wound*rope.spacing:0);
+   const registered=registerRope<RopeRef>(this.ropes,id,type,pointAbove(body.position,body.matrix,drop),false,wound,true,{kind:'vehicle',handle},true,20000,nowMs);
    if(registered&&!this.hookObject(registered))this.createHook(registered);
   }
   for(const rope of this.ropes)if(rope?.type)this.update(rope,ts,nowMs,controls,releasePressed);
@@ -106,6 +128,12 @@ export class ScmRopes {
    setPosition:p=>{o.position=p;},setVelocity:v=>{o.velocity=v;},
    setMatrix:m=>{o.matrix=m;o.heading=Math.atan2(-m.forward.x,m.forward.y);}};
  }
+ /** The rope's holder as a body: a helicopter, or an object that is not static. */
+ private holderBody(rope:Rope<RopeRef>):RopeBody|undefined{
+  const h=rope.holder;if(!h)return undefined;
+  if(h.kind==='vehicle')return this.host.vehicle?.(h.handle);
+  const o=this.object(h);return o&&!o.isStatic?this.objectBody(o):undefined;
+ }
  /** What hangs on the rope as a body, the reference cleared once it has gone. */
  private carriedBody(rope:Rope<RopeRef>):RopeBody|RopeVehicle|undefined{
   const c=rope.carried;if(!c)return undefined;
@@ -121,7 +149,7 @@ export class ScmRopes {
   const loadHoldsRope=rope.carried?.kind==='vehicle'||!!carried&&typeof carried.model==='string'&&CONTAINERS.has(carried.model.toUpperCase());
   stepRopeNodes(rope,ts,nowMs,this.frame,{below:p=>this.host.groundBelow?.(p)??rope.groundZ,hookZ:hook?.position.z,loadHoldsRope});
   if(rope.type>=ROPE_CRANE_MAGNET1&&rope.type<=ROPE_CRANE_TROLLEY){
-   if(windRope(rope,ts,{playerControlsCrane:controls.playerControlsCrane,enable:this.enable,raise:controls.raise,lower:controls.lower}))
+   if(windRope(rope,ts,{playerControlsCrane:controls.playerControlsCrane,enable:this.enable,raise:controls.raise,lower:controls.lower,stick:controls.winch}))
     this.host.winchSound?.(rope.holder);
    const end=carried??hook;
    if(!carried&&hookObject)hookObject.usesCollision=true;
@@ -129,12 +157,13 @@ export class ScmRopes {
     const out=updateWeightInRope(rope,end.position,ts);
     if(out){
      end.setPosition(out);
-     // The top of a crane stands still; a helicopter's winch would move with the helicopter at that point.
-     const holder=rope.type>=ROPE_CRANE_MAGNO?undefined:this.object(rope.holder),topSpeed=holder?{...holder.velocity}:{x:0,y:0,z:0};
+     // The top of a crane stands still; a helicopter's winch moves with the helicopter at that point.
+     const holder=rope.type>=ROPE_CRANE_MAGNO&&rope.type<=ROPE_CRANE_TROLLEY?undefined:this.holderBody(rope);
+     const topSpeed=holder?holder.pointSpeed?.({x:top.x-holder.position.x,y:top.y-holder.position.y,z:top.z-holder.position.z})??{...holder.velocity}:{x:0,y:0,z:0};
      const d={x:out.x-top.x,y:out.y-top.y,z:out.z-top.z},l=Math.hypot(d.x,d.y,d.z)||1,n={x:d.x/l,y:d.y/l,z:d.z/l};
      const speeds=tautRopeSpeeds(end.velocity,topSpeed,n,ropeLoadFactor(carried?{mass:carried.mass,model:typeof carried.model==='string'?carried.model.toUpperCase():carried.model}:undefined));
      end.setVelocity(speeds.body);
-     if(holder&&!holder.isStatic)holder.velocity={x:holder.velocity.x+speeds.holder.x,y:holder.velocity.y+speeds.holder.y,z:holder.velocity.z+speeds.holder.z};
+     if(holder){const v=holder.velocity;holder.setVelocity({x:v.x+speeds.holder.x,y:v.y+speeds.holder.y,z:v.z+speeds.holder.z});}
      const upward={x:-n.x,y:-n.y,z:-n.z};
      end.setMatrix(carried?blendLoadMatrix(end.matrix,upward):forceUpVector(end.matrix,upward));
     }

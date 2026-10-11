@@ -2671,7 +2671,8 @@ const handlers:Record<string,ScmCommandHandler>={
  HAS_OBJECT_BEEN_PHOTOGRAPHED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'hasObjectBeenPhotographed')(t.readInt(p[0])),negated(i));},
  SELECT_WEAPONS_FOR_VEHICLE:(t,p,i)=>{world(t,i,'selectWeaponsForVehicle')(t.readInt(p[0]),t.readInt(p[1]));},
  HELI_ATTACK_PLAYER:(t,p,i)=>{world(t,i,'heliAttackPlayer')(t.readInt(p[0]),t.readInt(p[1]),t.readFloat(p[2]));},
- GRAB_ENTITY_ON_WINCH:(t,p,i)=>{const result=world(t,i,'grabEntityOnWinch')(t.readInt(p[0]));t.writeInt(p[1],result.char);t.writeInt(p[2],result.vehicle);t.writeInt(p[3],result.object);},
+ // iOS 0x1001f8d48: the vehicle, the ped and the object, as GRAB_ENTITY_ON_ROPE_FOR_OBJECT gives them.
+ GRAB_ENTITY_ON_WINCH:(t,p,i)=>{const result=world(t,i,'grabEntityOnWinch')(t.readInt(p[0]));t.writeInt(p[1],result.vehicle);t.writeInt(p[2],result.char);t.writeInt(p[3],result.object);},
  KILL_FX_SYSTEM_NOW:(t,p,i)=>{world(t,i,'killFxSystemNow')(t.readInt(p[0]));},
  SET_PLAYER_MOOD:(t,p,i)=>{world(t,i,'setPlayerMood')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
  SET_INFRARED_VISION:(t,p,i)=>{world(t,i,'setInfraredVision')(bool(t,p[0]));},
@@ -2800,7 +2801,8 @@ const handlers:Record<string,ScmCommandHandler>={
  // CPhysical::m_fMass (iOS 0x100201cb4 reads +0xb0): OBJECT.DAT's, or 99999 for a model without a row.
  GET_OBJECT_MASS:(t,p,i)=>{t.writeFloat(p[1],game(t,i).objects.at(t.readInt(p[0])).mass);},
  TASK_USE_ATM:(t,p,i)=>{world(t,i,'taskUseAtm')(t.readInt(p[0]));},
- ATTACH_WINCH_TO_HELI:(t,p,i)=>{world(t,i,'attachWinchToHeli')(t.readInt(p[0]),bool(t,p[1]));},
+ // iOS 0x1001f8a70 keeps the number itself as the winch's rope type (1 the magnet, 2 the harness, 3 the RC magnet).
+ ATTACH_WINCH_TO_HELI:(t,p,i)=>{world(t,i,'attachWinchToHeli')(t.readInt(p[0]),t.readInt(p[1]));},
  RELEASE_ENTITY_FROM_WINCH:(t,p,i)=>{world(t,i,'releaseEntityFromWinch')(t.readInt(p[0]));},
  IS_NIGHT_VISION_ACTIVE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isNightVisionActive')(),negated(i));},
  POLICE_HELI_CHASE_ENTITY:(t,p,i)=>{world(t,i,'policeHeliChaseEntity')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readFloat(p[3]));},

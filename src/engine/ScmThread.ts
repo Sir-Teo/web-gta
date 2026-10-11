@@ -1049,7 +1049,7 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setCarRoll?(handle:number,yAngle:number):void;
  lockDoor?(handle:number,state:boolean):void;
  taskUseAtm?(handle:number):void;
- attachWinchToHeli?(handle:number,state:boolean):void;
+ attachWinchToHeli?(handle:number,type:number):void;
  releaseEntityFromWinch?(handle:number):void;
  isNightVisionActive?():boolean;
  policeHeliChaseEntity?(handle:number,char:number,vehicle:number,radius:number):void;
