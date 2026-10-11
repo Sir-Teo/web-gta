@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {pedFloatDepth,SWIM,SWIM_STOP_TIME,swimBlendRatio,swimBreath,swimBreathMultiplier,swimEntry,swimResistance,swimRotationTowardSurface,swimSubmergeVelocity,swimSubmergeZ,swimSurfaceState} from '../src/simulation/nativeSwim';
+import {aiSwimStroke,pedFloatDepth,SWIM,SWIM_BREAST_SPEED,SWIM_CRAWL_SPEED,SWIM_STOP_TIME,swimBlendRatio,swimBreath,swimBreathMultiplier,swimEntry,swimResistance,swimRotationTowardSurface,swimSubmergeVelocity,swimSubmergeZ,swimSurfaceState} from '../src/simulation/nativeSwim';
 
 test('swim starts with the ped origin (a unit above the feet) 0.6 under the surface; the stop threshold is 15 native time units',()=>{
  expect(SWIM_STOP_TIME).toBe(15);
@@ -80,4 +80,17 @@ test('an underwater swimmer near the surface tips up past 45 degrees on his own 
  expect(swimRotationTowardSurface(.2,.0005,-5,0,1,1/50)).toEqual({pitch:.2,changer:0});
  // Out of the water's reach (no level) the pitch is left alone.
  expect(swimRotationTowardSurface(.2,.01,-5,undefined,1,1/50)).toEqual({pitch:.2,changer:.01});
+});
+
+test('a ped the game drives treads within a unit of its point, else swims the breaststroke, the crawl past two units once fast',()=>{
+ // No swim speed set (-1): the breaststroke at its own rate, its shift halved; the 50/30 frame-rate quirk as the player's.
+ expect(aiSwimStroke(.8,-1)).toEqual({state:SWIM.tread,rate:1,speed:0});
+ expect(aiSwimStroke(10,-1)).toEqual({state:SWIM.sprint,rate:1,speed:SWIM_BREAST_SPEED*50/30*.5});
+ // A speed in (0, 1] plays the breaststroke that fast.
+ expect(aiSwimStroke(10,.5)).toEqual({state:SWIM.sprint,rate:.5,speed:SWIM_BREAST_SPEED*.5*50/30});
+ // Over 1 the crawl, at min(1.5, speed - 1) (SYN5's 2.3 gives 1.3), but only past two units.
+ const crawl=aiSwimStroke(10,2.3);
+ expect(crawl.state).toBe(SWIM.sprinting);expect(crawl.rate).toBeCloseTo(1.3,6);expect(crawl.speed).toBeCloseTo(SWIM_CRAWL_SPEED*1.3*50/30,6);
+ expect(aiSwimStroke(1.5,2.3).state).toBe(SWIM.sprint);
+ expect(aiSwimStroke(10,4).rate).toBe(1.5);
 });

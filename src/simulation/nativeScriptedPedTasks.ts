@@ -122,6 +122,9 @@ export type ScriptedPedOrder=
  /** CTaskComplexFollowNodeRoute: along the ped path nodes to a point at eMoveState, or straight at it when it is near
   * and clear; put on the point when `seconds` run out. */
  |{kind:'followNodeRoute';x:number;y:number;z:number;moveState:number;seconds:number;tolerance?:number}
+ /** CTaskSimpleSwim (TASK_SWIM_TO_COORD): the ped swims to the point and treads water there, until it stands out of
+  * the water. */
+ |{kind:'swim';x:number;y:number;z:number}
  /** CTaskComplexChat with a partner (a handle, the player's included): the lead speaker chats (CTaskSimpleChat, IDLE_chat),
   * the other stands and listens, each at the script's stage. */
  |{kind:'chat';partner:number;chatter:boolean;stage:number}
@@ -233,6 +236,7 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'leaveCar':return {kind:'leaveCar',vehicle:task.vehicle,immediately:false};
   case 'leaveAnyCar':return {kind:'leaveCar',immediately:false};
   case 'leaveCarImmediately':return {kind:'leaveCar',vehicle:task.vehicle,immediately:true};
+  case 'swimToCoord':return {kind:'swim',x:task.x,y:task.y,z:task.z};
   case 'followPathNodesToCoord':return {kind:'followNodeRoute',x:task.x,y:task.y,z:task.z,moveState:task.speed,seconds:followRouteSeconds(task.time),tolerance:task.radius};
   case 'goToCoordAnyMeans':return {kind:'goToPoint',x:task.x,y:task.y,z:task.z,moveState:task.speed,radius:GO_STRAIGHT_TARGET_RADIUS,
    moveStateRadius:GO_STRAIGHT_MOVE_STATE_RADIUS,seconds:Number.POSITIVE_INFINITY};

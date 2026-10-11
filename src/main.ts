@@ -6107,8 +6107,9 @@ async function boot() {
                  createScriptUser3dMarker:(x,y,z,colour)=>markers3d.userMarkerSet(x,y,z,HUD_COLOURS[colour]??[0,0,0]),
                  removeScriptUser3dMarker:index=>{markers3d.userMarkerDelete(index);},
                  playerSwimming:()=>sim.player.swimming,
-                 // The world's peds do not swim: in deep water they drown.
-                 scriptPedSwimming:()=>false,
+                 // A script's ped swims only under TASK_SWIM_TO_COORD; the world's peds drown in deep water.
+                 scriptPedSwimming:ped=>{const p=onFoot(ped);return !!p&&p.order?.kind==='swim'&&p.actor.player.swimming;},
+                 setScriptPedSwimSpeed:(ped,speed)=>{const p=onFoot(ped);if(p)pedestrians?.setSwimSpeed(p,speed);},
                  playerSwimState:()=>sim.player.swimming?sim.player.swimState:0,
                  gangWarFightingGoingOn:()=>!!gangWars?.gangWarFightingGoingOn(),
                  gangWarGoingOn:()=>!!gangWars?.gangWarGoingOn(),

@@ -377,6 +377,8 @@ export interface ScmMissionWorld {
  scriptPedVelocity?(ped:unknown):{x:number;y:number;z:number};
  scriptPedStanding(ped:unknown):boolean;
  scriptPedSubmerged(ped:unknown):boolean;
+ /** SET_SWIM_SPEED: the speed of the ped's swim task, when it has one. */
+ setScriptPedSwimSpeed?(ped:unknown,speed:number):void;
  scriptPedOnScreen(ped:unknown):boolean;
  /** Whether the player holds aim with this script ped under the crosshair (m_p3rdPersonMouseTarget). */
  playerMouseTargets(ped:unknown):boolean;
@@ -1279,6 +1281,9 @@ export class ScmMission {
    pedWeaponInSlot:(handle,slot)=>this.host('pedWeaponInSlot','GET_CHAR_WEAPON_IN_SLOT')(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle),slot),
    // CPathFind's area of nodes loaded for the script's cars. The browser keeps every node the paths stream in.
    loadPathNodesInArea:()=>{},
+   // SET_SWIM_SPEED (iOS 0x100207d14): CPedIntelligence::GetTaskSwim's m_fAnimSpeed, for a ped with a swim task. The
+   // player's own swim reads its pad instead.
+   setPedSwimSpeed:(handle,speed)=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedSwimSpeed?.(this.livePed(handle),speed);},
    // RELEASE_PATH_NODES (iOS 0x1001e84c4): ThePaths.ReleaseRequestedNodes (0x1001b9590), the area above given back to
    // the streaming. With every node kept there is nothing to give back.
    releasePathNodes:()=>{},

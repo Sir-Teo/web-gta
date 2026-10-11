@@ -32,7 +32,7 @@ import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_
 import {characterMovement} from './characterMovement';
 import {ANIM_ID,NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
 import {CANNON_PUSH_RANGE2,waterCannonPedSpeed} from './nativeWaterCannon';
-import {PED_ORIGIN_HEIGHT,pedFloatDepth} from './nativeSwim';
+import {PED_ORIGIN_HEIGHT,SWIM,SWIM_STOP_TIME,aiSwimStroke,pedFloatDepth,swimSubmergeZ,type SwimState} from './nativeSwim';
 import {bulletLine} from '../weapons/bulletLine';
 import {WEAPON_FLAG,hasWeaponFlag} from '../weapons/weaponData';
 import {PED_BIKE_KILL_INTENSITY,PED_CAR_KILL_INTENSITY,PED_MASS,carHitsPed,killPedWithCarTask} from '../combat/nativeCarPedHit';
@@ -223,7 +223,10 @@ export interface Pedestrian {
   /** The points in the renderer's terms, the target (its origin height) last when `lastIsTarget`. */
   /** CTaskComplexChat: `partner` is nothing for the player, who never holds a chat task. */
   |{kind:'chat';partner?:Pedestrian;chatter:boolean;stage:number;finished:boolean;noChat:number;remaining:number}
-  |{kind:'followNodeRoute';target:{x:number;y:number;z:number};points:{x:number;y:number;z:number}[];nodes:PathNode[];at:number;lastIsTarget:boolean;moveState:number;remaining:number;tolerance:number;corner?:CornerSlowing};
+  |{kind:'followNodeRoute';target:{x:number;y:number;z:number};points:{x:number;y:number;z:number}[];nodes:PathNode[];at:number;lastIsTarget:boolean;moveState:number;remaining:number;tolerance:number;corner?:CornerSlowing}
+  /** CTaskSimpleSwim to a point (renderer coordinates): the stroke speed through the 0.9 resistance, the steps it has
+   * stood out of the water (m_fSwimStopTime) and its swim speed (m_fAnimSpeed, SET_SWIM_SPEED). */
+  |{kind:'swim';target:{x:number;y:number;z:number};speed:number;stopTime:number;animSpeed:number;state:SwimState;grounded?:boolean};
  /** A script's TASK_WANDER_STANDARD is the ped's primary task, which no default stand takes over from. */
  scriptWanders?:boolean;
  /** CTaskSimpleTogglePedThreatScanner's three switches, kept on the ped (its threat scan is not modelled). */
@@ -2059,6 +2062,7 @@ export class WorldPedestrians {
     }
     break;
    }
+   case 'swim':ped.order={kind:'swim',target:{x:order.x,y:order.z,z:-order.y},speed:0,stopTime:0,animSpeed:-1,state:SWIM.tread};this.installSwimClips(ped);ped.flee=0;ped.loiter=false;break;
    case 'followNodeRoute':{
     // ComputePathNodes: the target is put a unit above the ground under it first. A point on the map's floor
     // (MAP_Z_LOW_LIMIT) is looked for from above the ped instead of from under the map.
@@ -2290,6 +2294,22 @@ export class WorldPedestrians {
  attackersOf(members:ReadonlySet<unknown>){return this.people.filter(p=>!p.mission&&p.health>0&&!p.follow&&!p.officer&&p.retaliate>0&&(!p.foe||members.has(p.foe)));}
  /** A clip from a script's animation block, for the player's own tasks too. */
  scriptAnimation(file:string,name:string){return this.catalog?.scriptAnimation(file,name)??Promise.resolve(undefined);}
+ /** swim.ifp's strokes (CTaskSimpleSwim's ANIM_GROUP_SWIM), loaded once for the swimmers. */
+ private swimClips?:Promise<(import('../assets/ifp').NativeAnimation|undefined)[]>;
+ /** A swimmer's body takes the strokes as the player's does (NativeCharacter.installSwim), once they have loaded. */
+ private installSwimClips(p:Pedestrian){
+  this.swimClips??=Promise.all(['Swim_Tread','Swim_Breast','SWIM_crawl','Swim_Under','Swim_Glide','Swim_Dive_Under'].map(name=>this.scriptAnimation('swim',name)));
+  void this.swimClips.then(clips=>{
+   const [tread,breast,crawl,under,glide,dive]=clips;
+   if(!tread||!breast||!crawl||!under||!glide||!dive||!this.people.includes(p)||!p.view.supportsNativeClips([tread,breast,crawl,under,glide,dive]))return;
+   const track=(clip:import('../assets/ifp').NativeAnimation)=>clip.tracks.findIndex(t=>t.boneId===0&&t.translations);
+   if(track(breast)<0||track(crawl)<0||track(under)<0)return;
+   p.view.installSwim({tread:{clip:tread},breast:{clip:breast,track:track(breast)},crawl:{clip:crawl,track:track(crawl)},under:{clip:under,track:track(under)},glide:{clip:glide},dive:{clip:dive}});
+  });
+ }
+ /** SET_SWIM_SPEED (iOS 0x100207d14): the swim speed (m_fAnimSpeed) of the ped's swim task, when it has one
+  * (CPedIntelligence::GetTaskSwim); otherwise nothing. */
+ setSwimSpeed(p:Pedestrian,speed:number){if(p.order?.kind==='swim')p.order.animSpeed=speed;}
  /** CPedPlacement::FindZCoorForPed for any point: the highest ground under two probes from half a unit above it. */
  groundUnder(x:number,z:number,top:number){
   let ground:number|undefined;
@@ -3613,7 +3633,7 @@ export class WorldPedestrians {
      // CPed::ProcessBuoyancy: with the water 0.6 above the ped's centre (0.9 above the feet) the ped is submerged;
      // CTaskComplexInWater then drowns a street ped (bDrownsInWater): the DROWN clip, and death when it ends.
      // bDrownsInWater, which a script can clear: a ped that does not drown stays in the water.
-    if(p.health>0&&p.down===0&&!p.drowning&&!p.follow&&p.flags?.drownsInWater!==false&&this.waterLevel){
+    if(p.health>0&&p.down===0&&!p.drowning&&!p.follow&&p.flags?.drownsInWater!==false&&p.order?.kind!=='swim'&&this.waterLevel){
       const water=this.waterLevel(q.x,-q.z,q.y+PED_ORIGIN_HEIGHT);
       // CPed::ProcessBuoyancy: the origin (a unit above the feet) 0.6 under the surface.
       if(water!==undefined&&q.y+PED_ORIGIN_HEIGHT+0.6<water){
@@ -3895,6 +3915,24 @@ export class WorldPedestrians {
        if(other&&!other.finished&&!other.chatter)other.finished=o.finished=true;
        if(++o.noChat>CHAT_SILENT_FRAMES){o.finished=true;if(other)other.finished=true;}
       }
+     }
+    }else if(p.order.kind==='swim'){
+     // CTaskSimpleSwim::ProcessPed for a ped the game drives: ProcessControlAI aims it at the point and picks the
+     // stroke. CPed::ProcessBuoyancy ends it with no water at all, and counts m_fSwimStopTime while the ped stands where
+     // its origin is not 0.6 under; past SWIM_STOP_TIME the task is over.
+     const o=p.order,q=p.actor.player.position,water=this.waterLevel?.(q.x,-q.z,q.y+PED_ORIGIN_HEIGHT);
+     o.stopTime=water===undefined?SWIM_STOP_TIME+1:o.grounded&&!(q.y+PED_ORIGIN_HEIGHT+.6<water)?o.stopTime+dt*50:0;
+     dx=0;dz=0;
+     if(o.stopTime>SWIM_STOP_TIME)this.startNextOrder(p);
+     else{
+      const gx=o.target.x-q.x,gz=o.target.z-q.z,stroke=aiSwimStroke(Math.hypot(gx,gz),o.animSpeed),keep=Math.pow(.9,dt*50);
+      // ProcessSwimmingResistance: the move speed takes the stroke's shift through 0.9 a step.
+      o.speed=o.speed*keep+stroke.speed*(1-keep);o.state=stroke.state;
+      dx=gx;dz=gz;orderSpeed=o.speed;
+      const a=p.actor.player;a.swimming=true;a.swimState=stroke.state;a.swimBlend=stroke.rate;
+      // ProcessPed: the swimmer is not in the air (bIsInTheAir), whatever fall brought him into the water.
+      if(p.air){if(p.view.reactionName&&/^fall_/.test(p.view.reactionName))p.view.clearReaction();p.air=undefined;}
+      p.landing=undefined;
      }
     }else if(p.order.kind==='followNodeRoute'){
      const o=p.order,q=p.actor.player.position;dx=0;dz=0;
@@ -4372,7 +4410,12 @@ export class WorldPedestrians {
    const along=length&&p.down===0?{x:Math.sin(state.heading),z:Math.cos(state.heading)}:{x:length?dx/length:0,z:length?dz/length:0};
    // A drowning or drowned ped floats where the buoyancy force balances gravity: the origin 0.727 under the surface
    // alive and 0.056 under it dead (1.8× buoyancy), at most 0.1 units a frame either way, instead of falling.
-   const water=(p.drowning||p.drowned)&&this.waterLevel?this.waterLevel(position.x,-position.z,position.y+PED_ORIGIN_HEIGHT):undefined;
+   // A swimmer is held where ProcessSwimmingResistance puts him: the origin 0.55 under treading, 0.4 at the
+   // breaststroke and 0.2 at the crawl.
+   const swim=p.order?.kind==='swim'&&p.health>0?p.order:undefined;
+   if(!swim&&p.actor.player.swimming){p.actor.player.swimming=false;p.actor.player.swimState=0;}
+   const water=(p.drowning||p.drowned||swim)&&this.waterLevel?this.waterLevel(position.x,-position.z,position.y+PED_ORIGIN_HEIGHT):undefined;
+   const floatDepth=swim?swimSubmergeZ(swim.state===SWIM.sprint?1:0,swim.state===SWIM.sprinting?1:0):pedFloatDepth(!p.drowned);
    // CTaskSimpleInAir: an airborne ped falls with CPhysical::ApplyGravity and the ped air resistance; on the
    // ground the controller's own probe keeps him on slopes and stairs.
    if(p.air){p.air.vz-=NATIVE_JUMP_GRAVITY*dt;p.air.vz*=Math.pow(Math.max(0,1-Math.abs(p.air.vz)/50*NATIVE_PED_AIR_RESISTANCE),dt*50);p.air.minVz=Math.min(p.air.minVz,p.air.vz);p.air.seconds+=dt;}
@@ -4387,7 +4430,7 @@ export class WorldPedestrians {
    // `position` is the collider centre, 0.9 above the feet standing and 0.3 down; the target is the feet under the origin.
    // physicalFlags.bDontApplySpeed (FREEZE_CHAR_POSITION): CPhysical::ApplyMoveSpeed moves a frozen ped not at all, so
    // it does not fall either.
-   const vertical=p.frozen&&water===undefined?0:water!==undefined?Math.max(-5*dt,Math.min(5*dt,water-pedFloatDepth(!p.drowned)-PED_ORIGIN_HEIGHT+(p.down>0?.3:.9)-position.y)):p.air?p.air.vz*dt:-5*dt+(state.position.y+center-position.y);
+   const vertical=p.frozen&&water===undefined?0:water!==undefined?Math.max(-5*dt,Math.min(5*dt,water-floatDepth-PED_ORIGIN_HEIGHT+(p.down>0?.3:.9)-position.y)):p.air?p.air.vz*dt:-5*dt+(state.position.y+center-position.y);
    const held=(p.drowning&&p.health>0)||!!p.air||p.landing!==undefined;
    // A fallen ped's low collider ignores the cars: the controller would otherwise shove it out of a car parked
    // over it, through the road (the get-up waits for the car instead, CTaskSimpleGetUp).
@@ -4396,6 +4439,7 @@ export class WorldPedestrians {
    // motion and the controller's own push out of whatever it overlaps leave it where it stands (CRASH1's girl, frozen at
    // her window, wandered off under her panic clips). It is not moved at all.
    const {movement,grounded}=p.frozen&&water===undefined?{movement:{x:0,y:0,z:0},grounded:true}:characterMovement(p.controller,p.collider,{x:(held?0:along.x*speed*dt)+p.impulse.x*dt+(p.air?.h?.x??0)*dt+(shift?.x??0),y:vertical,z:(held?0:along.z*speed*dt)+p.impulse.z*dt+(p.air?.h?.z??0)*dt+(shift?.z??0)},p.ignoredColliders?(c:RAPIER.Collider)=>!p.ignoredColliders!.has(c.handle)&&(p.down<=0||notCarCollider(c)):p.down>0?notCarCollider:undefined);
+   if(swim)swim.grounded=grounded;
    if(water===undefined&&p.health>0&&p.down===0){
     if(!p.air&&!grounded&&movement.y<-4.5*dt){
      // Off the ground with the 5 m/s pull fully spent: the ped is in the air (bIsInTheAir) from this frame's gravity.

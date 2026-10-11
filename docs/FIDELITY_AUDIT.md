@@ -12071,3 +12071,16 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   cruise speed and style; they now go to the port's escort missions (the station beside the target). A handle to
   nothing leaves no target, and UpdateCarAI ends the mission. Spec: `script-car-escort` (browser: the escort keeps
   station four units off the left of CJ's car driven down the runway).
+- **A script's peds swim.** SYN5's target dives off the Esplanade and swims for a boat with TASK_SWIM_TO_COORD, and the
+  triathlon's swimmers do the same; the browser's peds could not swim, so the thread gave up at the task. A script ped
+  now takes CTaskSimpleSwim to the point, as ProcessControlAI (0x689640, reversed) drives a ped the game controls: it
+  turns toward the point; it treads within a unit, swims the breaststroke beyond and the crawl past two units when its
+  swim speed is over 1; the breaststroke plays at the swim speed when that is in (0, 1] and the crawl at
+  min(1.5, speed − 1) (ProcessSwimAnims); the stroke's shift over a 30 fps frame is the speed per 50th, as the player's,
+  and is halved for a ped whose speed was never set (m_vecAnimMovingShiftLocal / 2), all through ProcessSwimmingResistance's
+  0.9 a step; the origin is held 0.55 under treading, 0.4 at the breaststroke and 0.2 at the crawl. The swimmer's body
+  plays swim.ifp's strokes as the player's does. The task ends with no water, or past SWIM_STOP_TIME standing where the
+  origin is not 0.6 under (CPed::ProcessBuoyancy), and a swimmer neither drowns nor stays in the air. SET_SWIM_SPEED
+  (iOS 0x100207d14) sets m_fAnimSpeed on the ped's swim task, when it has one (GetTaskSwim). The stroke speeds are the
+  measured swim.ifp ones, not the clips' root motion played through. Specs: `script-ped-swim` (browser: at the surface,
+  faster on the crawl at SYN5's 2.3, treading at the point), `native-swim-core` (unit).

@@ -3,6 +3,21 @@
  * servo and breath/drowning. Animation selection, input mapping, FX and audio
  * arrive in later slices; speeds come from the swim clips' root motion. */
 export const SWIM={tread:0,sprint:1,sprinting:2,diveUnderwater:3,underwaterSprinting:4,backToSurface:5} as const;
+/** The surface strokes' root-motion speeds, measured from swim.ifp (m/s): Swim_Breast 3.011 m over 1.3 s, SWIM_crawl
+ * 2.505 m over 0.9 s. */
+export const SWIM_BREAST_SPEED=2.316,SWIM_CRAWL_SPEED=2.783;
+/** CTaskSimpleSwim for a ped the game drives (ProcessControlAI, 0x689640, and ProcessSwimAnims, 0x6899F0): the state by
+ * the distance to its point (treading within a unit, the breaststroke beyond, the crawl past two units when its swim
+ * speed m_fAnimSpeed, -1 until SET_SWIM_SPEED, is over 1), the stroke's playback rate (the breaststroke at the swim
+ * speed when it is in (0, 1], the crawl at min(1.5, speed - 1)), and the stroke's speed over the ground (m/s): the clip's
+ * shift over a 30 fps frame taken as a speed per 50th, as the player's is, and halved for a ped whose speed was never
+ * set (m_vecAnimMovingShiftLocal / 2). */
+export function aiSwimStroke(distance:number,animSpeed:number){
+ const state:SwimState=distance>1?(animSpeed>1&&distance>2?SWIM.sprinting:SWIM.sprint):SWIM.tread;
+ const rate=state===SWIM.sprint?(animSpeed>0&&animSpeed<=1?animSpeed:1):state===SWIM.sprinting?Math.min(1.5,animSpeed-1):1;
+ const clip=state===SWIM.sprint?SWIM_BREAST_SPEED:state===SWIM.sprinting?SWIM_CRAWL_SPEED:0;
+ return {state,rate,speed:clip*rate*50/30*(animSpeed<0?.5:1)};
+}
 export type SwimState=typeof SWIM[keyof typeof SWIM];
 /** CTaskSimpleSwim::SWIM_STOP_TIME, in native time units (50 per second).
  * CPed::ProcessBuoyancy increments m_fSwimStopTime by CTimer::GetTimeStep. */
