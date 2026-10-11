@@ -104,9 +104,9 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'smartFleePed',threat:3,radius:25,time:1000},world({}))).toBeUndefined();
  });
 
- test('a task with no browser behaviour yet gives nothing back, so the thread gives up instead of pretending',()=>{
-  const unported:ScmScriptedTask[]=[{kind:'swimToCoord',x:0,y:0,z:0}];
-  for(const task of unported)expect(scriptedPedOrder(task,world({}))).toBeUndefined();
+ test('a task the order table does not build gives nothing back (TASK_HAND_GESTURE is built by the mission itself)',()=>{
+  const elsewhere:ScmScriptedTask[]=[{kind:'handGesture',target:0}];
+  for(const task of elsewhere)expect(scriptedPedOrder(task,world({}))).toBeUndefined();
  });
 
  test('the leave-car tasks name the car (or any) and whether the ped waits for it to be still',()=>{
