@@ -227,6 +227,8 @@ export class CutscenePlayer {
  }
  /** Each cast member's model and its frame count, for the dev hook. */
  castFrames() { return this.cast.map(member => `${member.model}:${member.frames}`); }
+ /** The .cut's effects made of those it names, and how many are playing, for the dev hook. */
+ effectCounts() { return { named: this.definition?.effects.length ?? 0, made: this.effectSystems.length, playing: this.effectSystems.filter(e => e.playing).length }; }
  /** The manifest, for a host that wants to know before it asks. */
  whenReady() { return this.ready; }
  dispose() { this.clear(); }

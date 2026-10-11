@@ -571,6 +571,8 @@ async function boot() {
   let cutscenes:CutscenePlayer|undefined,cutsceneFixedCamera:typeof render.fixedCamera;
   /** m_PrevExtraColour and m_PrevExtraColourOn: the extra colour a cutscene's load found, which its clear puts back. */
   let cutscenePreviousExtraColour:{on:boolean;colour:number}|undefined;
+  /** How many map objects the running cutscene's remove lines hid, for the dev hook. */
+  let cutsceneHiddenObjects=0;
   /** The cutscene's offset and the area visible as it loaded: the scene it waits for and the terrain follows. */
   let cutsceneFocus:{x:number;y:number;z:number;area:number}|undefined;
   /** From a cutscene's clear until the scene window holds the player again (or the time given runs out), he is held. */
@@ -3273,7 +3275,7 @@ async function boot() {
     skipCutscene:()=>{if(cutscenes?.running)cutscenes.skip();},
     // The cutscene player: what is loaded, how far it has run, and the cast's skeletons (csplay's 62 frames, or the
     // gameplay body's 33 without its cutscene files).
-    cutscene:()=>cutscenes&&{name:cutscenes.name,state:cutscenes.state,running:cutscenes.running,timeMs:Math.trunc(cutscenes.timerSeconds*1000),cast:cutscenes.castFrames(),error:cutscenes.error},
+    cutscene:()=>cutscenes&&{name:cutscenes.name,state:cutscenes.state,running:cutscenes.running,timeMs:Math.trunc(cutscenes.timerSeconds*1000),cast:cutscenes.castFrames(),effects:cutscenes.effectCounts(),hiddenObjects:cutsceneHiddenObjects,error:cutscenes.error},
     /** CTimer::m_snTimeInMilliseconds as the game frames count it. */
     gameTimeMs:()=>gameTimeMs,
     /** The car recordings streamed so far, and the last failure. */
@@ -5535,12 +5537,23 @@ async function boot() {
                type Fx=import('./simulation/fx/NativeFx').NativeFxSystem;
                cutscenes.effects={create:(name,local,parent)=>worldFx.manager?.create(name,local,parent,true),setParent:(fx,m)=>(fx as Fx).setMatrix(m),
                 play:fx=>(fx as Fx).play(),stop:fx=>(fx as Fx).stop(),kill:fx=>(fx as Fx).kill()};
-               // HideRequestedObjects: the map's objects of the model within 1.5 across of the point are not drawn (their
-               // collision stays, as SetIsVisible leaves it) until the cutscene is cleared.
+               // HideRequestedObjects: the objects of the model within 1.5 across of the point are not drawn (their
+               // collision stays, as SetIsVisible leaves it) until the cutscene is cleared. CWorld::FindObjectsOfTypeInRange
+               // finds the script's objects as well as the map's: a mission's own prop (Zero's wardrobe, Caligula's
+               // suite door) is the one its cutscene swaps for the cast's copy.
                cutscenes.hideObjects=removals=>{
-                const scene=importedScene,hidden:string[]=[];
-                for(const r of removals)for(const p of scene?.modelPlacementsNear(new Set([r.model.toLowerCase()]),r.x,r.y,1.5)??[])if(scene!.setModelPlacementHidden(p.key,true))hidden.push(p.key);
-                return ()=>{if(importedScene===scene)for(const key of hidden)scene!.setModelPlacementHidden(key,false);};};
+                const scene=importedScene,hidden:string[]=[],objects:import('./engine/ScmObjects').ScmObject[]=[];
+                for(const r of removals){
+                 const model=r.model.toLowerCase();
+                 for(const p of scene?.modelPlacementsNear(new Set([model]),r.x,r.y,1.5)??[])if(scene!.setModelPlacementHidden(p.key,true))hidden.push(p.key);
+                 for(const o of mission?.scriptObjects()??[]){
+                  if(o.worldPlacement||!o.visible)continue;
+                  const name=typeof o.model==='string'?o.model.toLowerCase():byId.get(o.model)?.model.toLowerCase();
+                  if(name===model&&(o.position.x-r.x)**2+(o.position.y-r.y)**2<=1.5*1.5){o.visible=false;objects.push(o);}
+                 }
+                }
+                cutsceneHiddenObjects=hidden.length+objects.length;
+                return ()=>{cutsceneHiddenObjects=0;for(const o of objects)o.visible=true;if(importedScene===scene)for(const key of hidden)scene!.setModelPlacementHidden(key,false);};};
                cutscenes.textureDictionary=model=>scriptObjectViews?.textureDictionary(model);
                const byId=new Map<number,import('./assets/ide').IdeAssociation>(),byName=new Map<string,import('./assets/ide').IdeAssociation>();
                const doors=new Set<string>();
