@@ -875,12 +875,16 @@ export class WorldCar {
    * idle, and physics stops: the speeds are reset and the body sleeps (without gravity, as SkipPhysics keeps it where
    * it stands) until something touches or pushes it. A car being shoved by a ped keeps its physics. */
   private fakeForce={x:0,y:0,z:0};private fakeTorque={x:0,y:0,z:0};private fakeFrames=0;
+  /** physicalFlags.bCarriedByRope: a crane's hook holds it. */
+  carriedByRope=false;
   private skipPhysics(seconds:number){
    const body=this.car.body;
    // Parked and vacated cars are STATUS_ABANDONED; a car the game or the player drives never skips, nor one a script's
    // ped sits at the wheel of with no drive task (STATUS_PHYSICS): LOWR's and SWEET6's lowriders slept, and the
    // hydraulics CONTROL_CAR_HYDRAULICS worked moved lines under a body that did not step.
-   if(this.occupied||this.autopilot||WorldCar.hasDriverPed?.(this)){this.fakeFrames=0;if(body.isSleeping())body.wakeUp();return false;}
+   // physicalFlags.bCarriedByRope: on a crane's hook it never rests. Natively the gravity ProcessControl adds is in the
+   // speed the fake physics averages, before the rope takes it off; here the rope's speed is all the body has.
+   if(this.occupied||this.autopilot||WorldCar.hasDriverPed?.(this)||this.carriedByRope){this.fakeFrames=0;if(body.isSleeping())body.wakeUp();return false;}
    if(body.isSleeping()){this.stepVelocity={x:0,y:0,z:0};this.stepTurn={x:0,y:0,z:0};return true;}
    const v=body.linvel(),w=body.angvel(),f=this.fakeForce,t=this.fakeTorque,ts=50/30;
    f.x=(f.x+v.x/50)/2;f.y=(f.y+v.y/50)/2;f.z=(f.z+v.z/50)/2;t.x=(t.x+w.x/50)/2;t.y=(t.y+w.y/50)/2;t.z=(t.z+w.z/50)/2;

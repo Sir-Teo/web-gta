@@ -5,14 +5,23 @@ import {CRANE_ARM_MODELS,MAX_ROPES,ROPE_CRANE_MAGNET1,ROPE_CRANE_MAGNO,ROPE_CRAN
  registerRope,ropeControlsApply,ropeHookModel,ropeLoadFactor,ropePicksUpObject,stepRopeNodes,tautRopeSpeeds,turnContainer,
  updateWeightInRope,windRope,type Rope,type RopeCandidate,type RopeMatrix} from './nativeRope';
 /* CRopes for the script's world: the ropes the cranes' arms hang (CObject::ProcessControlLogic registering one for each
- * crane arm every frame), their hooks, and CRopes::Update over them, on the script objects' own records. A hook is a
- * script object of its own (CRope::CreateHookObjectForRope's CObject): the object host makes it a body that falls, and
- * the rope holds it at the end of its reach. The pieces of CRope are in nativeRope.ts. */
+ * crane arm every frame), their hooks, and CRopes::Update over them. A hook is a script object of its own
+ * (CRope::CreateHookObjectForRope's CObject): the object host makes it a body that falls, and the rope holds it at the
+ * end of its reach. What it carries is a script object or a vehicle, which the host moves. The pieces of CRope are in
+ * nativeRope.ts. */
 export type RopeRef={kind:'object'|'vehicle'|'ped';handle:number};
 /** eObjectType's OBJECT_TYPE_DECORATION, the hook's type. */
 const OBJECT_TYPE_DECORATION=5;
 /** The four containers that keep the rope's ground over them (MI_OBJECTFORMAGNOCRANE1-3 and 5; not the barrel). */
 const CONTAINERS=new Set(['KMB_CONTAINER_RED','KMB_CONTAINER_YEL','KMB_CONTAINER_BLUE','KMB_CONTAINER_OPEN']);
+/** A body on a rope as CRope::Update reads and moves it, native: its place, speed (units a 50th of a second), rows, mass,
+ * model and the top of its collision bounds (in its own axes). */
+export interface RopeBody {
+ position:Vec3;velocity:Vec3;matrix:RopeMatrix;mass:number;model:number|string;top:number;
+ setPosition(p:Vec3):void;setVelocity(v:Vec3):void;setMatrix(m:RopeMatrix):void;
+}
+/** A vehicle as the rope reads it: its body, and what lets a load go (bRenderScorched: blown up; a bike someone rides). */
+export interface RopeVehicle extends RopeBody {scorched:boolean;riddenBike:boolean}
 export interface ScmRopesHost {
  /** The camera's place, native. */
  cameraPosition?():Vec3|undefined;
@@ -22,6 +31,15 @@ export interface ScmRopesHost {
  objectBounds?(model:number|string):{max:{z:number}}|null|undefined;
  /** The winch's mission audio event (104) on the rope's holder. */
  winchSound?(holder:RopeRef|undefined):void;
+ /** The vehicles within a radius of a point as the pickup scan reads them (the pool's last first); `entity` is the
+  * host's own. */
+ vehicleCandidates?(point:Vec3,radius:number):RopeCandidate<unknown>[];
+ /** The script's handle for a vehicle the hook takes (made a mission vehicle's handle if it had none). */
+ vehicleHandle?(entity:unknown,model:number|string):number|undefined;
+ /** A vehicle on a rope by its handle; nothing once it has gone. */
+ vehicle?(handle:number):RopeVehicle|undefined;
+ /** The vehicle is taken (STATUS_SIMPLE becomes STATUS_PHYSICS) or let go. */
+ vehicleCarried?(handle:number,carried:boolean):void;
 }
 /** The crane controls a frame: which crane the player works (CRopes::PlayerControlsCrane) and the pad's raise (Square),
  * lower (Cross) and release (Circle) buttons, 0 to 255. */
@@ -80,53 +98,69 @@ export class ScmRopes {
  }
  private top(o:ScmObject){return this.host.objectBounds?.(o.model)?.max.z??0;}
  private matrixOf(o:ScmObject):RopeMatrix{const m=this.objects.matrix(o.handle);return {right:m.right,forward:m.forward,up:m.up};}
+ /** A script object as a body on the rope. */
+ private objectBody(o:ScmObject):RopeBody{
+  const self=this;
+  return {get position(){return o.position;},get velocity(){return o.velocity;},get matrix(){return self.matrixOf(o);},mass:o.mass,model:o.model,
+   get top(){return self.top(o);},
+   setPosition:p=>{o.position=p;},setVelocity:v=>{o.velocity=v;},
+   setMatrix:m=>{o.matrix=m;o.heading=Math.atan2(-m.forward.x,m.forward.y);}};
+ }
+ /** What hangs on the rope as a body, the reference cleared once it has gone. */
+ private carriedBody(rope:Rope<RopeRef>):RopeBody|RopeVehicle|undefined{
+  const c=rope.carried;if(!c)return undefined;
+  const body=c.kind==='object'?(()=>{const o=this.object(c);return o?this.objectBody(o):undefined;})():c.kind==='vehicle'?this.host.vehicle?.(c.handle):undefined;
+  if(!body)rope.carried=undefined;
+  return body;
+ }
  /** CRope::Update (iOS 0x10025d76c) for one rope. */
  private update(rope:Rope<RopeRef>,ts:number,nowMs:number,controls:RopeControls,releasePressed:boolean){
   const top=rope.segments[0],camera=this.host.cameraPosition?.();
   if(camera&&Math.hypot(camera.x-top.x,camera.y-top.y)>=ROPE_UPDATE_RANGE)return;
-  const hook=this.hookObject(rope);let carried=this.object(rope.carried);
-  if(rope.carried&&!carried)rope.carried=undefined;
-  const loadHoldsRope=!!carried&&typeof carried.model==='string'&&CONTAINERS.has(carried.model.toUpperCase());
+  const hookObject=this.hookObject(rope),hook=hookObject&&this.objectBody(hookObject);let carried=this.carriedBody(rope);
+  const loadHoldsRope=rope.carried?.kind==='vehicle'||!!carried&&typeof carried.model==='string'&&CONTAINERS.has(carried.model.toUpperCase());
   stepRopeNodes(rope,ts,nowMs,this.frame,{below:p=>this.host.groundBelow?.(p)??rope.groundZ,hookZ:hook?.position.z,loadHoldsRope});
   if(rope.type>=ROPE_CRANE_MAGNET1&&rope.type<=ROPE_CRANE_TROLLEY){
    if(windRope(rope,ts,{playerControlsCrane:controls.playerControlsCrane,enable:this.enable,raise:controls.raise,lower:controls.lower}))
     this.host.winchSound?.(rope.holder);
    const end=carried??hook;
-   if(!carried&&hook)hook.usesCollision=true;
+   if(!carried&&hookObject)hookObject.usesCollision=true;
    if(end){
     const out=updateWeightInRope(rope,end.position,ts);
     if(out){
-     end.position=out;
+     end.setPosition(out);
      // The top of a crane stands still; a helicopter's winch would move with the helicopter at that point.
      const holder=rope.type>=ROPE_CRANE_MAGNO?undefined:this.object(rope.holder),topSpeed=holder?{...holder.velocity}:{x:0,y:0,z:0};
      const d={x:out.x-top.x,y:out.y-top.y,z:out.z-top.z},l=Math.hypot(d.x,d.y,d.z)||1,n={x:d.x/l,y:d.y/l,z:d.z/l};
-     const speeds=tautRopeSpeeds(end.velocity,topSpeed,n,ropeLoadFactor(carried?{mass:carried.mass,model:String(carried.model).toUpperCase()}:undefined));
-     end.velocity=speeds.body;
+     const speeds=tautRopeSpeeds(end.velocity,topSpeed,n,ropeLoadFactor(carried?{mass:carried.mass,model:typeof carried.model==='string'?carried.model.toUpperCase():carried.model}:undefined));
+     end.setVelocity(speeds.body);
      if(holder&&!holder.isStatic)holder.velocity={x:holder.velocity.x+speeds.holder.x,y:holder.velocity.y+speeds.holder.y,z:holder.velocity.z+speeds.holder.z};
-     const upward={x:-n.x,y:-n.y,z:-n.z},m=this.matrixOf(end);
-     end.matrix=carried?blendLoadMatrix(m,upward):forceUpVector(m,upward);
-     end.heading=Math.atan2(-end.matrix.forward.x,end.matrix.forward.y);
+     const upward={x:-n.x,y:-n.y,z:-n.z};
+     end.setMatrix(carried?blendLoadMatrix(end.matrix,upward):forceUpVector(end.matrix,upward));
     }
     // The hook rides on its load: its matrix and speed, at the top of the load's bounds.
     if(carried&&hook){
-     const m=this.matrixOf(carried);
-     hook.matrix={right:{...m.right},forward:{...m.forward},up:{...m.up}};hook.heading=carried.heading;
-     hook.velocity={...carried.velocity};hook.position=pointAbove(carried.position,m,this.top(carried));
+     const m=carried.matrix;
+     hook.setMatrix({right:{...m.right},forward:{...m.forward},up:{...m.up}});
+     hook.setVelocity({...carried.velocity});hook.setPosition(pointAbove(carried.position,m,carried.top));
     }
    }
-   // The load let go (the worked crane's release button, ENABLE_CRANE_CONTROLS' third flag allowing it), or with nothing
-   // on the hook and no wait left, the next load found.
+   // The load let go (the worked crane's release button, ENABLE_CRANE_CONTROLS' third flag allowing it; a vehicle blown
+   // up, or a bike someone rides), or with nothing on the hook and no wait left, the next load found.
    if(carried){
-    if(releasePressed&&this.enable[2]&&ropeControlsApply(rope.type,controls.playerControlsCrane))this.release(rope);
+    const vehicle=rope.carried?.kind==='vehicle'?carried as RopeVehicle:undefined;
+    if(releasePressed&&this.enable[2]&&ropeControlsApply(rope.type,controls.playerControlsCrane)||vehicle&&(vehicle.scorched||vehicle.riddenBike))this.release(rope);
    }else if(rope.pickupDelay>0)rope.pickupDelay--;
-   else if(hook)this.pickUp(rope,hook);
+   else if(hookObject)this.pickUp(rope,hookObject);
   }
   if(!rope.registered&&rope.segments[0].z<ROPE_REMOVE_BELOW_Z)this.remove(rope);
   rope.registered=false;
  }
- /** The scan of CRope::Update for the objects the rope's crane takes, near enough the hook's point to be within reach. */
+ /** The scan of CRope::Update for what the rope's crane takes near enough the hook's point to be within reach: the
+  * vehicles, then the objects. */
  private candidates(rope:Rope<RopeRef>,hook:ScmObject){
-  const point=rope.segments[31],out:RopeCandidate<RopeRef>[]=[];
+  const point=rope.segments[31],out:RopeCandidate<RopeRef|{kind:'host';entity:unknown}>[]=[];
+  for(const c of this.host.vehicleCandidates?.(point,ROPE_PICKUP_RANGE+5)??[])out.push({...c,entity:{kind:'host',entity:c.entity}});
   for(const o of this.objects.values()){
    if(o===hook||typeof o.model!=='string'||!ropePicksUpObject(rope.type,o.model))continue;
    const top=this.top(o);
@@ -136,27 +170,34 @@ export class ScmRopes {
   }
   return out;
  }
- /** CRope::Update's pickup (iOS 0x10025eb18 for an object): the load hangs on the hook, which goes to the top of its
-  * bounds without collision; the object moves (no longer static) and is attached; a hook above the load lets out what
-  * reaches it; a container taken by a side face is turned that face up. */
- private pickUp(rope:Rope<RopeRef>,hook:ScmObject){
-  const found=findRopePickup(rope.type,rope.segments[31],this.candidates(rope,hook));if(!found)return;
-  const o=this.object(found.candidate.entity);if(!o)return;
-  rope.carried={kind:'object',handle:o.handle};o.carriedByRope=true;
-  const m=found.candidate.matrix;
-  hook.position=pointAbove(o.position,m,found.candidate.top);hook.usesCollision=false;
-  if(o.isStatic)o.isStatic=false;
-  o.attachedToEntity=true;
+ /** CRope::Update's pickup (iOS 0x10025eb18 for an object, 0x10025eb90 for a vehicle): the load hangs on the hook, which
+  * goes to the top of its bounds without collision; a hook above the load lets out what reaches it. An object moves (no
+  * longer static) and is attached, and a container taken by a side face is turned that face up; a vehicle goes from
+  * STATUS_SIMPLE to STATUS_PHYSICS. */
+ private pickUp(rope:Rope<RopeRef>,hookObject:ScmObject){
+  const found=findRopePickup(rope.type,rope.segments[31],this.candidates(rope,hookObject));if(!found)return;
+  const entity=found.candidate.entity,m=found.candidate.matrix;
+  if(entity.kind==='host'){
+   const handle=this.host.vehicleHandle?.(entity.entity,found.candidate.model);if(handle===undefined)return;
+   rope.carried={kind:'vehicle',handle};this.host.vehicleCarried?.(handle,true);
+  }else{
+   const o=this.object(entity);if(!o)return;
+   rope.carried={kind:'object',handle:o.handle};o.carriedByRope=true;
+   if(o.isStatic)o.isStatic=false;
+   o.attachedToEntity=true;
+   if(found.turns){o.matrix=turnContainer(m,found.turns);o.heading=Math.atan2(-o.matrix.forward.x,o.matrix.forward.y);}
+  }
+  hookObject.position=pointAbove(found.candidate.position,m,found.candidate.top);hookObject.usesCollision=false;
   rope.height=heightAfterPickup(rope.height,rope.segments[31].z,found.point.z,rope.length,rope.spacing);
-  if(found.turns){o.matrix=turnContainer(m,found.turns);o.heading=Math.atan2(-o.matrix.forward.x,o.matrix.forward.y);}
  }
  /** GRAB_ENTITY_ON_ROPE_FOR_OBJECT (iOS 0x1001f84cc, GetObjectCarriedWithRope 0x1002d9de4): what hangs on the rope. */
  carriedBy(id:number){return this.find(id)?.carried;}
  /** CRope::ReleasePickedUpObject: the load is let go (no longer attached or carried), the hook takes collision back, and
   * nothing is picked up for 60 frames. */
  release(rope:Rope<RopeRef>){
-  const carried=this.object(rope.carried);
+  const c=rope.carried,carried=this.object(c);
   if(carried){carried.attachedToEntity=false;carried.carriedByRope=false;}
+  if(c?.kind==='vehicle')this.host.vehicleCarried?.(c.handle,false);
   rope.carried=undefined;
   const hook=this.hookObject(rope);if(hook)hook.usesCollision=true;
   rope.pickupDelay=ROPE_PICKUP_DELAY;

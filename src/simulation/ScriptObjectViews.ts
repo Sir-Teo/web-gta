@@ -307,6 +307,9 @@ export class ScriptObjectViews{
   * gone), and the body's pose and speed are written back into the record the script reads. */
  private syncMoving(object:ScmObject,view:NonNullable<ReturnType<ScriptObjectViews['views']['get']>>,seconds:number){
   const body=view.physical!.body,d=view.dyn!;
+  // A rope's hook and its load move by the rope's hand as much as their own: the physics engine's sleep would hold them
+  // where a rope left them (the original's objects do not sleep, and these never come to rest).
+  if(object.attachedToEntity&&body.isSleeping())body.wakeUp();
   const p=object.position,v=object.velocity,r=object.rotation;
   if(p.x!==d.pos.x||p.y!==d.pos.y||p.z!==d.pos.z)body.setTranslation({x:p.x,y:p.z,z:-p.y},true);
   // A whole matrix the runtime set (a rope turning its load or hook) turns the body; otherwise the heading and tilts do.

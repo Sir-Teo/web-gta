@@ -1575,6 +1575,25 @@ async function boot() {
   /** A script object as a vehicle's parent (ATTACH_CAR_TO_OBJECT): its body as the object host has it now, and gone
    * once the script's object is. */
   const scriptObjectParents=new Map<number,object>();
+  /** CVehicle::bWinchCanPickMeUp, which the constructor sets: the vehicles WINCH_CAN_PICK_VEHICLE_UP has cleared it on. */
+  const winchRefused=new WeakSet<object>();
+  /** eVehicleType by the IDE's type: what a crane's hook asks of a vehicle (a car, a monster truck, a bike). */
+  const NATIVE_VEHICLE_TYPE:Readonly<Record<string,number>>={car:0,mtruck:1,quad:2,heli:3,plane:4,boat:5,train:6,bike:9,bmx:10,trailer:11};
+  const ropeVehicleType=(v:object)=>NATIVE_VEHICLE_TYPE[(v as {assets?:{vehicle?:{type?:string}}}).assets?.vehicle?.type?.toLowerCase()??'car']??0;
+  const vehicleBoundsTop=(v:object)=>(v as {assets?:{collision?:{bounds?:{max:readonly number[]}}}}).assets?.collision?.bounds?.max[2]??1;
+  /** A bike someone rides: the player, or a ped at its handlebars. */
+  const ridden=(v:object)=>!!fleet?.bikes.has(v as never)&&((v as {occupied?:boolean}).occupied||!!(v.constructor as {hasDriverPed?:(b:unknown)=>boolean}).hasDriverPed?.(v));
+  /** A vehicle on a crane's rope: its body read and moved in native axes (speeds a 50th of a second). */
+  const ropeVehicleBody=(v:object):import('./simulation/ScmRopes').RopeVehicle|undefined=>{
+   const body=vehicleBodyOf(v);if(!body)return undefined;
+   const rows=nativeRowsOf(body),lv=body.linvel();
+   return {position:rows.position,velocity:{x:lv.x/50,y:-lv.z/50,z:lv.y/50},matrix:{right:rows.right,forward:rows.forward,up:rows.up},
+    mass:(v as {mass?:number}).mass??1500,model:(v as {modelId?:number}).modelId??-1,top:vehicleBoundsTop(v),
+    scorched:!!(v as {wrecked?:boolean}).wrecked,riddenBike:ridden(v),
+    setPosition:p=>body.setTranslation({x:p.x,y:p.z,z:-p.y},true),
+    setVelocity:u=>body.setLinvel({x:u.x*50,y:u.z*50,z:-u.y*50},true),
+    setMatrix:m=>{const q=rowsToPortQuaternion(m).normalize();body.setRotation({x:q.x,y:q.y,z:q.z,w:q.w},true);}};
+  };
   const scriptObjectParent=(handle:number)=>{
    let parent=scriptObjectParents.get(handle);
    if(!parent){parent={scriptObject:handle,get body(){return scriptObjectViews?.bodyOf(handle);},get disposed(){return !mission?.runtime.game.objects.exists(handle);}};scriptObjectParents.set(handle,parent);}
@@ -6201,6 +6220,22 @@ async function boot() {
                  attachScriptVehicle:(child,parent,offset,rotation)=>attachVehicle(child as object,parent as object,offset,rotation),
                  attachScriptVehicleToObject:(child,object,offset,rotation)=>attachVehicle(child as object,scriptObjectParent(object),offset,rotation),
                  scriptVehicleAttached:car=>attachedVehicles.has(car as object),
+                 // CRope::Update's vehicle scan: the pool's cars and bikes, its last first.
+                 ropeVehicleCandidates:(point,radius)=>{
+                  const out:import('./simulation/nativeRope').RopeCandidate<unknown>[]=[],list=[...(fleet?.cars??[]),...(fleet?.bikes??[])];
+                  for(let i=list.length-1;i>=0;i--){
+                   const v=list[i];if(v.disposed)continue;
+                   const body=vehicleBodyOf(v);if(!body)continue;
+                   const rows=nativeRowsOf(body),p=rows.position;
+                   if(Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)>radius)continue;
+                   out.push({entity:v,kind:'vehicle',model:v.modelId,position:p,matrix:{right:rows.right,forward:rows.forward,up:rows.up},top:vehicleBoundsTop(v),
+                    vehicleType:ropeVehicleType(v),ridden:ridden(v),winchCanPickUp:!winchRefused.has(v),scorched:!!(v as {wrecked?:boolean}).wrecked});
+                  }
+                  return out;
+                 },
+                 ropeVehicleBody:car=>ropeVehicleBody(car as object),
+                 scriptVehicleCarriedByRope:(car,carried)=>{const v=car as {carriedByRope?:boolean};if('carriedByRope' in v)v.carriedByRope=carried;},
+                 setScriptVehicleWinchCanPickUp:(car,state)=>{if(state)winchRefused.delete(car as object);else winchRefused.add(car as object);},
                  detachScriptVehicle:(child,x,y,push,turn)=>detachVehicle(child as object,x,y,push,turn),
                  scriptVehicleMatrix:car=>{
                   const body=(car as ScriptCar).car.body,q=body.rotation(),p=body.translation();

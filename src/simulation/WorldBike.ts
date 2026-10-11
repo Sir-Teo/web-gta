@@ -519,6 +519,8 @@ export class WorldBike {
   return true;
  }
  private fakeForce={x:0,y:0,z:0};private fakeTorque={x:0,y:0,z:0};private fakeFrames=0;
+ /** physicalFlags.bCarriedByRope: a crane's hook holds it. */
+ carriedByRope=false;
  private get abandoned(){return !(this.occupied||this.autopilot||this.scriptDriven||this.mountTimer>0||WorldBike.hasDriverPed?.(this)||this.inWater);}
  /** CPlaceable::SetHeading or SetPosn on a bike at rest (SET_CAR_HEADING turning a script's bike where it stands): the
   * new matrix is all there is to it, as its physics stay skipped, though a wheel the turn sinks a little into a slope
@@ -533,7 +535,9 @@ export class WorldBike {
  }
  private skipPhysics(dt:number){
   const body=this.body;
-  if(!this.abandoned){this.fakeFrames=0;if(body.isSleeping())body.wakeUp();return false;}
+  // physicalFlags.bCarriedByRope: on a crane's hook it never rests. Natively the gravity ProcessControl adds is in the
+  // speed the fake physics averages, before the rope takes it off; here the rope's speed is all the body has.
+  if(!this.abandoned||this.carriedByRope){this.fakeFrames=0;if(body.isSleeping())body.wakeUp();return false;}
   if(body.isSleeping()){this.stepVelocity={x:0,y:0,z:0};this.stepTurn={x:0,y:0,z:0};return true;}
   const v=body.linvel(),w=body.angvel(),f=this.fakeForce,t=this.fakeTorque,ts=dt*50;
   const idle=v.x===0&&v.y===0&&v.z===0&&this.tyreOnGround();

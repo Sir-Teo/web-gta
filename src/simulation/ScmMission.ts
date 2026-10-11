@@ -727,6 +727,14 @@ export interface ScmMissionWorld {
  attachScriptVehicleToObject?(child:unknown,object:number,offset:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number}):void;
  /** CPhysical::m_pAttachedTo of a vehicle is set. */
  scriptVehicleAttached?(car:unknown):boolean;
+ /** The vehicles within a radius of a native point as a crane's hook scans them, the pool's last first. */
+ ropeVehicleCandidates?(point:{x:number;y:number;z:number},radius:number):import('./nativeRope').RopeCandidate<unknown>[];
+ /** A vehicle as a rope reads and moves it, native. */
+ ropeVehicleBody?(car:unknown):import('./ScmRopes').RopeVehicle|undefined;
+ /** physicalFlags.bCarriedByRope of a vehicle a crane's hook takes or lets go. */
+ scriptVehicleCarriedByRope?(car:unknown,carried:boolean):void;
+ /** WINCH_CAN_PICK_VEHICLE_UP: CVehicle's bWinchCanPickMeUp, which the constructor sets. */
+ setScriptVehicleWinchCanPickUp?(car:unknown,state:boolean):void;
  /** DETACH_CAR: CPhysical::DettachEntityFromEntity, the push's turns in radians and its size in units a frame. */
  detachScriptVehicle?(child:unknown,x:number,y:number,push:number,applyTurnForce:boolean):void;
  scriptVehiclePosition(car:unknown):{x:number;y:number;z:number};
@@ -1546,6 +1554,8 @@ export class ScmMission {
    releaseEntityFromRopeForObject:handle=>{this.runtime.game.objects.at(handle);const rope=this.ropes.find(handle);if(rope)this.ropes.release(rope);},
    // WINCH_CAN_PICK_OBJECT_UP (iOS 0x1002011f4): objectFlags.bCanBeAttachedToMagnet (bit 18 at +0x1a4).
    winchCanPickObjectUp:(handle,state)=>{this.runtime.game.objects.at(handle).magnetic=state;},
+   // WINCH_CAN_PICK_VEHICLE_UP (iOS 0x100200030): bit 44 of the vehicle's flags, bWinchCanPickMeUp.
+   winchCanPickVehicleUp:(handle,state)=>{this.host('setScriptVehicleWinchCanPickUp','WINCH_CAN_PICK_VEHICLE_UP')(this.liveVehicle(handle),state);},
    // ATTACH_CHAR_TO_BIKE (iOS 0x1001f2640, CPed::AttachPedToBike 0x10032c89c): AttachPedToEntity as the car form, and
    // the second limit kept in m_nTurretPosnMode (SYN1 seats CJ with his camera on a hidden, frozen bike at its photo
    // spot: 110 and 70). Nothing here reads that second limit.
@@ -3824,6 +3834,10 @@ export class ScmMission {
    groundBelow:p=>this.world.groundLevel(p.x,p.y,p.z),
    objectBounds:model=>this.world.objectModelBounds?.(model),
    winchSound:holder=>{if(holder?.kind==='object')this.runtime.game.missionAudio.report(104,{kind:'object',handle:holder.handle});},
+   vehicleCandidates:(point,radius)=>this.world.ropeVehicleCandidates?.(point,radius)??[],
+   vehicleHandle:(entity,model)=>this.vehicles.handleFor(entity as never,model),
+   vehicle:handle=>{const car=this.vehicles.exists(handle)?this.vehicles.entity(handle):undefined;return car?this.world.ropeVehicleBody?.(car):undefined;},
+   vehicleCarried:(handle,carried)=>{const car=this.vehicles.exists(handle)?this.vehicles.entity(handle):undefined;if(car)this.world.scriptVehicleCarriedByRope?.(car,carried);},
   });
  }
  /** CObject::ProcessControlLogic's ropes for the crane arms, then CRopes::Update, a frame of `seconds`. The crane's

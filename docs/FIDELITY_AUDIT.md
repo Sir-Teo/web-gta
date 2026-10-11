@@ -12181,3 +12181,13 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   (CStreaming::SetMissionDoesntRequireModel); the count (the slot's byte at +8, what GET_NUMBER_OF_INSTANCES reads, iOS
   0x100202128) moves only as instances start and end. Every streamed world script MAIN runs that way (the SF, LV and
   quarry cranes too) did the same. Spec: `scm-streamed-host` (CRANES' own release leaves the running crane2 counted).
+- **The cranes and the Leviathan's magnet take vehicles.** The scan's vehicle half now runs on the world's cars and bikes
+  (the pool's last first): a car or monster truck, a bike nobody rides, the Vortex or the Dinghy (the RC magnet only the
+  RC Tiger), not blown up, with bWinchCanPickMeUp, which CVehicle's constructor sets (reversed) and
+  WINCH_CAN_PICK_VEHICLE_UP (iOS 0x100200030, bit 44) clears or sets again. A vehicle the hook takes gets a script
+  handle (GRAB_ENTITY_ON_ROPE_FOR_OBJECT gives it back as the vehicle) and hangs at the rope's end, turning a tenth of the
+  way a step to hang along it; it is let go when blown up (bRenderScorched) or when someone rides it (a bike). A vehicle
+  on the hook (bCarriedByRope) and the hook and load objects never come to rest: natively ProcessControl's gravity is in
+  the speed the fake physics averages before the rope takes it off, and the original's objects do not sleep; here the
+  car's fake physics starts its count again and the physics engine's sleep is woken, or a car let go hung where it was.
+  Spec: `script-crane-pickup` (a car WINCH_CAN_PICK_VEHICLE_UP refuses is left, then taken, lifted and dropped).
