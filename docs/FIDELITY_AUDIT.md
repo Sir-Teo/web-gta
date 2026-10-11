@@ -11848,3 +11848,17 @@ gta3.img peds and props among them, ballas1 and ballas3 in FINAL2B, through the 
   raw, comes through the world manifest. A built preview played into the opening with no failed request.
 - Specs: `cutscene-removals` (browser: ZERO_2's wardrobe hidden and shown again), `placement-fade` (unit: the env data
   carried over, no warning).
+
+## Cutscenes from their own missions, and what they showed (October 11, 2026)
+
+SWEET1A (SWEET1), SWEET1B (SWEET1B, in Sweet's house) and RYDER1A (GUNS1) were played from their missions, launched
+as MAIN launches them and not skipped: each runs to its end (31 s, 60 s, 60 s) with its subtitles and voice track, the
+interior one in area 1 with the camera inside the house, and hands CJ back where the script puts him.
+
+- **A task naming a car still being built.** GUNS1 makes its Boxville (CREATE_CAR 609) and, with no WAIT between,
+  gives CJ a sequence that walks to it and gets in as driver (PERFORM_SEQUENCE_TASK). The original has the car the
+  moment CREATE_CAR returns; here it was still being built, the enter-car step read it as a car CJ could not board,
+  and the mission gave up as RYDER1A ended. A task or a sequence naming a car the browser is still building now waits
+  at its command and runs again the next frame, as every other car command does (liveVehicle). GUNS1 now goes on to
+  the drive with Ryder.
+- Specs: `script-sequence-pending-car` (browser).

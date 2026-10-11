@@ -2365,6 +2365,7 @@ export class ScmMission {
    // CPedIntelligence's task, through the ped the browser built. A task with no browser behaviour yet turns
    // into nothing, and the thread gives up rather than leaving the ped standing as though it had obeyed.
    givePedScriptedTask:(handle,task,opcode)=>{
+    this.awaitTaskVehicles([task]);
     // CTaskSimpleHoldEntity on the ped's partial-anim slot: it holds the object from here, and its other tasks go on.
     if(task.kind==='pickUpObject'){this.pickUpObject(handle,task);return;}
     // TASK_EVERYONE_LEAVE_CAR (iOS 0x1001ef31c) names a car: the driver takes CTaskComplexLeaveAnyCar(0, sensible) and
@@ -2447,6 +2448,7 @@ export class ScmMission {
    // a hole in it is not the sequence the script asked for.
    givePedSequence:(handle,sequenceTasks,repeat,opcode,from)=>{
     const {tasks,steps,start}=this.expandSequence(sequenceTasks,from);
+    this.awaitTaskVehicles(tasks);
     if(steps)this.sequenceSteps.set(handle,steps);else this.sequenceSteps.delete(handle);
     const world=this.taskWorld(handle);
     const orders:ScriptedPedOrder[]=[],orderSteps:{outer:number;inner:number}[]=[];let standIns=false,orderStart=start;
@@ -3804,6 +3806,13 @@ export class ScmMission {
  }
  private expandSequence(tasks:readonly ScmScriptedTask[],from?:{task:number;subTask:number}){
   return expandScriptSequence(tasks,index=>this.runtime.game.sequences.at(index).tasks,from);
+ }
+ /** The original has the car the moment CREATE_CAR returns: GUNS1 makes the Boxville and in the same frame hands CJ a
+  * sequence that walks to it and gets in. A task naming a car the browser is still building waits at its command, as
+  * liveVehicle does, rather than reading the car as one it cannot board. */
+ private awaitTaskVehicles(tasks:readonly ScmScriptedTask[]){
+  for(const task of tasks)for(const handle of ['vehicle' in task?task.vehicle:-1,'targetVehicle' in task?task.targetVehicle:-1])
+   if(handle>0&&handle!==PLAYER_VEHICLE_HANDLE&&!this.vehicles.entity(handle)&&this.vehicles.exists(handle)&&!this.vehicles.settledFor(handle))throw new ScmEntityPending(`vehicle ${handle}`);
  }
  private livePed(handle:number){
   const ped=this.peds.entity(handle);
