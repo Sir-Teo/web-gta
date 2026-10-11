@@ -820,6 +820,7 @@ async function boot() {
  const playerTasks=new PlayerScriptTasks({
   animation:(file,name)=>pedestrians?.scriptAnimation(file,name)??Promise.resolve(undefined),
   duck:crouch=>{sim.setCrouched(crouch);},
+  mobilePhone:start=>{phoneFor('player').use(start);},
   enterCar:vehicle=>{
    const car=mission?.vehicles.entity(vehicle) as Partial<ScriptCar>|undefined;
    // A bike (TWAR7 sends CJ to a PCJ-600): the walk up to it and its jump-on clip, as the enter button from further

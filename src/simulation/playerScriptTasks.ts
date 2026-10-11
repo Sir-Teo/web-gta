@@ -58,6 +58,8 @@ export interface PlayerTaskWorld{
  carTaskRunning?():boolean;
  /** The pad has the car back. */
  endCarTask?():void;
+ /** CTaskComplexUseMobilePhone on the player: the phone comes out (PlayerPhone), as TASK_USE_MOBILE_PHONE's own does. */
+ mobilePhone?(start:boolean):void;
  /** Where the player is with cars: on foot, on his way into one, or in one. */
  carState?():'none'|'entering'|'seated';
  /** CTaskSimpleDuckToggle on the player: he crouches or stands. */
@@ -92,7 +94,7 @@ export class PlayerScriptTasks{
  /** The kinds the player can carry out; anything else the thread gives up on. */
  static runs(order:ScriptedPedOrder){return order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim'||order.kind==='lookAt'||order.kind==='clearLookAt'||order.kind==='followRoute'||order.kind==='duck'&&order.seconds===undefined||
   order.kind==='enterCar'&&order.seat==='driver'||order.kind==='leaveCar'||order.kind==='carTempAction'||order.kind==='carDriveToCoord'||
-  order.kind==='lookAtPoint'||order.kind==='die'||order.kind==='diveAndGetUp';}
+  order.kind==='lookAtPoint'||order.kind==='die'||order.kind==='diveAndGetUp'||order.kind==='mobilePhone';}
  /** Whether a task of the script's runs on the player (GET_SCRIPT_TASK_STATUS). */
  get active(){return !!(this.running||this.sequence);}
  /** A TASK_PLAY_ANIM_NON_INTERRUPTABLE clip runs on him: the in-air event's fall and landing do not take over. */
@@ -162,6 +164,9 @@ export class PlayerScriptTasks{
    case 'clearLookAt':this.world.clearLookAt?.();break;
    case 'lookAtPoint':this.world.lookAtPoint?.(order.x,order.y,order.z,order.seconds);break;
    case 'die':this.world.die?.();break;
+   // A sequence's TASK_USE_MOBILE_PHONE (LA1FIN2's: CJ walks to Sweet's door, waits, and takes the call): the phone
+   // comes out and the task goes on, as a script ped's does (the phone task has no end of its own).
+   case 'mobilePhone':this.world.mobilePhone?.(true);this.running={kind:'standStill',remaining:Number.POSITIVE_INFINITY};break;
    // The script's (x, y) way is the renderer's (x, -y); its yaw is atan2(x, z) there.
    case 'diveAndGetUp':{
     const own:Running={kind:'dive',phase:'loading',yaw:Math.atan2(order.x,-order.y),lie:order.seconds};this.running=own;

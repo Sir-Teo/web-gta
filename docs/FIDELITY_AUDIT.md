@@ -11971,3 +11971,11 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   misc_a), the tow link and hitching, and IS_TRAILER_ATTACHED_TO_CAB, ATTACH_ and DETACH_TRAILER_TO_CAB.
   Specs: `trailer-rest` (browser: PETROTR, ARTICT1, UTILTR1 and BAGBOXA stand within 5 degrees of level and keep still),
   `trailer-support` (unit).
+
+## The next chapter's missions under the bot (October 11, 2026)
+
+Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs a towed tanker, and CATCUT left out).
+- **LA1FIN2 gave up as CJ took Sweet's call.** Its opening sequence walks CJ to Sweet's door, pauses him and gives him
+  TASK_USE_MOBILE_PHONE; the player's tasks had no phone, so the thread gave up. The phone task in a player sequence now
+  brings the phone out as the single command does (PlayerPhone) and holds him on the call, as a script ped's does (the
+  task has no end of its own). Spec: `player-script-tasks` (unit).

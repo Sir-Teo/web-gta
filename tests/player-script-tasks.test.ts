@@ -128,3 +128,16 @@ test('TASK_LOOK_AT_COORD and TASK_DIE on the player start the look or the death 
  tasks.giveSequence([{kind:'lookAtPoint',x:1,y:2,z:3,seconds:2},{kind:'die'}],false,body());
  expect(log).toEqual([['look',1,2,3,2],'die']);expect(tasks.active).toBe(false);
 });
+
+test('a sequence\'s TASK_USE_MOBILE_PHONE on the player takes the phone out and holds him on the call (LA1FIN2)',()=>{
+ const calls:boolean[]=[];
+ const tasks=new PlayerScriptTasks({...world,mobilePhone:start=>{calls.push(start);}});
+ expect(PlayerScriptTasks.runs({kind:'mobilePhone'})).toBe(true);
+ tasks.giveSequence([{kind:'standStill',seconds:.05},{kind:'mobilePhone'}],false,body());
+ expect(calls).toEqual([]);
+ tasks.step(.1,body());
+ expect(calls).toEqual([true]);
+ // The phone task has no end of its own: the sequence stays on it.
+ for(let i=0;i<10;i++)tasks.step(1,body());
+ expect(tasks.active).toBe(true);expect(tasks.progress).toBe(1);
+});
