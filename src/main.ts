@@ -6538,6 +6538,15 @@ async function boot() {
                   }
                   return undefined;
                  },
+                 randomCarOfTypeInAngledArea:(inside,model)=>{
+                  const vehicles=[...(fleet?.cars??[]),...(fleet?.bikes??[])].reverse();
+                  for(const v of vehicles){
+                   // CanBeDeleted: not a mission vehicle, nor the one the player drives or is getting into.
+                   if(v.disposed||v.missionCar||v.occupied||carEntry.active&&carEntry.car===v||model>=0&&v.modelId!==model)continue;
+                   const t=v.car.body.translation();if(inside({x:t.x,y:-t.z}))return {entity:v,model:v.modelId};
+                  }
+                  return undefined;
+                 },
                  nearestCarInSphere:(x,y,z,radius,model)=>{
                   let best:{entity:unknown;model:number}|undefined,bestDistance=Infinity;
                   for(const v of [...(fleet?.cars??[]),...(fleet?.bikes??[])].reverse()){

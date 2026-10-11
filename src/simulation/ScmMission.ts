@@ -58,6 +58,7 @@ import {scriptedPedOrder,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {PlayerScriptTasks} from './playerScriptTasks';
 import {ScmRopes} from './ScmRopes';
 import {SAM_SITE_DUMMY_DISTANCE,SAM_SITE_MODELS,samSiteStep} from './nativeSamSite';
+import {NativeAngledRect} from '../engine/nativeAngledRect';
 import {ROPE_HEIGHT_OBJECT} from './nativeRope';
 import {BUTTON} from '../engine/ScmPads';
 import {CRANE_NONE} from '../engine/ScmPlayerInfo';
@@ -728,6 +729,9 @@ export interface ScmMissionWorld {
  attachScriptVehicleToObject?(child:unknown,object:number,offset:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number}):void;
  /** CPhysical::m_pAttachedTo of a vehicle is set. */
  scriptVehicleAttached?(car:unknown):boolean;
+ /** The vehicle pool from its last: the first car or bike (by appearance) of the model (any when negative) that
+  * CanBeDeleted and whose native place passes `inside`. */
+ randomCarOfTypeInAngledArea?(inside:(p:{x:number;y:number})=>boolean,model:number):{entity:unknown;model:number}|undefined;
  /** The vehicles within a radius of a native point as a crane's hook scans them, the pool's last first. */
  ropeVehicleCandidates?(point:{x:number;y:number;z:number},radius:number):import('./nativeRope').RopeCandidate<unknown>[];
  /** A vehicle as a rope reads and moves it, native. */
@@ -2130,6 +2134,20 @@ export class ScmMission {
     const found=this.world.randomCarOfTypeInArea?.(x1,y1,x2,y2,typeof model==='number'?model:-1,true);
     return found?this.vehicles.handleFor(found.entity,found.model):-1;
    },
+   // GET_RANDOM_CAR_OF_TYPE_IN_ANGLED_AREA_NO_SAVE (iOS 0x100204440): the pool's last car or bike of the model that can be
+   // deleted inside the angled area (CTheScripts' test of the two corners and the signed width), law enforcers included;
+   // only handed over. -1 when none.
+   getRandomCarOfTypeInAngledAreaNoSave:(x1,y1,x2,y2,width,model)=>{
+    const area=new NativeAngledRect({x:x1,y:y1},{x:x2,y:y2},width);
+    const found=this.world.randomCarOfTypeInAngledArea?.(p=>area.contains(p),typeof model==='number'?model:-1);
+    return found?this.vehicles.handleFor(found.entity,found.model):-1;
+   },
+   // ACTIVATE_HELI_SPEED_CHEAT (iOS 0x1001f943c): CAutoPilot's m_ucHeliSpeedMult, a signed byte, which the AI's push
+   // forward reads.
+   activateHeliSpeedCheat:(handle,value)=>{(this.liveVehicle(handle) as {setHeliSpeedMult?:(v:number)=>void}).setHeliSpeedMult?.(value<<24>>24);},
+   // SELECT_WEAPONS_FOR_VEHICLE (iOS 0x1001fe354): the vehicle's weapon choice, a byte at +0x6a3 (TestWhetherToFirePlaneGuns
+   // fires only on 0 or 1).
+   selectWeaponsForVehicle:(handle,weapons)=>{const v=this.liveVehicle(handle) as {weaponSelection?:number};if('weaponSelection' in v)v.weaponSelection=weapons&0xff;},
    // GET_RANDOM_CAR_IN_SPHERE_NO_SAVE (iOS 0x1001f6970): the nearest such car, despite the name; it is only handed over.
    getRandomCarInSphereNoSave:(x,y,z,radius,model)=>{
     const found=this.world.nearestCarInSphere?.(x,y,z,radius,typeof model==='number'?model:-1);

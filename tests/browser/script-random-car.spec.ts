@@ -28,3 +28,22 @@ test('the script takes a street car in an area as its own, and the no-save form 
  expect(result.takenAgain).toBe(false);
  expect(errors).toEqual([]);
 });
+
+// GET_RANDOM_CAR_OF_TYPE_IN_ANGLED_AREA_NO_SAVE (iOS 0x100204440, STEAL5): the same search in an angled area (two
+// corners and a signed width), law enforcers included, only handed over. The command was skipped.
+test('the script borrows a street car in an angled area, none outside it',async({page})=>{
+ test.setTimeout(240000);
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await endStoryMission(page);
+ await page.waitForFunction(()=>((window as any).__game?.state().traffic?.cars??[]).length>=2,undefined,{timeout:120000});
+ const result=await page.evaluate(()=>{
+  const g=(window as any).__game,m=g.missionForProfiling(),a=m.adapterRef,p=g.sim.player.position,x=p.x,y=-p.z;
+  // A long strip along x through the player, 600 wide; and one far off.
+  const borrowed=a.getRandomCarOfTypeInAngledAreaNoSave(x-300,y,x+300,y,600,-1);
+  const none=a.getRandomCarOfTypeInAngledAreaNoSave(x+5000,y+5000,x+5100,y+5000,50,-1);
+  return {borrowed,none,mission:!!m.vehicles.entity(borrowed)?.missionCar};
+ });
+ expect(result.borrowed).toBeGreaterThan(0);expect(result.mission).toBe(false);expect(result.none).toBe(-1);
+ expect(errors).toEqual([]);
+});

@@ -236,6 +236,10 @@ export class WorldPlane {
   const ai=pilot.ai;this.autopilot={throttle:ai.accel,pitch:ai.pitch,roll:ai.roll,rudder:ai.rudder,brake:false};
   if(ai.gearUp)this.gearUp=true;
  }
+ /** ACTIVATE_HELI_SPEED_CHEAT: CAutoPilot's m_ucHeliSpeedMult. */
+ setHeliSpeedMult(value:number){const pilot=this.aiPilot();if(pilot)pilot.heliSpeedMult=value;}
+ /** SELECT_WEAPONS_FOR_VEHICLE's choice (+0x6a3 on iOS): which of its weapons the vehicle's AI may fire. */
+ weaponSelection=0;
  /** SET_HELI_REACHED_TARGET_DISTANCE (iOS 0x1001fe394): CAutoPilot's m_ucHeliTargetDist2, a byte. */
  setHeliReachedTargetDistance(distance:number){const pilot=this.aiPilot();if(pilot)pilot.heliTargetDist2=distance&0xff;}
  private aiPilot(){

@@ -12259,3 +12259,12 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   aircraft the port builds, so the request went down the car path and failed. They are built as aircraft now (the
   Baron a plane on FlyingControl's RC Baron model, the other two helicopters); their AI flies with bIsRCVehicle's limits
   (lifting off at 7, banking no more than 0.7). They are not in the map's hangar.
+- **Three small vehicle commands were skipped.** GET_RANDOM_CAR_OF_TYPE_IN_ANGLED_AREA_NO_SAVE (STEAL5; iOS
+  0x100204440) walks the vehicle pool from its last for a car or bike (by appearance) of the model, any when it is
+  negative, that CanBeDeleted (not a mission vehicle, nor the player's) and stands in the angled area (the two corners
+  and the signed width the IS_..._IN_ANGLED_AREA commands take), law enforcers included, and only hands it over.
+  ACTIVATE_HELI_SPEED_CHEAT (DES3; iOS 0x1001f943c) sets CAutoPilot's m_ucHeliSpeedMult (+0x509), the push forward the
+  helicopter AI already applies. SELECT_WEAPONS_FOR_VEHICLE (HEIST5; iOS 0x1001fe354) sets the vehicle's weapon choice
+  (+0x6a3), kept on the aircraft for its AI's guns (TestWhetherToFirePlaneGuns fires only on 0 or 1), which are not
+  ported yet. SET_HELI_STABILISER (ZERO4, DES3; iOS 0x1001e33a8, bHeliMinimumTilt) is still skipped: it changes two
+  branches of the helicopter's FlyingControl (iOS 0x10047a638 and 0x10047b220) not yet read. Spec: `script-random-car`.
