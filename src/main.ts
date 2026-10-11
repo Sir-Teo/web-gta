@@ -457,6 +457,8 @@ async function boot() {
   const sim = new Simulation();
   const flightInstruments=document.createElement('div');flightInstruments.className='flight-instruments';flightInstruments.hidden=true;hud.element.append(flightInstruments);
   let worldCar:ScriptCar|undefined;
+  /** CCam::Process_FollowCar_SA's trailer blend (iOS 0x1009326b0). */
+  let towCameraBlend=0;
   /** The player riding a car as a passenger (WARP_CHAR_INTO_CAR_AS_PASSENGER): the car and its seat (1 front right,
    * 2 rear left, 3 rear right). The car goes on under its own driver, AI or recording. */
   let playerPassenger:{car:ScriptCar;seat:1|2|3}|undefined;
@@ -1617,11 +1619,13 @@ async function boot() {
   // CCollision::BuildCacheOfCameraCollision: the cone cast tests buildings, vehicles and objects, never peds, and not the
   // car the player is climbing into (CTaskComplexEnterCar::GetCameraAvoidVehicle). CCamera::CameraVehicleModeSpecialCases:
   // in a vehicle, cars whose speed relative to it is at least sqrt(0.1) units a frame (sqrt(1) above 0.2 units a
-  // frame) are passed through, and objects are tested only while it is that slow.
+  // frame) are passed through, and objects are tested only while it is that slow; the trailer it tows is an extra
+  // entity to ignore.
   const ENTER_AVOID_PHASES=new Set(['align','locked','open','pullout','getIn','closeInside','shuffle','getOut','draggedOut']);
   sim.cameraCollisionFilter=()=>{
     const own=worldCar?.occupied?worldCar.car.body:fleet?.occupiedBike?.body??fleet?.occupiedBoat?.body??fleet?.occupiedPlane?.body;
     const avoid=carEntry.active&&ENTER_AVOID_PHASES.has(carEntry.phase!)?carEntry.car?.car.body.handle:undefined;
+    const towed=(worldCar?.occupied?worldCar:fleet?.occupied)?.towedVehicle?.car.body.handle;
     const vehicles=new Set<number>();
     for(const car of fleet?.cars??[])vehicles.add(car.car.body.handle);
     for(const list of [fleet?.bikes,fleet?.boats,fleet?.planes])for(const v of list??[])vehicles.add(v.body.handle);
@@ -1630,7 +1634,7 @@ async function boot() {
     const scene=importedScene;
     return {
       body:body=>{
-        if(pedestrians?.bodyHandles.has(body.handle)||body.handle===avoid)return true;
+        if(pedestrians?.bodyHandles.has(body.handle)||body.handle===avoid||body.handle===towed)return true;
         if(vehicles.has(body.handle)){if(!own)return false;const v=body.linvel();return relSq<=((v0.x-v.x)**2+(v0.y-v.y)**2+(v0.z-v.z)**2)/2500;}
         // Loose props and debris are objects.
         return !slow;
@@ -4205,6 +4209,14 @@ async function boot() {
     }
     installSwimClips();if(!builtBody)rebuildPlayerIfNeeded();applyPlayerMotionGroup();
     render.vehicleDistance=fleet?.occupiedPlane?Math.max(22,fleet.occupiedPlane.assets.collision!.bounds.radius*2.5):9;render.vehicleLooks=!fleet?.occupiedPlane;
+    // CCam::Process_FollowCar_SA with a trailer in tow (iOS 0x10020fca4): a blend rises 0.02 a timestep to 1 (and drops
+    // to 0 at once with none); the car's length, twice its bounds' |min y|, grows by half the blend times the distance
+    // from its bounds' top corner to the trailer's bottom one. The port's chase distance is AUTHORED, so it grows in the
+    // same proportion; the focus is moved below.
+    {const car=worldCar?.occupied?worldCar:fleet?.occupied,towed=car?.towedVehicle;
+     towCameraBlend=towed&&!paused?Math.min(1,towCameraBlend+dt):towed?towCameraBlend:0;
+     if(car&&towed&&towCameraBlend>0){const a=car.assets.collision.bounds,b=towed.assets.collision.bounds,length=2*Math.abs(a.min[1]);
+      if(length>0)render.vehicleDistance*=(length+.5*towCameraBlend*Math.hypot(a.max[0]-b.min[0],a.max[1]-b.min[1],a.max[2]-b.min[2]))/length;}}
     // CCam::Process_1stPerson's source: the front-seat dummy with its x ignored plus (0, 0.08, 0.62) in the vehicle's
     // frame; a bike's height is the rider's neck plus 0.15; a boat's is its front light dummy half a unit higher (the
     // port's boats keep no light dummies, so the bounds' front top stands in). The vehicle's render root gives the
@@ -4399,6 +4411,14 @@ async function boot() {
       const focus=sim.climb.cameraTarget({x:lerp(p.previous.x,p.position.x),y:-lerp(p.previous.z,p.position.z),z:lerp(p.previous.y,p.position.y)+1});
       render.cameraFocus={x:focus.x,y:focus.z-1,z:-focus.y};
     }
+    // The same camera's focus with a trailer in tow: halfway to the trailer's origin at the full blend, and up by the
+    // blend times how far the trailer's top stands over the car's.
+    {const car=worldCar?.occupied?worldCar:fleet?.occupied,towed=car?.towedVehicle;
+     if(!sim.climb&&car&&towed&&towCameraBlend>0){
+      const k=.5*towCameraBlend,t=towed.car.body.translation(),x=lerp(p.previous.x,p.position.x),y=lerp(p.previous.y,p.position.y),z=lerp(p.previous.z,p.position.z);
+      const rise=towCameraBlend*Math.max(0,towed.assets.collision.bounds.max[2]-car.assets.collision.bounds.max[2]);
+      render.cameraFocus={x:x+(t.x-x)*k,y:y+(t.y-y)*k+rise,z:z+(t.z-z)*k};
+     }}
     const passengerSeat=playerPassenger&&carEntry.passengerSeat(playerPassenger.car,playerPassenger.seat),passengerClip=playerPassenger&&sitClip(playerPassenger.car.modelFlags,false);
     if(playerPassenger&&passengerSeat&&passengerClip&&render.nativeCharacter?.hasVehicleClip(passengerClip)){
       // The passenger sits in his seat (CTaskSimpleCarDrive's sit, not the driver's).

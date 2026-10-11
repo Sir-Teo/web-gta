@@ -11999,10 +11999,18 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   no cab asks for any (0x1001f95e0). The pair's collision meshes do not meet (ProcessEntityCollision's
   didHideTriangles); their spheres and boxes do, as Rapier contacts where the native's are soft (ApplySoftCollision).
   AUTHORED: that contact response. Not modelled: the tow truck's and tractor's hoist (taken as down, which never blocks
-  the link), the attach and detach sounds, and the follow camera's allowance for a trailer (the camera stays at the
-  cab's distance, so the tanker fills the view). Specs: `trailer-tow` (browser: ATTACH puts the tanker on a PETRO's bar,
+  the link) and the attach and detach sounds. Specs: `trailer-tow` (browser: ATTACH puts the tanker on a PETRO's bar,
   it follows the rig driven 10 units and more with the points within 0.7, and DETACH frees it; a PETRO backed under a
   parked tanker takes it and pulls it away), `tow-link` (unit).
+- **The camera behind a rig.** Driving with the tanker in tow, the chase camera sat at the cab's distance and its
+  collision cast stopped on the tanker, so the view was the cab's back. CCamera::CameraVehicleModeSpecialCases
+  (0x50CDE0, reversed) makes the towed vehicle an extra entity the camera's collision ignores, and the iOS
+  Process_FollowCar_SA (0x10020fca4; unreversed in gta-reversed) allows for it: a blend (0x1009326b0) rises 0.02 a
+  timestep to 1 while a trailer is in tow and drops to 0 without one; the car's length (twice its bounds' |min y|) grows
+  by half the blend times the distance from its bounds' top corner to the trailer's bottom one, the camera's height rises
+  by the blend times how far the trailer's top stands over the car's, and its target moves half the blend of the way to
+  the trailer's origin. The port's chase distance is AUTHORED (9), so it grows in the length's proportion; the rest is
+  as the iOS. Checked by eye: the PETRO and its tanker are seen whole from behind the tanker.
 
 ## The next chapter's missions under the bot (October 11, 2026)
 
