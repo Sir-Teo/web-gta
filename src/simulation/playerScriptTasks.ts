@@ -20,7 +20,9 @@ type Running=
  |{kind:'followRoute';points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number;moveState:number}
  |{kind:'enterCar';vehicle:number;remaining:number;started:boolean}
  |{kind:'leaveCar';vehicle?:number;immediately:boolean;started:boolean}
- |{kind:'carTask';order:Extract<ScriptedPedOrder,{kind:'carTempAction'|'carDriveToCoord'}>;started:boolean};
+ |{kind:'carTask';order:Extract<ScriptedPedOrder,{kind:'carTempAction'|'carDriveToCoord'}>;started:boolean}
+ /** CTaskSimpleUseGun aiming at a point (renderer coordinates) for the seconds left. */
+ |{kind:'gunAt';point:{x:number;y:number;z:number};remaining:number};
 
 /** What the player's ped is and can do, in renderer terms (y up, the script's y is -z). */
 export interface PlayerTaskBody{
@@ -60,6 +62,8 @@ export interface PlayerTaskWorld{
  endCarTask?():void;
  /** CTaskComplexUseMobilePhone on the player: the phone comes out (PlayerPhone), as TASK_USE_MOBILE_PHONE's own does. */
  mobilePhone?(start:boolean):void;
+ /** TASK_AIM_GUN_AT_COORD on the player: his weapon aims at the point (renderer coordinates) until undefined. */
+ aimAt?(point:{x:number;y:number;z:number}|undefined):void;
  /** Where the player is with cars: on foot, on his way into one, or in one. */
  carState?():'none'|'entering'|'seated';
  /** CTaskSimpleDuckToggle on the player: he crouches or stands. */
@@ -94,7 +98,7 @@ export class PlayerScriptTasks{
  /** The kinds the player can carry out; anything else the thread gives up on. */
  static runs(order:ScriptedPedOrder){return order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim'||order.kind==='lookAt'||order.kind==='clearLookAt'||order.kind==='followRoute'||order.kind==='duck'&&order.seconds===undefined||
   order.kind==='enterCar'&&order.seat==='driver'||order.kind==='leaveCar'||order.kind==='carTempAction'||order.kind==='carDriveToCoord'||
-  order.kind==='lookAtPoint'||order.kind==='die'||order.kind==='diveAndGetUp'||order.kind==='mobilePhone';}
+  order.kind==='lookAtPoint'||order.kind==='die'||order.kind==='diveAndGetUp'||order.kind==='mobilePhone'||order.kind==='gunAt'&&!!order.point&&!order.fire;}
  /** Whether a task of the script's runs on the player (GET_SCRIPT_TASK_STATUS). */
  get active(){return !!(this.running||this.sequence);}
  /** A TASK_PLAY_ANIM_NON_INTERRUPTABLE clip runs on him: the in-air event's fall and landing do not take over. */
@@ -112,6 +116,7 @@ export class PlayerScriptTasks{
  get progress(){const s=this.sequence;return s?.sequence?s.at-1:-1;}
  /** CLEAR_CHAR_TASKS (and its immediate form) on the player: the task and any clip it ran go at once. */
  clear(body:PlayerTaskBody){
+  if(this.running?.kind==='gunAt')this.world.aimAt?.(undefined);
   const clip=this.running?.kind==='playAnim'?this.running.clip:this.held;
   if(clip!==undefined&&body.view?.reactionName===clip)body.view.clearReaction();
   this.endCarTask();
@@ -134,6 +139,7 @@ export class PlayerScriptTasks{
  private endCarTask(){if(this.running?.kind==='carTask'&&this.running.started)this.world.endCarTask?.();}
  private apply(order:ScriptedPedOrder,body:PlayerTaskBody){
   this.endCarTask();
+  if(this.running?.kind==='gunAt')this.world.aimAt?.(undefined);
   this.running=undefined;this.generation++;
   if(this.held!==undefined){if(body.view?.reactionName===this.held)body.view.clearReaction();this.held=undefined;}
   switch(order.kind){
@@ -167,6 +173,8 @@ export class PlayerScriptTasks{
    // A sequence's TASK_USE_MOBILE_PHONE (LA1FIN2's: CJ walks to Sweet's door, waits, and takes the call): the phone
    // comes out and the task goes on, as a script ped's does (the phone task has no end of its own).
    case 'mobilePhone':this.world.mobilePhone?.(true);this.running={kind:'standStill',remaining:Number.POSITIVE_INFINITY};break;
+   // TASK_AIM_GUN_AT_COORD (CAT2: CJ, frozen at the counter, holds the shotgun on the clerk for ten seconds).
+   case 'gunAt':if(order.point){const point={x:order.point.x,y:order.point.z,z:-order.point.y};this.running={kind:'gunAt',point,remaining:order.seconds};this.world.aimAt?.(point);}break;
    // The script's (x, y) way is the renderer's (x, -y); its yaw is atan2(x, z) there.
    case 'diveAndGetUp':{
     const own:Running={kind:'dive',phase:'loading',yaw:Math.atan2(order.x,-order.y),lie:order.seconds};this.running=own;
@@ -215,6 +223,9 @@ export class PlayerScriptTasks{
    case 'standStill':
     o.remaining-=dt;if(o.remaining<=0)this.next(body);
     return {kind:'hold'};
+   case 'gunAt':
+    o.remaining-=dt;if(o.remaining<=0){this.world.aimAt?.(undefined);this.next(body);return {kind:'hold'};}
+    return {kind:'hold',facing:Math.atan2(o.point.x-body.position.x,o.point.z-body.position.z)};
    case 'dive':
     if(o.phase==='loading')return {kind:'hold'};
     if(o.phase==='done'||!this.world.diving?.())this.next(body);

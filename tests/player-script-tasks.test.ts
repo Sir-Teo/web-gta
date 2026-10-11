@@ -141,3 +141,19 @@ test('a sequence\'s TASK_USE_MOBILE_PHONE on the player takes the phone out and 
  for(let i=0;i<10;i++)tasks.step(1,body());
  expect(tasks.active).toBe(true);expect(tasks.progress).toBe(1);
 });
+
+test('TASK_AIM_GUN_AT_COORD on the player holds his weapon on the point, facing it, for its time (CAT2)',()=>{
+ const aims:unknown[]=[];
+ const tasks=new PlayerScriptTasks({...world,aimAt:point=>{aims.push(point);}});
+ expect(PlayerScriptTasks.runs({kind:'gunAt',point:{x:1,y:2,z:3},fire:false,seconds:1})).toBe(true);
+ expect(PlayerScriptTasks.runs({kind:'gunAt',point:{x:1,y:2,z:3},fire:true,seconds:1})).toBe(false);
+ // The script's (10, -10, 12) is the renderer's (10, 12, 10): north-east of a player at the origin.
+ tasks.give({kind:'gunAt',point:{x:10,y:-10,z:12},fire:false,seconds:1},body());
+ expect(aims).toEqual([{x:10,y:12,z:10}]);
+ expect(tasks.step(.5,body())).toEqual({kind:'hold',facing:Math.atan2(10,10)});
+ expect(tasks.step(.6,body())).toEqual({kind:'hold'});
+ expect(aims).toEqual([{x:10,y:12,z:10},undefined]);expect(tasks.active).toBe(false);
+ // Cleared early, the aim goes down too.
+ tasks.give({kind:'gunAt',point:{x:1,y:0,z:1},fire:false,seconds:10},body());tasks.clear(body());
+ expect(aims.at(-1)).toBeUndefined();
+});

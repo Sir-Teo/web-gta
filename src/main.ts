@@ -817,10 +817,13 @@ async function boot() {
  const iosCarDensity=new IosMissionCarDensity(),iosMtbikerBike=new IosMtbikerBike();
  /** The player's car while a script's driving task has it. */
  let scriptDrivenCar:ScriptCar|import("./simulation/WorldBike").WorldBike|undefined;
+ /** TASK_AIM_GUN_AT_COORD on the player: the point his weapon is held on (renderer coordinates). */
+ let scriptAim:Vector3|undefined;
  const playerTasks=new PlayerScriptTasks({
   animation:(file,name)=>pedestrians?.scriptAnimation(file,name)??Promise.resolve(undefined),
   duck:crouch=>{sim.setCrouched(crouch);},
   mobilePhone:start=>{phoneFor('player').use(start);},
+  aimAt:point=>{scriptAim=point&&new Vector3(point.x,point.y,point.z);},
   enterCar:vehicle=>{
    const car=mission?.vehicles.entity(vehicle) as Partial<ScriptCar>|undefined;
    // A bike (TWAR7 sends CJ to a PCJ-600): the walk up to it and its jump-on clip, as the enter button from further
@@ -1273,12 +1276,14 @@ async function boot() {
   void afterStartPackage.then(()=>worldFx.load(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href)).then(()=>{if(alive&&worldFx.ready)weapons.fx=worldFx;}).catch(error=>{worldFx.error=String(error);});
   // CCamera::Find3rdPersonCamTargetVector: third-person shots go through the crosshair at (0.53, 0.4) of the screen;
   // the sniper scope aims down the middle.
-  const aimDirection=()=>render.scoped?render.camera.getWorldDirection(scratchAim):scratchAim.set(AIM_CROSSHAIR_NDC.x,AIM_CROSSHAIR_NDC.y,.5).unproject(render.camera).sub(render.camera.position).normalize();
+  // A script's aim (TASK_AIM_GUN_AT_COORD) points from his chest at its point.
+  const scratchAimFrom=new Vector3();
+  const aimDirection=()=>scriptAim?scratchAim.copy(scriptAim).sub(scratchAimFrom.set(sim.player.position.x,sim.player.position.y+1.4,sim.player.position.z)).normalize():render.scoped?render.camera.getWorldDirection(scratchAim):scratchAim.set(AIM_CROSSHAIR_NDC.x,AIM_CROSSHAIR_NDC.y,.5).unproject(render.camera).sub(render.camera.position).normalize();
   weaponView.aimDirection=aimDirection;
   // CCamera::Find3rdPersonCamTargetVector(20, ped + (0,0,0.7)): the crosshair ray's point nearest the ped's upper body
   // (the entity sits about a metre above the feet), carried 20 units on along the ray.
   const scratchAimTarget=new Vector3();
-  weaponView.aimTarget=()=>{const d=aimDirection(),c=render.camera.position,p=sim.player.position;return scratchAimTarget.copy(c).addScaledVector(d,d.x*(p.x-c.x)+d.y*(p.y+1.7-c.y)+d.z*(p.z-c.z)+20);};
+  weaponView.aimTarget=()=>{if(scriptAim)return scratchAimTarget.copy(scriptAim);const d=aimDirection(),c=render.camera.position,p=sim.player.position;return scratchAimTarget.copy(c).addScaledVector(d,d.x*(p.x-c.x)+d.y*(p.y+1.7-c.y)+d.z*(p.z-c.z)+20);};
   // CTaskSimpleUseGun's PISTOLWHIP: GUN_BUTT, or GUN_BUTT_crouch ducked, from the pistlwhp group.
   weapons.onPistolWhip=crouched=>{const view=render.nativeCharacter;const clip=crouched?'gun_butt_crouch':'gun_butt';if(view?.hasReaction(clip))view.playReaction(clip);};
   weapons.onSound=(event,id,position,source)=>sound.combat(event,id,position,source);
@@ -3482,7 +3487,8 @@ async function boot() {
     const playerJumping=!!render.nativeCharacter?.jumping&&!sim.jetPack&&!sim.player.swimming;
     // CPad::GetTarget answers false while DisablePlayerControls is set (the script's SET_PLAYER_CONTROL, the skip
     // camera, an arrest), and ProcessPlayerWeapon never runs in a passenger seat.
-    weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!playerControlsDisabled()&&!law.arrested&&!playerPassenger&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&!sim.climbing&&!playerSprinting&&!carEntry.active&&!bikeMount.active&&!playerDown&&!playerJumping&&input.down('MouseAim');
+    // A script's aim (TASK_AIM_GUN_AT_COORD) holds the weapon up whatever the pad, his controls off as they are.
+    weapons.aiming=!!scriptAim&&!paused&&sim.player.health>0&&!worldCar?.occupied&&!fleet?.occupied||!paused&&!arsenal.open&&!navigation?.open&&!playerControlsDisabled()&&!law.arrested&&!playerPassenger&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&!sim.climbing&&!playerSprinting&&!carEntry.active&&!bikeMount.active&&!playerDown&&!playerJumping&&input.down('MouseAim');
     // ProcessPlayerWeapon: aiming a b1stPerson weapon puts the camera in its weapon mode; releasing the button leaves it.
     const firstPerson=weapons.aiming?firstPersonMode(weapons.inventory.selected,weapons.inventory.info()):undefined;
     // ProcessPlayerWeapon puts the camera in MODE_AIMWEAPON only for a weapon it aims: with nothing locked (the mouse camera

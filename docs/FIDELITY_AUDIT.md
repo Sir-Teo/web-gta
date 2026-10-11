@@ -11979,3 +11979,8 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   TASK_USE_MOBILE_PHONE; the player's tasks had no phone, so the thread gave up. The phone task in a player sequence now
   brings the phone out as the single command does (PlayerPhone) and holds him on the call, as a script ped's does (the
   task has no end of its own). Spec: `player-script-tasks` (unit).
+- **CAT2 gave up as CJ held up the store.** It freezes CJ at the counter with his controls off and gives him
+  TASK_AIM_GUN_AT_COORD on the clerk for ten seconds; the player's tasks had no aim. The aim form (not the firing one)
+  now runs on the player: his weapon is held up whatever the pad, its direction and target the point, and he turns to
+  face it (CTaskSimpleUseGun's aim), until the time runs out or another task replaces it. Specs: `script-player-aim`
+  (browser), `player-script-tasks` (unit).
