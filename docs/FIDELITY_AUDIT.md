@@ -12110,3 +12110,10 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   on the object's position each frame. SET_VEHICLE_CAN_BE_TARGETTED (SYN6, bit 42 of the vehicle flags) is still
   skipped: natively it only lets the lock-on take a ped sitting in that vehicle (PedCanBeTargettedVehicleWise), and the
   port's lock-on (the touch aim assist) takes no riders yet. Spec: `script-ped-goto-object`.
+- **WUZI5 gave up at its first sequence.** It walks CJ round to Woozie's passenger door with TASK_ENTER_CAR_AS_PASSENGER,
+  and the player's tasks took only the driver's seat. The player now walks to the seat's door (GetPositionToOpenCarDoor
+  for the seat; -1 takes the front passenger seat), round the car first when it stands between him and the door (the
+  route a script ped takes, CPedGeometryAnalyser's), and is set in (CTaskSimpleCarSetPedInAsPassenger), as a script ped
+  boards: the door clips are not played. The timed form sets him in when its time is out. Riding as a passenger counts
+  as seated for the player's tasks, and GET_DRIVER_OF_CAR no longer names the player as the driver of a car he rides in
+  as a passenger. Specs: `script-player-enter-passenger` (browser), `player-script-tasks` (unit).

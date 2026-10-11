@@ -236,7 +236,9 @@ export interface ScmMissionWorld {
  playerPed():{
   position:{x:number;y:number;z:number};
   /** The vehicle it is in, as eVehicleAppearance and whether that vehicle is a train. */
-  vehicle:{appearance:number;train:boolean;model?:number;inAirProper?:()=>boolean}|undefined;
+  vehicle:{appearance:number;train:boolean;model?:number;inAirProper?:()=>boolean;
+   /** He sits in one of its passenger seats, not at the wheel. */
+   passenger?:boolean}|undefined;
   stopped:boolean;health:number;dead:boolean;
   /** CPlaceable::GetHeading in degrees, as the script reads a ped's. */
   heading?:number;
@@ -2736,7 +2738,8 @@ export class ScmMission {
    // IS_CAR_UPSIDEDOWN's handler is unreversed; CVehicle::IsUpsideDown (0x6D1D90) is the car's up axis at or below -0.9.
    vehicleIsUpsideDown:handle=>(handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle):this.world.scriptVehicleMatrix(this.liveVehicle(handle))).up.z<=-.9,
    // GET_DRIVER_OF_CAR: m_pDriver's handle, or -1 with nobody driving. The player drives the car it is in.
-   vehicleDriver:handle=>handle===PLAYER_VEHICLE_HANDLE?(this.world.playerPed().vehicle?PLAYER_PED_HANDLE:-1):this.playerCarHandle()===handle?PLAYER_PED_HANDLE:this.peds.driverOf(handle)??-1,
+   // GET_DRIVER_OF_CAR: the player only from the driver's seat; riding as a passenger, the car's own driver or none.
+   vehicleDriver:handle=>{const own=this.world.playerPed().vehicle;return handle===PLAYER_VEHICLE_HANDLE?(own&&!own.passenger?PLAYER_PED_HANDLE:-1):this.playerCarHandle()===handle&&!own?.passenger?PLAYER_PED_HANDLE:this.peds.driverOf(handle)??-1;},
    // ADD_ARMOUR_TO_CHAR: m_fArmour plus the amount, up to CPlayerInfo::m_nMaxArmour for the player and 100 for anyone
    // else (the handler is unreversed; the armour pickup caps the player the same way). Script peds keep the figure,
    // which the browser's ped damage does not yet spend.

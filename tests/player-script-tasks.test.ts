@@ -91,8 +91,8 @@ test('the timed enter sets him in when its time runs out, and a car that cannot 
  const refused=new PlayerScriptTasks({...world,enterCar:()=>false,carState:()=>'none'});
  refused.give({kind:'enterCar',vehicle:9,seat:'driver',seconds:Infinity},body());refused.step(1/30,body());
  expect(refused.active).toBe(false);
- // Only the driver's seat is his to take.
- expect(PlayerScriptTasks.runs({kind:'enterCar',vehicle:9,seat:0,seconds:Infinity})).toBe(false);
+ // A passenger seat is his to take too (the passenger entry below).
+ expect(PlayerScriptTasks.runs({kind:'enterCar',vehicle:9,seat:0,seconds:Infinity})).toBe(true);
 });
 
 test('TASK_LEAVE_ANY_CAR on the player waits for the car to be still, then he gets out',()=>{
@@ -234,4 +234,21 @@ test('TASK_GOTO_CHAR_OFFSET on the player runs to the point off the ped\'s facin
  expect(tasks.active).toBe(false);
  // A ped who is gone ends it at once; none to start with gives none.
  tasks.give({kind:'gotoPed',target:6,radius:.5,seconds:10},body());expect(tasks.active).toBe(false);
+});
+
+test('TASK_ENTER_CAR_AS_PASSENGER on the player walks him to the seat\'s door and sets him in (WUZI5)',()=>{
+ let seated=false;const warps:number[]=[];
+ const tasks=new PlayerScriptTasks({...world,carState:()=>seated?'seated':'none',passengerDoor:(v,s)=>v===3&&s===0?{x:6,y:0,z:0}:undefined,
+  warpIntoCarAsPassenger:(v,s)=>{warps.push(s);seated=true;return true;}});
+ expect(PlayerScriptTasks.runs({kind:'enterCar',vehicle:3,seat:-1,seconds:Number.POSITIVE_INFINITY})).toBe(true);
+ tasks.give({kind:'enterCar',vehicle:3,seat:-1,seconds:Number.POSITIVE_INFINITY},body());
+ // East to the front passenger door (-1 takes seat 0), walking the last four units.
+ expect(tasks.step(.1,body())).toEqual({kind:'move',yaw:Math.PI/2,walk:false,sprint:false});
+ expect(tasks.step(.1,body(3,0))).toEqual({kind:'move',yaw:Math.PI/2,walk:true,sprint:false});
+ expect(tasks.step(.1,body(5.8,0))).toEqual({kind:'hold'});expect(warps).toEqual([0]);
+ // Seated: the task is over.
+ expect(tasks.step(.1,body(5.8,0))).toBeUndefined();expect(tasks.active).toBe(false);
+ // Timed out first, he is set in where he is.
+ seated=false;tasks.give({kind:'enterCar',vehicle:3,seat:0,seconds:.5},body());
+ tasks.step(.6,body());expect(warps).toEqual([0,0]);
 });

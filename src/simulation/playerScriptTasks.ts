@@ -31,6 +31,8 @@ type Running=
  |{kind:'followNodeRoute';target:{x:number;y:number;z:number};points:{x:number;y:number;z:number}[];nodes:readonly unknown[];at:number;lastIsTarget:boolean;moveState:number;remaining:number;tolerance:number}
  /** CTaskComplexSeekEntity on a script ped (TASK_GOTO_CHAR and its kin), as a script ped's gotoPed runs. */
  |{kind:'gotoPed';target:number;radius:number;remaining:number;offset?:{radius:number;angle:number};follow?:boolean;sprint?:boolean;giveUp?:number}
+ /** CTaskComplexEnterCarAsPassenger: to the seat's door, then set in. */
+ |{kind:'enterPassenger';vehicle:number;seat:number;remaining:number}
  /** CTaskComplexUseMobilePhone as his primary task: on the call until TASK_USE_MOBILE_PHONE stops it. */
  |{kind:'mobilePhone'};
 
@@ -60,6 +62,13 @@ export interface PlayerTaskWorld{
  enterCar?(vehicle:number):boolean;
  /** The Timed form out of time: set in at the wheel. */
  warpIntoCar?(vehicle:number):void;
+ /** GetPositionToOpenCarDoor for a passenger seat of a script car (renderer coordinates), or none. */
+ passengerDoor?(vehicle:number,seat:number):{x:number;y:number;z:number}|undefined;
+ /** CPedGeometryAnalyser's route round the car: the corner to make for first when the car stands between him and the
+  * door (renderer coordinates), or none. */
+ routeRoundCar?(vehicle:number,from:{x:number;z:number},to:{x:number;z:number}):{x:number;z:number}|undefined;
+ /** CTaskSimpleCarSetPedInAsPassenger: he is set in the seat (0 the front right, 1 and 2 the rear); whether he is. */
+ warpIntoCarAsPassenger?(vehicle:number,seat:number):boolean;
  /** CTaskComplexLeaveCar on the player: 'started' once he is getting out, 'wait' while the car is not yet still
   * enough to step out of (CTaskSimpleCarWaitToSlowDown; the immediate form does not wait), 'none' when he is in no
   * car or not the one named. */
@@ -116,7 +125,7 @@ export class PlayerScriptTasks{
  constructor(private world:PlayerTaskWorld){}
  /** The kinds the player can carry out; anything else the thread gives up on. */
  static runs(order:ScriptedPedOrder){return order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim'||order.kind==='lookAt'||order.kind==='clearLookAt'||order.kind==='followRoute'||order.kind==='duck'&&order.seconds===undefined||
-  order.kind==='enterCar'&&order.seat==='driver'||order.kind==='leaveCar'||order.kind==='carTempAction'||order.kind==='carDriveToCoord'||
+  order.kind==='enterCar'||order.kind==='leaveCar'||order.kind==='carTempAction'||order.kind==='carDriveToCoord'||
   order.kind==='lookAtPoint'||order.kind==='die'||order.kind==='diveAndGetUp'||order.kind==='mobilePhone'||order.kind==='followNodeRoute'||order.kind==='gotoPed'||order.kind==='gunAt'&&(!!order.point||order.target!==undefined)&&!order.fire;}
  /** Whether a task of the script's runs on the player (GET_SCRIPT_TASK_STATUS). */
  get active(){return !!(this.running||this.sequence);}
@@ -196,7 +205,11 @@ export class PlayerScriptTasks{
    }
    case 'followRoute':this.running={kind:'followRoute',points:order.points.map(q=>({x:q.x,y:q.z,z:-q.y})),at:0,mode:order.mode,traversals:0,moveState:order.moveState};break;
    case 'duck':this.world.duck?.(order.crouch);break;
-   case 'enterCar':this.running={kind:'enterCar',vehicle:order.vehicle,remaining:order.seconds,started:false};break;
+   case 'enterCar':
+    // TASK_ENTER_CAR_AS_PASSENGER (WUZI5 walks CJ round to Woozie's passenger door): the walk to the seat's door and
+    // the set-in, as a script ped boards (its door clips are not played); -1 takes the front passenger seat.
+    if(order.seat!=='driver'){this.running={kind:'enterPassenger',vehicle:order.vehicle,seat:Math.max(0,order.seat),remaining:order.seconds};break;}
+    this.running={kind:'enterCar',vehicle:order.vehicle,remaining:order.seconds,started:false};break;
    case 'leaveCar':this.running={kind:'leaveCar',vehicle:order.vehicle,immediately:order.immediately,started:false};break;
    case 'carTempAction':case 'carDriveToCoord':this.running={kind:'carTask',order,started:false};break;
    // The trigger task starts the look and is over.
@@ -270,6 +283,19 @@ export class PlayerScriptTasks{
     return {kind:'hold',facing:Math.atan2(point.x-body.position.x,point.z-body.position.z)};
    }
    case 'mobilePhone':return {kind:'hold'};
+   case 'enterPassenger':{
+    // Seated (or the car gone): the task is over.
+    if((this.world.carState?.()??'none')==='seated'){this.next(body);return undefined;}
+    const door=this.world.passengerDoor?.(o.vehicle,o.seat);
+    if(!door){this.next(body);return {kind:'hold'};}
+    if(o.remaining!==Number.POSITIVE_INFINITY)o.remaining-=dt;
+    const q=body.position,gx=door.x-q.x,gz=door.z-q.z,distance=Math.hypot(gx,gz);
+    // At the door, or out of time (the timed task sets him in): CTaskSimpleCarSetPedInAsPassenger.
+    if(o.remaining<=0||goToPointArrived(distance,undefined,.5,body.speed*dt)){if(!this.world.warpIntoCarAsPassenger?.(o.vehicle,o.seat))this.next(body);return {kind:'hold'};}
+    // Round the car first when it stands between him and the door, as a script ped goes.
+    const via=this.world.routeRoundCar?.(o.vehicle,q,door)??door;
+    return {kind:'move',yaw:Math.atan2(via.x-q.x,via.z-q.z),walk:distance<4,sprint:false};
+   }
    case 'dive':
     if(o.phase==='loading')return {kind:'hold'};
     if(o.phase==='done'||!this.world.diving?.())this.next(body);

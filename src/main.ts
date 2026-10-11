@@ -237,6 +237,7 @@ import {PICKUP_TYPE} from './assets/scmPickups';
 import {Arsenal} from './weapons/Arsenal';
 import {WorldTraffic} from './simulation/WorldTraffic';
 import {WorldPedestrians,pedTypeName,setCharacterAnim,type Pedestrian} from './simulation/WorldPedestrians';
+import {WALK_ROUND_PAD,walkRoundCar} from './ped/nativeWalkRoundCar';
 import {PlayerScriptTasks} from './simulation/playerScriptTasks';
 import {PlayerPhone} from './simulation/PlayerPhone';
 import {ScriptCarMissions} from './simulation/ScriptCarMissions';
@@ -845,6 +846,19 @@ async function boot() {
    if(!car||typeof car.setPedInAsDriver!=='function'||car.disposed||carEntry.active)return false;
    return carEntry.enter(car as ScriptCar);
   },
+  routeRoundCar:(vehicle,from,to)=>{
+   const car=mission?.vehicles.entity(vehicle) as ScriptCar|undefined;if(!car||!isScriptCar(car)||car.disposed)return undefined;
+   const b=car.nativeBody,c=car.car.body.translation(),center=car.worldPoint({x:(b.boundsMin.x+b.boundsMax.x)/2,y:(b.boundsMin.y+b.boundsMax.y)/2,z:0}),ahead=car.worldPoint({x:0,y:1,z:0});
+   const fx=ahead.x-c.x,fz=ahead.z-c.z,fl=Math.hypot(fx,fz);if(fl<1e-6)return undefined;
+   return walkRoundCar(from,to,{center:{x:center.x,z:center.z},forward:{x:fx/fl,z:fz/fl},halfLength:(b.boundsMax.y-b.boundsMin.y)/2,halfWidth:(b.boundsMax.x-b.boundsMin.x)/2},WALK_ROUND_PAD);
+  },
+  passengerDoor:(vehicle,seat)=>{const car=mission?.vehicles.entity(vehicle) as ScriptCar|undefined;if(!car||!isScriptCar(car)||car.disposed)return undefined;const local=carEntry.seatDoorPoint(car,seat);return local&&car.worldPoint(local);},
+  warpIntoCarAsPassenger:(vehicle,seat)=>{
+   const car=mission?.vehicles.entity(vehicle) as ScriptCar|undefined;
+   if(!car||!isScriptCar(car)||car.disposed||worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger)return false;
+   const chosen=(seat>=0&&seat<=2?seat+1:1) as 1|2|3;
+   carEntry.cancel();car.setPlayerInAsPassenger(chosen);playerPassenger={car,seat:chosen};return true;
+  },
   warpIntoCar:vehicle=>{const car=mission?.vehicles.entity(vehicle) as Partial<ScriptCar>|undefined;if(car&&typeof car.setPedInAsDriver==='function'&&!car.disposed&&!car.occupied){carEntry.cancel();carEntry.warpIn(car as ScriptCar);}},
   leaveCar:(vehicle,immediately)=>{
    // From a passenger seat he steps out beside it (the passenger's get-out clip is not ported).
@@ -861,7 +875,7 @@ async function boot() {
    if(!immediately&&!car.canStepOut())return 'wait';
    return carEntry.exit()?'started':'wait';
   },
-  carState:()=>carEntry.seated||fleet?.occupiedBike?'seated':carEntry.active||bikeApproach||bikeMount.active?'entering':'none',
+  carState:()=>carEntry.seated||fleet?.occupiedBike||playerPassenger?'seated':carEntry.active||bikeApproach||bikeMount.active?'entering':'none',
   // CTaskComplexEvasiveDiveAndGetUp on CJ: turned along the dive, EV_DIVE held through the script's lie, then
   // GETUP_FRONT, through the same knockdown a fall gives him. The dive's forward root motion is not applied.
   dive:(yaw,lie)=>{
@@ -6588,7 +6602,7 @@ async function boot() {
                    // (GetDistanceFromCentreOfMassToBaseOfModel); in a vehicle it is the vehicle's, which the player's
                    // position already follows.
                    position:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y+(vehicle?0:PED_ORIGIN_HEIGHT)},
-                   vehicle:vehicle?{appearance,train:false,model:vehicle.modelId,inAirProper:()=>!(car?car.audio.contactWheels>0:'airborne' in vehicle&&!(vehicle as {airborne:boolean}).airborne)&&!touchesBuildingOrVehicle(car?car.car.body:(vehicle as {body:import('@dimforge/rapier3d-compat').RigidBody}).body)}:undefined,
+                   vehicle:vehicle?{appearance,train:false,model:vehicle.modelId,passenger:!!playerPassenger&&car===playerPassenger.car,inAirProper:()=>!(car?car.audio.contactWheels>0:'airborne' in vehicle&&!(vehicle as {airborne:boolean}).airborne)&&!touchesBuildingOrVehicle(car?car.car.body:(vehicle as {body:import('@dimforge/rapier3d-compat').RigidBody}).body)}:undefined,
                    stopped:speed<0.01&&(!!vehicle||sim.player.grounded),
                    // m_vecMoveSpeed's magnitude in units a second: the car's in one, his own (with the fall) on foot.
                    moveSpeed:vehicle?speed:Math.hypot(sim.player.speed,sim.player.verticalSpeed),groundSpeed:vehicle?speed:sim.player.speed,
