@@ -45,5 +45,10 @@ test('a script’s particle system plays where it put it and follows what it han
  expect(out.liftedAbove).toBeCloseTo(2,1);
  expect(out.followed).toBeGreaterThan(8);
  expect(out.stillThere).toBe(false);
+ // A handle never made (GARAG1 stops its EXHALE system at the end whether it made it or not): the commands do nothing,
+ // as CScriptsForFX finds no slot (iOS STOP_FX_SYSTEM), rather than giving the thread up.
+ const quiet=await page.evaluate(()=>{const w=(window as any).__game.missionForProfiling().runtime.world;
+  try{w.stopFxSystem(0);w.playFxSystem(4321);w.playAndKillFxSystem(4321);w.killFxSystem(4321);w.attachFxSystemToPedBone(4321,1,5);return 'ok';}catch(e){return String(e);}});
+ expect(quiet).toBe('ok');
  expect(errors).toEqual([]);
 });

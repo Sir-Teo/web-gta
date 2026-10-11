@@ -12089,3 +12089,8 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   marker pass threw on every frame (the sweep's page errors). The box top (and the script's base offset) now come from
   whichever bounds the vehicle has: a car's, bike's, boat's or plane's collision, or a carriage's own asset. Spec:
   `script-mission-train` (a blip on the engine places its cone, with no page error).
+- **GARAG1 gave up at its last command.** Its cleanup stops its EXHALE system whether the mission made it or not, and
+  the port gave the thread up for a handle it did not hold, so the mission never finished. The iOS STOP_FX_SYSTEM
+  (0x1001ee1e4) looks the handle up (CScriptsForFX::GetActualScriptThingIndex) and does nothing when there is no slot or
+  no system in it; PLAY_, PLAY_AND_KILL_, KILL_FX_SYSTEM and ATTACH_FX_SYSTEM_TO_CHAR_BONE now do nothing for such a
+  handle too. Spec: `script-fx`.

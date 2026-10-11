@@ -1743,7 +1743,7 @@ export class ScmMission {
    flamethrowerShots:()=>this.world.flamethrowerShots?.()??[],
    // FxSystem_c::AttachToBone: the system follows the bone (a bone tag) from here.
    attachFxSystemToPedBone:(fx,handle,bone)=>{
-    const record=this.scriptFx.get(fx);if(!record)throw new UnsupportedScmCommand(-1,0,'AN_FX_SYSTEM_THE_BROWSER_DOES_NOT_HOLD',`fx ${fx}`);
+    const record=this.scriptFx.get(fx);if(!record)return;
     if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);
     record.attached={kind:'ped',handle,offset:{x:0,y:0,z:0},bone};
    },
@@ -1809,13 +1809,13 @@ export class ScmMission {
    createFxSystemOnVehicleWithDirection:(name,vehicle,offset,direction,ignoreBoundingChecks)=>this.makeAttachedFx(name,'vehicle',vehicle,offset,direction,ignoreBoundingChecks),
    createFxSystemOnObjectWithDirection:(name,object,offset,direction,ignoreBoundingChecks)=>this.makeAttachedFx(name,'object',object,offset,direction,ignoreBoundingChecks),
    createFxSystemOnCharWithDirection:(name,char,x,y,z,dx,dy,dz,ignoreBoundingChecks)=>this.makeAttachedFx(name,'ped',char,{x,y,z},{x:dx,y:dy,z:dz},ignoreBoundingChecks),
-   playFxSystem:handle=>{this.world.playScriptFx(this.fxOf(handle),false);},
-   playAndKillFxSystem:handle=>{this.world.playScriptFx(this.fxOf(handle),true);},
-   stopFxSystem:handle=>{this.world.stopScriptFx(this.fxOf(handle));},
+   playFxSystem:handle=>{const fx=this.fxOf(handle);if(fx!==undefined)this.world.playScriptFx(fx,false);},
+   playAndKillFxSystem:handle=>{const fx=this.fxOf(handle);if(fx!==undefined)this.world.playScriptFx(fx,true);},
+   stopFxSystem:handle=>{const fx=this.fxOf(handle);if(fx!==undefined)this.world.stopScriptFx(fx);},
    // A handle that names no system (a shop script kills the one it may never have made) is left alone, as
    // GetActualScriptThingIndex answers -1 for it.
-   killFxSystem:handle=>{if(!this.scriptFx.has(handle))return;this.world.killScriptFx(this.fxOf(handle));this.scriptFx.delete(handle);},
-   killFxSystemNow:handle=>{if(!this.scriptFx.has(handle))return;this.world.killScriptFx(this.fxOf(handle));this.scriptFx.delete(handle);},
+   killFxSystem:handle=>{const fx=this.fxOf(handle);if(fx===undefined)return;this.world.killScriptFx(fx);this.scriptFx.delete(handle);},
+   killFxSystemNow:handle=>{const fx=this.fxOf(handle);if(fx===undefined)return;this.world.killScriptFx(fx);this.scriptFx.delete(handle);},
    // CWorld::FindGroundZFor3DCoord looks down from the point itself rather than from a thousand above, and answers
    // 0 where it meets nothing.
    groundZFor3DCoord:(x,y,z)=>this.world.groundLevel(x,y,z)??0,
@@ -3811,12 +3811,10 @@ export class ScmMission {
   const position=this.peds.positionOf(attached.handle),heading=this.peds.headingOf(attached.handle)*Math.PI/180;
   return {...headingFrame(heading),position,heading};
  }
- /** The host's system behind an FX handle; a handle naming none gives the thread up rather than doing nothing. */
- private fxOf(handle:number){
-  const record=this.scriptFx.get(handle);
-  if(!record)throw new UnsupportedScmCommand(-1,0,'AN_FX_SYSTEM_THE_BROWSER_DOES_NOT_HOLD',`fx ${handle}`);
-  return record.system;
- }
+ /** The host's system behind an FX handle. CScriptsForFX::GetActualScriptThingIndex finds none for a handle never
+  * made (GARAG1 stops its EXHALE system at the end whether it made it or not), or a slot without a system: the
+  * commands then do nothing (iOS STOP_FX_SYSTEM, 0x1001ee204 and 0x1001ee218). */
+ private fxOf(handle:number){return this.scriptFx.get(handle)?.system;}
  /** A system at a point in the script's own coordinates, facing the way the world does. */
  private makeFx(name:string,position:{x:number;y:number;z:number},ignoreBoundingChecks:boolean){
   const handle=this.nextFx++;
