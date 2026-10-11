@@ -32,13 +32,27 @@ function answerFor(name:string,pose:{translation:Vec;rotation:Quat}):unknown{
  if(/^(mass|invMass|effectiveInvMass|gravityScale|linearDamping|angularDamping|numColliders|friction|restitution|density|volume|radius|halfHeight|roundRadius|contactSkin|softCcdPrediction|dominanceGroup|additionalSolverIterations|collisionGroups|solverGroups|activeHooks|activeEvents|activeCollisionTypes|contactForceEventThreshold|frictionCombineRule|restitutionCombineRule|heightfieldNRows|heightfieldNCols)$/.test(name))return 0;
  return null;
 }
-function entomb(object:object,kind:string,prototype:object,pose:{translation:Vec;rotation:Quat},keep:Record<string,unknown>){
+/** The kept pose, on the removed object itself. */
+const POSE=Symbol('tombstone pose');
+type Pose={translation:Vec;rotation:Quat};
+/** Per prototype, the one made for its removed objects: each method answers from the object's kept pose. A removed
+ * object takes it as its prototype, one call where defining each of its hundred methods on the object cost a window
+ * swap a fifth of its time (hundreds of colliders go with each). It inherits from the class's own, so instanceof holds. */
+const tombs=new WeakMap<object,object>();
+function tombFor(prototype:object,kind:string){
+ let tomb=tombs.get(prototype);if(tomb)return tomb;
+ tomb=Object.create(prototype) as object;
  for(const name of Object.getOwnPropertyNames(prototype)){
-  if(name==='constructor'||name in keep)continue;
+  if(name==='constructor')continue;
   const descriptor=Object.getOwnPropertyDescriptor(prototype,name);if(!descriptor||typeof descriptor.value!=='function')continue;
-  const answer=answerFor(name,pose);
-  Object.defineProperty(object,name,{configurable:true,writable:true,value:()=>{report(kind,name);return answer&&typeof answer==='object'?{...answer as object}:answer;}});
+  Object.defineProperty(tomb,name,{configurable:true,writable:true,value:function(this:{[POSE]:Pose}){
+   report(kind,name);const answer=answerFor(name,this[POSE]);return answer&&typeof answer==='object'?{...answer as object}:answer;}});
  }
+ tombs.set(prototype,tomb);return tomb;
+}
+function entomb(object:object,kind:string,prototype:object,pose:Pose,keep:Record<string,unknown>){
+ Object.defineProperty(object,POSE,{configurable:true,value:pose});
+ Object.setPrototypeOf(object,tombFor(prototype,kind));
  for(const [name,value] of Object.entries(keep))Object.defineProperty(object,name,{configurable:true,writable:true,value});
  Object.defineProperty(object,'removed',{configurable:true,value:true});
 }

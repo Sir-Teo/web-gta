@@ -15,6 +15,9 @@ test('a removed body answers as a tombstone and the world keeps working',async()
  expect(body.isValid()).toBe(false);expect(body.isEnabled()).toBe(false);
  body.setEnabled(true);body.setTranslation({x:9,y:9,z:9},true);
  expect(collider.isValid()).toBe(false);expect(collider.parent()).toBeNull();
+ // Still the class's own objects, each with its own kept pose; a live one is untouched.
+ expect(body instanceof RAPIER.RigidBody).toBe(true);expect(collider instanceof RAPIER.Collider).toBe(true);
+ expect(collider.translation()).toMatchObject({x:1,z:3});expect(other.isValid()).toBe(true);
  // Removing it again is harmless, and the rest of the world still steps and answers.
  world.removeRigidBody(body);
  for(let i=0;i<10;i++)world.step();

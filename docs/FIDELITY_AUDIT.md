@@ -11883,3 +11883,8 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   the warmer keeps which material, geometry and kind it warmed (at the material's version, forgotten when the fog or
   lights change) and hands compile only the rest; a copy whose program is still linking is held back with the first.
   164 ms now. Spec: `program-warmer` (unit). (`touch-building-alpha` fails with and without this, on this machine.)
+- **Removed colliders.** Each body or collider removed from Rapier became a tombstone by having each of its hundred
+  methods defined on it one by one, and a streamed window's swap removes hundreds: a fifth of the swap's time. A
+  removed object now takes a prototype made once per class (inheriting from the class's own, so `instanceof` holds)
+  whose methods answer from the pose kept on the object: 100 ms to 14 in 20 s of driving at 4×. Spec:
+  `rapier-tombstones` (unit).
