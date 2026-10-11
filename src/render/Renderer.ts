@@ -16,7 +16,6 @@ import { angleDelta, clamp, damp } from '../core/math';
 import {FirstPersonZoom,firstPersonAlphaRange,firstPersonSourceOffset,isRocketMode,type FirstPersonMode} from '../weapons/nativeFirstPerson';
 import {MOUSE_ACCEL_DEFAULT} from '../input/mouseSettings';
 import {AIM_ASSIST_SETTLE as LOOK_SETTLE,aimAssistTurn} from '../input/aimAssist';
-import {elementSize} from '../ui/elementSize';
 
 export class GameRenderer {
   readonly renderer: THREE.WebGLRenderer;
@@ -154,6 +153,8 @@ export class GameRenderer {
     if (this.renderer.getPixelRatio() === ratio) return;
     this.renderer.setPixelRatio(ratio); this.resize();
   }
+  /** The size resize() last gave the renderer (CSS pixels), which a change of field of view projects with. */
+  private readonly drawSize = new THREE.Vector2();
   resize() {
     const w = Math.max(1, this.canvas.clientWidth), h = Math.max(1, this.canvas.clientHeight);
     this.renderer.setSize(w, h, false); applyWindowedCameraProjection(this.camera,w,h,this.sourceFov);
@@ -278,7 +279,7 @@ export class GameRenderer {
     const fov=this.fixedCamera?this.fixedCamera.fov??70:this.bumperView?60:fp?this.zoom.update(fp,dt*50,this.zoomInput.notch,this.zoomInput.held,input.pinch):this.aiming?52:GAME_CAMERA_FOV;this.zoomInput.notch=0;input.pinch=1;
     // Process_Rocket's near clip plane is 0.15.
     const near=this.scriptNearClip??(fp&&isRocketMode(fp)?.15:.08);
-    if(fov!==this.sourceFov||near!==this.camera.near){this.sourceFov=fov;this.camera.near=near;applyWindowedCameraProjection(this.camera,Math.max(1,elementSize(this.canvas).width),Math.max(1,elementSize(this.canvas).height),fov);}
+    if(fov!==this.sourceFov||near!==this.camera.near){this.sourceFov=fov;this.camera.near=near;applyWindowedCameraProjection(this.camera,Math.max(1,this.renderer.getSize(this.drawSize).x),Math.max(1,this.drawSize.y),fov);}
     mark=clock();this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt,coronaLookMask(this.glance),this.sourceFov,!paused);lap('lighting');
     const contact = this.contactLighting !== undefined && this.lighting.nativeWorldAmbient ? nativeContactLightMultiplier(this.lighting.nativeWorldAmbient,nativeContactBrightness(this.contactLighting!,nativeDayNightBalance(this.sim.timeMinutes))) : 1;
     this.nativeCharacter?.setAmbient(this.lighting.nativeObjectAmbient,this.lighting.sunLightMultiplier*contact,contact);
