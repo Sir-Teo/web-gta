@@ -32,7 +32,12 @@ export function placementFade(root: Object3D, ideFlags = 0, interior = 0,worldRe
   const copies = new Map<Material, Material>();
   const ownNormals = sharedNormals ? undefined : new Map<Material, Material>(), normalCopies = sharedNormals ?? ownNormals!;
   const clone = (source: Material) => {
-    const material = source.clone(); material.onBeforeCompile = source.onBeforeCompile; material.onBeforeRender = source.onBeforeRender; material.customProgramCacheKey = source.customProgramCacheKey;
+    // clone() round-trips userData through JSON, which would serialise the env texture: it is carried over by hand.
+    const env = source.userData.nativeEnv;
+    if (env) delete source.userData.nativeEnv;
+    const material = source.clone();
+    if (env) source.userData.nativeEnv = material.userData.nativeEnv = env;
+    material.onBeforeCompile = source.onBeforeCompile; material.onBeforeRender = source.onBeforeRender; material.customProgramCacheKey = source.customProgramCacheKey;
     return material;
   };
   if (worldRendering || ideFlags & (0x200000 | 0x4 | 0x40)) {

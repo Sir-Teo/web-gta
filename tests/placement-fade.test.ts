@@ -99,3 +99,16 @@ test('persistent normal copies outlive the window that made them and go with the
   expect(inside.mesh.material).not.toBe(normal);
   next.dispose(); material.dispose(); expect(disposed).toHaveBeenCalledTimes(1); geometry.dispose();
 });
+
+test('a faded copy of an env-mapped material keeps the source\'s env data, not a JSON copy of its texture', () => {
+  const geometry = new BoxGeometry(), env = new Texture(), material = new MeshBasicMaterial();
+  material.userData.nativeEnv = { map: env, coefficient: .5, fbAlpha: false, shininess: 1 };
+  const a = new Mesh(geometry, material), root = new Group(); root.add(a);
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  const fade = placementFade(root); fade.setAlpha(100);
+  expect(warn).not.toHaveBeenCalled(); warn.mockRestore();
+  expect(a.material).not.toBe(material);
+  expect((a.material as MeshBasicMaterial).userData.nativeEnv).toBe(material.userData.nativeEnv);
+  expect(material.userData.nativeEnv.map).toBe(env);
+  fade.dispose(); geometry.dispose(); material.dispose(); env.dispose();
+});
