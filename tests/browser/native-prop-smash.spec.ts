@@ -1,10 +1,13 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 test('the world car ploughs through OBJECT.DAT street props instead of stopping dead',async({page})=>{
  test.setTimeout(120000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
+ // From free roam: INTRO holds CJ for its ride, and F does nothing meanwhile.
+ await endStoryMission(page);
  // Props only respond once OBJECT.DAT has classified the placements as dummies.
  await expect.poll(async()=>(await state()).objectKinds.includes('dummy'),{timeout:30000}).toBe(true);
  // The Greenwood streams in after CJ lands; F does nothing until it is there.
@@ -45,6 +48,8 @@ test('a car uproots a fire hydrant and keeps most of its speed',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
+ // From free roam: INTRO holds CJ for its ride, and F does nothing meanwhile.
+ await endStoryMission(page);
  await expect.poll(async()=>(await state()).objectKinds.includes('dummy'),{timeout:30000}).toBe(true);
  // The Greenwood streams in after CJ lands; F does nothing until it is there.
  await expect.poll(async()=>(await state()).nativeCar!=null,{timeout:30000}).toBe(true);

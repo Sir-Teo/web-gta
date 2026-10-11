@@ -11888,3 +11888,8 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   removed object now takes a prototype made once per class (inheriting from the class's own, so `instanceof` holds)
   whose methods answer from the pose kept on the object: 100 ms to 14 in 20 s of driving at 4×. Spec:
   `rapier-tombstones` (unit).
+- **A car's contacts read once a step.** After each step the car walked its colliders' contact pairs twice, once for
+  the props it hit (`resolveVehicleProps`) and once for what it touched and collided with: a car's largest calls into
+  Rapier after the step itself. The pairs are read once (`World.contactPairsWith`) and both passes walk the list, a
+  prop the first removed left out of the second: the after-step went from 738 ms to 505 in 20 s of driving at 4×.
+  `native-prop-smash` (browser) passes; it now starts from free roam, as INTRO holds CJ for its ride and F did nothing.

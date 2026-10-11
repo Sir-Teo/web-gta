@@ -1366,7 +1366,7 @@ export class WorldCar {
  /** CPhysical::ApplyCollision's static-object branch for the props this car touched (vehiclePropContacts). */
  private resolveProps(){
   const out=resolveVehicleProps({world:this.sim.world,body:this.car.body,playerColliderHandle:this.sim.playerCollider.handle,pre:this.stepVelocity,preTurn:this.stepTurn,
-   mass:this.mass,turnMass:this.turnMass,occupied:this.occupied,wrecked:this.wrecked,propFor:this.propFor});
+   mass:this.mass,turnMass:this.turnMass,occupied:this.occupied,wrecked:this.wrecked,propFor:this.propFor,pairs:this.stepPairs});
   this.propsSmashed+=out.smashed;this.propsUprooted+=out.uprooted;
  }
  /** One pass over the step's contact manifolds: CPhysical::m_nNumEntitiesCollided (the bodies touched) and, when
@@ -1374,8 +1374,9 @@ export class WorldCar {
  private collisions(){
   const body=this.car.body;if(!body.isEnabled()){this.entitiesCollided=0;return;}
   const touched=this.touchedScratch;touched.clear();
-  for(let i=0;i<body.numColliders();i++){const collider=body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
-   if(other.isSensor()||other.handle===this.sim.playerCollider.handle||other.parent()?.handle===body.handle)return;
+  // A prop the props pass removed has left the world with its contacts.
+  for(const [collider,other] of this.stepPairs){if((other as {removed?:boolean}).removed)continue;
+   if(other.isSensor()||other.handle===this.sim.playerCollider.handle||other.parent()?.handle===body.handle)continue;
    this.sim.world.contactPair(collider,other,(manifold,flipped)=>{
     if(manifold.numContacts()>0)touched.add(other.parent()?.handle??other.handle);
     if(!this.onCollision)return;
@@ -1386,7 +1387,7 @@ export class WorldCar {
     if(pre&&pre.x*normal.x+pre.y*normal.y+pre.z*normal.z>=0)return;
     this.onCollision({other,point:{x:point.x,y:point.y,z:point.z},normal,impulse:impulse/this.mass/50});
    });
-  });}
+  }
   // Wheel line contacts record the entity they rest on, which for the road is the world.
   this.entitiesCollided=touched.size+(this.audio.contactWheels>0&&!touched.size?1:0);
   // CAutomobile::ProcessEntityCollision records a collision (m_nLastCollisionTime) for any contact point or wheel on
@@ -1394,10 +1395,17 @@ export class WorldCar {
   if(touched.size||this.audio.contactWheels>0)this.collisionAge=0;
  }
  private touchedScratch=new Set<number>();
+ /** The car's collider pairs in contact this step, read once (World.contactPairsWith) for the props and the collisions:
+  * the two passes were a car's largest calls into Rapier after the step itself. */
+ private stepPairs:(readonly [RAPIER.Collider,RAPIER.Collider])[]=[];
+ private readStepPairs(){
+  const pairs=this.stepPairs,body=this.car.body;pairs.length=0;if(!body.isEnabled())return;
+  for(let i=0;i<body.numColliders();i++){const collider=body.collider(i);this.sim.world.contactPairsWith(collider,other=>{pairs.push([collider,other]);});}
+ }
  afterStep(seconds=1/60){
   // CVehicle::UpdateClumpAlpha from CAutomobile::ProcessControl: 16 a frame, at the frame limiter's 30 fps.
   if(this.alpha<255&&!this.disposed){this.alpha=Math.min(255,this.alpha+16*seconds*30);this.car.setAlpha(this.alpha/255);}
-  this.resolveProps();this.collisions();this.collisionDamage();this.upsideDownDamage(seconds);this.processComponents(seconds);this.debris.step(seconds);this.debris.sync();
+  this.readStepPairs();this.resolveProps();this.collisions();this.collisionDamage();this.upsideDownDamage(seconds);this.processComponents(seconds);this.debris.step(seconds);this.debris.sync();
   // The player rides with the car, driving it or as a passenger.
   if(!this.occupied&&!this.playerPassengerSeat)return;const p=this.car.body.translation(),q=this.car.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={x:p.x,y:p.y,z:p.z};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=Math.hypot(this.car.body.linvel().x,this.car.body.linvel().z);player.grounded=true;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});
  }

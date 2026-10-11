@@ -17,7 +17,9 @@ export type VehicleProp={effect:number;colDamageMultiplier:number;uprootLimit:nu
 /** The vehicle side of a step's prop contacts: its body, the motion it had before the step (m/s, rad/s), OBJECT.DAT
  * lookups and whether it is a bike (CVehicle::IsSubBike: triple object damage). */
 export interface VehiclePropContacts {world:RAPIER.World;body:RAPIER.RigidBody;playerColliderHandle:number;pre?:{x:number;y:number;z:number};preTurn?:{x:number;y:number;z:number};
- mass:number;turnMass:number;occupied:boolean;wrecked:boolean;bike?:boolean;propFor?:(other:RAPIER.Collider)=>VehicleProp|undefined}
+ mass:number;turnMass:number;occupied:boolean;wrecked:boolean;bike?:boolean;propFor?:(other:RAPIER.Collider)=>VehicleProp|undefined;
+ /** The vehicle's collider pairs in contact this step (World.contactPairsWith), when it has read them already. */
+ pairs?:readonly (readonly [RAPIER.Collider,RAPIER.Collider])[]}
 type V3={x:number;y:number;z:number};
 const rotateV=(q:{x:number;y:number;z:number;w:number},v:V3):V3=>{const {x,y,z,w}=q;const ix=w*v.x+y*v.z-z*v.y,iy=w*v.y+z*v.x-x*v.z,iz=w*v.z+x*v.y-y*v.x,iw=-x*v.x-y*v.y-z*v.z;
  return {x:ix*w+iw*-x+iy*-z-iz*-y,y:iy*w+iw*-y+iz*-x-ix*-z,z:iz*w+iw*-z+ix*-y-iy*-x};};
@@ -74,7 +76,7 @@ export function resolveVehicleProps(o:VehiclePropContacts){
   // once a prop has been smashed or uprooted this step: its manifolds are read then, rather than every terrain
   // triangle's on every step (half of a car's calls into Rapier, and their garbage).
   let others:[RAPIER.Collider,RAPIER.Collider][]|undefined;
-  for(let i=0;i<body.numColliders();i++){const collider=body.collider(i);o.world.contactPairsWith(collider,other=>{
+  const visit=(collider:RAPIER.Collider,other:RAPIER.Collider)=>{
    const owner=other.parent();if(!owner||other.isSensor()||owner.handle===body.handle||other.handle===o.playerColliderHandle)return;
    if(!o.propFor!(other)){(others??=[]).push([collider,other]);return;}
    o.world.contactPair(collider,other,(manifold,flipped)=>{
@@ -144,7 +146,10 @@ export function resolveVehicleProps(o:VehiclePropContacts){
     changed++;uprooted++;
     move=fromNative(result.car.move);turn=fromNative(result.car.turn);
    });
-  });}
+  };
+  // The step's pairs when the vehicle has read them already (a car reads them once for this and its collisions).
+  if(o.pairs){for(const [collider,other] of o.pairs)if(!(other as {removed?:boolean}).removed)visit(collider,other);}
+  else for(let i=0;i<body.numColliders();i++){const collider=body.collider(i);o.world.contactPairsWith(collider,other=>visit(collider,other));}
   if(changed&&!otherImpact&&others)for(const [collider,other] of others){
    o.world.contactPair(collider,other,(manifold,flipped)=>{
     if(otherImpact||!manifold.numSolverContacts())return;
