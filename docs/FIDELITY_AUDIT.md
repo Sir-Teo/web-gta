@@ -12154,3 +12154,22 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   keep), and carries on once it is.
   Specs: `script-crane-rope` (the dock crane's magnet hangs within the rope's reach; GET_ROPE_HEIGHT reads 0.5 and SET
   0.2 lets the magnet down), `rope` (unit).
+- **The hook took nothing, and STEAL4's four rope commands were skipped.** CRope::Update's last part (iOS 0x10025e2c8
+  on) now runs: with nothing on the hook and its 60-frame wait over, it takes the first thing whose bounds' top is within
+  2.5 of the hook's node. The dock crane takes the four kmb containers and barrel4 (a container lying on its side by its
+  uppermost face, turned that face up), the Las Venturas trolley blockpallet, the quarry arm its three rocks and
+  dead_tied_cop (none hanging from anything), the RC magnet wong_dish; the cranes and the Leviathan also take cars,
+  unridden bikes, the Vortex and the Dinghy that WINCH_CAN_PICK_VEHICLE_UP has allowed (the vehicles' half is the next
+  step: the scan is in `findRopePickup`, the host has only objects yet). The load hangs at the rope's end with the hook on
+  its top, without collision, the rope let out by what the hook was above it; it moves (no longer static) and never
+  settles while on. The worked crane's Circle (PED_FIREWEAPON, QUAR_1's "Release objects") lets it go when
+  ENABLE_CRANE_CONTROLS' third flag allows it, and nothing is taken for 60 frames. Every object can be taken until
+  WINCH_CAN_PICK_OBJECT_UP (iOS 0x1002011f4) clears objectFlags.bCanBeAttachedToMagnet.
+  GRAB_ENTITY_ON_ROPE_FOR_OBJECT gives what hangs on the rope by kind (vehicle, ped, object, -1 for the rest) and
+  RELEASE_ENTITY_FROM_ROPE_FOR_OBJECT lets it go. ATTACH_CAR_TO_OBJECT (iOS 0x100201634) attaches as ATTACH_CAR_TO_CAR
+  does with the object for the parent (the angles in degrees, no form keeping the car where it is); a vehicle on an
+  object is never shaken off by the parent's tilt, which PositionAttachedEntity checks only for vehicle parents.
+  IS_VEHICLE_ATTACHED (iOS 0x1001ee728) reads the vehicle's m_pAttachedTo. A load held on a taut rope no longer counts
+  frames at rest (natively gravity is in its speed when ProcessControl averages it), so one let go falls instead of
+  staying where it hung. Spec: `script-crane-pickup` (the dock crane let down onto a container takes it, lifts it with a
+  car attached in it, and lets it fall).

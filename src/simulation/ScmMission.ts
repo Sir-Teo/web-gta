@@ -723,6 +723,10 @@ export interface ScmMissionWorld {
  /** ATTACH_CAR_TO_CAR: CPhysical::AttachEntityToEntity of one script vehicle on another, the offset and rotation
   * (radians) native, or neither to keep where it sits relative to the parent. */
  attachScriptVehicle?(child:unknown,parent:unknown,offset?:{x:number;y:number;z:number},rotation?:{x:number;y:number;z:number}):void;
+ /** The same with one of the script's objects (its handle) for the parent (ATTACH_CAR_TO_OBJECT). */
+ attachScriptVehicleToObject?(child:unknown,object:number,offset:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number}):void;
+ /** CPhysical::m_pAttachedTo of a vehicle is set. */
+ scriptVehicleAttached?(car:unknown):boolean;
  /** DETACH_CAR: CPhysical::DettachEntityFromEntity, the push's turns in radians and its size in units a frame. */
  detachScriptVehicle?(child:unknown,x:number,y:number,push:number,applyTurnForce:boolean):void;
  scriptVehiclePosition(car:unknown):{x:number;y:number;z:number};
@@ -1532,6 +1536,16 @@ export class ScmMission {
    setRopeHeightForObject:(handle,height)=>{this.runtime.game.objects.at(handle);const rope=this.ropes.find(handle);if(rope)rope.height=height;},
    // CTheScripts' three crane flags (iOS 0x1002002ec): whether the player may raise, lower and let go.
    enableCraneControls:(up,down,release)=>{this.ropes.enable=[up,down,release];},
+   // GRAB_ENTITY_ON_ROPE_FOR_OBJECT (iOS 0x1001f84cc): what hangs on the object's rope as its handle by kind, -1 for the
+   // other two (and all three with nothing on it).
+   grabEntityOnRopeForObject:handle=>{
+    this.runtime.game.objects.at(handle);const c=this.ropes.carriedBy(handle);
+    return {vehicle:c?.kind==='vehicle'?c.handle:-1,ped:c?.kind==='ped'?c.handle:-1,object:c?.kind==='object'?c.handle:-1};
+   },
+   // RELEASE_ENTITY_FROM_ROPE_FOR_OBJECT (iOS 0x1001f851c): CRope::ReleasePickedUpObject.
+   releaseEntityFromRopeForObject:handle=>{this.runtime.game.objects.at(handle);const rope=this.ropes.find(handle);if(rope)this.ropes.release(rope);},
+   // WINCH_CAN_PICK_OBJECT_UP (iOS 0x1002011f4): objectFlags.bCanBeAttachedToMagnet (bit 18 at +0x1a4).
+   winchCanPickObjectUp:(handle,state)=>{this.runtime.game.objects.at(handle).magnetic=state;},
    // ATTACH_CHAR_TO_BIKE (iOS 0x1001f2640, CPed::AttachPedToBike 0x10032c89c): AttachPedToEntity as the car form, and
    // the second limit kept in m_nTurretPosnMode (SYN1 seats CJ with his camera on a hidden, frozen bike at its photo
    // spot: 110 and 70). Nothing here reads that second limit.
@@ -2709,6 +2723,14 @@ export class ScmMission {
     const D=Math.PI/180,keep=offset.x<=-999.9;
     this.world.attachScriptVehicle?.(this.liveVehicle(handle),this.liveVehicle(other),keep?undefined:offset,keep?undefined:{x:rotation.x*D,y:rotation.y*D,z:rotation.z*D});
    },
+   // ATTACH_CAR_TO_OBJECT (iOS 0x100201634): CPhysical::AttachEntityToEntity on the object, the offset as given and the
+   // angles in degrees made radians (no form keeps the car where it is). STEAL4 puts its cars in the crane's containers.
+   attachCarToObject:(handle,object,x,y,z,rx,ry,rz)=>{
+    this.runtime.game.objects.at(object);const D=Math.PI/180;
+    this.host('attachScriptVehicleToObject','ATTACH_CAR_TO_OBJECT')(this.liveVehicle(handle),object,{x,y,z},{x:rx*D,y:ry*D,z:rz*D});
+   },
+   // IS_VEHICLE_ATTACHED (iOS 0x1001ee728): the vehicle's m_pAttachedTo (+0x150) is set.
+   isVehicleAttached:handle=>this.host('scriptVehicleAttached','IS_VEHICLE_ATTACHED')(this.liveVehicle(handle)),
    // DETACH_CAR (iOS 0x1001ee0a8): x in degrees, y in degrees turned the other way, the push as given.
    detachVehicle:(handle,x,y,z,applyTurnForce)=>{this.world.detachScriptVehicle?.(this.liveVehicle(handle),x*Math.PI/180,-y*Math.PI/180,z,applyTurnForce);},
    // ADD_SPARKS (iOS 0x100200738): CVector::NormaliseAndMag of the direction (no length makes it (1, y, z) and 1), the

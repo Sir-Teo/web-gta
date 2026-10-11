@@ -90,6 +90,9 @@ export interface ScmObject {
  attachedToEntity?:boolean;
  /** physicalFlags.bCarriedByRope: on a rope's hook (CRopes::IsCarriedByRope). */
  carriedByRope?:boolean;
+ /** objectFlags.bCanBeAttachedToMagnet: a crane's hook may take it. CObject::Init sets it on every object (iOS
+  * 0x1002d6590); WINCH_CAN_PICK_OBJECT_UP sets or clears it. Unset reads as set. */
+ magnetic?:boolean;
  /** SET_OBJECT_AS_STEALABLE: the player may pick it up with the enter/exit button and carry it. */
  stealable?:boolean;
  /** CPhysical::physicalFlags' five proofs, in the order SET_CAR_PROOFS and SET_CHAR_PROOFS take them. */

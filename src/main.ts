@@ -1572,12 +1572,23 @@ async function boot() {
   /** PositionAttachedEntity for one attached vehicle; a vehicle on a parent rolled or pitched past 45 degrees comes off,
    * lifted a unit a frame. */
   sim.afterWorldStep=()=>{for(const child of attachedVehicles.keys())positionAttachedVehicle(child);};
+  /** A script object as a vehicle's parent (ATTACH_CAR_TO_OBJECT): its body as the object host has it now, and gone
+   * once the script's object is. */
+  const scriptObjectParents=new Map<number,object>();
+  const scriptObjectParent=(handle:number)=>{
+   let parent=scriptObjectParents.get(handle);
+   if(!parent){parent={scriptObject:handle,get body(){return scriptObjectViews?.bodyOf(handle);},get disposed(){return !mission?.runtime.game.objects.exists(handle);}};scriptObjectParents.set(handle,parent);}
+   return parent;
+  };
   function positionAttachedVehicle(child:object){
    const entry=attachedVehicles.get(child);if(!entry)return;
-   const body=vehicleBodyOf(child),parentBody=vehicleBodyOf(entry.parent);
-   if(!body||!parentBody||(entry.parent as {disposed?:boolean}).disposed){detachVehicle(child,0,0,0,false,!body);return;}
+   const body=vehicleBodyOf(child),parentBody=vehicleBodyOf(entry.parent),objectParent=(entry.parent as {scriptObject?:number}).scriptObject!==undefined;
+   if(!body||!parentBody&&!objectParent||(entry.parent as {disposed?:boolean}).disposed){detachVehicle(child,0,0,0,false,!body);return;}
+   // An object whose body the host has not drawn yet holds the vehicle where it is.
+   if(!parentBody)return;
    const P=nativeRowsOf(parentBody);
-   if(Math.abs(P.right.z)>.707||Math.abs(P.forward.z)>.707){detachVehicle(child,0,0,1,false);return;}
+   // Only a vehicle parent rolled or pitched past 45 degrees lets go; an object's load moves with it.
+   if(!objectParent&&(Math.abs(P.right.z)>.707||Math.abs(P.forward.z)>.707)){detachVehicle(child,0,0,1,false);return;}
    const rows={right:inFrame(P,entry.local.right),forward:inFrame(P,entry.local.forward),up:inFrame(P,entry.local.up)},o=inFrame(P,entry.offset);
    body.setTranslation({x:P.position.x+o.x,y:P.position.z+o.z,z:-(P.position.y+o.y)},true);
    const q=rowsToPortQuaternion(rows);body.setRotation({x:q.x,y:q.y,z:q.z,w:q.w},true);body.setLinvel(parentBody.linvel(),true);
@@ -6188,6 +6199,8 @@ async function boot() {
                  triggerGunshot:(o,d)=>{worldFx.effects?.gunshot([o.x,o.y,o.z],[d.x,d.y,d.z],true);},
                  doCameraBump:(horizontal,vertical)=>{cameraBump={horizontal,vertical,startMs:gameTimeMs};},
                  attachScriptVehicle:(child,parent,offset,rotation)=>attachVehicle(child as object,parent as object,offset,rotation),
+                 attachScriptVehicleToObject:(child,object,offset,rotation)=>attachVehicle(child as object,scriptObjectParent(object),offset,rotation),
+                 scriptVehicleAttached:car=>attachedVehicles.has(car as object),
                  detachScriptVehicle:(child,x,y,push,turn)=>detachVehicle(child as object,x,y,push,turn),
                  scriptVehicleMatrix:car=>{
                   const body=(car as ScriptCar).car.body,q=body.rotation(),p=body.translation();

@@ -71,6 +71,8 @@ const PICKUP_OBJECTS:Readonly<Record<number,readonly string[]>>={
  [ROPE_QUARRY_CRANE_ARM]:['DYN_QUARRYROCK01','DYN_QUARRYROCK02','DYN_QUARRYROCK03','DEAD_TIED_COP'],
  [ROPE_MAGNET]:['WONG_DISH'],
 };
+/** Whether the crane's hook takes an object of this model at all. */
+export function ropePicksUpObject(type:number,model:string){return PICKUP_OBJECTS[type]?.includes(model.toUpperCase())??false;}
 /** The four containers: the hook takes one by whichever face is uppermost, and turns it that face up. */
 const TURNED_CONTAINERS:readonly string[]=['KMB_CONTAINER_RED','KMB_CONTAINER_YEL','KMB_CONTAINER_BLUE','KMB_CONTAINER_OPEN'];
 

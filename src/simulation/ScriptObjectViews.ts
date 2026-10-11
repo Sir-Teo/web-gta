@@ -321,9 +321,10 @@ export class ScriptObjectViews{
    d.force={x:(d.force.x+lv.x/50)/2,y:(d.force.y+lv.y/50)/2,z:(d.force.z+lv.z/50)/2};
    d.torque={x:(d.torque.x+av.x/50)/2,y:(d.torque.y+av.y/50)/2,z:(d.torque.z+av.z/50)/2};
    const still=Math.hypot(d.force.x,d.force.y,d.force.z)<limit&&Math.hypot(d.torque.x,d.torque.y,d.torque.z)<limit;
-   d.still=still?d.still+1:0;
-   // physicalFlags.bAttachedToEntity keeps it moving (a rope's hook and its load).
-   if(d.still>10&&!object.attachedToEntity){object.isStatic=true;break;}
+   // A rope's hook and its load (physicalFlags.bAttachedToEntity) never come to rest: natively ProcessControl's gravity
+   // is in their speed when it is averaged, before the rope takes it off, so the count of still frames starts again.
+   d.still=still&&!object.attachedToEntity?d.still+1:0;
+   if(d.still>10){object.isStatic=true;break;}
   }
   const t=body.translation(),q=body.rotation(),lv=body.linvel(),av=body.angvel();
   object.position={x:t.x,y:-t.z,z:t.y};
