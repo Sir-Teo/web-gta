@@ -12203,3 +12203,26 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   output against its van could never hold. RELEASE_ENTITY_FROM_WINCH lets the load go. The +0x61a bits are also what the
   hook's vehicle scan skips: a helicopter with a winch is never taken. Spec: `script-heli-winch` (a Leviathan held over
   the runway lets its magnet down onto a car, lifts it and drops it), `rope` (unit: the winch's stick and stop).
+
+## AI planes (October 11, 2026)
+
+- **A script's plane flew nowhere.** PLANE_GOTO_COORDS (ZERO1 13 times, CPRACE), PLANE_FLY_IN_DIRECTION and
+  SET_PLANE_THROTTLE (ZERO1, MANSIO2) were skipped, and the port had no plane AI. gta-reversed has CCarCtrl's plane
+  steering only as calls into the exe; it is read from iOS into `nativePlaneAI.ts`: SteerAICarWithPhysics' mission
+  switch (0x100198e04) sets the heading to the destination for MISSION_PLANE_FLYTOCOORS (0x10019939c) and flies
+  FlyAIPlaneInCertainDirection (0x10019f1c4) for it and MISSION_PLANE_FLYINDIRECTION. Once a second (staggered by the
+  plane's random seed) it looks for a heading: first between the one it wants and the way it faces, then the rest, 15
+  degrees at a time, taking the first whose ground ahead stays under 150 (rays from where it will be in 50 frames, 200
+  long, at 3, 0, -20, -40 and -60 degrees, against buildings; one at 6 degrees that strikes anything blocks the way),
+  turned 1.1 times past it, and holds the higher of that ground plus m_minAltitude and m_maxAltitude; with no way
+  clear it turns back and holds 500. On its wheels (and 4 s after they leave the ground) it keeps the heading it was
+  made with by the rudder, lifting the nose 0.4 above 32 of speed (7 for the RC planes); flying, it puts its gear up
+  (SetGearUp), pitches toward its height (a thirtieth of the gap at where it will be in 100 frames, within 0.4, by
+  the pitch it will have), banks into the turn (1.5 times the heading's error, within 0.9, 0.7 for the RC planes, less
+  when slow) by the roll it will have, and pulls up a quarter of the bank. Its throttle is
+  m_fAccelerationBreakStatusPrev: 1 from CPlane's constructor until SET_PLANE_THROTTLE (iOS 0x1001f6df0) sets it.
+  TellPlaneToGoToCoors (iOS 0x100440934) takes the fifth argument as m_minAltitude and the greater of the sixth and the
+  destination's height as m_maxAltitude; PLANE_FLY_IN_DIRECTION (iOS 0x1001f65f8) the heading in degrees from the x
+  axis and the two as they are, unless the plane is crashing. A plane with an AI mission flies however far it is from
+  the player, as the helicopters do. Specs: `script-plane-goto` (a Rustler over the sea heading north comes round to a
+  point west of it, staying aloft), `plane-ai` (unit).

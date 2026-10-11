@@ -2699,6 +2699,11 @@ export class ScmMission {
    boatStop:handle=>{(this.liveVehicle(handle) as {boatStop?:()=>void}).boatStop?.();},
    setBoatCruiseSpeed:(handle,speed)=>{(this.liveVehicle(handle) as {setBoatCruiseSpeed?:(speed:number)=>void}).setBoatCruiseSpeed?.(speed);},
    // HELI_GOTO_COORDS (iOS 0x1001e268c): CAutomobile::TellHeliToGoToCoors with the command's arguments as they are.
+   // PLANE_GOTO_COORDS (iOS 0x1001e3a9c), PLANE_FLY_IN_DIRECTION (iOS 0x1001f65f8) and SET_PLANE_THROTTLE (iOS
+   // 0x1001f6df0) on the plane's AI (nativePlaneAI.ts).
+   planeGotoCoords:(handle,x,y,z,minAltitude,maxAltitude)=>{(this.liveVehicle(handle) as {tellPlaneToGoToCoors?:(x:number,y:number,z:number,min:number,max:number)=>void}).tellPlaneToGoToCoors?.(x,y,z,minAltitude,maxAltitude);},
+   planeFlyInDirection:(handle,heading,minAltitude,maxAltitude)=>{(this.liveVehicle(handle) as {tellPlaneToFlyInDirection?:(h:number,min:number,max:number)=>void}).tellPlaneToFlyInDirection?.(heading,minAltitude,maxAltitude);},
+   setPlaneThrottle:(handle,throttle)=>{(this.liveVehicle(handle) as {setPlaneThrottle?:(t:number)=>void}).setPlaneThrottle?.(throttle);},
    heliGotoCoords:(handle,x,y,z,minAltitude,maxAltitude)=>{(this.liveVehicle(handle) as {tellHeliToGoToCoors?:(x:number,y:number,z:number,min:number,max:number)=>void}).tellHeliToGoToCoors?.(x,y,z,minAltitude,maxAltitude);},
    // HELI_FOLLOW_ENTITY (iOS 0x1001f5edc): the ped, or with none (-1) the vehicle, as m_TargetEntity, followed until it
    // is gone.

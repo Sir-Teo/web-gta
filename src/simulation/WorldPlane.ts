@@ -17,6 +17,7 @@ import {MISSION_HELI_ATTACK_PLAYER,MISSION_HELI_ATTACK_PLAYER_FLY_AWAY,MISSION_H
 import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
 import {stepBombTimer} from '../vehicle/nativeCarBomb';
 import {stepPlaneWheelRoll,type PlaneWheelRoll} from './planeWheelRoll';
+import {MISSION_PLANE_FLYINDIRECTION,MISSION_PLANE_FLYTOCOORS,atanOfXY,newPlaneAI,planeSearchDue,steerAIPlane,type PlaneAI,type PlanePilot} from './nativePlaneAI';
 import {applyNativeBuoyancy,nativeBuoyancySplashEdges,nativeSplashParticles,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
 import type {NativeAnimation} from '../assets/ifp';
 import {vehicleAnimation,VEHICLE_ANIM,type VehicleAnimGroupData} from '../assets/vehicleAnimGroups';
@@ -171,6 +172,49 @@ export class WorldPlane {
   const pilot=this.aiPilot();if(!pilot)return;
   if(pilot.mission!==57&&pilot.mission!==58)pilot.mission=MISSION_HELI_KEEP_ENTITY_IN_VIEW;
   pilot.target=target;pilot.heliTargetDist=Math.trunc(distance)&0xff;pilot.ai.minAltitude=minAltitude;pilot.cruiseSpeed=100;
+ }
+ /** A plane's AI pilot: the CAutoPilot fields and CPlane's own the native steering flies it by (nativePlaneAI.ts). */
+ planePilot?:PlanePilot&{ai:PlaneAI};
+ /** CTimer's clock for the plane AI's once-a-second search and its time off the ground, ms; it starts well on, as the
+  * game's has by the time a script makes a plane. */
+ private planeClockMs=60000;
+ /** CAutomobile::TellPlaneToGoToCoors (iOS 0x100440934), which PLANE_GOTO_COORDS calls with its arguments as they are:
+  * MISSION_PLANE_FLYTOCOORS to the destination (native), the fifth as m_minAltitude (the height over the ground ahead)
+  * and the greater of the sixth and the destination's height as m_maxAltitude, STATUS_PHYSICS, the engine on. */
+ tellPlaneToGoToCoors(x:number,y:number,z:number,minAltitude:number,maxAltitude:number){
+  const pilot=this.aiPlanePilot();if(!pilot)return;
+  pilot.mission=MISSION_PLANE_FLYTOCOORS;pilot.destination=[x,y,z];pilot.ai.minAltitude=minAltitude;pilot.ai.maxAltitude=Math.max(maxAltitude,z);
+ }
+ /** PLANE_FLY_IN_DIRECTION (iOS 0x1001f65f8): MISSION_PLANE_FLYINDIRECTION unless it is crashing, the heading (degrees from
+  * the x axis) as the one it wants and takes, and the two altitudes. */
+ tellPlaneToFlyInDirection(degrees:number,minAltitude:number,maxAltitude:number){
+  const pilot=this.aiPlanePilot();if(!pilot)return;
+  if(pilot.mission!==57&&pilot.mission!==58)pilot.mission=MISSION_PLANE_FLYINDIRECTION;
+  pilot.ai.heading=pilot.ai.headingPrev=degrees*Math.PI/180;pilot.ai.minAltitude=minAltitude;pilot.ai.maxAltitude=maxAltitude;
+ }
+ /** SET_PLANE_THROTTLE (iOS 0x1001f6df0): m_fAccelerationBreakStatusPrev, the throttle the AI flies at. */
+ setPlaneThrottle(throttle:number){const pilot=this.aiPlanePilot();if(pilot)pilot.ai.accelPrev=throttle;}
+ private aiPlanePilot(){
+  if(this.helicopter)return undefined;
+  this.autopilot??={throttle:0,pitch:0,roll:0,rudder:0,brake:false};
+  // m_planeCreationHeading: the way it faced as it was placed.
+  return this.planePilot??={mission:0,destination:[0,0,0],tempAction:0,rc:this.modelId===464||this.modelId===465,ai:newPlaneAI(atanOfXY(this.flyingBody().forward[0],this.flyingBody().forward[1]))};
+ }
+ /** CCarCtrl::SteerAICarWithPhysics for an AI plane's mission: its four controls for this step, as the autopilot's, and
+  * its gear up once it is flying. */
+ private steerAIPlane(dt:number){
+  const pilot=this.planePilot;if(!pilot||this.occupied||this.health<=0)return;
+  const previous=this.planeClockMs;this.planeClockMs+=dt*1000;
+  const b=this.flyingBody(),world=this.sim.world,port=(v:NV)=>({x:v[0],y:v[2],z:-v[1]});
+  const lineOfSight=(from:NV,to:NV):NV|undefined=>{
+   const a=port(from),c=port(to),d={x:c.x-a.x,y:c.y-a.y,z:c.z-a.z},l=Math.hypot(d.x,d.y,d.z);if(l<1e-6)return undefined;
+   const hit=world.castRay(new RAPIER.Ray(a,{x:d.x/l,y:d.y/l,z:d.z/l}),l,true,RAPIER.QueryFilterFlags.ONLY_FIXED);if(!hit)return undefined;
+   const t=hit.timeOfImpact/l;return [from[0]+(to[0]-from[0])*t,from[1]+(to[1]-from[1])*t,from[2]+(to[2]-from[2])*t];
+  };
+  const body={position:b.position,moveSpeed:b.moveSpeed,right:b.right,forward:b.forward,up:b.up,onGround:this.grounded};
+  if(!steerAIPlane(pilot.ai,body,pilot,{lineOfSight},this.planeClockMs,planeSearchDue(this.planeClockMs,previous,this.heliSeed),dt*50))return;
+  const ai=pilot.ai;this.autopilot={throttle:ai.accel,pitch:ai.pitch,roll:ai.roll,rudder:ai.rudder,brake:false};
+  if(ai.gearUp)this.gearUp=true;
  }
  /** SET_HELI_REACHED_TARGET_DISTANCE (iOS 0x1001fe394): CAutoPilot's m_ucHeliTargetDist2, a byte. */
  setHeliReachedTargetDistance(distance:number){const pilot=this.aiPilot();if(pilot)pilot.heliTargetDist2=distance&0xff;}
@@ -423,8 +467,8 @@ export class WorldPlane {
  /** FREEZE_CAR_POSITION (bIsFrozen): the body stays off while it is set, which this step would otherwise undo. */
  frozen=false;
  beforeStep(dt:number,input:{throttle:number;pitch:number;roll:number;rudder:number;brake:boolean}){
-  // An AI pilot's helicopter flies on however far off it is (SteerAICarWithPhysics has no range); it is drawn only near.
-  const piloted=this.helicopter&&!!this.heliPilot?.mission&&!this.occupied&&this.health>0;
+  // An AI pilot's aircraft flies on however far off it is (SteerAICarWithPhysics has no range); it is drawn only near.
+  const piloted=(this.helicopter?!!this.heliPilot?.mission:!!this.planePilot?.mission)&&!this.occupied&&this.health>0;
   const recorded=this.recordingSlot>=0&&this.body.bodyType()===RAPIER.RigidBodyType.KinematicVelocityBased;
   const nearby=this.occupied||this.distance()<250,active=recorded||(nearby||piloted)&&!this.frozen&&(this.occupied||!!this.autopilot||this.startedInAir||this.collisionLoaded(dt));
   this.body.setEnabled(active);this.root.visible=nearby;if(!active)return;
@@ -436,7 +480,7 @@ export class WorldPlane {
   if(recorded){if(this.helicopter){this.rotorSpeed=HELI_ROTOR_FULL;this.propAngle=(this.propAngle+dt*95)%(Math.PI*2);}return;}
   const p=this.body.translation(),hit=this.sim.world.castRay(new RAPIER.Ray(p,{x:0,y:-1,z:0}),3000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
   this.altitude=hit?hit.timeOfImpact:Math.max(0,p.y);const clearance=Math.max(1.5,-this.assets.collision!.bounds.min[2]+.8);this.grounded=!!hit&&hit.timeOfImpact<clearance;
-   if(this.helicopter)this.steerAIHeli(dt);
+   if(this.helicopter)this.steerAIHeli(dt);else this.steerAIPlane(dt);
    const auto=!this.occupied&&this.health>0?this.autopilot:undefined;
    if(auto)this.throttle=Math.max(0,Math.min(1,auto.throttle));
    else if(this.occupied&&this.health>0&&!(this.drowning&&this.water.buoyancy<this.handling.values.mass/125))this.throttle=Math.max(0,Math.min(1,this.throttle+input.throttle*dt*.4));else this.throttle=0;
