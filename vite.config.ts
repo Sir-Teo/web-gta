@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 import { useRapierWasmFile } from './scripts/rapierWasm.mjs';
@@ -63,9 +63,29 @@ const rapierWasmFile = (): Plugin => {
   };
 };
 
+/** A world resource with a packed copy (scripts/pack-world-resources.mjs) is only ever read through it
+ * (StaticWorldArchive.resource), so its raw file stays in public/ for the tools and tests that read it from disk and is
+ * left out of the site: about 21 MB of the Pages budget. */
+const worldPackedOnly = (): Plugin => {
+  let publicDir = '', outDir = '';
+  return {
+    name: 'world-packed-only',
+    apply: 'build',
+    configResolved(config) { publicDir = config.publicDir; outDir = join(config.root, config.build.outDir); },
+    closeBundle() {
+      const manifest = JSON.parse(readFileSync(join(publicDir, 'play/world/manifest.json'), 'utf8')) as { resources: { path: string; packed?: { file: string } }[] };
+      for (const resource of manifest.resources) {
+        if (!resource.packed) continue;
+        if (!existsSync(join(outDir, 'play/world', resource.packed.file))) this.error(`${resource.path}'s packed copy ${resource.packed.file} is not in the build.`);
+        rmSync(join(outDir, 'play/world/files', resource.path), { force: true });
+      }
+    },
+  };
+};
+
 export default defineConfig({
   base: process.env.BASE_PATH || '/',
-  plugins: [rapierWasmFile(), serviceWorker()],
+  plugins: [rapierWasmFile(), serviceWorker(), worldPackedOnly()],
   // Playwright sets this only in its server process; avoid sharing optimizer state with the editor.
   cacheDir: process.env.PLAYWRIGHT_TEST ? 'node_modules/.vite-browser-tests' : 'node_modules/.vite',
   build: {

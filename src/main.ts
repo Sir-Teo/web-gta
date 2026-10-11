@@ -1336,7 +1336,13 @@ async function boot() {
   // as it starts or as the archive arrives, whichever is later; fetched once the menu's button is up.
   let scriptImg:Uint8Array|undefined;
   const registerStreamedScripts=()=>{if(scriptImg&&mission)try{mission.loadStreamedScripts(scriptImg);}catch(error){console.error('script.img could not be registered',error);}};
-  void afterMenuReady.then(()=>fetch(new URL(`${import.meta.env.BASE_URL}play/world/files/scripts/script.img`,location.href))).then(r=>r.ok?r.arrayBuffer():Promise.reject(new Error(`script.img ${r.status}`))).then(buffer=>{scriptImg=new Uint8Array(buffer);registerStreamedScripts();}).catch(error=>{console.error('script.img failed to load',error);});
+  // Through the world's manifest: its packed copy is what the site publishes (the build leaves out the raw one).
+  void afterMenuReady.then(async()=>{
+   const {openStaticWorld}=await import('./assets/staticWorldArchive');
+   const world=await openStaticWorld(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href),resource=world.manifest.resources.find(r=>r.path==='scripts/script.img');
+   if(!resource)throw new Error('script.img is not in the world manifest');
+   return (await world.resource(resource)).arrayBuffer();
+  }).then(buffer=>{scriptImg=new Uint8Array(buffer);registerStreamedScripts();}).catch(error=>{console.error('script.img failed to load',error);});
   // CPlayerInfo::m_nNumHoursDidntEat and WorkOutEnergyFromHunger.
   const hunger=new NativeHunger();
   const parachuteTimer=new NativeParachuteTimer();let inAircraft=false;
