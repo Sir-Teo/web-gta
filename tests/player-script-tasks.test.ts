@@ -142,6 +142,35 @@ test('a sequence\'s TASK_USE_MOBILE_PHONE on the player takes the phone out and 
  expect(tasks.active).toBe(true);expect(tasks.progress).toBe(1);
 });
 
+test('TASK_USE_MOBILE_PHONE with 0 ends the player\'s call and his sequence goes on (LA1FIN2 lets him drive off)',()=>{
+ const tasks=new PlayerScriptTasks(world);
+ tasks.giveSequence([{kind:'mobilePhone'},{kind:'standStill',seconds:1}],false,body());
+ tasks.step(5,body());expect(tasks.progress).toBe(0);
+ // Stopping a phone he is not on changes nothing.
+ tasks.stopPhone(body());expect(tasks.progress).toBe(1);
+ tasks.stopPhone(body());expect(tasks.progress).toBe(1);
+ tasks.step(1.1,body());expect(tasks.active).toBe(false);
+ // The last task of all: stopped, nothing of the script's holds him.
+ tasks.give({kind:'mobilePhone'},body());expect(tasks.active).toBe(true);
+ tasks.stopPhone(body());expect(tasks.active).toBe(false);expect(tasks.step(.1,body())).toBeUndefined();
+});
+
+test('TASK_AIM_GUN_AT_CHAR on the player follows the ped, and is over when he is gone (CAT2)',()=>{
+ const aims:unknown[]=[];let ped:{x:number;y:number;z:number}|undefined={x:0,y:1,z:5};
+ const tasks=new PlayerScriptTasks({...world,aimAt:point=>{aims.push(point);},pedPoint:handle=>handle===7?ped:undefined});
+ expect(PlayerScriptTasks.runs({kind:'gunAt',target:7,fire:false,seconds:1})).toBe(true);
+ tasks.give({kind:'gunAt',target:7,fire:false,seconds:10},body());
+ expect(aims).toEqual([{x:0,y:1,z:5}]);
+ expect(tasks.step(.1,body())).toEqual({kind:'hold',facing:0});
+ // He moves east: the aim and the facing follow him.
+ ped={x:5,y:1,z:0};
+ expect(tasks.step(.1,body())).toEqual({kind:'hold',facing:Math.PI/2});expect(aims.at(-1)).toEqual({x:5,y:1,z:0});
+ ped=undefined;tasks.step(.1,body());
+ expect(aims.at(-1)).toBeUndefined();expect(tasks.active).toBe(false);
+ // One not there to start with gives no task.
+ tasks.give({kind:'gunAt',target:8,fire:false,seconds:1},body());expect(tasks.active).toBe(false);
+});
+
 test('TASK_AIM_GUN_AT_COORD on the player holds his weapon on the point, facing it, for its time (CAT2)',()=>{
  const aims:unknown[]=[];
  const tasks=new PlayerScriptTasks({...world,aimAt:point=>{aims.push(point);}});

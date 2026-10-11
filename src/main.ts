@@ -823,6 +823,8 @@ async function boot() {
   animation:(file,name)=>pedestrians?.scriptAnimation(file,name)??Promise.resolve(undefined),
   duck:crouch=>{sim.setCrouched(crouch);},
   mobilePhone:start=>{phoneFor('player').use(start);},
+  // The ped's origin, where CTaskSimpleUseGun's target entity stands.
+  pedPoint:handle=>{try{const p=mission?.runtime.world?.pedPosition?.(handle);return p&&{x:p.x,y:p.z,z:-p.y};}catch{return undefined;}},
   aimAt:point=>{scriptAim=point&&new Vector3(point.x,point.y,point.z);},
   enterCar:vehicle=>{
    const car=mission?.vehicles.entity(vehicle) as Partial<ScriptCar>|undefined;
@@ -6300,7 +6302,7 @@ async function boot() {
                  // ms_entryExitStackPosn = 0) and CTimeCycle::StopExtraColour(0).
                  setPlayerArea:area=>{playerAreaCode=area;if(area===0){entryExits?.clearStack();localLighting.stopExtraColour(false);}},
                  setPlayerProofs:proofs=>{sim.playerProofs={...proofs};},
-                 usePedMobilePhone:(ped,start)=>{if(ped==='player'||onFoot(ped))phoneFor(ped).use(start);},
+                 usePedMobilePhone:(ped,start)=>{if(ped==='player'||onFoot(ped))phoneFor(ped).use(start);if(ped==='player'&&!start)playerTasks.stopPhone(playerTaskBody());},
                  explodeScriptPedHead:ped=>{const p=onFoot(ped);if(!p)return;const q=p.actor.player.position;
                   pedestrians?.damageCollider(p.collider.handle,1000,{x:0,z:1},'bullet',{weapon:34,point:{x:q.x,y:q.y+1.6,z:q.z},noSource:true});},
                  // USE_DETONATOR: CWorld::UseDetonator for the player (his satchels and sticky car bombs).

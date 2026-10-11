@@ -11984,3 +11984,16 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   now runs on the player: his weapon is held up whatever the pad, its direction and target the point, and he turns to
   face it (CTaskSimpleUseGun's aim), until the time runs out or another task replaces it. Specs: `script-player-aim`
   (browser), `player-script-tasks` (unit).
+- **LA1FIN2 then held CJ on the phone for good, and CAT2 gave up at its next aim.** After Sweet's call the mission
+  stops it with TASK_USE_MOBILE_PHONE and 0 and sends CJ off in a car, but the port's phone step held him on the call
+  forever, so he could not get into one. The iOS handler (0x1001f7e34) looks for CTaskComplexUseMobilePhone (1600) in
+  the ped's primary task, a sequence's step included, and tells it to stop (0x1003c73cc); the phone step now ends there
+  and the sequence goes on. CAT2's next hold-up gives CJ TASK_AIM_GUN_AT_CHAR on the clerk, which the player's tasks
+  refused; the aim now also takes a ped, following where he stands each frame and ending once he is gone. Spec:
+  `player-script-tasks` (unit).
+- **Read solo, three other ends were not the port's.** A batch sweep carries the last mission's five-second M_FAIL
+  into the next one, so CATALIN "failed" at its first sample after BCRASH1 (alone it runs to its last cutscene), and
+  BCESAR4's stage 0 is only its cutscene. TRUTH1's bot drove into a lake: the sweep resets CJ's health, so he sat in the
+  sunk car rather than drown. Whether CJ leaves a sinking car by himself is not settled: CTaskSimpleCarDrive's
+  ProcessPed (iOS 0x1003d5c58) never reads the car's bIsDrowning bit (bit 30 of the word at 0x568, as IS_CAR_DEAD reads
+  it at 0x1001d1564).
