@@ -1661,7 +1661,7 @@ async function boot() {
      if(!paused)for(let i=0;i<steps;i++){fogReduction=stepFogReduction(fogReduction,{cameraForwardZ:camera.getWorldDirection(fogReductionForward).y,noRain:cullNoRain()});localLighting.stepExtraColour(50/30);}}
     if(weatherStarted)weatherEffects.update(camera,{rain:weather.rain,wind:weather.wind,windDir:weather.windDir,
       // CClouds::Render draws the rainbow only where the outside can be seen (CGame::CanSeeOutSideFromCurrArea).
-      rainbow:render.lighting.area===0?weather.rainbow:0,fov:render.fov,frame:Math.floor(gameTimeExact*30/1000),noRain:cullNoRain(),underwater:weather.underwaterness>0,fogReduction},render.lighting.sunTexture.texture,paused||!!navigation?.open||arsenal.open,{width:Math.max(1,canvas.clientWidth),height:Math.max(1,canvas.clientHeight)});
+      rainbow:render.lighting.area===0?weather.rainbow:0,fov:render.fov,frame:Math.floor(gameTimeExact*30/1000),noRain:cullNoRain(),underwater:weather.underwaterness>0,fogReduction},render.lighting.sunTexture.texture,paused||!!navigation?.open||arsenal.open,{width:Math.max(1,elementSize(canvas).width),height:Math.max(1,elementSize(canvas).height)});
     // CClouds::VolumetricCloudsRender: the puffy high clouds, created ahead of the player's vehicle (or the camera). It
     // runs once a 30 fps game frame: creation and the wind drift are per frame, the fader per time step.
     const cloudFrames=Math.floor(elapsed*30)-Math.floor(volumetricCloudElapsed*30);

@@ -11871,8 +11871,8 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   (the frame limiter asks 30): High 21 standing and 17 driving, Medium 23 and 20, Low 30 and 25. At High a game frame
   is about 23 ms of three's scene walk and draw calls, 14 of fixed steps (cars, peds, Rapier) and 3 to 5 between; the
   Low preset takes about a third off both.
-- **Layout reads each frame.** The big messages, the intro text, the menus, the occlusion camera, the full map and the
-  camera's projection read `clientWidth`/`clientHeight` every frame, and the HUD and touch buttons change every frame,
+- **Layout reads each frame.** The big messages, the intro text, the menus, the occlusion camera, the weather effects,
+  the full map and the camera's projection read `clientWidth`/`clientHeight` every frame, and the HUD and touch buttons change every frame,
   so each read laid the page out again: 177 ms in 15 s standing and 319 in 20 s driving at 4×. They read the sizes a
   ResizeObserver keeps now (`ui/elementSize.ts`), and the profile has none. Spec: `element-size` (unit); the HUD message,
   menu, occlusion, map and touch layout specs pass.
