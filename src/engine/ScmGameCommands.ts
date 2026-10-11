@@ -2675,7 +2675,8 @@ const handlers:Record<string,ScmCommandHandler>={
  KILL_FX_SYSTEM_NOW:(t,p,i)=>{world(t,i,'killFxSystemNow')(t.readInt(p[0]));},
  SET_PLAYER_MOOD:(t,p,i)=>{world(t,i,'setPlayerMood')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
  SET_INFRARED_VISION:(t,p,i)=>{world(t,i,'setInfraredVision')(bool(t,p[0]));},
- STOP_CREDITS:(t,p,i)=>{world(t,i,'stopCredits')();},
+ // CCredits::Stop, Start and AreFinished (!bCreditsGoing, which the roll's last line clears): ScmCredits.
+ STOP_CREDITS:(t,_p,i)=>{game(t,i).credits.stop();},
  WINCH_CAN_PICK_OBJECT_UP:(t,p,i)=>{world(t,i,'winchCanPickObjectUp')(t.readInt(p[0]),bool(t,p[1]));},
  SET_OBJECT_RENDER_SCORCHED:(t,p,i)=>{world(t,i,'setObjectRenderScorched')(t.readInt(p[0]),bool(t,p[1]));},
  IS_PLAYER_PERFORMING_WHEELIE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isPlayerPerformingWheelie')(t.readInt(p[0])),negated(i));},
@@ -2802,8 +2803,8 @@ const handlers:Record<string,ScmCommandHandler>={
  ATTACH_OBJECT_TO_CHAR:(t,p,i)=>{world(t,i,'attachObjectToChar')(t.readInt(p[0]),t.readInt(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readFloat(p[6]),t.readFloat(p[7]));},
  SET_CHAR_BULLETPROOF_VEST:(t,p,i)=>{world(t,i,'setCharBulletproofVest')(t.readInt(p[0]),bool(t,p[1]));},
  GET_DOOR_ANGLE_RATIO:(t,p,i)=>{t.writeFloat(p[2],world(t,i,'getDoorAngleRatio')(t.readInt(p[0]),t.readInt(p[1])));},
- START_CREDITS:(t,p,i)=>{world(t,i,'startCredits')();},
- ARE_CREDITS_FINISHED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'areCreditsFinished')(),negated(i));},
+ START_CREDITS:(t,_p,i,now)=>{game(t,i).credits.start(now);},
+ ARE_CREDITS_FINISHED:(t,_p,i)=>{t.updateCompareFlag(game(t,i).credits.finished,negated(i));},
  // The group form copies a decision maker the same way the char form does (CDecisionMakerTypes::CopyDecisionMaker).
  COPY_GROUP_DECISION_MAKER:(t,p,i)=>{const {handle,from}=game(t,i).decisionMakers.copy(t.readInt(p[0]),t.usesMissionCleanup);t.writeInt(p[1],handle);t.host?.world?.seedDecisionMaker?.(handle,from);},
  IS_MODEL_IN_CDIMAGE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isModelInCdimage')(model(t,i,p[0])),negated(i));},

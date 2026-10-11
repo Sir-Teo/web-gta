@@ -17,6 +17,7 @@ import {ScmScriptSpheres} from './ScmScriptSpheres';
 import {ScmSetPieces} from './ScmSetPieces';
 import {ScmPads} from './ScmPads';
 import {ScmMenus} from './ScmMenus';
+import {ScmCredits} from './ScmCredits';
 import {ScmNodeSwitches} from './ScmNodeSwitches';
 import {ScmStreamedScripts} from './ScmStreamedScripts';
 import {ScmSequences} from './ScmSequences';
@@ -451,6 +452,8 @@ export class ScmGameState {
  interiorPedsActive=true;
  /** CMenuSystem's two script menus. */
  readonly menus=new ScmMenus();
+ /** CCredits: the end credits START_CREDITS rolls. */
+ readonly credits=new ScmCredits();
  /** CSetPieces' table of armed ambushes. */
  readonly setPieces=new ScmSetPieces();
  /** CWanted for the player the script alters. A host hands over the player's own with useWanted; until then the

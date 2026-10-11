@@ -316,6 +316,8 @@ import {bindLocalSunTexture} from './ui/localSunTexture';
 import { NativeMap } from './ui/NativeMap';
 import { Hud } from './ui/Hud';
 import {elementSize} from './ui/elementSize';
+import {CREDIT_LINES} from './engine/ScmCredits';
+import {CREDITS_IOS_TEXT} from './assets/creditsTable';
 import { NativeGameLogic, STAT_DAYS_PASSED_IN_GAME, GAMELOGIC_STATE_PLAYING, GAMELOGIC_STATE_WASTED, GAMELOGIC_STATE_BUSTED, SKIP_IN_PROGRESS, type GameLogicWorld, type SkipWorld } from './simulation/nativeGameLogic';
 import { LEVEL_COUNTRYSIDE, NativeRestart } from './simulation/nativeRestart';
 import { ScmCameraFade } from './engine/ScmCameraFade';
@@ -4710,6 +4712,9 @@ async function boot() {
     {const game=mission?.runtime.game,shown=game&&!paused&&!game.messages.big[0][0];
      scriptText.draw(shown?{lines:game.introText.lines,count:game.introText.count,rectangles:game.introRectangles.rectangles,rectangleCount:game.introRectangles.count}:undefined,
       (key,first,second)=>gxtHudText(insertNumbers(gxtText(key,key),first,second)),elementSize(hud.element).width||innerWidth,elementSize(hud.element).height||innerHeight,Math.min(2,devicePixelRatio||1));}
+    // CCredits::Render: while the credits go and no menu is up (game time stops under the pause menu too).
+    {const credits=mission?.runtime.game.credits;
+     hud.credits(credits?.going&&!paused?credits.render(gameTimeMs):undefined,()=>CREDIT_LINES.map(line=>({...line,text:gxtHudText(CREDITS_IOS_TEXT[line.key]??gxtText(line.key,line.key))})));}
     {const shown=mission&&!paused?mission.onscreenDisplay():undefined,label=(key:string)=>key?gxtHudText(gxtText(key,key)):'';
      hud.missionTimers(shown&&{clock:shown.clock&&{text:shown.clock.text,label:label(shown.clock.key)},counters:shown.counters.map(c=>({text:c.text,label:label(c.key),type:c.type,value:c.value,colour:HUD_COLOURS[c.colour]??HUD_COLOURS[3]}))});}
     // CTheZones::Update, while the game runs: the map squares the player has explored, which fog the frontend map.

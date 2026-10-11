@@ -11912,3 +11912,15 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   spends its step the same way. SET_HEADING_LIMIT_FOR_ATTACHED_CHAR (0x1001fd860) writes the ped's turret direction
   (CPed +0x958) and range (+0x95c, made radians), the two ATTACH_CHAR_TO_CAR sets: the player's attachment takes them
   (DRUGS4's 0 and 60 keep his aim to the truck's front). Spec: `script-player-attached`.
+- **The end credits roll, and the game goes on after them.** FINALEC starts the credits and then loops on
+  `NOT ARE_CREDITS_FINISHED`; with START_CREDITS and the check skipped (a skipped condition answers false), the game
+  would never have come back from its ending. CCredits is now `engine/ScmCredits.ts`: Start notes the game time, Stop
+  and the roll's end clear bCreditsGoing, which is all ARE_CREDITS_FINISHED reads. The roll is the iOS port's
+  RenderCredits (0x1002e0084), decoded from the executable by `scripts/content/credits-table.mjs` into
+  `assets/creditsTable.ts`: the PC's 599 lines in the PC's order (gta-reversed 0x5A87F0) with War Drum Studios' block
+  after CRED545 (CREWD0 to CREWD13, their text from the iOS american.gxt), 616 lines in all. Its PrintCreditText
+  (0x1002e6174) puts a line at SCREEN_HEIGHT + its position − the scroll (the PC adds 20) and steps scale × 20 as a
+  float (22 for 1.1; the PC truncates the scale and steps 20); a unit scrolls every 23 ms, so the roll runs about
+  seven minutes. The HUD draws it in the subtitles font, headings white, the rest 210 grey, each over its black copy,
+  under the widescreen bars. AUTHORED: SCREEN_HEIGHT is the 448 the HUD is laid out over (iOS's is the device's).
+  Spec: `scm-credits` (unit).

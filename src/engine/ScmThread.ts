@@ -971,7 +971,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  killFxSystemNow?(handle:number):void;
  setPlayerMood?(handle:number,mood:number,time:number):void;
  setInfraredVision?(state:boolean):void;
- stopCredits?():void;
  winchCanPickObjectUp?(handle:number,state:boolean):void;
  setObjectRenderScorched?(handle:number,state:boolean):void;
  isPlayerPerformingWheelie?(handle:number):boolean;
@@ -1058,8 +1057,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  attachObjectToChar?(handle:number,handle2:number,xOffset:number,yOffset:number,zOffset:number,xRotation:number,yRotation:number,zRotation:number):void;
  setCharBulletproofVest?(handle:number,state:boolean):void;
  getDoorAngleRatio?(handle:number,door:number):number;
- startCredits?():void;
- areCreditsFinished?():boolean;
  copyGroupDecisionMaker?(handleOrTemplate:number):number;
  isModelInCdimage?(modelId:number|string):boolean;
  getRandomCarOfTypeInArea?(leftBottomX:number,leftBottomY:number,rightTopX:number,rightTopY:number,modelId:number|string):number;

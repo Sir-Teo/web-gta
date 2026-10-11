@@ -76,6 +76,7 @@ export class Hud {
         <svg class="weapon" viewBox="0 0 64 70" aria-label="Unarmed"><path d="M16 53 10 39 13 31 12 16 18 12 23 16 24 10 31 8 35 14 39 10 45 12 47 19 51 17 56 21 55 39 48 51 44 63 22 64Z" fill="#e7e7dc" stroke="#111713" stroke-width="5" stroke-linejoin="round"/><path d="M14 32 24 35 26 45M24 16 24 29M35 14 35 29M47 19 45 31M23 52 45 51" fill="none" stroke="#111713" stroke-width="3"/></svg>
       </section>
 
+      <div class="credits" aria-label="Credits" hidden><div class="credits-roll"></div></div>
       <div class="widescreen-border top" aria-hidden="true" hidden></div><div class="widescreen-border bottom" aria-hidden="true" hidden></div>
       <div class="hud-big light-blue-top" role="status" hidden></div><div class="hud-big middle-smaller" role="status" hidden></div>
       <div class="hud-big white-middle-smaller" role="status" hidden></div><div class="hud-big oddjob-title" role="status" hidden></div>
@@ -347,6 +348,26 @@ export class Hud {
     show(e.lightBlue, d.lightBlueTop, 1, 1.8, 500);
     show(e.middleSmaller, d.middleSmaller, .6, 1.35, 500);
     show(e.whiteMiddleSmaller, d.whiteMiddleSmaller, .6, 1.35, 500);
+  }
+  private creditsBuilt = false;
+  /** CCredits::RenderCredits: the roll's lines in the subtitles font, centred, a heading white and the rest 210 grey
+   * at 210 alpha, each over its black copy one unit down and right (PrintCreditText), the roll's top at SCREEN_HEIGHT
+   * less `scroll`, in units of the 448 the HUD is laid out over; under the widescreen bars, which RenderCredits draws
+   * last. The lines are built once and the roll moved as a whole. Nothing while `scroll` is undefined. */
+  credits(scroll: number | undefined, lines: () => readonly { text: string; scale: number; heading: boolean; position: number }[]) {
+    const el = this.element.querySelector<HTMLElement>('.credits')!;
+    if (scroll === undefined) { if (!el.hidden) el.hidden = true; return; }
+    const roll = el.firstElementChild as HTMLElement;
+    if (!this.creditsBuilt) {
+      this.creditsBuilt = true;
+      roll.replaceChildren(...lines().map(line => {
+        const div = document.createElement('div'); div.className = line.heading ? 'credit heading' : 'credit'; div.textContent = line.text;
+        div.style.top = `calc(${line.position} / 448 * var(--hud-h,var(--screen-h)))`; div.style.fontSize = `calc(16 * ${line.scale} / 448 * var(--hud-h,var(--screen-h)))`;
+        return div;
+      }));
+    }
+    if (el.hidden) el.hidden = false;
+    roll.style.transform = `translateY(calc(${(448 - scroll) / 448} * var(--hud-h,var(--screen-h))))`;
   }
   /** CMenuSystem's menus as nativeHudMenus lays them out, over the 640 x 448 screen: the box and its gothic title,
    * the headers and rows in the subtitles font at CFont scale 0.52 x 1.0 (a row wider than its column shrinks, as

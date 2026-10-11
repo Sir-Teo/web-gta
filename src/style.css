@@ -122,6 +122,10 @@
 /* CMenuSystem's script menus: DrawWindow's black box at 190, the gothic title, the rows in the subtitles font with an
  * edge of 2 (the drop shadow CFont gives them). */
 .script-menus{position:absolute;inset:0;pointer-events:none}
+.credits{position:absolute;inset:0;overflow:hidden;pointer-events:none}.credits[hidden]{display:none}
+.credits-roll{position:absolute;left:0;right:0;top:0;will-change:transform}
+.credit{position:absolute;left:4%;right:4%;text-align:center;line-height:1;font-family:'Arial Black',Arial,sans-serif;font-weight:900;color:rgba(210,210,210,.82);text-shadow:1px 1px 0 #000}
+.credit.heading{color:#fff}
 .script-menus[hidden]{display:none}
 .script-menu-box{position:absolute;background:rgba(0,0,0,.745)}
 .script-menu-title{position:absolute;font-family:Unifraktur,Georgia,serif;font-weight:700;line-height:1;white-space:nowrap;-webkit-text-stroke:2px #000;paint-order:stroke fill}
