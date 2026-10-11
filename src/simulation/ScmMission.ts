@@ -1161,6 +1161,11 @@ export class ScmMission {
     if(!this.host('scriptVehicleCarMission','SET_CAR_MISSION')(car,{mission,cruise:fields.cruiseSpeed??CREATED_CRUISE_SPEED,style:fields.drivingStyle??0}))
      throw new UnsupportedScmCommand(-1,0,'SET_CAR_MISSION',`mission ${mission}`);
    },
+   // SET_CAR_ESCORT_CAR_LEFT and _RIGHT (iOS 0x1001e9860 and 0x1001e9b2c): the autopilot's target car (none for a
+   // handle to nothing) and MISSION_ESCORT_LEFT (29) or _RIGHT (30), at the car's own cruise speed and style. (A car
+   // on mission 57 or 58 keeps it; no car the port drives runs those.)
+   setCarEscortCarLeft:(handle,target)=>{this.escortCar(handle,target,29,'SET_CAR_ESCORT_CAR_LEFT');},
+   setCarEscortCarRight:(handle,target)=>{this.escortCar(handle,target,30,'SET_CAR_ESCORT_CAR_RIGHT');},
    // SET_CAR_FOLLOW_CAR (iOS 0x1001fbf90, CCarAI::TellCarToFollowOtherCar 0x10018c710): the engine on unless broken,
    // the car's own cruise speed (at least 6) and style; the leader is a vehicle handle (none when it names nothing).
    setVehicleFollowVehicle:(handle,leader,distance)=>{
@@ -3645,6 +3650,15 @@ export class ScmMission {
   if(handle===PLAYER_VEHICLE_HANDLE)this.world.placeScriptVehicle(this.liveVehicle(handle),at,this.playerPose(handle).heading);
   else this.vehicles.setPosition(handle,at,addOffset&&car===undefined?arrived=>this.world.scriptVehicleBaseOffset?.(arrived)??0:undefined);
   if(car!==undefined){this.world.clearSpaceForScriptVehicle?.(car);this.world.rejoinScriptVehicleRoads?.(car);}
+ }
+ /** An escort mission on a car: the target from a vehicle handle; with none, UpdateCarAI finds no target and the
+  * mission ends. */
+ private escortCar(handle:number,target:number,mission:number,command:string){
+  const car=this.liveVehicle(handle),fields=this.world.scriptVehicleAutopilotFields?.(car)??{};
+  const escorted=target>=0&&this.vehicles.exists(target)?this.vehicles.entity(target):undefined;
+  if(!escorted){this.world.stopScriptVehicle?.(car);return;}
+  if(!this.host('scriptVehicleCarMission',command)(car,{mission,target:escorted,cruise:fields.cruiseSpeed??CREATED_CRUISE_SPEED,style:fields.drivingStyle??0}))
+   throw new UnsupportedScmCommand(-1,0,command,'not a car the browser drives');
  }
  /** A vehicle that can tow or be towed (WorldCar), or none for a handle to nothing or another kind of vehicle. */
  private towVehicle(handle:number){

@@ -12066,3 +12066,8 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   RELEASE_PATH_NODES (iOS 0x1001e84c4) is ThePaths.ReleaseRequestedNodes, the requested area given back to the
   streaming; the port keeps every node, so there is nothing to release, as LOAD_PATH_NODES_IN_AREA has nothing to load.
   Specs: `script-player-goto-char` (browser), `player-script-tasks` (unit).
+- **SET_CAR_ESCORT_CAR_LEFT and _RIGHT** (DRIV3) were skipped. The iOS handlers (0x1001e9860, 0x1001e9b2c) set the
+  autopilot's target car and MISSION_ESCORT_LEFT (29) or _RIGHT (30), unless the car is on mission 57 or 58, at its own
+  cruise speed and style; they now go to the port's escort missions (the station beside the target). A handle to
+  nothing leaves no target, and UpdateCarAI ends the mission. Spec: `script-car-escort` (browser: the escort keeps
+  station four units off the left of CJ's car driven down the runway).
