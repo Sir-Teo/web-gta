@@ -11876,3 +11876,10 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   so each read laid the page out again: 177 ms in 15 s standing and 319 in 20 s driving at 4×. They read the sizes a
   ResizeObserver keeps now (`ui/elementSize.ts`), and the profile has none. Spec: `element-size` (unit); the HUD message,
   menu, occlusion, map and touch layout specs pass.
+- **The program warmer compiled what it had warmed.** Each streamed window adds hundreds of placements sharing the
+  geometry and materials of ones already shown, and `WebGLRenderer.compile` worked out every one's program parameters
+  again to find the program it already had: 507 ms in 20 s of driving at 4×. A program depends, beside the material
+  and the scene's fog and lights, on the geometry's attributes and the object's kind (instanced, batched, skinned), so
+  the warmer keeps which material, geometry and kind it warmed (at the material's version, forgotten when the fog or
+  lights change) and hands compile only the rest; a copy whose program is still linking is held back with the first.
+  164 ms now. Spec: `program-warmer` (unit). (`touch-building-alpha` fails with and without this, on this machine.)

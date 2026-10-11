@@ -86,3 +86,22 @@ test('when the fog changes kind every program starts linking again, nothing held
  expect(fake.compiled).toEqual([sign.material]);expect(sign.layers.test(camera.layers)).toBe(false);
  fake.link(sign.material);warmer.beforeRender(83);expect(sign.layers.test(camera.layers)).toBe(true);
 });
+
+test('a placement whose material and geometry were warmed is not compiled again, but waits while that program links',()=>{
+ const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(),fake=fakeRenderer();
+ const warmer=new ProgramWarmer(fake.renderer,scene,camera);
+ const material=new THREE.MeshLambertMaterial(),geometry=new THREE.BoxGeometry();
+ scene.add(new THREE.Mesh(geometry,material));warmer.beforeRender(0);
+ expect(fake.compiled).toEqual([material]);
+ // Another copy of the model streams in while the program still links: not compiled again, held back with the first.
+ fake.compiled.length=0;const copy=new THREE.Mesh(geometry,material);scene.add(copy);warmer.beforeRender(16);
+ expect(fake.compiled).toEqual([]);expect(copy.layers.test(camera.layers)).toBe(false);
+ fake.link(material);warmer.beforeRender(33);expect(copy.layers.test(camera.layers)).toBe(true);
+ // Once linked a further copy draws at once, uncompiled; the same material on an instanced mesh, another geometry, or
+ // after a change to the material is compiled.
+ const third=new THREE.Mesh(geometry,material);scene.add(third);warmer.beforeRender(50);
+ expect(fake.compiled).toEqual([]);expect(third.layers.test(camera.layers)).toBe(true);
+ scene.add(new THREE.InstancedMesh(geometry,material,4));warmer.beforeRender(66);expect(fake.compiled).toEqual([material]);
+ fake.compiled.length=0;scene.add(new THREE.Mesh(new THREE.SphereGeometry(),material));warmer.beforeRender(83);expect(fake.compiled).toEqual([material]);
+ fake.compiled.length=0;material.needsUpdate=true;scene.add(new THREE.Mesh(geometry,material));warmer.beforeRender(100);expect(fake.compiled).toEqual([material]);
+});

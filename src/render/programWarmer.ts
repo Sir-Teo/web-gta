@@ -14,7 +14,13 @@ import * as THREE from 'three';
  * first frame's programs for two suns), and when the fog's kind changes (the timecycle's linear fog replacing the
  * fallback once the game's data arrives) every program is started again, so the objects not yet shown (birds, plane
  * trails, the bright lights) are linked by the time they are. Things added to the scene's groups are warmed too (the
- * road signs, put up as their buildings stream in). */
+ * road signs, put up as their buildings stream in).
+ *
+ * A streamed window adds hundreds of placements whose geometry and materials an earlier one already warmed, and compile
+ * works out each one's program parameters again to find the program it already has (on a phone, 2% of a drive's frame
+ * time). What a program depends on beside the material and the scene's fog and lights is the geometry's attributes and
+ * the object's kind (instanced, batched, skinned), so a material, geometry and kind warmed under the fog and lights now,
+ * at the material's version now, is not compiled again; it is still held back while its program links. */
 type Hidden={mesh:THREE.Object3D;mask:number};
 export class ProgramWarmer{
  private added:THREE.Object3D[]=[];
@@ -24,6 +30,8 @@ export class ProgramWarmer{
  private readonly lightScene=new THREE.Scene();
  private lights:THREE.Light[]=[];
  private lightsAt=-Infinity;
+ /** Each material's geometries warmed under the environment now, with the object's kind and the material's version. */
+ private warmed=new WeakMap<THREE.Material,WeakMap<THREE.BufferGeometry,string>>();
  constructor(private readonly renderer:THREE.WebGLRenderer,private readonly scene:THREE.Scene,private readonly camera:THREE.Camera){
   this.parallel=renderer.extensions.has('KHR_parallel_shader_compile');
   if(!this.parallel)return;
@@ -47,7 +55,7 @@ export class ProgramWarmer{
   const environment=this.environmentNow();
   if(environment!==this.environment){
    // Nothing is held back here: the whole world would blink out while it links.
-   if(this.environment)this.start([...this.scene.children],nowMs,false);
+   if(this.environment){this.warmed=new WeakMap();this.start([...this.scene.children],nowMs,false);}
    this.environment=environment;
   }
   for(let i=this.waiting.length-1;i>=0;i--){
@@ -70,18 +78,39 @@ export class ProgramWarmer{
   this.refreshLights(nowMs,objects.some(o=>(o as THREE.Light).isLight));
   this.lightScene.fog=this.scene.fog;this.lightScene.environment=this.scene.environment;
   // compile gathers lights from the batch as well as the light scene: the batch gives none, or a light it adds would
-  // be counted twice.
-  const batch={traverse:(callback:(o:THREE.Object3D)=>void)=>{for(const o of objects)o.traverse(callback);},traverseVisible:()=>{}} as unknown as THREE.Object3D;
-  let materials:Set<THREE.Material>;
-  try{materials=this.renderer.compile(batch,this.camera,this.lightScene) as unknown as Set<THREE.Material>;}catch{return;}
-  const linking=new Set([...materials].filter(material=>{const program=this.program(material);return !!program&&!program.isReady();}));
-  if(!linking.size||!hold)return;
+  // be counted twice. It is handed only the objects whose programs are not already warmed.
+  const fresh:THREE.Object3D[]=[];
+  const batch={traverse:(callback:(o:THREE.Object3D)=>void)=>{for(const o of objects)o.traverse(child=>{if(this.isWarmed(child))return;fresh.push(child);callback(child);});},traverseVisible:()=>{}} as unknown as THREE.Object3D;
+  try{this.renderer.compile(batch,this.camera,this.lightScene);}catch{return;}
+  for(const o of fresh)this.markWarmed(o);
+  if(!hold)return;
+  // Held back: whatever uses a program still linking, warmed now or by an earlier batch.
+  const linking=new Set<THREE.Material>(),pending=(material:THREE.Material)=>{
+   if(linking.has(material))return true;
+   const program=this.program(material);if(!program||program.isReady())return false;
+   linking.add(material);return true;
+  };
   const hidden:Hidden[]=[];
   for(const object of objects)object.traverse(o=>{
    const material=(o as THREE.Mesh).material;if(!material)return;
-   const uses=Array.isArray(material)?material.some(m=>linking.has(m)):linking.has(material);
+   const uses=Array.isArray(material)?material.some(pending):pending(material);
    if(uses&&o.layers.mask!==0){hidden.push({mesh:o,mask:o.layers.mask});o.layers.mask=0;}
   });
   if(hidden.length)this.waiting.push({materials:linking,hidden});
+ }
+ /** What three's program parameters read from the object beside its geometry and material. */
+ private static kind(o:THREE.Object3D){
+  const k=o as THREE.Object3D&{isInstancedMesh?:boolean;isBatchedMesh?:boolean;isSkinnedMesh?:boolean;isPoints?:boolean;instanceColor?:unknown;morphTexture?:unknown;_colorsTexture?:unknown};
+  return (k.isInstancedMesh?1:0)|(k.isBatchedMesh?2:0)|(k.isSkinnedMesh?4:0)|(k.isPoints?8:0)|(k.instanceColor?16:0)|(k.morphTexture?32:0)|(k._colorsTexture?64:0);
+ }
+ private isWarmed(o:THREE.Object3D){
+  const {material,geometry}=o as THREE.Mesh;if(!material||!geometry)return false;
+  const kind=ProgramWarmer.kind(o),one=(m:THREE.Material)=>this.warmed.get(m)?.get(geometry)===`${kind}:${m.version}`;
+  return Array.isArray(material)?material.every(one):one(material);
+ }
+ private markWarmed(o:THREE.Object3D){
+  const {material,geometry}=o as THREE.Mesh;if(!material||!geometry)return;
+  const kind=ProgramWarmer.kind(o);
+  for(const m of Array.isArray(material)?material:[material]){let byGeometry=this.warmed.get(m);if(!byGeometry){byGeometry=new WeakMap();this.warmed.set(m,byGeometry);}byGeometry.set(geometry,`${kind}:${m.version}`);}
  }
 }
