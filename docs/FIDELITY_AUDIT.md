@@ -12104,3 +12104,9 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   CAutomobile::NitrousControl with a count of 1 (0x100445310): the nitro fitted (bNosInst), full, with one boost, and
   its old effects cleared. It now does what the mod shop's nitro does with one boost; a car the game drives fires it on
   its own (NitrousControl for STATUS_PHYSICS). Spec: `vehicle-upgrades` (a car without nitro has it, with one boost).
+- **TASK_GO_TO_OBJECT** (DRIV2) was skipped, so its ped never went and the mission waited on the task's status. The iOS
+  handler (0x1001f1434) builds CTaskComplexSeekEntity on the object with the time, a 1000 ms scan, the radius, a move-
+  state radius of 2 and PEDMOVE_RUN (flags 3), as TASK_GOTO_CHAR's seek on a ped; it now runs as the port's seek does,
+  on the object's position each frame. SET_VEHICLE_CAN_BE_TARGETTED (SYN6, bit 42 of the vehicle flags) is still
+  skipped: natively it only lets the lock-on take a ped sitting in that vehicle (PedCanBeTargettedVehicleWise), and the
+  port's lock-on (the touch aim assist) takes no riders yet. Spec: `script-ped-goto-object`.

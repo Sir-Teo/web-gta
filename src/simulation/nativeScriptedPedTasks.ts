@@ -57,6 +57,8 @@ export type ScriptedPedOrder=
   anims?:readonly ({name:string;file:string}|undefined)[];patrol?:boolean}
  /** CTaskComplexSeekEntity for TASK_GOTO_CHAR: to within `radius` of a ped (a handle, the player's included), for
   * `seconds`. */
+ /** TASK_GO_TO_OBJECT: the same seek on a script object, wherever it stands each frame. */
+ |{kind:'gotoObject';point:()=>{x:number;y:number;z:number}|undefined;radius:number;seconds:number}
  |{kind:'gotoPed';target:number;radius:number;seconds:number;
   /** CEntitySeekPosCalculatorRadiusAngleOffset (TASK_GOTO_CHAR_OFFSET): the point `radius` out from the target at
    * `angle` radians from its heading, 0 being straight ahead of it. */
@@ -240,6 +242,7 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'followPathNodesToCoord':return {kind:'followNodeRoute',x:task.x,y:task.y,z:task.z,moveState:task.speed,seconds:followRouteSeconds(task.time),tolerance:task.radius};
   case 'goToCoordAnyMeans':return {kind:'goToPoint',x:task.x,y:task.y,z:task.z,moveState:task.speed,radius:GO_STRAIGHT_TARGET_RADIUS,
    moveStateRadius:GO_STRAIGHT_MOVE_STATE_RADIUS,seconds:Number.POSITIVE_INFINITY};
+  case 'goToObject':return world.objectPosition?.(task.object)?{kind:'gotoObject',point:()=>world.objectPosition?.(task.object),radius:task.radius,seconds:followRouteSeconds(task.time)}:undefined;
   case 'gotoPed':return world.ped(task.target)?{kind:'gotoPed',target:task.target,radius:task.radius,seconds:followRouteSeconds(task.time)}:undefined;
   // AUTHORED: CTaskComplexFollowPedFootsteps is unreversed past its constructor (which sets PEDMOVE_WALK and a point
   // route of the target's steps). The ped walks after the target, waits within FOLLOW_FOOTSTEPS_RADIUS of it, and the

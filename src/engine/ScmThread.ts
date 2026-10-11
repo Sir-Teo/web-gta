@@ -123,6 +123,7 @@ export type ScmScriptedTask=
  |{kind:'fallAndGetUp';direction:number;time:number}
  |{kind:'diveAndGetUp';x:number;y:number;time:number}
  |{kind:'gotoPedOffset';target:number;time:number;offsetX:number;offsetY:number}
+ |{kind:'goToObject';object:number;time:number;radius:number}
  |{kind:'followFootsteps';target:number}
  |{kind:'walkAlongsidePed';target:number}
  |{kind:'fleePedAnyMeans';threat:number;radius:number;time:number;flag:boolean;unknown1:number;unknown2:number;unknown3:number}

@@ -193,7 +193,9 @@ export interface Pedestrian {
   |{kind:'followRoute';points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number;moveState:number;
    anims?:({name:string;file:string}|undefined)[]}
   /** CTaskComplexSeekEntity after a ped (undefined for the player), to within the radius. */
-  |{kind:'gotoPed';target?:Pedestrian;radius:number;remaining:number;offset?:{radius:number;angle:number};follow?:boolean;sprint?:boolean;giveUp?:number}
+  |{kind:'gotoPed';target?:Pedestrian;radius:number;remaining:number;offset?:{radius:number;angle:number};follow?:boolean;sprint?:boolean;giveUp?:number;
+   /** A script object's position (native axes) to seek instead of a ped (TASK_GO_TO_OBJECT). */
+   point?:()=>{x:number;y:number;z:number}|undefined}
   /** TASK_DIVE_AND_GET_UP: over when the evasive dive it started is. */
   |{kind:'dive'}
   /** CTaskSimpleDuck for its time: ducked where it stands. */
@@ -2078,6 +2080,7 @@ export class WorldPedestrians {
     ped.order={kind:'followRoute',points:order.points.map(q=>({x:q.x,y:q.z,z:-q.y})),at,mode:order.mode,traversals:0,moveState:order.moveState,anims:order.anims?.slice()};ped.flee=0;ped.loiter=false;
     break;
    }
+   case 'gotoObject':ped.order={kind:'gotoPed',point:order.point,radius:order.radius,remaining:order.seconds};ped.flee=0;ped.loiter=false;break;
    case 'gotoPed':{
     const target=this.resolveScriptPed?.(order.target);if(!target)break;
     ped.order={kind:'gotoPed',target:target==='player'?undefined:target,radius:order.radius,remaining:order.seconds,offset:order.offset,follow:order.follow,sprint:order.sprint,giveUp:order.giveUp};ped.flee=0;ped.loiter=false;
@@ -3971,7 +3974,7 @@ export class WorldPedestrians {
      }
     }else if(p.order.kind==='gotoPed'){
      const o=p.order,q=p.actor.player.position;dx=0;dz=0;
-     const holder=o.target?(o.target.health>0&&this.people.includes(o.target)?o.target.actor.player:undefined):this.sim.player;
+     const point=o.point?.(),holder=o.point?(point&&{position:{x:point.x,y:point.z,z:-point.y},heading:0}):o.target?(o.target.health>0&&this.people.includes(o.target)?o.target.actor.player:undefined):this.sim.player;
      // The offset point: the target's native heading is its yaw less half a turn; the native offset (-sin a, cos a)
      // runs (-sin a, -cos a) here.
      const target=holder&&(o.offset?(()=>{const a=holder.heading-Math.PI+o.offset!.angle;return {x:holder.position.x-Math.sin(a)*o.offset!.radius,y:holder.position.y,z:holder.position.z-Math.cos(a)*o.offset!.radius};})():holder.position);

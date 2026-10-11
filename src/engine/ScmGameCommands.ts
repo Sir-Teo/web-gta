@@ -2767,7 +2767,9 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_HELI_ORIENTATION:(t,p,i)=>{world(t,i,'setHeliOrientation')(t.readInt(p[0]),t.readFloat(p[1]));},
  IS_OBJECT_IN_ANGLED_AREA_2D:objectInAngledArea(false),
  IS_OBJECT_IN_ANGLED_AREA_3D:objectInAngledArea(true),
- TASK_GO_TO_OBJECT:(t,p,i)=>{world(t,i,'taskGoToObject')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readFloat(p[3]));},
+ // TASK_GO_TO_OBJECT (iOS 0x1001f1434): CTaskComplexSeekEntity on the object, as TASK_GOTO_CHAR's on a ped (its time,
+ // a 1000 ms scan, the radius, a run until 2 off, facing it when done).
+ TASK_GO_TO_OBJECT:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'goToObject',object:t.readInt(p[1]),time:t.readInt(p[2]),radius:t.readFloat(p[3])});},
  SET_CAR_ESCORT_CAR_RIGHT:(t,p,i)=>{world(t,i,'setCarEscortCarRight')(t.readInt(p[0]),t.readInt(p[1]));},
  SET_CAR_ESCORT_CAR_LEFT:(t,p,i)=>{world(t,i,'setCarEscortCarLeft')(t.readInt(p[0]),t.readInt(p[1]));},
  GIVE_NON_PLAYER_CAR_NITRO:(t,p,i)=>{world(t,i,'giveNonPlayerCarNitro')(t.readInt(p[0]));},
