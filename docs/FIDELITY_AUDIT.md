@@ -11935,3 +11935,8 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   line for its 4 s. AUTHORED: past those 4 s the native task holds the ped where FindCoorsAlongRope fails; here he
   lets go. The rope's own swinging (CRope::Update) is not run: nothing holds a script SWAT rope. Specs:
   `script-swat-rope` (browser), `swat-rope` (unit).
+- **TASK_PLAY_ANIM_WITH_FLAGS** had no host. The iOS PlayAnimScriptCommand (0x1001fa428) serves it with TASK_PLAY_ANIM
+  and its non-interruptable and secondary forms, collecting two more operands for it: the first is whether the clip may
+  be interrupted (the plain form passes yes, NON_INTERRUPTABLE no), the second a run flag the others leave off. It is
+  now the same clip task (DRUGS4's falling SWAT plays RAIL_FALL uninterrupted); the second flag is not carried. Spec:
+  `scm-tasks-from-schema`.

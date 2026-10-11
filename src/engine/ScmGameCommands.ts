@@ -2735,7 +2735,10 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_GROUP_SEQUENCE:(t,p,i)=>{world(t,i,'setGroupSequence')(t.readInt(p[0]),t.readInt(p[1]));},
  TASK_WARP_CHAR_INTO_CAR_AS_PASSENGER:(t,p,i)=>{world(t,i,'taskWarpCharIntoCarAsPassenger')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
  REGISTER_BEST_POSITION:(t,p,i)=>{game(t,i).stats.registerLowest(t.readInt(p[0]),t.readInt(p[1]));},
- TASK_PLAY_ANIM_WITH_FLAGS:(t,p,i)=>{world(t,i,'taskPlayAnimWithFlags')(t.readInt(p[0]),t.text(p[1]),t.text(p[2]),t.readFloat(p[3]),bool(t,p[4]),bool(t,p[5]),bool(t,p[6]),bool(t,p[7]),t.readInt(p[8]),bool(t,p[9]),bool(t,p[10]));},
+ // The iOS PlayAnimScriptCommand (0x1001fa428) collects two more operands for this form: the first is whether the
+ // clip may be interrupted (TASK_PLAY_ANIM passes yes, the NON_INTERRUPTABLE form no), the second a run flag the
+ // others leave off, which this port's clip task does not carry. DRUGS4's falling SWAT plays RAIL_FALL uninterrupted.
+ TASK_PLAY_ANIM_WITH_FLAGS:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),playAnimTask(t,p,bool(t,p[9])));},
  IS_ATTACHED_PLAYER_HEADING_ACHIEVED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isAttachedPlayerHeadingAchieved')(t.readInt(p[0])),negated(i));},
  IS_CAR_TOUCHING_CAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCarTouchingCar')(t.readInt(p[0]),t.readInt(p[1])),negated(i));},
  ADD_TO_CAR_ROTATION_VELOCITY:(t,p,i)=>{world(t,i,'addToCarRotationVelocity')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},

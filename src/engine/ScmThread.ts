@@ -1001,7 +1001,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setUpSkipForVehicleFinishedByScript?(x:number,y:number,z:number,heading:number,vehicle:number):void;
  setGroupSequence?(handle:number,sequence:number):void;
  taskWarpCharIntoCarAsPassenger?(char:number,vehicle:number,seatId:number):void;
- taskPlayAnimWithFlags?(handle:number,animationName:string,animationFile:string,frameDelta:number,loop:boolean,lockX:boolean,lockY:boolean,lockF:boolean,time:number,disableForce:boolean,disableLockZ:boolean):void;
  isAttachedPlayerHeadingAchieved?(handle:number):boolean;
  isCarTouchingCar?(handle:number,handle2:number):boolean;
  addToCarRotationVelocity?(handle:number,x:number,y:number,z:number):void;

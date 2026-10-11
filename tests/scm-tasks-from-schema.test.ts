@@ -56,6 +56,15 @@ describe('the tasks a script hands its peds',()=>{
   expect(locked.tasks[0].task).toMatchObject({kind:'playAnim',interruptable:false,animationName:'RUN'});
  });
 
+ test('the flagged animation task reads its first extra operand as whether the clip may be interrupted',()=>{
+  // DRUGS4: TASK_PLAY_ANIM_WITH_FLAGS 34@ "RAIL_FALL" "SWAT" 8.0 0 0 0 1 -1 0 1 (iOS PlayAnimScriptCommand 0x1001fa428).
+  const flagged=given(instruction(op('TASK_PLAY_ANIM_WITH_FLAGS'),[int(PED),'RAIL_FALL','SWAT',float(8),int(0),int(0),int(0),int(1),int(-1),int(0),int(1)]));
+  expect(flagged.tasks[0]).toEqual({ped:PED,opcode:op('TASK_PLAY_ANIM_WITH_FLAGS'),task:{kind:'playAnim',animationName:'RAIL_FALL',animationFile:'SWAT',
+   blendSpeed:8,loop:false,lockX:false,lockY:false,keepLastFrame:true,time:-1,interruptable:false}});
+  const free=given(instruction(op('TASK_PLAY_ANIM_WITH_FLAGS'),[int(PED),'RAIL_FALL','SWAT',float(8),int(0),int(0),int(0),int(1),int(-1),int(1),int(0)]));
+  expect(free.tasks[0].task).toMatchObject({interruptable:true});
+ });
+
  test('the simple tasks carry the one thing each of them names',()=>{
   const cases:[string,readonly (readonly [number,number])[],Record<string,unknown>][]=[
    ['TASK_STAY_IN_SAME_PLACE',[int(PED),int(1)],{kind:'stayInSamePlace',state:true}],
