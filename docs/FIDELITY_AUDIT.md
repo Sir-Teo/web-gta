@@ -11972,8 +11972,8 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   of the leg (ApplySpringCollisionAlt, force 1.5) and damps it (0.1); ProcessControl extends the legs untowed by 0.002 a
   timestep (0.0005 under a tenth) and retracts them as fast while towed. The lines meet only the map and its fixed
   objects (ProcessEntityCollision drops them against peds and vehicles). The baggage trailers stand on four wheels.
-  Not yet: the legs' grip (ProcessCarWheelPair on the legs as a burst-wheel pair) and their drawn extension
-  (PreRender's misc_a). (The tow link and the trailer commands follow.)
+  Not yet: the legs' grip (ProcessCarWheelPair on the legs as a burst-wheel pair). (The tow link, the trailer
+  commands and the drawn legs follow.)
   Specs: `trailer-rest` (browser: PETROTR, ARTICT1, UTILTR1 and BAGBOXA stand within 5 degrees of level and keep still),
   `trailer-support` (unit).
 - **The tow link, hitching and the three script commands.** CVehicle::UpdateTrailerLink and UpdateTractorLink are
@@ -12002,6 +12002,12 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   the link) and the attach and detach sounds. Specs: `trailer-tow` (browser: ATTACH puts the tanker on a PETRO's bar,
   it follows the rig driven 10 units and more with the points within 0.7, and DETACH frees it; a PETRO backed under a
   parked tanker takes it and pulls it away), `tow-link` (unit).
+- **The legs are drawn where they stand.** CTrailer::PreRender (0x6CFAC0, reversed) moves the legs' frame (misc_a) down
+  by their extension, no further than where they meet the ground (m_supportRatios: a leg's contact share, or its reach),
+  in the proportion the frame stands along the legs' line from the front height above the road, and never above the
+  height it was modelled at (m_fHeight, the frame's height in the model). A parked tanker's legs now reach the ground,
+  and a towed one's are folded up. Specs: `trailer-rest` (PETROTR's and ARTICT1's frames drawn well under their model
+  height), `trailer-tow` (at the model height once attached).
 - **The camera behind a rig.** Driving with the tanker in tow, the chase camera sat at the cab's distance and its
   collision cast stopped on the tanker, so the view was the cab's back. CCamera::CameraVehicleModeSpecialCases
   (0x50CDE0, reversed) makes the towed vehicle an extra entity the camera's collision ignores, and the iOS

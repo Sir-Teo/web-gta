@@ -361,6 +361,9 @@ export class WorldCar {
    const wheels=nativeVehicleSuspension(assets.vehicle,assets.handling,assets.model,assets.wheelFrames??resolveCarWheelFrames(assets.model));
    this.trailerHeightAboveRoad=trailerWeightShare(wheels,assets.collision.bounds,h.suspensionForce,assets.vehicle.frontWheelSize).heightAboveRoad;
    if(!BAGGAGE_TRAILERS.has(this.modelId))this.trailerLegs={lines:trailerSupportLines(wheels,assets.collision.bounds,h.suspensionForce,assets.vehicle.frontWheelSize),extension:1};
+   // The legs' frame (TRAILER_MISC_A): its own y and the height SetupSuspensionLines reads off it (m_fHeight).
+   const legs=assets.model.frames.findIndex(frame=>frame.name.toLowerCase()==='misc_a'),height=this.modelFramePoint('misc_a')?.z;
+   if(this.trailerLegs&&legs>=0&&height!==undefined)this.trailerLegFrame={localY:assets.model.frames[legs].matrix[13],height};
   }
   // CAutomobile's constructor fits a car with hydraulic geometry with hydraulics one time in four.
   if(h.handlingFlags&HANDLING_HYDRAULIC_GEOM&&Math.floor(Math.random()*0x8000)%4===0)this.fitHydraulics();
@@ -1376,9 +1379,24 @@ export class WorldCar {
    const at=a.clone().addScaledVector(d,hit.timeOfImpact);
    return {share:hit.timeOfImpact/length,point:native({x:at.x-p.x,y:at.y-p.y,z:at.z-p.z}),normal:native(hit.normal)};
   });
+  const reach=trailerLegReach(legs.extension,towed);
   applyNativeWheelDeltas(body,stepTrailerSupport({linear:chassis.linear,angular:chassis.angular,centerOfMass:chassis.centerOfMass,mass:this.mass,turnMass:this.turnMass,
-   down:chassis.direction,timeStep,reach:trailerLegReach(legs.extension,towed),contacts,frameLimit:this.input.suspension.frameLimit,springLimitMultiplier:this.input.suspension.springLimitMultiplier}));
+   down:chassis.direction,timeStep,reach,contacts,frameLimit:this.input.suspension.frameLimit,springLimitMultiplier:this.input.suspension.springLimitMultiplier}));
+  // CTrailer::PreRender (0x6CFAC0): the legs' frame drawn down by the legs' extension, no further than where they meet
+  // the ground (m_supportRatios: a leg's contact share, or its reach), taken in the proportion the frame stands along
+  // the legs' line from the front height above the road, and never over the height it was modelled at.
+  const frame=this.trailerLegFrame;
+  if(frame){
+   const line=legs.lines[0],ratios=contacts.map(c=>c?Math.min(c.share,reach):reach),k=frame.localY/line.start.y;
+   const travel=Math.min((ratios[0]+ratios[1])*.5,legs.extension)*(line.end.z-line.start.z);
+   const z=Math.fround(Math.min((travel+line.start.z)*k-(1-k)*(this.trailerHeightAboveRoad??0),frame.height));
+   if(z!==frame.drawn){frame.drawn=z;this.car.setFrameBasis('misc_a',[[3,2,z]]);}
+  }
  }
+ /** CTrailer::PreRender's drawn legs: the misc_a frame's own y, its height in the model, and the height it is drawn at. */
+ private trailerLegFrame?:{localY:number;height:number;drawn?:number};
+ /** The drawn legs' height (the misc_a frame's z), for the specs. */
+ get trailerLegDrawnHeight(){return this.trailerLegFrame?.drawn;}
  /** CTrailer's m_fFrontHeightAboveRoad and m_fRearHeightAboveRoad, from SetupSuspensionLines' weight share. */
  private trailerHeightAboveRoad?:number;
  /** CVehicle::m_pTowingVehicle: what tows this trailer. */

@@ -14,7 +14,8 @@ test('parked trailers are made and stand level on their wheels and legs',async({
   return models.map((model:number,i:number)=>m.vehicles.create(model,{x:p.x-18+i*9,y:-p.z+14,z:-100},0));},models);
  for(const h of handles)await page.waitForFunction((h:number)=>!!(window as any).__game.missionForProfiling().vehicles.entity(h),h,{timeout:60000});
  const pose=()=>page.evaluate(hs=>hs.map((h:number)=>{const e=(window as any).__game.missionForProfiling().vehicles.entity(h),b=e.car.body,q=b.rotation(),p=b.translation(),v=b.linvel();
-  return {up:1-2*(q.x*q.x+q.z*q.z),p:{x:p.x,y:p.y,z:p.z},speed:Math.hypot(v.x,v.y,v.z),legs:e.trailerLegs?.extension??null};}),handles);
+  return {up:1-2*(q.x*q.x+q.z*q.z),p:{x:p.x,y:p.y,z:p.z},speed:Math.hypot(v.x,v.y,v.z),legs:e.trailerLegs?.extension??null,
+   drawn:e.trailerLegDrawnHeight??null,modelled:e.modelFramePoint('misc_a')?.z??null};}),handles);
  await page.waitForTimeout(3000);
  const settled=await pose();await page.waitForTimeout(1500);const later=await pose();
  settled.forEach((s,i)=>{
@@ -25,5 +26,9 @@ test('parked trailers are made and stand level on their wheels and legs',async({
  });
  // The legs are out on all but the baggage trailer, which has none.
  expect(settled.map(s=>s.legs)).toEqual([1,1,1,null]);
+ // CTrailer::PreRender draws them down to the ground: the tanker's and the box trailer's frames well under where they
+ // were modelled (folded up).
+ for(const i of [0,1])expect(settled[i].drawn!,`model ${models[i]}`).toBeLessThan(settled[i].modelled!-.3);
+ expect(settled[3].drawn).toBeNull();
  expect(errors).toEqual([]);
 });

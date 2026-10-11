@@ -42,6 +42,8 @@ test('ATTACH_TRAILER_TO_CAB puts the tanker on the rig\'s bar, it follows the ri
  await page.waitForTimeout(2000);
  const settled=await link(page,made);
  expect(settled.attached).toBe(true);expect(settled.gap).toBeLessThan(.3);expect(settled.up).toBeGreaterThan(Math.cos(5*Math.PI/180));
+ // The legs up, drawn folded at the height they were modelled at.
+ expect(await page.evaluate(t=>{const e=(window as any).__game.missionForProfiling().vehicles.entity(t);return e.trailerLegDrawnHeight-e.modelFramePoint('misc_a').z;},made.trailer)).toBeCloseTo(0,4);
  // CJ drives the rig north: the tanker comes along, on the bar.
  await page.evaluate(cab=>(window as any).__game.missionForProfiling().runtime.world.warpPedIntoCar(1,cab),made.cab);
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCar?.occupied),{timeout:15000}).toBe(true);
