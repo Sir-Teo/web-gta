@@ -11940,3 +11940,9 @@ interior one in area 1 with the camera inside the house, and hands CJ back where
   be interrupted (the plain form passes yes, NON_INTERRUPTABLE no), the second a run flag the others leave off. It is
   now the same clip task (DRUGS4's falling SWAT plays RAIL_FALL uninterrupted); the second flag is not carried. Spec:
   `scm-tasks-from-schema`.
+- **DRUGS4's last two: the camera bump and the big gun flash.** DO_CAMERA_BUMP (iOS 0x1001fdd74) is CCam::DoCamBump
+  (0x10022e04c): the two angles and the time go on the active camera, and the attached camera (0x100213ba4, CJ on the
+  truck) moves its horizontal and vertical angles each frame by sin(2π · elapsed / 800 ms) × 0.1 of them, which decay by
+  0.95 a timestep, until 600 ms are up (constants read from the executable's data). ADD_BIG_GUN_FLASH (0x1001e6684) is
+  CPointLights::AddLight at the first point for the frame (radius 5, colour 1, 0.8, 0) and Fx_c::TriggerGunshot from it
+  toward the second. Spec: `script-player-attached`.

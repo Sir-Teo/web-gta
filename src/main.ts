@@ -470,6 +470,8 @@ async function boot() {
    * horizontal angle to swing to, held here as the heading it gives the player (Beta + π/2, which render.yaw is), and
    * the turn a frame, both radians. The turn is spent once the camera is there. */
   let attachedHeadingSwing:{yaw:number;step:number}|undefined;
+  /** CCam's bump (DoCamBump): its two angles and when it began (game ms). */
+  let cameraBump:{horizontal:number;vertical:number;startMs:number}|undefined;
   /** Where the thing the player hangs from is and how it is turned, renderer axes: a vehicle's body, or a script
    * object's drawn group (its record while the model loads). */
   const attachedFrame=(a:NonNullable<typeof playerAttached>):{t:{x:number;y:number;z:number};q:Quaternion}|undefined=>{
@@ -4096,6 +4098,15 @@ async function boot() {
         // The first-person weapon camera (iOS 0x100213714) swings its horizontal angle toward the angle
         // SET_HEADING_FOR_ATTACHED_PLAYER set, while the player hangs from something: by the turn a frame (at 30 a
         // second here) the shorter way round, onto it once within one turn, and the turn is spent.
+        // The attached camera's bump (iOS 0x100213ba4): each frame its horizontal and vertical angles move on by
+        // sin(2 pi elapsed / 800 ms) x 0.1 of the bump, the bump decaying by 0.95 a timestep, until 600 ms are up.
+        // The renderer's yaw is the horizontal angle + pi/2 and its pitch the vertical angle negated.
+        if(playerAttached&&cameraBump){
+         const b=cameraBump,s=Math.sin((gameTimeMs-b.startMs)/800*2*Math.PI)*.1,frames=step*30;
+         render.yaw+=s*b.horizontal*frames;render.pitch-=s*b.vertical*frames;
+         const decay=Math.pow(.95,50*step);b.horizontal*=decay;b.vertical*=decay;
+         if(gameTimeMs>b.startMs+600)cameraBump=undefined;
+        }
         if(playerAttached&&attachedHeadingSwing&&attachedHeadingSwing.step>0){
          const s=attachedHeadingSwing,turn=s.step*step*30,full=2*Math.PI;
          let d=(render.yaw-s.yaw)%full;if(d<0)d+=full;const other=full-d;
@@ -6115,6 +6126,8 @@ async function boot() {
                  // CMatrix's rows in the script's own axes: right, forward, up and the position.
                  scriptVehicleVelocity:car=>{const v=(car as ScriptCar).car.body.linvel();return {x:v.x,y:-v.z,z:v.y};},
                  addSparks:(o,d,force,amount)=>{worldFx.effects?.sparks([o.x,o.y,o.z],[d.x,d.y,d.z],force,amount,[0,0,0],SPARK.spark2,.4,1);},
+                 triggerGunshot:(o,d)=>{worldFx.effects?.gunshot([o.x,o.y,o.z],[d.x,d.y,d.z],true);},
+                 doCameraBump:(horizontal,vertical)=>{cameraBump={horizontal,vertical,startMs:gameTimeMs};},
                  attachScriptVehicle:(child,parent,offset,rotation)=>attachVehicle(child as object,parent as object,offset,rotation),
                  detachScriptVehicle:(child,x,y,push,turn)=>detachVehicle(child as object,x,y,push,turn),
                  scriptVehicleMatrix:car=>{

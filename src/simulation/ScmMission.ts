@@ -706,6 +706,8 @@ export interface ScmMissionWorld {
  /** Fx_c::AddSparks (g_fx), native: the point, the unit direction, its force, the count, no spread across, prt_spark_2,
   * spread 0.4 and life 1 as ADD_SPARKS gives them. */
  addSparks?(origin:{x:number;y:number;z:number},direction:{x:number;y:number;z:number},force:number,amount:number):void;
+ /** Fx_c::TriggerGunshot: the muzzle flash and smoke at a point along a direction (native axes). */
+ triggerGunshot?(origin:{x:number;y:number;z:number},direction:{x:number;y:number;z:number}):void;
  /** ATTACH_CAR_TO_CAR: CPhysical::AttachEntityToEntity of one script vehicle on another, the offset and rotation
   * (radians) native, or neither to keep where it sits relative to the parent. */
  attachScriptVehicle?(child:unknown,parent:unknown,offset?:{x:number;y:number;z:number},rotation?:{x:number;y:number;z:number}):void;
@@ -843,6 +845,8 @@ export interface ScmMissionWorld {
  attachedPlayerHeadingAchieved?():boolean;
  /** SET_HEADING_LIMIT_FOR_ATTACHED_CHAR on the player: the attachment's direction (0 to 3) and turn limit (radians). */
  setAttachedPlayerHeadingLimit?(side:number,limit:number):void;
+ /** DO_CAMERA_BUMP: the active camera's bump (horizontal and vertical, radians), started now. */
+ doCameraBump?(horizontal:number,vertical:number):void;
  attachPlayerToObject?(object:number,offset:{x:number;y:number;z:number},side:number,limit:number,weapon:number):boolean;playerAttachedObject?():number|undefined;
  /** The player's health (SET_CHAR_HEALTH), and his death at none. */
  setPlayerHealth?(health:number):void;killPlayer?():void;
@@ -2648,6 +2652,16 @@ export class ScmMission {
    detachVehicle:(handle,x,y,z,applyTurnForce)=>{this.world.detachScriptVehicle?.(this.liveVehicle(handle),x*Math.PI/180,-y*Math.PI/180,z,applyTurnForce);},
    // ADD_SPARKS (iOS 0x100200738): CVector::NormaliseAndMag of the direction (no length makes it (1, y, z) and 1), the
    // length as the force.
+   // DO_CAMERA_BUMP (iOS 0x1001fdd74): CCam::DoCamBump (0x10022e04c) on the active camera stores the two and the time;
+   // the attached camera (0x100213ba4) then shakes by them (DRUGS4's truck).
+   doCameraBump:(horizontal,vertical)=>{this.host('doCameraBump','DO_CAMERA_BUMP')(horizontal,vertical);},
+   // ADD_BIG_GUN_FLASH (iOS 0x1001e6684): CPointLights::AddLight at the first point for the frame (radius 5, red 1,
+   // green 0.8, blue 0) and Fx_c::TriggerGunshot from it toward the second, flash and smoke.
+   addBigGunFlash:(fromX,fromY,fromZ,toX,toY,toZ)=>{
+    this.lightQueue.push({position:[fromX,fromY,fromZ],radius:5,color:[1,.8,0]});
+    const dx=toX-fromX,dy=toY-fromY,dz=toZ-fromZ,l=Math.hypot(dx,dy,dz);
+    this.world.triggerGunshot?.({x:fromX,y:fromY,z:fromZ},l>0?{x:dx/l,y:dy/l,z:dz/l}:{x:0,y:0,z:0});
+   },
    addSparks:(position,direction,amount)=>{
     const l=Math.hypot(direction.x,direction.y,direction.z),unit=l>0?{x:direction.x/l,y:direction.y/l,z:direction.z/l}:{x:1,y:direction.y,z:direction.z};
     this.world.addSparks?.(position,unit,l>0?l:1,amount);

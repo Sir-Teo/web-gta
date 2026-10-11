@@ -42,6 +42,15 @@ test('the player rides on a car at an offset with a given gun, and is let go wit
  const offFront=async()=>{const h=await heading(),c=await w('vehicleHeading',car) as number,d=((h-c)%360+540)%360-180;return Math.abs(d);};
  await expect.poll(offFront,{timeout:5000}).toBeLessThan(61);
  expect(await offFront()).toBeGreaterThan(59);
+ // DO_CAMERA_BUMP (DRUGS4's -2.2, 1.7): the attached camera shakes for 600 ms, then stays.
+ const yaw=()=>page.evaluate(()=>(window as any).__game.render().yaw as number);
+ const before=await yaw();await w('doCameraBump',-2.2,1.7);await page.waitForTimeout(250);
+ expect(Math.abs(await yaw()-before)).toBeGreaterThan(.01);
+ await page.waitForTimeout(700);const settled=await yaw();await page.waitForTimeout(300);
+ expect(await yaw()).toBeCloseTo(settled,6);
+ // ADD_BIG_GUN_FLASH: a flash and a light at the gun, toward its target.
+ const c=await w('vehiclePosition',car) as {x:number;y:number;z:number};
+ await w('addBigGunFlash',c.x,c.y,c.z+2,c.x+10,c.y,c.z+2);
  await w('detachPedFromCar',1);
  expect(await w('isCharAttachedToAnyCar',1)).toBe(false);
  const back=await page.evaluate(()=>{const inv=(window as any).__game.weapons().inventory,a=inv.ammo.get(22),ak=inv.ammo.get(30);return {selected:inv.selected,pistol:a.clip+a.reserve,ak:ak.clip+ak.reserve};});
