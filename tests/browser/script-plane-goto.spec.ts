@@ -56,7 +56,7 @@ test('a script plane told to follow the player comes round toward him',async({pa
 
 /** PLANE_ATTACK_PLAYER (iOS 0x1001f63d0, GetAIPlaneToAttackPlayer 0x10019d134): DESERT6's plane comes at where the
  * player will be. The command was skipped. (Its guns and rockets are not ported.) */
-test('a script plane told to attack the player comes round toward him',async({page})=>{
+for(const command of ['planeAttackPlayer','planeAttackPlayerUsingDogFight'])test(`a script plane told to ${command} comes round toward the player`,async({page})=>{
  test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
@@ -69,7 +69,20 @@ test('a script plane told to attack the player comes round toward him',async({pa
  const plane=await page.evaluate(()=>(window as any).__game.missionForProfiling().vehicles.create(476,{x:370,y:-2380,z:120},270) as number);
  await page.waitForFunction((h:number)=>!!(window as any).__game.missionForProfiling().vehicles.entity(h),plane,{timeout:60000});
  await w('planeStartsInAir',plane);await w('setVehicleForwardSpeed',plane,40);
- await w('planeAttackPlayer',plane,0,30);
+ if(command==='planeAttackPlayerUsingDogFight'){
+  const crash=await page.evaluate((h:number)=>{
+   const m=(window as any).__game.missionForProfiling(),v=m.vehicles.entity(h);
+   // Breakaway transitions have deterministic unit coverage; keep this flight on its pursuit leg.
+   v.random=()=>0;
+   // A crashing plane keeps its mission, but the native handler still writes its minimum altitude.
+   v.tellPlaneToAttackPlayer(10);v.planePilot.mission=57;
+   m.runtime.world.planeAttackPlayerUsingDogFight(h,0,45);
+   const kept={mission:v.planePilot.mission,altitude:v.planePilot.ai.minAltitude};
+   v.planePilot.mission=0;return kept;
+  },plane);
+  expect(crash).toEqual({mission:57,altitude:45});
+ }
+ await w(command,plane,0,30);
  const gap=()=>page.evaluate((h:number)=>{const m=(window as any).__game.missionForProfiling(),p=m.vehicles.positionOf(h),me=m.runtime.world.pedPosition(1);return Math.hypot(p.x-me.x,p.y-me.y);},plane);
  const start=await gap();
  await expect.poll(gap,{timeout:25000,intervals:[1000]}).toBeLessThan(start-250);

@@ -12268,3 +12268,21 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   (+0x6a3), kept on the aircraft for its AI's guns (TestWhetherToFirePlaneGuns fires only on 0 or 1), which are not
   ported yet. SET_HELI_STABILISER (ZERO4, DES3; iOS 0x1001e33a8, bHeliMinimumTilt) is still skipped: it changes two
   branches of the helicopter's FlyingControl (iOS 0x10047a638 and 0x10047b220) not yet read. Spec: `script-random-car`.
+
+## Aircraft pursuit and projectile attribution (October 21, 2026)
+
+- **MANSIO2's dogfight command was skipped.** PLANE_ATTACK_PLAYER_USING_DOG_FIGHT now reaches the plane's AI,
+  setting mission 63 unless it is crashing (57 or 58), with its minimum altitude written either way, as the reversed
+  VehicleCommands.cpp handler does. The iOS dispatch at 0x100199a08 targets the player's vehicle or ped and calls
+  GetAIPlaneToDoDogFight (0x10019e280): pursue the target's predicted position, occasionally break away to a point
+  up to 300 either side and 50 higher, and resume pursuit after getting within 50 horizontally. Flight goes through
+  the existing direction/obstacle controller. AI guns/missiles and a complete MANSIO2 play-through remain unfinished.
+  [Source observations and limits](research/AIRCRAFT_DOGFIGHT.md). Specs: `plane-ai`, `script-plane-goto`.
+- **SAM explosions charged CJ with their damage.** The projectile update always made explosions player-owned;
+  the collision-excluded owner body could not distinguish an enemy rocket from one fired by CJ's aircraft.
+  Projectiles now preserve explicit player attribution through explosion, satchel detonation and resulting ground
+  fires. Vehicle destruction by an enemy blast or fire still causes damage without reporting CJ's crime.
+  Specs: `projectile-attribution`, `sam-site`, `bmx-explosion`, `detonator-charges`, `fire-crime`.
+- **The port checklist was stale.** The refreshed static census classifies 1,318 commands as faithful, 53 as skipped,
+  18 as authored, one as silent and one as stopping its thread (plus 153 core and 26 no-ops). These are static source
+  classifications, not a count of playable missions. The status report retains the last available October 11 sweep.

@@ -23,7 +23,7 @@ test('an Area 69 SAM site turns on the player\'s plane and fires a heat-seeker a
  await w('freezeVehiclePosition',plane,true);
  await w('warpPedIntoCar',1,plane);
  const heatSeekers=()=>page.evaluate((h:number)=>{const g=(window as any).__game,body=g.missionForProfiling().vehicles.entity(h).body.handle;
-  return g.weapons().projectiles.filter((p:any)=>p.weapon===36&&p.target===body).length as number;},plane);
+  return g.weapons().projectiles.filter((p:any)=>p.weapon===36&&p.target===body&&p.byPlayer===false).length as number;},plane);
  await expect.poll(heatSeekers,{timeout:20000}).toBeGreaterThan(0);
  const turned=await page.evaluate((h:number)=>(window as any).__game.missionForProfiling().runtime.game.objects.at(h).heading as number,site.handle);
  expect(turned).not.toBeCloseTo(site.heading,3);

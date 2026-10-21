@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {MISSION_PLANE_FLYINDIRECTION,MISSION_PLANE_FLYTOCOORS,newPlaneAI,planeGroundAhead,planeSearchDue,steerAIPlane,type PlaneAIBody,type PlanePilot} from '../src/simulation/nativePlaneAI';
+import {MISSION_PLANE_DOG_FIGHT_PLAYER,MISSION_PLANE_FLYINDIRECTION,MISSION_PLANE_FLYTOCOORS,newPlaneAI,planeGroundAhead,planeSearchDue,steerAIPlane,type PlaneAIBody,type PlanePilot} from '../src/simulation/nativePlaneAI';
 
 /** A plane flying north at 0.8 a step, level, over open sea. */
 const body=(o:Partial<PlaneAIBody>={}):PlaneAIBody=>({position:[0,0,100],moveSpeed:[0,.8,0],right:[1,0,0],forward:[0,1,0],up:[0,0,1],onGround:false,...o});
@@ -56,4 +56,30 @@ test('attacking the player it heads for where he will be, at his height',()=>{
  expect(ai.heading).toBeCloseTo(Math.PI*3/4,5);expect(ai.maxAltitude).toBe(15);
  expect(steerAIPlane(ai,body(),pilot({mission:59}),open,100000,true,1,[0,300,15])).toBe(true);
  expect(ai.heading).toBeCloseTo(Math.PI/2,5);
+});
+
+test('a dogfight chases the predicted target, breaks away, and resumes chasing only after reaching its point',()=>{
+ const ai=newPlaneAI(0),p=pilot({mission:MISSION_PLANE_DOG_FIGHT_PLAYER});
+ const rolls=[500,0,0x7fffffff],world={...open,rand:()=>rolls.shift()??0};
+ const target:[number,number,number]=[400,500,140];
+ expect(steerAIPlane(ai,body(),p,world,100000,true,1,target)).toBe(true);
+ // The frame choosing the breakaway still chases the target.
+ expect(ai.heading).toBeCloseTo(Math.atan2(500,400));expect(ai.maxAltitude).toBe(140);
+ expect(p.dogfightBreakaway).toBe(true);
+ expect(p.destination[0]).toBe(100);expect(p.destination[1]).toBeCloseTo(800);expect(p.destination[2]).toBe(190);
+ steerAIPlane(ai,body(),p,world,100020,false,1,[-900,-900,20]);
+ expect(ai.heading).toBeCloseTo(Math.atan2(800,100));expect(ai.maxAltitude).toBe(190);
+ // Within 50 across, regardless of altitude: keep this step's heading, switch on the following step.
+ steerAIPlane(ai,body({position:[100,775,10]}),p,world,100040,false,1,target);
+ expect(p.dogfightBreakaway).toBe(false);expect(ai.heading).toBeCloseTo(Math.PI/2);expect(ai.maxAltitude).toBe(190);
+ steerAIPlane(ai,body(),p,world,100060,false,1,[-900,0,20]);
+ expect(ai.heading).toBeCloseTo(Math.PI);expect(ai.maxAltitude).toBe(20);
+});
+
+test('a dogfight does not invent a target, and only the native random mark starts a breakaway',()=>{
+ const ai=newPlaneAI(0),p=pilot({mission:MISSION_PLANE_DOG_FIGHT_PLAYER}),world={...open,rand:()=>499};
+ expect(steerAIPlane(ai,body(),p,world,100000,true,1)).toBe(false);
+ steerAIPlane(ai,body(),p,world,100000,true,1,[0,500,240]);
+ expect(p.dogfightBreakaway).not.toBe(true);expect(ai.heading).toBeCloseTo(Math.PI/2);
+ expect(ai.maxAltitude).toBe(240);expect(ai.accel).toBe(1);expect(ai.gearUp).toBe(true);
 });

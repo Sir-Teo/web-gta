@@ -1,8 +1,8 @@
 {
- "generated": "2026-10-08T05:41:22.956Z",
+ "generated": "2026-10-21T18:09:21.248Z",
  "reference": {
-  "path": "../../../../private/tmp/claude-501/-Users-teodev-Developer-web-gta/e3a0c7f4-a83f-4b24-9b45-6573ea1a7907/scratchpad/gr",
-  "commit": "0076f9017b4aeef7433957ac2bd8b6988e9df166"
+  "path": "../gta-reversed/gta-reversed",
+  "commit": "4281f82d8af83e14935ac84a69dfd1ceebb9f256"
  },
  "totals": {
   "instructions": 416669,
@@ -10,10 +10,10 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1244,
+   "faithful": 1318,
    "authored": 18,
    "silent": 1,
-   "skipped": 127,
+   "skipped": 53,
    "stops": 1
   }
  },
@@ -27,10 +27,10 @@
    "byStatus": {
     "core": 12583,
     "nop": 163,
-    "faithful": 3815,
+    "faithful": 3821,
     "authored": 18,
     "silent": 0,
-    "skipped": 8,
+    "skipped": 2,
     "stops": 0
    },
    "gaps": [
@@ -45,27 +45,12 @@
      "sites": 5
     },
     {
-     "name": "GRAB_ENTITY_ON_ROPE_FOR_OBJECT",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
      "name": "ACTIVATE_SAVE_MENU",
      "status": "skipped",
      "sites": 1
     },
     {
      "name": "HAS_SAVE_GAME_FINISHED",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "RELEASE_ENTITY_FROM_ROPE_FOR_OBJECT",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SET_ROPE_HEIGHT_FOR_OBJECT",
      "status": "skipped",
      "sites": 1
     },
@@ -765,19 +750,13 @@
    "byStatus": {
     "core": 675,
     "nop": 0,
-    "faithful": 317,
-    "authored": 3,
+    "faithful": 320,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 3
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "trains.scm",
@@ -1581,24 +1560,13 @@
    "byStatus": {
     "core": 284,
     "nop": 6,
-    "faithful": 113,
+    "faithful": 116,
     "authored": 0,
     "silent": 0,
-    "skipped": 3,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "GET_ROPE_HEIGHT_FOR_OBJECT",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "RELEASE_ENTITY_FROM_ROPE_FOR_OBJECT",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "crane2.scm",
@@ -1609,19 +1577,13 @@
    "byStatus": {
     "core": 587,
     "nop": 2,
-    "faithful": 139,
+    "faithful": 141,
     "authored": 0,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "GET_ROPE_HEIGHT_FOR_OBJECT",
-     "status": "skipped",
-     "sites": 2
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "crane3.scm",
@@ -1632,19 +1594,13 @@
    "byStatus": {
     "core": 161,
     "nop": 0,
-    "faithful": 75,
+    "faithful": 76,
     "authored": 0,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "GET_ROPE_HEIGHT_FOR_OBJECT",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "carpark1.scm",
@@ -1672,19 +1628,13 @@
    "byStatus": {
     "core": 1731,
     "nop": 0,
-    "faithful": 633,
+    "faithful": 634,
     "authored": 0,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "GET_CHAR_HIGHEST_PRIORITY_EVENT",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "valet.scm",
@@ -1695,10 +1645,10 @@
    "byStatus": {
     "core": 1566,
     "nop": 0,
-    "faithful": 557,
+    "faithful": 559,
     "authored": 0,
     "silent": 0,
-    "skipped": 7,
+    "skipped": 5,
     "stops": 0
    },
    "gaps": [
@@ -1714,16 +1664,6 @@
     },
     {
      "name": "IS_CHAR_STUCK_UNDER_CAR",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "IS_VEHICLE_ATTACHED",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "DETACH_CAR",
      "status": "skipped",
      "sites": 1
     }
@@ -1875,19 +1815,13 @@
    "byStatus": {
     "core": 663,
     "nop": 1,
-    "faithful": 434,
-    "authored": 2,
+    "faithful": 436,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 2
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 3,
@@ -2037,19 +1971,13 @@
    "byStatus": {
     "core": 1995,
     "nop": 18,
-    "faithful": 1099,
-    "authored": 2,
+    "faithful": 1101,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 2
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 10,
@@ -2113,19 +2041,13 @@
    "byStatus": {
     "core": 1747,
     "nop": 1,
-    "faithful": 1108,
-    "authored": 5,
+    "faithful": 1113,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 5
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 12,
@@ -2136,19 +2058,13 @@
    "byStatus": {
     "core": 1242,
     "nop": 1,
-    "faithful": 804,
-    "authored": 1,
+    "faithful": 805,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 13,
@@ -2159,19 +2075,13 @@
    "byStatus": {
     "core": 1199,
     "nop": 1,
-    "faithful": 851,
-    "authored": 1,
+    "faithful": 852,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 14,
@@ -2199,19 +2109,13 @@
    "byStatus": {
     "core": 1294,
     "nop": 1,
-    "faithful": 819,
-    "authored": 4,
+    "faithful": 823,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 4
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 16,
@@ -2222,19 +2126,13 @@
    "byStatus": {
     "core": 1600,
     "nop": 1,
-    "faithful": 1232,
-    "authored": 1,
+    "faithful": 1233,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 17,
@@ -2313,19 +2211,13 @@
    "byStatus": {
     "core": 439,
     "nop": 1,
-    "faithful": 399,
-    "authored": 3,
+    "faithful": 402,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 3
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 22,
@@ -2353,19 +2245,13 @@
    "byStatus": {
     "core": 1373,
     "nop": 2,
-    "faithful": 1116,
-    "authored": 1,
+    "faithful": 1117,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 24,
@@ -2393,18 +2279,13 @@
    "byStatus": {
     "core": 1294,
     "nop": 9,
-    "faithful": 1108,
-    "authored": 4,
+    "faithful": 1111,
+    "authored": 1,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 3
-    },
     {
      "name": "TASK_EVERYONE_LEAVE_CAR",
      "status": "authored",
@@ -2444,8 +2325,8 @@
    "byStatus": {
     "core": 2466,
     "nop": 3,
-    "faithful": 1430,
-    "authored": 1,
+    "faithful": 1431,
+    "authored": 0,
     "silent": 0,
     "skipped": 1,
     "stops": 0
@@ -2454,11 +2335,6 @@
     {
      "name": "SET_GROUP_SEQUENCE",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
      "sites": 1
     }
    ]
@@ -2489,19 +2365,13 @@
    "byStatus": {
     "core": 1468,
     "nop": 1,
-    "faithful": 1154,
-    "authored": 1,
+    "faithful": 1155,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 30,
@@ -2512,34 +2382,13 @@
    "byStatus": {
     "core": 3840,
     "nop": 2,
-    "faithful": 3018,
-    "authored": 2,
+    "faithful": 3043,
+    "authored": 0,
     "silent": 0,
-    "skipped": 23,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "ADD_SPARKS",
-     "status": "skipped",
-     "sites": 17
-    },
-    {
-     "name": "ATTACH_CAR_TO_CAR",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "DETACH_CAR",
-     "status": "skipped",
-     "sites": 2
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 31,
@@ -2550,21 +2399,16 @@
    "byStatus": {
     "core": 1276,
     "nop": 1,
-    "faithful": 715,
+    "faithful": 716,
     "authored": 1,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
      "name": "REQUEST_VEHICLE_MOD",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "SET_CAMERA_POSITION_UNFIXED",
-     "status": "skipped",
      "sites": 1
     }
    ]
@@ -2595,10 +2439,10 @@
    "byStatus": {
     "core": 2023,
     "nop": 3,
-    "faithful": 1327,
+    "faithful": 1328,
     "authored": 10,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 1,
     "stops": 0
    },
    "gaps": [
@@ -2606,11 +2450,6 @@
      "name": "MARK_CAR_AS_CONVOY_CAR",
      "status": "authored",
      "sites": 10
-    },
-    {
-     "name": "SET_CAR_FOLLOW_CAR",
-     "status": "skipped",
-     "sites": 1
     },
     {
      "name": "TASK_CHAR_ARREST_CHAR",
@@ -2628,19 +2467,13 @@
    "byStatus": {
     "core": 1044,
     "nop": 1,
-    "faithful": 1287,
-    "authored": 1,
+    "faithful": 1288,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 35,
@@ -2651,32 +2484,17 @@
    "byStatus": {
     "core": 4769,
     "nop": 48,
-    "faithful": 714,
+    "faithful": 721,
     "authored": 4,
     "silent": 0,
-    "skipped": 7,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "HELI_GOTO_COORDS",
-     "status": "skipped",
-     "sites": 3
-    },
-    {
-     "name": "PLANE_GOTO_COORDS",
-     "status": "skipped",
-     "sites": 3
-    },
-    {
      "name": "REQUEST_VEHICLE_MOD",
      "status": "authored",
      "sites": 2
-    },
-    {
-     "name": "SET_BOAT_CRUISE_SPEED",
-     "status": "skipped",
-     "sites": 1
     },
     {
      "name": "GET_DEBUG_CAMERA_COORDINATES",
@@ -2716,74 +2534,13 @@
    "byStatus": {
     "core": 4680,
     "nop": 1,
-    "faithful": 3697,
-    "authored": 1,
+    "faithful": 3753,
+    "authored": 0,
     "silent": 0,
-    "skipped": 55,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "HELI_GOTO_COORDS",
-     "status": "skipped",
-     "sites": 9
-    },
-    {
-     "name": "DELETE_SEARCHLIGHT",
-     "status": "skipped",
-     "sites": 8
-    },
-    {
-     "name": "POINT_SEARCHLIGHT_AT_CHAR",
-     "status": "skipped",
-     "sites": 7
-    },
-    {
-     "name": "CREATE_SWAT_ROPE",
-     "status": "skipped",
-     "sites": 6
-    },
-    {
-     "name": "DOES_SEARCHLIGHT_EXIST",
-     "status": "skipped",
-     "sites": 6
-    },
-    {
-     "name": "CREATE_SEARCHLIGHT_ON_VEHICLE",
-     "status": "skipped",
-     "sites": 5
-    },
-    {
-     "name": "DO_CAMERA_BUMP",
-     "status": "skipped",
-     "sites": 3
-    },
-    {
-     "name": "MOVE_SEARCHLIGHT_BETWEEN_COORDS",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "ADD_BIG_GUN_FLASH",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "SET_SEARCHLIGHT_CLIP_IF_COLLIDING",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "TASK_PLAY_ANIM_WITH_FLAGS",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 38,
@@ -2794,18 +2551,13 @@
    "byStatus": {
     "core": 1618,
     "nop": 6,
-    "faithful": 982,
-    "authored": 2,
+    "faithful": 983,
+    "authored": 1,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    },
     {
      "name": "TASK_EVERYONE_LEAVE_CAR",
      "status": "authored",
@@ -2873,19 +2625,13 @@
    "byStatus": {
     "core": 2649,
     "nop": 5,
-    "faithful": 1576,
-    "authored": 1,
+    "faithful": 1577,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 43,
@@ -2896,24 +2642,13 @@
    "byStatus": {
     "core": 1706,
     "nop": 2,
-    "faithful": 799,
-    "authored": 3,
+    "faithful": 804,
+    "authored": 0,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 3
-    },
-    {
-     "name": "IS_TRAILER_ATTACHED_TO_CAB",
-     "status": "skipped",
-     "sites": 2
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 44,
@@ -2924,19 +2659,13 @@
    "byStatus": {
     "core": 1628,
     "nop": 3,
-    "faithful": 972,
-    "authored": 1,
+    "faithful": 973,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 45,
@@ -2964,8 +2693,8 @@
    "byStatus": {
     "core": 1132,
     "nop": 1,
-    "faithful": 967,
-    "authored": 7,
+    "faithful": 968,
+    "authored": 6,
     "silent": 0,
     "skipped": 0,
     "stops": 0
@@ -2975,11 +2704,6 @@
      "name": "ROTATE_OBJECT",
      "status": "authored",
      "sites": 6
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
     }
    ]
   },
@@ -2992,50 +2716,15 @@
    "byStatus": {
     "core": 1417,
     "nop": 4,
-    "faithful": 816,
+    "faithful": 830,
     "authored": 0,
     "silent": 0,
-    "skipped": 15,
+    "skipped": 1,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "SET_DRUNK_INPUT_DELAY",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
-     "name": "DOES_SEARCHLIGHT_EXIST",
-     "status": "skipped",
-     "sites": 3
-    },
-    {
-     "name": "DELETE_SEARCHLIGHT",
-     "status": "skipped",
-     "sites": 3
-    },
-    {
-     "name": "CREATE_SEARCHLIGHT_ON_VEHICLE",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "POINT_SEARCHLIGHT_AT_CHAR",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "HELI_FOLLOW_ENTITY",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
      "name": "TASK_CHAR_ARREST_CHAR",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "HELI_GOTO_COORDS",
      "status": "skipped",
      "sites": 1
     }
@@ -3067,24 +2756,13 @@
    "byStatus": {
     "core": 2052,
     "nop": 1,
-    "faithful": 1006,
+    "faithful": 1008,
     "authored": 0,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "HELI_LAND_AT_COORDS",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "HELI_GOTO_COORDS",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 50,
@@ -3095,10 +2773,10 @@
    "byStatus": {
     "core": 1666,
     "nop": 49,
-    "faithful": 840,
-    "authored": 3,
+    "faithful": 845,
+    "authored": 0,
     "silent": 0,
-    "skipped": 7,
+    "skipped": 5,
     "stops": 0
    },
    "gaps": [
@@ -3106,16 +2784,6 @@
      "name": "SWAP_NEAREST_BUILDING_MODEL",
      "status": "skipped",
      "sites": 3
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 3
-    },
-    {
-     "name": "SET_ROPE_HEIGHT_FOR_OBJECT",
-     "status": "skipped",
-     "sites": 2
     },
     {
      "name": "SET_VEHICLE_QUATERNION",
@@ -3138,8 +2806,8 @@
    "byStatus": {
     "core": 1481,
     "nop": 8,
-    "faithful": 872,
-    "authored": 1,
+    "faithful": 873,
+    "authored": 0,
     "silent": 0,
     "skipped": 2,
     "stops": 0
@@ -3153,11 +2821,6 @@
     {
      "name": "GET_PARKING_NODE_IN_AREA",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
      "sites": 1
     }
    ]
@@ -3188,18 +2851,13 @@
    "byStatus": {
     "core": 2127,
     "nop": 3,
-    "faithful": 1303,
-    "authored": 2,
+    "faithful": 1304,
+    "authored": 1,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    },
     {
      "name": "TASK_EVERYONE_LEAVE_CAR",
      "status": "authored",
@@ -3250,64 +2908,13 @@
    "byStatus": {
     "core": 2332,
     "nop": 4,
-    "faithful": 791,
+    "faithful": 818,
     "authored": 0,
     "silent": 0,
-    "skipped": 27,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "CREATE_SEARCHLIGHT",
-     "status": "skipped",
-     "sites": 5
-    },
-    {
-     "name": "ADD_BLIP_FOR_SEARCHLIGHT",
-     "status": "skipped",
-     "sites": 5
-    },
-    {
-     "name": "ATTACH_SEARCHLIGHT_TO_SEARCHLIGHT_OBJECT",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
-     "name": "MOVE_SEARCHLIGHT_BETWEEN_COORDS",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
-     "name": "SET_SEARCHLIGHT_CLIP_IF_COLLIDING",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
-     "name": "BOAT_GOTO_COORDS",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SET_BOAT_CRUISE_SPEED",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "BOAT_STOP",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "IS_CHAR_IN_ANY_SEARCHLIGHT",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "DELETE_SEARCHLIGHT",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 57,
@@ -3318,10 +2925,10 @@
    "byStatus": {
     "core": 1805,
     "nop": 5,
-    "faithful": 1549,
-    "authored": 8,
+    "faithful": 1553,
+    "authored": 6,
     "silent": 0,
-    "skipped": 3,
+    "skipped": 1,
     "stops": 0
    },
    "gaps": [
@@ -3329,21 +2936,6 @@
      "name": "ROTATE_OBJECT",
      "status": "authored",
      "sites": 6
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "HELI_GOTO_COORDS",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "MAKE_HELI_COME_CRASHING_DOWN",
-     "status": "skipped",
-     "sites": 1
     },
     {
      "name": "ADD_SMOKE_PARTICLE",
@@ -3361,19 +2953,13 @@
    "byStatus": {
     "core": 1556,
     "nop": 3,
-    "faithful": 662,
+    "faithful": 663,
     "authored": 0,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "ATTACH_CHAR_TO_BIKE",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 59,
@@ -3384,19 +2970,13 @@
    "byStatus": {
     "core": 2426,
     "nop": 45,
-    "faithful": 1245,
-    "authored": 1,
+    "faithful": 1246,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 60,
@@ -3407,24 +2987,13 @@
    "byStatus": {
     "core": 1680,
     "nop": 1,
-    "faithful": 777,
-    "authored": 1,
+    "faithful": 779,
+    "authored": 0,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "GET_CHAR_HIGHEST_PRIORITY_EVENT",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 61,
@@ -3435,10 +3004,10 @@
    "byStatus": {
     "core": 861,
     "nop": 14,
-    "faithful": 886,
-    "authored": 1,
+    "faithful": 889,
+    "authored": 0,
     "silent": 0,
-    "skipped": 5,
+    "skipped": 3,
     "stops": 0
    },
    "gaps": [
@@ -3446,16 +3015,6 @@
      "name": "CREATE_BIRDS",
      "status": "skipped",
      "sites": 2
-    },
-    {
-     "name": "GET_CHAR_HIGHEST_PRIORITY_EVENT",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
     },
     {
      "name": "IS_CHAR_STUCK_UNDER_CAR",
@@ -3473,28 +3032,13 @@
    "byStatus": {
     "core": 774,
     "nop": 4,
-    "faithful": 461,
-    "authored": 2,
+    "faithful": 467,
+    "authored": 0,
     "silent": 0,
-    "skipped": 5,
+    "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "HELI_GOTO_COORDS",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "MAKE_HELI_COME_CRASHING_DOWN",
-     "status": "skipped",
-     "sites": 2
-    },
     {
      "name": "SET_VEHICLE_CAN_BE_TARGETTED",
      "status": "skipped",
@@ -3511,19 +3055,13 @@
    "byStatus": {
     "core": 926,
     "nop": 6,
-    "faithful": 935,
-    "authored": 4,
+    "faithful": 939,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 4
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 64,
@@ -3534,40 +3072,15 @@
    "byStatus": {
     "core": 2216,
     "nop": 4,
-    "faithful": 1861,
+    "faithful": 1873,
     "authored": 0,
     "silent": 0,
-    "skipped": 13,
+    "skipped": 1,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "SET_BOAT_CRUISE_SPEED",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
-     "name": "HELI_GOTO_COORDS",
-     "status": "skipped",
-     "sites": 3
-    },
-    {
-     "name": "SET_SWIM_SPEED",
-     "status": "skipped",
-     "sites": 3
-    },
-    {
      "name": "TASK_GREET_PARTNER",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SET_HELI_ORIENTATION",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SET_HELI_REACHED_TARGET_DISTANCE",
      "status": "skipped",
      "sites": 1
     }
@@ -3582,24 +3095,13 @@
    "byStatus": {
     "core": 998,
     "nop": 1,
-    "faithful": 535,
+    "faithful": 537,
     "authored": 0,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "GET_CHAR_HIGHEST_PRIORITY_EVENT",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "TASK_GO_TO_OBJECT",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 66,
@@ -3610,29 +3112,13 @@
    "byStatus": {
     "core": 1470,
     "nop": 1,
-    "faithful": 795,
-    "authored": 1,
+    "faithful": 798,
+    "authored": 0,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "SET_CAR_ESCORT_CAR_RIGHT",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SET_CAR_ESCORT_CAR_LEFT",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 67,
@@ -3643,19 +3129,13 @@
    "byStatus": {
     "core": 880,
     "nop": 2,
-    "faithful": 311,
-    "authored": 4,
+    "faithful": 315,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 4
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 68,
@@ -3666,31 +3146,16 @@
    "byStatus": {
     "core": 2236,
     "nop": 2,
-    "faithful": 1845,
-    "authored": 3,
+    "faithful": 1852,
+    "authored": 1,
     "silent": 0,
-    "skipped": 5,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "SET_CAR_FOLLOW_CAR",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 2
-    },
-    {
      "name": "REQUEST_VEHICLE_MOD",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "GIVE_NON_PLAYER_CAR_NITRO",
-     "status": "skipped",
      "sites": 1
     }
    ]
@@ -3704,59 +3169,13 @@
    "byStatus": {
     "core": 3112,
     "nop": 31,
-    "faithful": 1557,
-    "authored": 5,
+    "faithful": 1618,
+    "authored": 0,
     "silent": 0,
-    "skipped": 56,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "ENABLE_CRANE_CONTROLS",
-     "status": "skipped",
-     "sites": 25
-    },
-    {
-     "name": "GRAB_ENTITY_ON_ROPE_FOR_OBJECT",
-     "status": "skipped",
-     "sites": 10
-    },
-    {
-     "name": "DETACH_CAR",
-     "status": "skipped",
-     "sites": 5
-    },
-    {
-     "name": "SET_ROPE_HEIGHT_FOR_OBJECT",
-     "status": "skipped",
-     "sites": 5
-    },
-    {
-     "name": "RELEASE_ENTITY_FROM_ROPE_FOR_OBJECT",
-     "status": "skipped",
-     "sites": 5
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 5
-    },
-    {
-     "name": "ATTACH_CAR_TO_OBJECT",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
-     "name": "IS_VEHICLE_ATTACHED",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "GET_ROPE_HEIGHT_FOR_OBJECT",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 70,
@@ -3767,24 +3186,13 @@
    "byStatus": {
     "core": 752,
     "nop": 3,
-    "faithful": 456,
-    "authored": 2,
+    "faithful": 459,
+    "authored": 0,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "GET_RANDOM_CAR_OF_TYPE_IN_ANGLED_AREA_NO_SAVE",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 71,
@@ -3812,28 +3220,13 @@
    "byStatus": {
     "core": 1449,
     "nop": 1,
-    "faithful": 811,
-    "authored": 1,
+    "faithful": 830,
+    "authored": 0,
     "silent": 0,
-    "skipped": 19,
+    "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "PLANE_GOTO_COORDS",
-     "status": "skipped",
-     "sites": 13
-    },
-    {
-     "name": "SET_PLANE_THROTTLE",
-     "status": "skipped",
-     "sites": 5
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    },
     {
      "name": "REMOVE_RC_BUGGY",
      "status": "skipped",
@@ -3850,8 +3243,8 @@
    "byStatus": {
     "core": 851,
     "nop": 1,
-    "faithful": 486,
-    "authored": 1,
+    "faithful": 487,
+    "authored": 0,
     "silent": 0,
     "skipped": 13,
     "stops": 0
@@ -3881,11 +3274,6 @@
      "name": "SET_ENABLE_RC_DETONATE",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
     }
    ]
   },
@@ -3898,18 +3286,13 @@
    "byStatus": {
     "core": 2395,
     "nop": 68,
-    "faithful": 636,
+    "faithful": 647,
     "authored": 0,
     "silent": 0,
-    "skipped": 21,
+    "skipped": 10,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "HELI_GOTO_COORDS",
-     "status": "skipped",
-     "sites": 7
-    },
     {
      "name": "IS_OBJECT_INTERSECTING_WORLD",
      "status": "skipped",
@@ -3919,16 +3302,6 @@
      "name": "TAKE_REMOTE_CONTROL_OF_CAR",
      "status": "skipped",
      "sites": 2
-    },
-    {
-     "name": "DETACH_CAR",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "ENABLE_CRANE_CONTROLS",
-     "status": "skipped",
-     "sites": 1
     },
     {
      "name": "SET_ENABLE_RC_DETONATE",
@@ -3947,11 +3320,6 @@
     },
     {
      "name": "SET_HELI_STABILISER",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SET_HELI_REACHED_TARGET_DISTANCE",
      "status": "skipped",
      "sites": 1
     },
@@ -3988,52 +3356,17 @@
    "byStatus": {
     "core": 1501,
     "nop": 3,
-    "faithful": 629,
-    "authored": 1,
+    "faithful": 643,
+    "authored": 4,
     "silent": 0,
-    "skipped": 17,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "IS_TRAILER_ATTACHED_TO_CAB",
-     "status": "skipped",
-     "sites": 7
-    },
-    {
      "name": "ATTACH_TRAILER_TO_CAB",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
-     "name": "RELEASE_PATH_NODES",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "ATTACH_CAR_TO_CAR",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "REMOVE_CHAR_FROM_CAR_MAINTAIN_POSITION",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "DETACH_CAR",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "DETACH_TRAILER_FROM_CAB",
-     "status": "skipped",
-     "sites": 1
+     "sites": 4
     }
    ]
   },
@@ -4046,52 +3379,17 @@
    "byStatus": {
     "core": 2251,
     "nop": 55,
-    "faithful": 1076,
-    "authored": 2,
+    "faithful": 1098,
+    "authored": 0,
     "silent": 0,
-    "skipped": 23,
+    "skipped": 3,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "HELI_GOTO_COORDS",
-     "status": "skipped",
-     "sites": 5
-    },
-    {
-     "name": "HELI_FOLLOW_ENTITY",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
-     "name": "CREATE_SWAT_ROPE",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
      "name": "SET_HELI_STABILISER",
      "status": "skipped",
      "sites": 3
-    },
-    {
-     "name": "MAKE_HELI_COME_CRASHING_DOWN",
-     "status": "skipped",
-     "sites": 3
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "ACTIVATE_HELI_SPEED_CHEAT",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "HELI_KEEP_ENTITY_IN_VIEW",
-     "status": "skipped",
-     "sites": 2
     }
    ]
   },
@@ -4121,19 +3419,13 @@
    "byStatus": {
     "core": 1112,
     "nop": 22,
-    "faithful": 236,
+    "faithful": 237,
     "authored": 0,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLANE_ATTACK_PLAYER",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 80,
@@ -4144,8 +3436,8 @@
    "byStatus": {
     "core": 1843,
     "nop": 9,
-    "faithful": 949,
-    "authored": 3,
+    "faithful": 951,
+    "authored": 1,
     "silent": 0,
     "skipped": 7,
     "stops": 0
@@ -4155,11 +3447,6 @@
      "name": "IS_LAST_BUILDING_MODEL_SHOT_BY_PLAYER",
      "status": "skipped",
      "sites": 3
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 2
     },
     {
      "name": "CONTROL_MOVABLE_VEHICLE_PART",
@@ -4192,48 +3479,13 @@
    "byStatus": {
     "core": 1409,
     "nop": 1,
-    "faithful": 1680,
-    "authored": 7,
+    "faithful": 1730,
+    "authored": 1,
     "silent": 0,
-    "skipped": 45,
+    "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CREATE_SEARCHLIGHT",
-     "status": "skipped",
-     "sites": 14
-    },
-    {
-     "name": "ATTACH_SEARCHLIGHT_TO_SEARCHLIGHT_OBJECT",
-     "status": "skipped",
-     "sites": 14
-    },
-    {
-     "name": "DOES_SEARCHLIGHT_EXIST",
-     "status": "skipped",
-     "sites": 7
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 6
-    },
-    {
-     "name": "DELETE_SEARCHLIGHT",
-     "status": "skipped",
-     "sites": 3
-    },
-    {
-     "name": "SWITCH_ON_GROUND_SEARCHLIGHT",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "IS_CHAR_IN_SEARCHLIGHT",
-     "status": "skipped",
-     "sites": 2
-    },
     {
      "name": "TASK_JETPACK",
      "status": "skipped",
@@ -4242,16 +3494,6 @@
     {
      "name": "SET_VEHICLE_IS_CONSIDERED_BY_PLAYER",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "MOVE_SEARCHLIGHT_BETWEEN_COORDS",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "POINT_SEARCHLIGHT_AT_CHAR",
-     "status": "skipped",
      "sites": 1
     }
    ]
@@ -4265,20 +3507,15 @@
    "byStatus": {
     "core": 207,
     "nop": 1,
-    "faithful": 227,
+    "faithful": 228,
     "authored": 0,
     "silent": 0,
-    "skipped": 3,
+    "skipped": 2,
     "stops": 0
    },
    "gaps": [
     {
      "name": "TASK_JETPACK",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "ATTACH_CAR_TO_CAR",
      "status": "skipped",
      "sites": 1
     },
@@ -4298,18 +3535,13 @@
    "byStatus": {
     "core": 2961,
     "nop": 2,
-    "faithful": 968,
-    "authored": 2,
+    "faithful": 970,
+    "authored": 0,
     "silent": 0,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 2
-    },
     {
      "name": "FIRE_HUNTER_GUN",
      "status": "skipped",
@@ -4326,18 +3558,13 @@
    "byStatus": {
     "core": 2109,
     "nop": 2,
-    "faithful": 514,
-    "authored": 1,
+    "faithful": 515,
+    "authored": 0,
     "silent": 0,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    },
     {
      "name": "TASK_DIVE_FROM_ATTACHMENT_AND_GET_UP",
      "status": "skipped",
@@ -4354,18 +3581,13 @@
    "byStatus": {
     "core": 1254,
     "nop": 12,
-    "faithful": 1055,
-    "authored": 5,
+    "faithful": 1057,
+    "authored": 3,
     "silent": 0,
     "skipped": 3,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 2
-    },
     {
      "name": "TASK_EVERYONE_LEAVE_CAR",
      "status": "authored",
@@ -4420,19 +3642,13 @@
    "byStatus": {
     "core": 30,
     "nop": 0,
-    "faithful": 27,
-    "authored": 1,
+    "faithful": 28,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 88,
@@ -4443,18 +3659,13 @@
    "byStatus": {
     "core": 4212,
     "nop": 8,
-    "faithful": 1916,
+    "faithful": 1920,
     "authored": 2,
     "silent": 0,
-    "skipped": 6,
+    "skipped": 2,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "TASK_TIRED",
-     "status": "skipped",
-     "sites": 4
-    },
     {
      "name": "SET_VEHICLE_TO_FADE_IN",
      "status": "skipped",
@@ -4493,8 +3704,8 @@
    "byStatus": {
     "core": 2481,
     "nop": 4,
-    "faithful": 1343,
-    "authored": 3,
+    "faithful": 1344,
+    "authored": 2,
     "silent": 0,
     "skipped": 5,
     "stops": 0
@@ -4516,11 +3727,6 @@
      "sites": 2
     },
     {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "RESET_STUFF_UPON_RESURRECTION",
      "status": "skipped",
      "sites": 1
@@ -4536,24 +3742,13 @@
    "byStatus": {
     "core": 1059,
     "nop": 1,
-    "faithful": 497,
-    "authored": 1,
+    "faithful": 499,
+    "authored": 0,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLANE_FLY_IN_DIRECTION",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 92,
@@ -4564,19 +3759,13 @@
    "byStatus": {
     "core": 1479,
     "nop": 1,
-    "faithful": 1237,
-    "authored": 2,
+    "faithful": 1239,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 2
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 93,
@@ -4587,24 +3776,13 @@
    "byStatus": {
     "core": 511,
     "nop": 1,
-    "faithful": 406,
+    "faithful": 408,
     "authored": 0,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "MAKE_HELI_COME_CRASHING_DOWN",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "HELI_GOTO_COORDS",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 94,
@@ -4615,19 +3793,13 @@
    "byStatus": {
     "core": 370,
     "nop": 1,
-    "faithful": 230,
-    "authored": 1,
+    "faithful": 231,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 95,
@@ -4678,19 +3850,13 @@
    "byStatus": {
     "core": 1964,
     "nop": 4,
-    "faithful": 1107,
-    "authored": 1,
+    "faithful": 1108,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 98,
@@ -4701,18 +3867,13 @@
    "byStatus": {
     "core": 1449,
     "nop": 8,
-    "faithful": 912,
-    "authored": 1,
+    "faithful": 913,
+    "authored": 0,
     "silent": 0,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    },
     {
      "name": "TASK_USE_ATM",
      "status": "skipped",
@@ -4729,29 +3890,13 @@
    "byStatus": {
     "core": 1018,
     "nop": 5,
-    "faithful": 693,
-    "authored": 1,
+    "faithful": 696,
+    "authored": 0,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "ATTACH_CAR_TO_CAR",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "HELI_GOTO_COORDS",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 100,
@@ -4762,44 +3907,13 @@
    "byStatus": {
     "core": 1731,
     "nop": 1,
-    "faithful": 1102,
+    "faithful": 1111,
     "authored": 0,
     "silent": 0,
-    "skipped": 9,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "SELECT_WEAPONS_FOR_VEHICLE",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "HELI_ATTACK_PLAYER",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "GRAB_ENTITY_ON_WINCH",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "ATTACH_WINCH_TO_HELI",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "WINCH_CAN_PICK_VEHICLE_UP",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "RELEASE_ENTITY_FROM_WINCH",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 101,
@@ -4810,10 +3924,10 @@
    "byStatus": {
     "core": 3088,
     "nop": 18,
-    "faithful": 3173,
-    "authored": 5,
+    "faithful": 3181,
+    "authored": 3,
     "silent": 0,
-    "skipped": 7,
+    "skipped": 1,
     "stops": 0
    },
    "gaps": [
@@ -4823,42 +3937,7 @@
      "sites": 3
     },
     {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 2
-    },
-    {
      "name": "GET_CAR_MOVING_COMPONENT_OFFSET",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "CREATE_SEARCHLIGHT_ON_VEHICLE",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "POINT_SEARCHLIGHT_AT_CHAR",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "DOES_SEARCHLIGHT_EXIST",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "DELETE_SEARCHLIGHT",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "CREATE_SWAT_ROPE",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "POLICE_HELI_CHASE_ENTITY",
      "status": "skipped",
      "sites": 1
     }
@@ -4873,19 +3952,13 @@
    "byStatus": {
     "core": 2824,
     "nop": 1,
-    "faithful": 1570,
-    "authored": 4,
+    "faithful": 1574,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 4
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 103,
@@ -4896,47 +3969,17 @@
    "byStatus": {
     "core": 4564,
     "nop": 54,
-    "faithful": 1260,
-    "authored": 3,
+    "faithful": 1279,
+    "authored": 0,
     "silent": 0,
-    "skipped": 19,
+    "skipped": 3,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "SET_PLANE_THROTTLE",
-     "status": "skipped",
-     "sites": 6
-    },
-    {
-     "name": "SET_AIRCRAFT_CARRIER_SAM_SITE",
-     "status": "skipped",
-     "sites": 5
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 3
-    },
-    {
-     "name": "PLANE_FOLLOW_ENTITY",
-     "status": "skipped",
-     "sites": 3
-    },
-    {
      "name": "CAN_CHAR_SEE_DEAD_CHAR",
      "status": "skipped",
      "sites": 3
-    },
-    {
-     "name": "PLANE_ATTACK_PLAYER_USING_DOG_FIGHT",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "PLANE_FLY_IN_DIRECTION",
-     "status": "skipped",
-     "sites": 1
     }
    ]
   },
@@ -4949,19 +3992,13 @@
    "byStatus": {
     "core": 537,
     "nop": 8,
-    "faithful": 489,
-    "authored": 5,
+    "faithful": 494,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 5
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 105,
@@ -4989,19 +4026,13 @@
    "byStatus": {
     "core": 1683,
     "nop": 1,
-    "faithful": 1297,
-    "authored": 1,
+    "faithful": 1298,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 107,
@@ -5130,40 +4161,20 @@
    "byStatus": {
     "core": 3644,
     "nop": 1,
-    "faithful": 2742,
-    "authored": 3,
+    "faithful": 2749,
+    "authored": 0,
     "silent": 0,
-    "skipped": 7,
+    "skipped": 3,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 3
-    },
     {
      "name": "CONTROL_MOVABLE_VEHICLE_PART",
      "status": "skipped",
      "sites": 2
     },
     {
-     "name": "STOP_CREDITS",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
      "name": "GET_DOOR_ANGLE_RATIO",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "START_CREDITS",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "ARE_CREDITS_FINISHED",
      "status": "skipped",
      "sites": 1
     }
@@ -5246,26 +4257,16 @@
    "byStatus": {
     "core": 1529,
     "nop": 43,
-    "faithful": 243,
+    "faithful": 248,
     "authored": 1,
     "silent": 0,
-    "skipped": 5,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "IS_TRAILER_ATTACHED_TO_CAB",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "ATTACH_TRAILER_TO_CAB",
-     "status": "skipped",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -5279,37 +4280,17 @@
    "byStatus": {
     "core": 2246,
     "nop": 28,
-    "faithful": 821,
+    "faithful": 835,
     "authored": 1,
     "silent": 0,
-    "skipped": 19,
+    "skipped": 5,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "WINCH_CAN_PICK_VEHICLE_UP",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
-     "name": "IS_VEHICLE_ATTACHED",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
      "name": "GET_CAR_MOVING_COMPONENT_OFFSET",
      "status": "skipped",
      "sites": 3
-    },
-    {
-     "name": "WINCH_CAN_PICK_OBJECT_UP",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "ATTACH_CAR_TO_CAR",
-     "status": "skipped",
-     "sites": 2
     },
     {
      "name": "SET_OBJECT_RENDER_SCORCHED",
@@ -5319,16 +4300,6 @@
     {
      "name": "SET_VEHICLE_IS_CONSIDERED_BY_PLAYER",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "GRAB_ENTITY_ON_ROPE_FOR_OBJECT",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "DETACH_CAR",
-     "status": "skipped",
      "sites": 1
     }
    ]
@@ -5342,29 +4313,13 @@
    "byStatus": {
     "core": 2630,
     "nop": 2,
-    "faithful": 1709,
-    "authored": 1,
+    "faithful": 1722,
+    "authored": 0,
     "silent": 0,
-    "skipped": 12,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "HELI_GOTO_COORDS",
-     "status": "skipped",
-     "sites": 10
-    },
-    {
-     "name": "BOAT_STOP",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 120,
@@ -5540,19 +4495,13 @@
    "byStatus": {
     "core": 1430,
     "nop": 3,
-    "faithful": 655,
-    "authored": 3,
+    "faithful": 658,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 3
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 129,
@@ -5580,24 +4529,13 @@
    "byStatus": {
     "core": 1872,
     "nop": 0,
-    "faithful": 510,
+    "faithful": 515,
     "authored": 0,
     "silent": 0,
-    "skipped": 5,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "SET_SWIM_SPEED",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
-     "name": "TASK_TIRED",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 131,
@@ -5608,19 +4546,13 @@
    "byStatus": {
     "core": 1498,
     "nop": 6,
-    "faithful": 437,
-    "authored": 3,
+    "faithful": 440,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 3
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 132,
@@ -5688,7 +4620,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 3154,
+   "handlerLine": 3192,
    "ref": {
     "kind": "absent"
    },
@@ -5699,64 +4631,13 @@
    "portable": false
   },
   {
-   "name": "GRAB_ENTITY_ON_ROPE_FOR_OBJECT",
-   "opcode": "0798",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks grabEntityOnRopeForObject (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1895,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 15,
-   "missions": 3,
-   "firstMission": "MAIN",
-   "portable": false
-  },
-  {
-   "name": "SET_ROPE_HEIGHT_FOR_OBJECT",
-   "opcode": "0797",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setRopeHeightForObject (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2036,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 8,
-   "missions": 3,
-   "firstMission": "MAIN",
-   "portable": false
-  },
-  {
-   "name": "RELEASE_ENTITY_FROM_ROPE_FOR_OBJECT",
-   "opcode": "0799",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks releaseEntityFromRopeForObject (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2237,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 7,
-   "missions": 3,
-   "firstMission": "MAIN",
-   "portable": false
-  },
-  {
    "name": "ARE_MEASUREMENTS_IN_METRES",
    "opcode": "0424",
    "status": "authored",
    "notes": [
     "adapter comments name an authored stand-in (measurementsAreInMetres)"
    ],
-   "handlerLine": 2234,
+   "handlerLine": 2248,
    "ref": {
     "kind": "absent"
    },
@@ -5773,7 +4654,7 @@
    "notes": [
     "adapter lacks activateSaveMenu (skipped: outputs read as none)"
    ],
-   "handlerLine": 2671,
+   "handlerLine": 2694,
    "ref": {
     "kind": "absent"
    },
@@ -5790,7 +4671,7 @@
    "notes": [
     "adapter lacks hasSaveGameFinished (skipped: outputs read as none)"
    ],
-   "handlerLine": 2672,
+   "handlerLine": 2695,
    "ref": {
     "kind": "absent"
    },
@@ -5807,7 +4688,7 @@
    "notes": [
     "adapter comments name an authored stand-in (getRidOfPlayerProstitute)"
    ],
-   "handlerLine": 1249,
+   "handlerLine": 1253,
    "ref": {
     "kind": "handler",
     "fn": "GetRidOfPlayerProstitute",
@@ -5827,7 +4708,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 1214,
+   "handlerLine": 1218,
    "ref": {
     "kind": "handler",
     "fn": "GetCharVelocity",
@@ -5847,7 +4728,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 3241,
+   "handlerLine": 3279,
    "ref": {
     "kind": "absent"
    },
@@ -5864,7 +4745,7 @@
    "notes": [
     "adapter comments name an authored stand-in (taskPlayAnimSecondary)"
    ],
-   "handlerLine": 2529,
+   "handlerLine": 2550,
    "ref": {
     "kind": "absent"
    },
@@ -5881,7 +4762,7 @@
    "notes": [
     "adapter comments name an authored stand-in (debugCameraSource)"
    ],
-   "handlerLine": 1269,
+   "handlerLine": 1273,
    "ref": {
     "kind": "handler",
     "fn": "GetDebugCameraCoordinates",
@@ -5901,7 +4782,7 @@
    "notes": [
     "adapter comments name an authored stand-in (debugCameraSource)"
    ],
-   "handlerLine": 1273,
+   "handlerLine": 1277,
    "ref": {
     "kind": "handler",
     "fn": "GetDebugCameraPointAt",
@@ -5921,7 +4802,7 @@
    "notes": [
     "adapter comments name an authored stand-in (setPedWantedByPolice)"
    ],
-   "handlerLine": 2381,
+   "handlerLine": 2397,
    "ref": {
     "kind": "handler",
     "fn": "SetCharWantedByPolice",
@@ -5941,7 +4822,7 @@
    "notes": [
     "adapter lacks lockDoor (skipped: outputs read as none)"
    ],
-   "handlerLine": 2772,
+   "handlerLine": 2800,
    "ref": {
     "kind": "absent"
    },
@@ -5958,7 +4839,7 @@
    "notes": [
     "adapter comments name an authored stand-in (addAttractor)"
    ],
-   "handlerLine": 2645,
+   "handlerLine": 2666,
    "ref": {
     "kind": "absent"
    },
@@ -5975,7 +4856,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 3243,
+   "handlerLine": 3281,
    "ref": {
     "kind": "handler-disabled",
     "fn": "GetRandomCharInSphereNoBrain",
@@ -5989,33 +4870,13 @@
    "portable": false
   },
   {
-   "name": "LOAD_SCENE_IN_DIRECTION",
-   "opcode": "0a0b",
-   "status": "authored",
-   "notes": [
-    "adapter comments name an authored stand-in (loadSceneInDirection)"
-   ],
-   "handlerLine": 2983,
-   "ref": {
-    "kind": "handler",
-    "fn": "LoadSceneInDirection",
-    "where": "ScriptCommands.cpp:41",
-    "stub": false
-   },
-   "doc": "",
-   "sites": 122,
-   "missions": 62,
-   "firstMission": "planes.scm",
-   "portable": true
-  },
-  {
    "name": "SKIP_TO_NEXT_ALLOWED_STATION",
    "opcode": "0a07",
    "status": "skipped",
    "notes": [
     "adapter lacks skipTrainToNextStation (skipped: outputs read as none)"
    ],
-   "handlerLine": 758,
+   "handlerLine": 762,
    "ref": {
     "kind": "handler",
     "fn": "SkipToNextAllowedStation",
@@ -6035,7 +4896,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 3242,
+   "handlerLine": 3280,
    "ref": {
     "kind": "handler",
     "fn": "IsCharUsingMapAttractor",
@@ -6071,7 +4932,7 @@
    "notes": [
     "adapter comments name an authored stand-in (requestVehicleMod)"
    ],
-   "handlerLine": 2450,
+   "handlerLine": 2471,
    "ref": {
     "kind": "absent"
    },
@@ -6088,7 +4949,7 @@
    "notes": [
     "adapter lacks manageAllPopulation"
    ],
-   "handlerLine": 2554,
+   "handlerLine": 2575,
    "ref": {
     "kind": "absent"
    },
@@ -6099,84 +4960,13 @@
    "portable": false
   },
   {
-   "name": "GET_ROPE_HEIGHT_FOR_OBJECT",
-   "opcode": "0796",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks getRopeHeightForObject (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2749,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 6,
-   "missions": 4,
-   "firstMission": "crane1.scm",
-   "portable": false
-  },
-  {
-   "name": "GET_CHAR_HIGHEST_PRIORITY_EVENT",
-   "opcode": "080e",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks getCharHighestPriorityEvent (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2462,
-   "ref": {
-    "kind": "handler-disabled",
-    "fn": "GetCharHighestPriorityEvent",
-    "where": "CharacterCommands.cpp:4289",
-    "stub": false
-   },
-   "doc": "Gets the characters active ped event",
-   "sites": 5,
-   "missions": 4,
-   "firstMission": "impound.scm",
-   "portable": false
-  },
-  {
-   "name": "DETACH_CAR",
-   "opcode": "0684",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks detachVehicle (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1996,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Detaches the car with optional rotation and force",
-   "sites": 12,
-   "missions": 6,
-   "firstMission": "valet.scm",
-   "portable": false
-  },
-  {
-   "name": "IS_VEHICLE_ATTACHED",
-   "opcode": "0686",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks isVehicleAttached (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2410,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 6,
-   "missions": 3,
-   "firstMission": "valet.scm",
-   "portable": false
-  },
-  {
    "name": "GET_CAR_BLOCKING_CAR",
    "opcode": "0987",
    "status": "skipped",
    "notes": [
     "adapter lacks getCarBlockingCar (skipped: outputs read as none)"
    ],
-   "handlerLine": 2726,
+   "handlerLine": 2752,
    "ref": {
     "kind": "absent"
    },
@@ -6193,7 +4983,7 @@
    "notes": [
     "adapter lacks getParkingNodeInArea (skipped: outputs read as none)"
    ],
-   "handlerLine": 2727,
+   "handlerLine": 2753,
    "ref": {
     "kind": "absent"
    },
@@ -6210,7 +5000,7 @@
    "notes": [
     "adapter lacks isCharStuckUnderCar (skipped: outputs read as none)"
    ],
-   "handlerLine": 2738,
+   "handlerLine": 2764,
    "ref": {
     "kind": "handler-disabled",
     "fn": "IsCharStuckUnderCar",
@@ -6230,7 +5020,7 @@
    "notes": [
     "adapter lacks getStringWidth (skipped: outputs read as none)"
    ],
-   "handlerLine": 2483,
+   "handlerLine": 2504,
    "ref": {
     "kind": "absent"
    },
@@ -6247,7 +5037,7 @@
    "notes": [
     "adapter lacks setScriptCoopGame (skipped: outputs read as none)"
    ],
-   "handlerLine": 2484,
+   "handlerLine": 2505,
    "ref": {
     "kind": "absent"
    },
@@ -6264,7 +5054,7 @@
    "notes": [
     "adapter lacks setPoolTableCoords (skipped: outputs read as none)"
    ],
-   "handlerLine": 2578,
+   "handlerLine": 2599,
    "ref": {
     "kind": "absent"
    },
@@ -6281,7 +5071,7 @@
    "notes": [
     "adapter lacks setObjectDrawLast (skipped: outputs read as none)"
    ],
-   "handlerLine": 2579,
+   "handlerLine": 2600,
    "ref": {
     "kind": "absent"
    },
@@ -6298,7 +5088,7 @@
    "notes": [
     "adapter lacks getStringWidthWithNumber (skipped: outputs read as none)"
    ],
-   "handlerLine": 2688,
+   "handlerLine": 2711,
    "ref": {
     "kind": "absent"
    },
@@ -6315,7 +5105,7 @@
    "notes": [
     "adapter lacks removeRCBuggy (skipped: outputs read as none)"
    ],
-   "handlerLine": 761,
+   "handlerLine": 765,
    "ref": {
     "kind": "handler",
     "fn": "RemoveRCBuggy",
@@ -6335,7 +5125,7 @@
    "notes": [
     "adapter lacks setEnableRcDetonateOnContact (skipped: outputs read as none)"
    ],
-   "handlerLine": 2487,
+   "handlerLine": 2508,
    "ref": {
     "kind": "absent"
    },
@@ -6352,7 +5142,7 @@
    "notes": [
     "adapter lacks setEnableRcDetonate (skipped: outputs read as none)"
    ],
-   "handlerLine": 2488,
+   "handlerLine": 2509,
    "ref": {
     "kind": "absent"
    },
@@ -6369,7 +5159,7 @@
    "notes": [
     "adapter lacks giveRemoteControlledModelToPlayer (skipped: outputs read as none)"
    ],
-   "handlerLine": 2583,
+   "handlerLine": 2604,
    "ref": {
     "kind": "handler",
     "fn": "GiveRemoteControlledModelToPlayer",
@@ -6389,7 +5179,7 @@
    "notes": [
     "adapter lacks getRemoteControlledCar (skipped: outputs read as none)"
    ],
-   "handlerLine": 2584,
+   "handlerLine": 2605,
    "ref": {
     "kind": "absent"
    },
@@ -6407,7 +5197,7 @@
     "dispatch unreversed; follows the routines it reaches",
     "adapter lacks setForceRandomCarModel (skipped: outputs read as none)"
    ],
-   "handlerLine": 2697,
+   "handlerLine": 2720,
    "ref": {
     "kind": "absent"
    },
@@ -6425,7 +5215,7 @@
     "dispatch unreversed; follows the routines it reaches",
     "adapter lacks isPlayerInRemoteMode (skipped: outputs read as none)"
    ],
-   "handlerLine": 2698,
+   "handlerLine": 2721,
    "ref": {
     "kind": "handler",
     "fn": "IsPlayerInRemoteMode",
@@ -6445,7 +5235,7 @@
    "notes": [
     "adapter comments name an authored stand-in (givePedScriptedTask)"
    ],
-   "handlerLine": 1976,
+   "handlerLine": 1990,
    "ref": {
     "kind": "absent"
    },
@@ -6462,7 +5252,7 @@
    "notes": [
     "adapter comments name an authored stand-in (setVehicleIsConsideredByPlayer)"
    ],
-   "handlerLine": 2268,
+   "handlerLine": 2282,
    "ref": {
     "kind": "absent"
    },
@@ -6479,7 +5269,7 @@
    "notes": [
     "adapter lacks setGroupSequence (skipped: outputs read as none)"
    ],
-   "handlerLine": 2713,
+   "handlerLine": 2736,
    "ref": {
     "kind": "absent"
    },
@@ -6490,89 +5280,18 @@
    "portable": false
   },
   {
-   "name": "ADD_SPARKS",
-   "opcode": "08eb",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks addSparks (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1937,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Creates single burst of spark particles",
-   "sites": 17,
-   "missions": 1,
-   "firstMission": "DRUGS1",
-   "portable": false
-  },
-  {
-   "name": "ATTACH_CAR_TO_CAR",
-   "opcode": "0683",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks attachVehicleToVehicle (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2008,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 9,
-   "missions": 5,
-   "firstMission": "DRUGS1",
-   "portable": false
-  },
-  {
-   "name": "SET_CAMERA_POSITION_UNFIXED",
-   "opcode": "0a25",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setActiveCameraAngles (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1265,
-   "ref": {
-    "kind": "handler",
-    "fn": "SetCameraPositionUnfixed",
-    "where": "CameraCommands.cpp:289",
-    "stub": false
-   },
-   "doc": "Sets the position of the camera to an offset of the targeted entity",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "MUSIC1",
-   "portable": true
-  },
-  {
    "name": "MARK_CAR_AS_CONVOY_CAR",
    "opcode": "04bd",
    "status": "authored",
    "notes": [
     "adapter comments name an authored stand-in (markVehicleAsConvoyCar)"
    ],
-   "handlerLine": 1914,
+   "handlerLine": 1928,
    "ref": {
     "kind": "absent"
    },
    "doc": "Marks the car as being part of a convoy, which seems to follow a path set by 0994",
    "sites": 15,
-   "missions": 2,
-   "firstMission": "MUSIC3",
-   "portable": false
-  },
-  {
-   "name": "SET_CAR_FOLLOW_CAR",
-   "opcode": "07f8",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setVehicleFollowVehicle (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2346,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 5,
    "missions": 2,
    "firstMission": "MUSIC3",
    "portable": false
@@ -6584,7 +5303,7 @@
    "notes": [
     "adapter lacks taskCharArrestChar (skipped: outputs read as none)"
    ],
-   "handlerLine": 2593,
+   "handlerLine": 2614,
    "ref": {
     "kind": "handler-disabled",
     "fn": "TaskCharArrestChar",
@@ -6598,365 +5317,13 @@
    "portable": false
   },
   {
-   "name": "HELI_GOTO_COORDS",
-   "opcode": "04a2",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks heliGotoCoords (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1670,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes the helicopter fly to the specified location, keeping a specific Z height/altitude",
-   "sites": 44,
-   "missions": 12,
-   "firstMission": "CPRACE",
-   "portable": false
-  },
-  {
-   "name": "PLANE_GOTO_COORDS",
-   "opcode": "04d2",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks planeGotoCoords (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1920,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 16,
-   "missions": 2,
-   "firstMission": "CPRACE",
-   "portable": false
-  },
-  {
-   "name": "SET_BOAT_CRUISE_SPEED",
-   "opcode": "02db",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setBoatCruiseSpeed (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2276,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Sets the boat's max speed",
-   "sites": 6,
-   "missions": 3,
-   "firstMission": "CPRACE",
-   "portable": false
-  },
-  {
-   "name": "DOES_SEARCHLIGHT_EXIST",
-   "opcode": "06b3",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks searchlightExists (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1849,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns true if the handle is a valid searchlight handle",
-   "sites": 17,
-   "missions": 4,
-   "firstMission": "DRUGS4",
-   "portable": false
-  },
-  {
-   "name": "DELETE_SEARCHLIGHT",
-   "opcode": "06b2",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks deleteSearchlight (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1848,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 16,
-   "missions": 5,
-   "firstMission": "DRUGS4",
-   "portable": false
-  },
-  {
-   "name": "CREATE_SWAT_ROPE",
-   "opcode": "0503",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks createSwatRope (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1349,
-   "ref": {
-    "kind": "handler-disabled",
-    "fn": "CreateSwatRope",
-    "where": "CharacterCommands.cpp:4055",
-    "stub": false
-   },
-   "doc": "Creates a character descending from a rope",
-   "sites": 11,
-   "missions": 3,
-   "firstMission": "DRUGS4",
-   "portable": false
-  },
-  {
-   "name": "POINT_SEARCHLIGHT_AT_CHAR",
-   "opcode": "06b6",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks pointSearchlightAtPed (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2054,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes the searchlight follow the specified char",
-   "sites": 10,
-   "missions": 4,
-   "firstMission": "DRUGS4",
-   "portable": false
-  },
-  {
-   "name": "CREATE_SEARCHLIGHT_ON_VEHICLE",
-   "opcode": "06c1",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks createSearchlightOnVehicle (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2177,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Creates a searchlight-styled light cone on a car with the specified offset and points to a certain point",
-   "sites": 7,
-   "missions": 3,
-   "firstMission": "DRUGS4",
-   "portable": false
-  },
-  {
-   "name": "MOVE_SEARCHLIGHT_BETWEEN_COORDS",
-   "opcode": "06b4",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks moveSearchlightBetweenCoords (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2181,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes the specified searchlight travel between the two specified points with the specified speed",
-   "sites": 7,
-   "missions": 3,
-   "firstMission": "DRUGS4",
-   "portable": false
-  },
-  {
-   "name": "HELI_FOLLOW_ENTITY",
-   "opcode": "0726",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks heliFollowEntity (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2281,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes the heli follow the specified char or vehicle in the air",
-   "sites": 6,
-   "missions": 3,
-   "firstMission": "DRUGS4",
-   "portable": false
-  },
-  {
-   "name": "SET_SEARCHLIGHT_CLIP_IF_COLLIDING",
-   "opcode": "0941",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setSearchlightClipIfColliding (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2284,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 6,
-   "missions": 2,
-   "firstMission": "DRUGS4",
-   "portable": false
-  },
-  {
-   "name": "SET_HELI_REACHED_TARGET_DISTANCE",
-   "opcode": "0853",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setHeliReachedTargetDistance (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2508,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 3,
-   "missions": 3,
-   "firstMission": "DRUGS4",
-   "portable": false
-  },
-  {
-   "name": "DO_CAMERA_BUMP",
-   "opcode": "0834",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks doCameraBump (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1266,
-   "ref": {
-    "kind": "handler",
-    "fn": "DoCameraBump",
-    "where": "CameraCommands.cpp:36",
-    "stub": false
-   },
-   "doc": "Bumps the camera in the specified direction as if it had collided",
-   "sites": 3,
-   "missions": 1,
-   "firstMission": "DRUGS4",
-   "portable": true
-  },
-  {
-   "name": "ADD_BIG_GUN_FLASH",
-   "opcode": "058a",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks addBigGunFlash (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2595,
-   "ref": {
-    "kind": "handler",
-    "fn": "AddBigGunFlash",
-    "where": "ObjectCommands.cpp:143",
-    "stub": false
-   },
-   "doc": "Creates a gun flash particle effect",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "DRUGS4",
-   "portable": true
-  },
-  {
-   "name": "TASK_PLAY_ANIM_WITH_FLAGS",
-   "opcode": "088a",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks taskPlayAnimWithFlags (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2716,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes the char perform an animation",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "DRUGS4",
-   "portable": false
-  },
-  {
-   "name": "IS_ATTACHED_PLAYER_HEADING_ACHIEVED",
-   "opcode": "0861",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks isAttachedPlayerHeadingAchieved (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2717,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns true if the heading has finished being applied, as started by 0858",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "DRUGS4",
-   "portable": false
-  },
-  {
-   "name": "SET_HEADING_LIMIT_FOR_ATTACHED_CHAR",
-   "opcode": "0887",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setHeadingLimitForAttachedPed (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1325,
-   "ref": {
-    "kind": "handler-disabled",
-    "fn": "SetHeadingLimitForAttachedChar",
-    "where": "CharacterCommands.cpp:4083",
-    "stub": false
-   },
-   "doc": "Sets the heading limit for a character attached to an object or vehicle",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "DRUGS4",
-   "portable": false
-  },
-  {
-   "name": "IS_TRAILER_ATTACHED_TO_CAB",
-   "opcode": "07ab",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks trailerIsAttachedToCab (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2133,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns true if CAR A has CAR B attached to it like a trailer",
-   "sites": 13,
-   "missions": 3,
-   "firstMission": "CAT3",
-   "portable": false
-  },
-  {
-   "name": "SET_DRUNK_INPUT_DELAY",
-   "opcode": "03fd",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setDrunkInputDelay (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2456,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Affects the delay to the left and right steering while driving",
-   "sites": 4,
-   "missions": 1,
-   "firstMission": "TRUTH2",
-   "portable": false
-  },
-  {
-   "name": "HELI_LAND_AT_COORDS",
-   "opcode": "0743",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks heliLandAtCoords (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2722,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "GARAG1",
-   "portable": false
-  },
-  {
    "name": "CONTROL_MOVABLE_VEHICLE_PART",
    "opcode": "08a4",
    "status": "skipped",
    "notes": [
     "adapter lacks controlMovableVehiclePart (skipped: outputs read as none)"
    ],
-   "handlerLine": 2302,
+   "handlerLine": 2316,
    "ref": {
     "kind": "absent"
    },
@@ -6973,7 +5340,7 @@
    "notes": [
     "adapter lacks swapNearestBuildingModel (skipped: outputs read as none)"
    ],
-   "handlerLine": 2511,
+   "handlerLine": 2532,
    "ref": {
     "kind": "absent"
    },
@@ -6990,7 +5357,7 @@
    "notes": [
     "adapter lacks setVehicleQuaternion (skipped: outputs read as none)"
    ],
-   "handlerLine": 2724,
+   "handlerLine": 2750,
    "ref": {
     "kind": "absent"
    },
@@ -7001,135 +5368,13 @@
    "portable": false
   },
   {
-   "name": "CREATE_SEARCHLIGHT",
-   "opcode": "06b1",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks createSearchlight (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1845,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 19,
-   "missions": 2,
-   "firstMission": "WUZI2",
-   "portable": false
-  },
-  {
-   "name": "ATTACH_SEARCHLIGHT_TO_SEARCHLIGHT_OBJECT",
-   "opcode": "06ca",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks attachSearchlightToObject (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1851,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Attaches the searchlight to the specified objects",
-   "sites": 18,
-   "missions": 2,
-   "firstMission": "WUZI2",
-   "portable": false
-  },
-  {
-   "name": "ADD_BLIP_FOR_SEARCHLIGHT",
-   "opcode": "06c4",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks addBlipForSearchlight (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2356,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Creates a blip indicating the searchlights position on the radar",
-   "sites": 5,
-   "missions": 1,
-   "firstMission": "WUZI2",
-   "portable": false
-  },
-  {
-   "name": "BOAT_STOP",
-   "opcode": "02d4",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks boatStop (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2514,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Turns off the car's engine",
-   "sites": 3,
-   "missions": 2,
-   "firstMission": "WUZI2",
-   "portable": false
-  },
-  {
-   "name": "BOAT_GOTO_COORDS",
-   "opcode": "02d3",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks boatGotoCoords (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2734,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes the boat sail to the location",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "WUZI2",
-   "portable": false
-  },
-  {
-   "name": "IS_CHAR_IN_ANY_SEARCHLIGHT",
-   "opcode": "07a9",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks isCharInAnySearchlight (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2735,
-   "ref": {
-    "kind": "handler-disabled",
-    "fn": "IsCharInAnySearchlight",
-    "where": "CharacterCommands.cpp:4283",
-    "stub": false
-   },
-   "doc": "Returns the handle for the searchlight that's targeting the character",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "WUZI2",
-   "portable": false
-  },
-  {
-   "name": "MAKE_HELI_COME_CRASHING_DOWN",
-   "opcode": "0564",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks makeHeliComeCrashingDown (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2173,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes helicopter simulate crash landing, exploding on the way if high up",
-   "sites": 7,
-   "missions": 4,
-   "firstMission": "WUZI5",
-   "portable": false
-  },
-  {
    "name": "ADD_SMOKE_PARTICLE",
    "opcode": "095c",
    "status": "skipped",
    "notes": [
     "adapter lacks addSmokeParticle (skipped: outputs read as none)"
    ],
-   "handlerLine": 2736,
+   "handlerLine": 2762,
    "ref": {
     "kind": "absent"
    },
@@ -7138,26 +5383,6 @@
    "missions": 1,
    "firstMission": "WUZI5",
    "portable": false
-  },
-  {
-   "name": "ATTACH_CHAR_TO_BIKE",
-   "opcode": "06a7",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks attachPedToBike (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1329,
-   "ref": {
-    "kind": "handler",
-    "fn": "AttachCharToBike",
-    "where": "CharacterCommands.cpp:3168",
-    "stub": false
-   },
-   "doc": "",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "SYN1",
-   "portable": true
   },
   {
    "name": "CREATE_BIRDS",
@@ -7166,7 +5391,7 @@
    "notes": [
     "adapter lacks createBirds (skipped: outputs read as none)"
    ],
-   "handlerLine": 2617,
+   "handlerLine": 2638,
    "ref": {
     "kind": "absent"
    },
@@ -7183,7 +5408,7 @@
    "notes": [
     "adapter lacks setVehicleCanBeTargetted (skipped: outputs read as none)"
    ],
-   "handlerLine": 2739,
+   "handlerLine": 2765,
    "ref": {
     "kind": "absent"
    },
@@ -7194,33 +5419,13 @@
    "portable": false
   },
   {
-   "name": "SET_SWIM_SPEED",
-   "opcode": "0a28",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setPedSwimSpeed (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1314,
-   "ref": {
-    "kind": "handler",
-    "fn": "SetSwimSpeed",
-    "where": "PlayerCommands.cpp:95",
-    "stub": false
-   },
-   "doc": "Sets the speed that the character swims at, changing their swimming animation speed",
-   "sites": 7,
-   "missions": 2,
-   "firstMission": "SYN5",
-   "portable": true
-  },
-  {
    "name": "TASK_GREET_PARTNER",
    "opcode": "0823",
    "status": "skipped",
    "notes": [
     "adapter lacks taskGreetPartner (skipped: outputs read as none)"
    ],
-   "handlerLine": 2741,
+   "handlerLine": 2767,
    "ref": {
     "kind": "absent"
    },
@@ -7231,166 +5436,13 @@
    "portable": false
   },
   {
-   "name": "SET_HELI_ORIENTATION",
-   "opcode": "04d0",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setHeliOrientation (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2742,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Forces the heli rotation relative to the north",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "SYN5",
-   "portable": false
-  },
-  {
-   "name": "TASK_GO_TO_OBJECT",
-   "opcode": "06e2",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks taskGoToObject (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2745,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes the character go to an object",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "DRIV2",
-   "portable": false
-  },
-  {
-   "name": "SET_CAR_ESCORT_CAR_RIGHT",
-   "opcode": "05f2",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setCarEscortCarRight (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2746,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes the vehicle stay by the right side of the other vehicle, keeping parallel",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "DRIV3",
-   "portable": false
-  },
-  {
-   "name": "SET_CAR_ESCORT_CAR_LEFT",
-   "opcode": "05f1",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setCarEscortCarLeft (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2747,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes the vehicle stay on the other vehicle's left side, keeping parallel",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "DRIV3",
-   "portable": false
-  },
-  {
-   "name": "GIVE_NON_PLAYER_CAR_NITRO",
-   "opcode": "09e9",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks giveNonPlayerCarNitro (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2748,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes the car have one nitro",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "STEAL2",
-   "portable": false
-  },
-  {
-   "name": "ENABLE_CRANE_CONTROLS",
-   "opcode": "0898",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks enableCraneControls (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1809,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Enables/disables individual crane controls",
-   "sites": 26,
-   "missions": 2,
-   "firstMission": "STEAL4",
-   "portable": false
-  },
-  {
-   "name": "ATTACH_CAR_TO_OBJECT",
-   "opcode": "0939",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks attachCarToObject (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2463,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Attaches the car to object with offset and rotation",
-   "sites": 4,
-   "missions": 1,
-   "firstMission": "STEAL4",
-   "portable": false
-  },
-  {
-   "name": "GET_RANDOM_CAR_OF_TYPE_IN_ANGLED_AREA_NO_SAVE",
-   "opcode": "09c0",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks getRandomCarOfTypeInAngledAreaNoSave (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2750,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "STEAL5",
-   "portable": false
-  },
-  {
-   "name": "SET_PLANE_THROTTLE",
-   "opcode": "0742",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setPlaneThrottle (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2021,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 11,
-   "missions": 2,
-   "firstMission": "ZERO1",
-   "portable": false
-  },
-  {
    "name": "SET_HELI_STABILISER",
    "opcode": "04df",
    "status": "skipped",
    "notes": [
     "adapter lacks setHeliStabiliser (skipped: outputs read as none)"
    ],
-   "handlerLine": 2470,
+   "handlerLine": 2491,
    "ref": {
     "kind": "absent"
    },
@@ -7407,7 +5459,7 @@
    "notes": [
     "adapter lacks isObjectIntersectingWorld (skipped: outputs read as none)"
    ],
-   "handlerLine": 2516,
+   "handlerLine": 2537,
    "ref": {
     "kind": "absent"
    },
@@ -7424,7 +5476,7 @@
    "notes": [
     "adapter lacks takeRemoteControlOfCar (skipped: outputs read as none)"
    ],
-   "handlerLine": 2621,
+   "handlerLine": 2642,
    "ref": {
     "kind": "absent"
    },
@@ -7441,7 +5493,7 @@
    "notes": [
     "adapter lacks removeOilPuddlesInArea (skipped: outputs read as none)"
    ],
-   "handlerLine": 2751,
+   "handlerLine": 2779,
    "ref": {
     "kind": "absent"
    },
@@ -7454,11 +5506,11 @@
   {
    "name": "ATTACH_TRAILER_TO_CAB",
    "opcode": "0893",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks attachTrailerToCab (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (attachTrailerToCab)"
    ],
-   "handlerLine": 2412,
+   "handlerLine": 2428,
    "ref": {
     "kind": "absent"
    },
@@ -7469,118 +5521,13 @@
    "portable": false
   },
   {
-   "name": "RELEASE_PATH_NODES",
-   "opcode": "0607",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks releasePathNodes (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2623,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Removes areas forbidden for scripted cars set up by 0606",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "TORENO2",
-   "portable": false
-  },
-  {
-   "name": "REMOVE_CHAR_FROM_CAR_MAINTAIN_POSITION",
-   "opcode": "09c9",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks removePedFromCarMaintainPosition (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1246,
-   "ref": {
-    "kind": "handler",
-    "fn": "RemoveCharFromCarMaintainPosition",
-    "where": "CharacterCommands.cpp:3302",
-    "stub": false
-   },
-   "doc": "Removes the character from the vehicle",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "TORENO2",
-   "portable": true
-  },
-  {
-   "name": "DETACH_TRAILER_FROM_CAB",
-   "opcode": "07ac",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks detachTrailerFromCab (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2754,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Detaches the trailer from the car which it is attached to",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "TORENO2",
-   "portable": false
-  },
-  {
-   "name": "ACTIVATE_HELI_SPEED_CHEAT",
-   "opcode": "07bb",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks activateHeliSpeedCheat (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2626,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Provides the heli with extra thrust power",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "DES3",
-   "portable": false
-  },
-  {
-   "name": "HELI_KEEP_ENTITY_IN_VIEW",
-   "opcode": "0780",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks heliKeepEntityInView (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2627,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "DES3",
-   "portable": false
-  },
-  {
-   "name": "PLANE_ATTACK_PLAYER",
-   "opcode": "070e",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks planeAttackPlayer (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2755,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Sets the planes mission to attack the player",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "DESERT6",
-   "portable": false
-  },
-  {
    "name": "TASK_COMPLEX_PICKUP_OBJECT",
    "opcode": "07c9",
    "status": "skipped",
    "notes": [
     "adapter lacks taskComplexPickupObject (skipped: outputs read as none)"
    ],
-   "handlerLine": 2517,
+   "handlerLine": 2538,
    "ref": {
     "kind": "absent"
    },
@@ -7597,7 +5544,7 @@
    "notes": [
     "adapter lacks isLastBuildingModelShotByPlayer (skipped: outputs read as none)"
    ],
-   "handlerLine": 2518,
+   "handlerLine": 2539,
    "ref": {
     "kind": "absent"
    },
@@ -7614,7 +5561,7 @@
    "notes": [
     "adapter lacks clearLastBuildingModelShotByPlayer (skipped: outputs read as none)"
    ],
-   "handlerLine": 2756,
+   "handlerLine": 2784,
    "ref": {
     "kind": "absent"
    },
@@ -7625,50 +5572,13 @@
    "portable": false
   },
   {
-   "name": "SWITCH_ON_GROUND_SEARCHLIGHT",
-   "opcode": "0a02",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks switchOnGroundSearchlight (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2636,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Sets whether the searchlight shows a shadow effect on the surface it hits",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "MAF4",
-   "portable": false
-  },
-  {
-   "name": "IS_CHAR_IN_SEARCHLIGHT",
-   "opcode": "06b7",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks pedIsInSearchlight (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1334,
-   "ref": {
-    "kind": "handler",
-    "fn": "IsCharInSearchlight",
-    "where": "CharacterCommands.cpp:3131",
-    "stub": false
-   },
-   "doc": "Returns true if the searchlight has spotted the char",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "MAF4",
-   "portable": true
-  },
-  {
    "name": "TASK_JETPACK",
    "opcode": "07a7",
    "status": "skipped",
    "notes": [
     "adapter lacks taskJetpack (skipped: outputs read as none)"
    ],
-   "handlerLine": 2637,
+   "handlerLine": 2658,
    "ref": {
     "kind": "absent"
    },
@@ -7685,7 +5595,7 @@
    "notes": [
     "adapter lacks drawWeaponshopCorona (skipped: outputs read as none)"
    ],
-   "handlerLine": 2761,
+   "handlerLine": 2789,
    "ref": {
     "kind": "absent"
    },
@@ -7702,7 +5612,7 @@
    "notes": [
     "adapter lacks fireHunterGun (skipped: outputs read as none)"
    ],
-   "handlerLine": 2765,
+   "handlerLine": 2793,
    "ref": {
     "kind": "absent"
    },
@@ -7719,7 +5629,7 @@
    "notes": [
     "adapter lacks taskDiveFromAttachmentAndGetUp (skipped: outputs read as none)"
    ],
-   "handlerLine": 2766,
+   "handlerLine": 2794,
    "ref": {
     "kind": "absent"
    },
@@ -7736,7 +5646,7 @@
    "notes": [
     "adapter comments name an authored stand-in (addExplosionVariableShake)"
    ],
-   "handlerLine": 1719,
+   "handlerLine": 1733,
    "ref": {
     "kind": "absent"
    },
@@ -7747,30 +5657,13 @@
    "portable": false
   },
   {
-   "name": "TASK_TIRED",
-   "opcode": "05bd",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks taskTired (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2413,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes the char stop to regain breath",
-   "sites": 5,
-   "missions": 2,
-   "firstMission": "CASINO4",
-   "portable": false
-  },
-  {
    "name": "SET_VEHICLE_TO_FADE_IN",
    "opcode": "0594",
    "status": "skipped",
    "notes": [
     "adapter lacks setVehicleToFadeIn (skipped: outputs read as none)"
    ],
-   "handlerLine": 2644,
+   "handlerLine": 2665,
    "ref": {
     "kind": "absent"
    },
@@ -7787,7 +5680,7 @@
    "notes": [
     "adapter lacks addPedtypeAsAttractorUser (skipped: outputs read as none)"
    ],
-   "handlerLine": 2646,
+   "handlerLine": 2667,
    "ref": {
     "kind": "absent"
    },
@@ -7804,7 +5697,7 @@
    "notes": [
     "adapter lacks pedIsAtScriptedAttractor (skipped: outputs read as none)"
    ],
-   "handlerLine": 1337,
+   "handlerLine": 1341,
    "ref": {
     "kind": "handler",
     "fn": "IsCharAtScriptedAttractor",
@@ -7824,7 +5717,7 @@
    "notes": [
     "adapter lacks resetStuffUponResurrection (skipped: outputs read as none)"
    ],
-   "handlerLine": 2770,
+   "handlerLine": 2798,
    "ref": {
     "kind": "absent"
    },
@@ -7835,30 +5728,13 @@
    "portable": false
   },
   {
-   "name": "PLANE_FLY_IN_DIRECTION",
-   "opcode": "070f",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks planeFlyInDirection (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2649,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 2,
-   "missions": 2,
-   "firstMission": "CASINO9",
-   "portable": false
-  },
-  {
    "name": "TASK_USE_ATM",
    "opcode": "05c7",
    "status": "skipped",
    "notes": [
     "adapter lacks taskUseAtm (skipped: outputs read as none)"
    ],
-   "handlerLine": 2775,
+   "handlerLine": 2803,
    "ref": {
     "kind": "absent"
    },
@@ -7869,115 +5745,13 @@
    "portable": false
   },
   {
-   "name": "WINCH_CAN_PICK_VEHICLE_UP",
-   "opcode": "08a5",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks winchCanPickVehicleUp (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2414,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Sets whether the vehicle can be picked up using the magnocrane",
-   "sites": 5,
-   "missions": 2,
-   "firstMission": "HEIST5",
-   "portable": false
-  },
-  {
-   "name": "SELECT_WEAPONS_FOR_VEHICLE",
-   "opcode": "0841",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks selectWeaponsForVehicle (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2651,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Sets the vehicle to use its secondary guns",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "HEIST5",
-   "portable": false
-  },
-  {
-   "name": "HELI_ATTACK_PLAYER",
-   "opcode": "0724",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks heliAttackPlayer (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2652,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes the heli follow and attack the current player in the given radius",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "HEIST5",
-   "portable": false
-  },
-  {
-   "name": "GRAB_ENTITY_ON_WINCH",
-   "opcode": "078b",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks grabEntityOnWinch (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2653,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Retrieves the entity attached to the heli's magnet and returns to specific variables depending on the entities type",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "HEIST5",
-   "portable": false
-  },
-  {
-   "name": "ATTACH_WINCH_TO_HELI",
-   "opcode": "0788",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks attachWinchToHeli (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2776,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "HEIST5",
-   "portable": false
-  },
-  {
-   "name": "RELEASE_ENTITY_FROM_WINCH",
-   "opcode": "0789",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks releaseEntityFromWinch (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2777,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "HEIST5",
-   "portable": false
-  },
-  {
    "name": "GET_CAR_MOVING_COMPONENT_OFFSET",
    "opcode": "098d",
    "status": "skipped",
    "notes": [
     "adapter lacks getCarMovingComponentOffset (skipped: outputs read as none)"
    ],
-   "handlerLine": 2479,
+   "handlerLine": 2500,
    "ref": {
     "kind": "absent"
    },
@@ -7988,64 +5762,13 @@
    "portable": false
   },
   {
-   "name": "POLICE_HELI_CHASE_ENTITY",
-   "opcode": "0727",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks policeHeliChaseEntity (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2779,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes the helicopter hunt down the character or the vehicle within the specified radius",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "HEIST9",
-   "portable": false
-  },
-  {
-   "name": "SET_AIRCRAFT_CARRIER_SAM_SITE",
-   "opcode": "09e4",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setAircraftCarrierSamSite (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2416,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Enables missiles to be fired from the aircraft carrier by Easter Bay Naval Station, San Fierro",
-   "sites": 5,
-   "missions": 1,
-   "firstMission": "MANSIO2",
-   "portable": false
-  },
-  {
-   "name": "PLANE_FOLLOW_ENTITY",
-   "opcode": "0710",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks planeFollowEntity (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2525,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 3,
-   "missions": 1,
-   "firstMission": "MANSIO2",
-   "portable": false
-  },
-  {
    "name": "CAN_CHAR_SEE_DEAD_CHAR",
    "opcode": "0480",
    "status": "skipped",
    "notes": [
     "adapter lacks pedCanSeeDeadPed (skipped: outputs read as none)"
    ],
-   "handlerLine": 1228,
+   "handlerLine": 1232,
    "ref": {
     "kind": "handler",
     "fn": "CanCharSeeDeadChar",
@@ -8059,33 +5782,13 @@
    "portable": true
   },
   {
-   "name": "PLANE_ATTACK_PLAYER_USING_DOG_FIGHT",
-   "opcode": "08a2",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks planeAttackPlayerUsingDogFight (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2780,
-   "ref": {
-    "kind": "handler",
-    "fn": "PlaneAttackPlayerUsingDogFight",
-    "where": "VehicleCommands.cpp:117",
-    "stub": false
-   },
-   "doc": "Sets the plane mission to attack the player while maintaining the minimum altitude",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "MANSIO2",
-   "portable": true
-  },
-  {
    "name": "SET_GUNSHOT_SENSE_RANGE_FOR_RIOT2",
    "opcode": "098a",
    "status": "skipped",
    "notes": [
     "adapter lacks setGunshotSenseRangeForRiot2 (skipped: outputs read as none)"
    ],
-   "handlerLine": 2526,
+   "handlerLine": 2547,
    "ref": {
     "kind": "absent"
    },
@@ -8102,7 +5805,7 @@
    "notes": [
     "adapter lacks setPlayerMood (skipped: outputs read as none)"
    ],
-   "handlerLine": 2655,
+   "handlerLine": 2677,
    "ref": {
     "kind": "handler",
     "fn": "SetPlayerMood",
@@ -8116,30 +5819,13 @@
    "portable": true
   },
   {
-   "name": "STOP_CREDITS",
-   "opcode": "0435",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks stopCredits (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2657,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Stops the credits text from showing",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "FINALEC",
-   "portable": false
-  },
-  {
    "name": "GET_DOOR_ANGLE_RATIO",
    "opcode": "095f",
    "status": "skipped",
    "notes": [
     "adapter lacks getDoorAngleRatio (skipped: outputs read as none)"
    ],
-   "handlerLine": 2783,
+   "handlerLine": 2812,
    "ref": {
     "kind": "absent"
    },
@@ -8150,64 +5836,13 @@
    "portable": false
   },
   {
-   "name": "START_CREDITS",
-   "opcode": "0434",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks startCredits (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2784,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes the credits scroll up the screen",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "FINALEC",
-   "portable": false
-  },
-  {
-   "name": "ARE_CREDITS_FINISHED",
-   "opcode": "0436",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks areCreditsFinished (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2785,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns true if the credits have finished",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "FINALEC",
-   "portable": false
-  },
-  {
-   "name": "WINCH_CAN_PICK_OBJECT_UP",
-   "opcode": "0916",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks winchCanPickObjectUp (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2658,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Sets whether the object can be picked up with the magnocrane",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "QUARRY",
-   "portable": false
-  },
-  {
    "name": "SET_OBJECT_RENDER_SCORCHED",
    "opcode": "0654",
    "status": "skipped",
    "notes": [
     "adapter lacks setObjectRenderScorched (skipped: outputs read as none)"
    ],
-   "handlerLine": 2659,
+   "handlerLine": 2682,
    "ref": {
     "kind": "absent"
    },
@@ -8224,7 +5859,7 @@
    "notes": [
     "adapter lacks getClosestStealableObject (skipped: outputs read as none)"
    ],
-   "handlerLine": 2665,
+   "handlerLine": 2688,
    "ref": {
     "kind": "absent"
    },
@@ -8241,7 +5876,7 @@
    "notes": [
     "adapter lacks isProceduralInteriorActive (skipped: outputs read as none)"
    ],
-   "handlerLine": 2790,
+   "handlerLine": 2819,
    "ref": {
     "kind": "absent"
    },
@@ -8258,7 +5893,7 @@
    "notes": [
     "adapter lacks drawShadow (skipped: outputs read as none)"
    ],
-   "handlerLine": 2802,
+   "handlerLine": 2831,
    "ref": {
     "kind": "handler",
     "fn": "DrawShadow",

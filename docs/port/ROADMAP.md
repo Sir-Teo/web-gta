@@ -6,10 +6,10 @@ numbers come from the census (`npm run port -- census`, [CENSUS.md](CENSUS.md)) 
 
 ## Where it stands
 
-- The script runs live: the 1,570 commands MAIN.SCM, its missions and the streamed scripts use all dispatch, 1,244
-  of them as the reversed source or the iOS executable does (census of 2026-10-08).
-- 127 commands are skipped: their engine side is not ported (searchlights, cranes, ropes, the helicopter and plane
-  autopilots, car attachments, races), so the command does nothing and the mission goes on (step 1). One command
+- The script runs live: MAIN.SCM, its missions and streamed scripts use 1,570 distinct commands. The static census
+  classifies 1,318 as faithful to their cited source (2026-10-21); this is a source classification, not proof of playability.
+- 53 commands are skipped: their engine side is not ported (remote control, some attractor tasks, movable vehicle
+  parts and other mission-specific features), so the command does nothing and the mission goes on (step 1). One command
   still stops its thread, TASK_USE_CLOSEST_MAP_ATTRACTOR, and only in the interior attractor brains, which the port
   does not start yet.
 - 18 commands are authored stand-ins and 1 does nothing yet. They let a mission go on, but it may play differently.
@@ -40,6 +40,13 @@ numbers come from the census (`npm run port -- census`, [CENSUS.md](CENSUS.md)) 
    - cranes and ropes (ENABLE_CRANE_CONTROLS, GRAB_/RELEASE_ENTITY_ON_ROPE, SET_ROPE_HEIGHT)
    - races and records (REGISTER_FASTEST_TIME, SET_BOAT_CRUISE_SPEED, CPRACE's checkpoint commands)
    - camera attachments (ATTACH_CAMERA_TO_VEHICLE…, which gta-reversed has reversed)
+
+   These families now have engine implementations, including searchlights, aircraft navigation and pursuit,
+   vehicle attachments, crane ropes and helicopter winches. MANSIO2's dogfight steering was added on October 21
+   ([source and limits](../research/AIRCRAFT_DOGFIGHT.md)); AI aircraft guns and missiles still need integration.
+   Use the refreshed census queue for the remaining commands: remote-control vehicles are the next concentrated
+   group (ZERO2, ZERO4 and ZERO5), followed by the interior attractor tasks and movable vehicle parts. The list
+   above records the original wave plan, rather than commands still skipped.
 
    After each wave, run `npm run port -- all story` so the census and sweep confirm what moved.
 4. **Unblock by data, not code.** Cutscenes (`anim/cuts.img`) and the music and beat tracks (`AUDIO/STREAMS`) are

@@ -16,7 +16,7 @@ import type {NativeVec} from './nativeFlyingControl';
  *
  * Native units: world axes x east, y north, z up; moveSpeed in units a 50 Hz step; `ts` CTimer::ms_fTimeStep. */
 export const MISSION_PLANE_FLYTOCOORS=22,MISSION_PLANE_ATTACK_PLAYER=35,MISSION_PLANE_FLYINDIRECTION=36,MISSION_PLANE_FOLLOW_ENTITY=37,
- MISSION_PLANE_ATTACK_PLAYER_POLICE=59;
+ MISSION_PLANE_ATTACK_PLAYER_POLICE=59,MISSION_PLANE_DOG_FIGHT_ENTITY=62,MISSION_PLANE_DOG_FIGHT_PLAYER=63;
 /** CPlane's fields the AI flies by (gta-reversed's Plane.h names, iOS +0xbc8 on): the four controls FlyingControl takes
  * (the rudder, the pitch, the roll and the throttle), the throttle the AI copies in, the roll it last read
  * (m_fSteeringFactor), the heading it was made with, the altitudes (TellPlaneToGoToCoors' two and the height it is
@@ -35,12 +35,17 @@ export function newPlaneAI(creationHeading:number):PlaneAI{
 }
 /** The CAutoPilot fields the steering reads: the mission, m_vecDestinationCoors, m_nTempAction (16 to 18 take the way
  * the plane faces, or two radians either side, for the search; 15 pulls up until slow), and bIsRCVehicle. */
-export interface PlanePilot {mission:number;destination:NativeVec;tempAction:number;rc:boolean}
+export interface PlanePilot {mission:number;destination:NativeVec;tempAction:number;rc:boolean;
+ /** CAutoPilot::m_bPlaneDogfightSomething (+0x561 on iOS): flying to its breakaway point. */
+ dogfightBreakaway?:boolean;
+}
 /** The plane: its place, speed and rows, and whether a wheel touches (CAutomobile's suspension compression under 1). */
 export interface PlaneAIBody {position:NativeVec;moveSpeed:NativeVec;right:NativeVec;forward:NativeVec;up:NativeVec;onGround:boolean}
 export interface PlaneAIWorld {
  /** CWorld::ProcessLineOfSight against buildings alone: the point it hits, or nothing. */
  lineOfSight(from:NativeVec,to:NativeVec):NativeVec|undefined;
+ /** iOS rand(): an integer from 0 through 2^31-1, used for the dogfight's breakaway. */
+ rand?():number;
 }
 
 const clamp=(v:number,lo:number,hi:number)=>v<lo?lo:v>hi?hi:v;
@@ -59,6 +64,25 @@ const SEARCH_STEP=.2617994,SEARCH_OVERSHOOT=1.1,CLEAR_GROUND=150,NO_WAY_HEIGHT=5
 const BLOCK_PITCH=.1047198,GROUND_PITCHES=[.05235988,0,-.3490659,-.6981317,-1.047198];
 /** It flies on its wheels for this long after the last touched, in ms. */
 const TAKEOFF_MS=4000;
+
+/** GetAIPlaneToDoDogFight (iOS 0x10019e280). Normally chase the target's position plus 50 frames of its speed.
+ * On rand() & 1023 == 500, save a breakaway point: up to 300 either side of that predicted position, 50 higher.
+ * Keep flying to it until within 50 across, then resume chasing on the next step. The frame that chooses the point
+ * still steers toward the target; the frame that reaches it still steers toward the point. */
+export function planeDogfightHeading(ai:PlaneAI,body:PlaneAIBody,pilot:PlanePilot,world:PlaneAIWorld,target:NativeVec){
+ if(pilot.dogfightBreakaway){
+  const d=pilot.destination;
+  ai.heading=atanOfXY(d[0]-body.position[0],d[1]-body.position[1]);ai.maxAltitude=d[2];
+  if(Math.hypot(d[0]-body.position[0],d[1]-body.position[1])<50)pilot.dogfightBreakaway=false;
+ }else{
+  ai.heading=atanOfXY(target[0]-body.position[0],target[1]-body.position[1]);ai.maxAltitude=target[2];
+  const rand=world.rand??(()=>Math.floor(Math.random()*0x80000000));
+  if((rand()&1023)===500){
+   pilot.dogfightBreakaway=true;
+   pilot.destination=[target[0]+rand()*(1/0x80000000)*600-300,target[1]+rand()*(1/0x80000000)*600-300,target[2]+50];
+  }
+ }
+}
 
 /** Whether this step crosses one of the plane's one-second marks: (now + seed) mod 1000 wrapped since the last step. */
 export function planeSearchDue(nowMs:number,previousMs:number,seed:number){return (Math.floor(nowMs)+seed)%1000<(Math.floor(previousMs)+seed)%1000;}
@@ -151,6 +175,10 @@ export function steerAIPlane(ai:PlaneAI,body:PlaneAIBody,pilot:PlanePilot,world:
  else if(pilot.mission===MISSION_PLANE_FOLLOW_ENTITY){
   if(!target)return false;
   ai.heading=atanOfXY(target[0]-body.position[0],target[1]-body.position[1]);ai.maxAltitude=target[2];
+ }
+ else if(pilot.mission===MISSION_PLANE_DOG_FIGHT_ENTITY||pilot.mission===MISSION_PLANE_DOG_FIGHT_PLAYER){
+  if(!target)return false;
+  planeDogfightHeading(ai,body,pilot,world,target);
  }
  else if(pilot.mission!==MISSION_PLANE_FLYINDIRECTION)return false;
  flyAIPlaneInCertainDirection(ai,body,pilot,world,nowMs,searchDue,ts);
