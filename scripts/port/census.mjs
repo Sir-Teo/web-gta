@@ -25,6 +25,7 @@
 import {existsSync,mkdirSync,readFileSync,readdirSync,writeFileSync} from 'node:fs';
 import {join,relative,resolve} from 'node:path';
 import {withSources} from './ts.mjs';
+import {memberBody} from './source-members.mjs';
 
 const args=process.argv.slice(2),flag=name=>{const i=args.indexOf(name);return i<0?undefined:args[i+1]??'';};
 const root=process.cwd();
@@ -69,17 +70,6 @@ function membersAt(text,indent){
  while((m=re.exec(text)))if(!found.has(m[1]))found.set(m[1],text.slice(0,m.index).split('\n').length);
  return found;
 }
-/** The body of the member defined at `line` (1-based) up to the next member at the same indentation. */
-function memberBody(text,line,indent){
- const lines=text.split('\n'),re=new RegExp(`^ {${indent}}[a-zA-Z_$][\\w$]*\\s*(?::|\\()`);
- let end=line;while(end<lines.length&&!(end>line&&re.test(lines[end])))end++;
- // Comment lines just before the next member are that member's.
- while(end>line&&/^\s*(\/\/|\/\*|\*)/.test(lines[end-1]))end--;
- // The comment lines just above belong to it.
- let start=line-1;while(start>0&&/^\s*(\/\/|\/\*|\*)/.test(lines[start-1]))start--;
- return lines.slice(start,end).join('\n');
-}
-
 /** gta-reversed's command registrations: NAME -> {kind, fn, file, line, stub}. */
 function readReference(){
  const dir=join(refRoot,'source','game_sa','Scripts','Commands');

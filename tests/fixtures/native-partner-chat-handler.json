@@ -1,0 +1,375 @@
+{
+  "executableSha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "handler": "0x1001ee6cc",
+  "constructor": "0x1004211d8",
+  "intercepts": [
+    "CollectParameters",
+    "operator new",
+    "Task base constructor",
+    "reference registration",
+    "strcpy",
+    "GiveScriptTask"
+  ],
+  "cases": [
+    {
+      "input": {
+        "handle": -1,
+        "lead": -1,
+        "unknown": -1
+      },
+      "native": {
+        "allocation": 144,
+        "command": "COMMAND_TASK_CHAT_WITH_CHAR",
+        "taskId": 1204,
+        "partner": true,
+        "distanceMultiplier": 0.5,
+        "lead": true,
+        "phase": 1,
+        "first": -1,
+        "directions": 4,
+        "conversation": true,
+        "fallback": true
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "lead": -1,
+        "unknown": 0
+      },
+      "native": {
+        "allocation": 144,
+        "command": "COMMAND_TASK_CHAT_WITH_CHAR",
+        "taskId": 1204,
+        "partner": true,
+        "distanceMultiplier": 0.5,
+        "lead": true,
+        "phase": 1,
+        "first": -1,
+        "directions": 4,
+        "conversation": true,
+        "fallback": true
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "lead": -1,
+        "unknown": 1
+      },
+      "native": {
+        "allocation": 144,
+        "command": "COMMAND_TASK_CHAT_WITH_CHAR",
+        "taskId": 1204,
+        "partner": true,
+        "distanceMultiplier": 0.5,
+        "lead": true,
+        "phase": 1,
+        "first": -1,
+        "directions": 4,
+        "conversation": true,
+        "fallback": true
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "lead": 0,
+        "unknown": -1
+      },
+      "native": {
+        "allocation": 144,
+        "command": "COMMAND_TASK_CHAT_WITH_CHAR",
+        "taskId": 1204,
+        "partner": true,
+        "distanceMultiplier": 0.5,
+        "lead": false,
+        "phase": 1,
+        "first": -1,
+        "directions": 4,
+        "conversation": true,
+        "fallback": true
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "lead": 0,
+        "unknown": 0
+      },
+      "native": {
+        "allocation": 144,
+        "command": "COMMAND_TASK_CHAT_WITH_CHAR",
+        "taskId": 1204,
+        "partner": true,
+        "distanceMultiplier": 0.5,
+        "lead": false,
+        "phase": 1,
+        "first": -1,
+        "directions": 4,
+        "conversation": true,
+        "fallback": true
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "lead": 0,
+        "unknown": 1
+      },
+      "native": {
+        "allocation": 144,
+        "command": "COMMAND_TASK_CHAT_WITH_CHAR",
+        "taskId": 1204,
+        "partner": true,
+        "distanceMultiplier": 0.5,
+        "lead": false,
+        "phase": 1,
+        "first": -1,
+        "directions": 4,
+        "conversation": true,
+        "fallback": true
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "lead": 1,
+        "unknown": -1
+      },
+      "native": {
+        "allocation": 144,
+        "command": "COMMAND_TASK_CHAT_WITH_CHAR",
+        "taskId": 1204,
+        "partner": true,
+        "distanceMultiplier": 0.5,
+        "lead": true,
+        "phase": 1,
+        "first": -1,
+        "directions": 4,
+        "conversation": true,
+        "fallback": true
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "lead": 1,
+        "unknown": 0
+      },
+      "native": {
+        "allocation": 144,
+        "command": "COMMAND_TASK_CHAT_WITH_CHAR",
+        "taskId": 1204,
+        "partner": true,
+        "distanceMultiplier": 0.5,
+        "lead": true,
+        "phase": 1,
+        "first": -1,
+        "directions": 4,
+        "conversation": true,
+        "fallback": true
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "lead": 1,
+        "unknown": 1
+      },
+      "native": {
+        "allocation": 144,
+        "command": "COMMAND_TASK_CHAT_WITH_CHAR",
+        "taskId": 1204,
+        "partner": true,
+        "distanceMultiplier": 0.5,
+        "lead": true,
+        "phase": 1,
+        "first": -1,
+        "directions": 4,
+        "conversation": true,
+        "fallback": true
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "lead": -1,
+        "unknown": -1
+      },
+      "native": {
+        "allocation": 144,
+        "command": "COMMAND_TASK_CHAT_WITH_CHAR",
+        "taskId": 1204,
+        "partner": true,
+        "distanceMultiplier": 0.5,
+        "lead": true,
+        "phase": 1,
+        "first": -1,
+        "directions": 4,
+        "conversation": true,
+        "fallback": true
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "lead": -1,
+        "unknown": 0
+      },
+      "native": {
+        "allocation": 144,
+        "command": "COMMAND_TASK_CHAT_WITH_CHAR",
+        "taskId": 1204,
+        "partner": true,
+        "distanceMultiplier": 0.5,
+        "lead": true,
+        "phase": 1,
+        "first": -1,
+        "directions": 4,
+        "conversation": true,
+        "fallback": true
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "lead": -1,
+        "unknown": 1
+      },
+      "native": {
+        "allocation": 144,
+        "command": "COMMAND_TASK_CHAT_WITH_CHAR",
+        "taskId": 1204,
+        "partner": true,
+        "distanceMultiplier": 0.5,
+        "lead": true,
+        "phase": 1,
+        "first": -1,
+        "directions": 4,
+        "conversation": true,
+        "fallback": true
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "lead": 0,
+        "unknown": -1
+      },
+      "native": {
+        "allocation": 144,
+        "command": "COMMAND_TASK_CHAT_WITH_CHAR",
+        "taskId": 1204,
+        "partner": true,
+        "distanceMultiplier": 0.5,
+        "lead": false,
+        "phase": 1,
+        "first": -1,
+        "directions": 4,
+        "conversation": true,
+        "fallback": true
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "lead": 0,
+        "unknown": 0
+      },
+      "native": {
+        "allocation": 144,
+        "command": "COMMAND_TASK_CHAT_WITH_CHAR",
+        "taskId": 1204,
+        "partner": true,
+        "distanceMultiplier": 0.5,
+        "lead": false,
+        "phase": 1,
+        "first": -1,
+        "directions": 4,
+        "conversation": true,
+        "fallback": true
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "lead": 0,
+        "unknown": 1
+      },
+      "native": {
+        "allocation": 144,
+        "command": "COMMAND_TASK_CHAT_WITH_CHAR",
+        "taskId": 1204,
+        "partner": true,
+        "distanceMultiplier": 0.5,
+        "lead": false,
+        "phase": 1,
+        "first": -1,
+        "directions": 4,
+        "conversation": true,
+        "fallback": true
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "lead": 1,
+        "unknown": -1
+      },
+      "native": {
+        "allocation": 144,
+        "command": "COMMAND_TASK_CHAT_WITH_CHAR",
+        "taskId": 1204,
+        "partner": true,
+        "distanceMultiplier": 0.5,
+        "lead": true,
+        "phase": 1,
+        "first": -1,
+        "directions": 4,
+        "conversation": true,
+        "fallback": true
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "lead": 1,
+        "unknown": 0
+      },
+      "native": {
+        "allocation": 144,
+        "command": "COMMAND_TASK_CHAT_WITH_CHAR",
+        "taskId": 1204,
+        "partner": true,
+        "distanceMultiplier": 0.5,
+        "lead": true,
+        "phase": 1,
+        "first": -1,
+        "directions": 4,
+        "conversation": true,
+        "fallback": true
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "lead": 1,
+        "unknown": 1
+      },
+      "native": {
+        "allocation": 144,
+        "command": "COMMAND_TASK_CHAT_WITH_CHAR",
+        "taskId": 1204,
+        "partner": true,
+        "distanceMultiplier": 0.5,
+        "lead": true,
+        "phase": 1,
+        "first": -1,
+        "directions": 4,
+        "conversation": true,
+        "fallback": true
+      }
+    }
+  ]
+}

@@ -1,3 +1,6 @@
+import {applyScriptVehicleForce,type ScriptVehicleForceBasis} from './nativeScriptVehicleForce';
+import {NativeClumpAlpha} from './nativeClumpAlpha';
+import {bindClumpAlpha} from '../render/nativeClumpAlpha';
 import {CHEATS} from './nativeCheats';
 import {collisionHealthLoss} from './nativeCarDamage';
 import {bindNativeCarDirt} from '../render/nativeCarDirt';
@@ -8,6 +11,7 @@ import {vehicleDestroyed} from './vehicleDestroyed';
 import {bikeWheelSupports} from '../vehicle/nativeBikeWheels';
 import {bindNativeCarLod} from '../render/nativeCarLod';
 import RAPIER from '@dimforge/rapier3d-compat';
+import {syncFrozenVehicle} from './nativeFrozenVehicle';
 import {AdditiveBlending,CanvasTexture,Group,Quaternion,Sprite,SpriteMaterial,Vector3,type Scene} from 'three';
 import type {Simulation} from './Simulation';
 import {modelObject} from '../assets/ModelObjects';
@@ -27,7 +31,8 @@ import {vehicleSolverGroups} from './solverGroups';
 import {bikeTooFastToBoard} from './BikeMount';
 import {applyNativeBikeBuoyancy,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
 import {NATIVE_GRAVITY_MS2} from './nativeGravity';
-import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
+import type {PhysicalProofs} from '../combat/nativePhysicalProofs';
+import {blastBombTimerMs,notePlayerVehicleHarm,playerVehicleDamage,recordVehicleDamage,vehicleRefusesWeaponDamage,type VehicleDamager} from './carDamageHost';
 import {stepBombTimer} from '../vehicle/nativeCarBomb';
 import type {NativeBikeAssets} from '../assets/fixedWorldBike';
 /** Rideable bike/quad models by ID with HUD names. */
@@ -59,6 +64,10 @@ const SIDE_STAND_SPEED=5;
  * jumpon/getoff mount timing, bike drive-by
  * lean-fire and engine audio hooks. Pillion passengers share the rear seat. */
 export class WorldBike {
+ private readonly alphaBinding=bindClumpAlpha(()=>this.visual?.materialBindings??[]);
+ private readonly clumpAlpha=new NativeClumpAlpha(this.alphaBinding);
+ get alpha(){return this.clumpAlpha.value;}
+ setClumpAlpha(value:number){this.clumpAlpha.set(value);}
  /** CPed::GetBikeRidingSkill for the player: STAT_BIKE_SKILL / 1000 (the host reads the stat). */
  static ridingSkill?:()=>number;
  /** The player's CantBeKnockedOffBike, which the script sets (the host reads it). */
@@ -74,6 +83,7 @@ export class WorldBike {
  /** Handling mass and turn mass with the collision model's bounds (native units), as WorldCar gives them: the ped
   * strike pass reads all of it, the driving AI the width. */
  get nativeBody(){if(!this.nativeBodyCache){const b=this.assets.collision.bounds,h=this.assets.handling.values;this.nativeBodyCache={mass:h.mass,turnMass:h.turnMass,boundsMin:{x:b.min[0],y:b.min[1],z:b.min[2]},boundsMax:{x:b.max[0],y:b.max[1],z:b.max[2]}};}return this.nativeBodyCache;}
+ get modelFlags(){return this.assets.handling.values.modelFlags??0;}
  /** Distance from the bike's origin to the farthest corner of its collision bounds, for cheap range culls. */
  get boundRadius(){const b=this.assets.collision.bounds;return Math.hypot(Math.max(-b.min[0],b.max[0]),Math.max(-b.min[1],b.max[1]),Math.max(-b.min[2],b.max[2]));}
  /** A motorbike rather than a CBmx. */
@@ -115,6 +125,11 @@ export class WorldBike {
  autopilot?:import('./WorldCar').WorldCar['autopilot'];scriptDriven?:boolean;
  /** FREEZE_CAR_POSITION: the body held where it is. */
  frozen=false;
+ /** APPLY_FORCE_TO_CAR reaches CPhysical for every vehicle family. */
+ applyScriptForce(force:{x:number;y:number;z:number},offset:{x:number;y:number;z:number},basis?:ScriptVehicleForceBasis){
+  const h=this.assets.handling.values;applyScriptVehicleForce(this.body,h.mass,h.turnMass,force,offset,basis);
+ }
+
  /** m_autoPilot.m_vehicleRecordingId and the pedals a playback sets (CVehicleRecording plays on any vehicle: TWAR7's
   * Ballas rider leaves on his PCJ-600 along recording 30). recordingBody.ts drives the body through these. */
  recordingSlot=-1;recordingControls?:{steerAngle:number;gas:number;brake:number;handbrake:boolean};
@@ -229,30 +244,31 @@ export class WorldBike {
  heading(){const q=this.body.rotation();return Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));}
  distance(){const p=this.sim.player.position,b=this.body.translation();return Math.hypot(p.x-b.x,p.y-b.y,p.z-b.z);}
  speed(){const v=this.body.linvel(),q=this.body.rotation(),f=rotate(q,{x:0,y:0,z:-1});return v.x*f.x+v.y*f.y+v.z*f.z;}
+ canBeDamaged=true;onlyDamagedByPlayer=false;proofs?:PhysicalProofs;
+ lastWeaponDamage=-1;lastDamagedBy?:VehicleDamager;
  /** CVehicle::InflictDamage (iOS 0x1004781b4) for a bike (a BMX too, though CBmx's BlowUpCar does nothing), with WorldCar.damage's arguments:
   * - the player's own one, once burning under 250, refuses blasts, rounds and the molotov (CanVehicleBeDamaged), and
   *   otherwise takes playerVehicleDamage's share;
   * - only health left is taken. Damage that takes the last of it destroys the vehicle and returns true. A blast's
   *   victim waits on the bomb timer; anything else blows it up at once (BlowUpCar). */
- damage(amount:number,_collider?:number,explosive=false,_shotDir?:unknown,options:{kind?:'bullet'|'fire'|'melee';byPlayer?:boolean;weapon?:number}={}){
-  if(this.wrecked)return false;
-  if(this.occupied){
-   if(this.health<250&&(explosive||(options.weapon!==undefined?firesExplodesOrShoots(options.weapon):(options.kind??'bullet')==='bullet')))return false;
-   amount=playerVehicleDamage(amount);
-  }
+ damage(amount:number,_collider?:number,explosive=false,_shotDir?:unknown,options:{kind?:'bullet'|'fire'|'melee';byPlayer?:boolean;weapon?:number;by?:VehicleDamager}={}){
+  const weapon=options.weapon??(explosive?51:options.kind==='fire'?37:options.kind==='melee'?0:22);
+  if(this.wrecked||vehicleRefusesWeaponDamage(this,weapon,options.byPlayer))return false;
+  recordVehicleDamage(this,options.weapon??(explosive?51:options.kind==='fire'?37:-1),options.byPlayer,options.by);
+  if(this.occupied)amount=playerVehicleDamage(amount);
   notePlayerVehicleHarm(amount,options.byPlayer);
   if(this.health<=0)return false;
   if(this.health>amount){this.health-=amount;return false;}
   this.health=0;
-  if(explosive)this.bombTimerMs=blastBombTimerMs();else this.blowUp();
+  if(explosive){this.bombTimerMs=blastBombTimerMs();this.bombDetonatedByPlayer=options.byPlayer===true;}else this.blowUp(options.byPlayer===true);
   return true;
  }
  /** m_wBombTimer (ms): a blast's victim blows up when ProcessDelayedExplosion has counted it down. */
- bombTimerMs=0;
+ bombTimerMs=0;bombDetonatedByPlayer=false;explosionByPlayer=false;
  /** CBike::BlowUpCar; CBmx overrides it with a NOP, so the BMX, Chopper and Mountain Bike never explode (the
   * blow-up-cars cheat and a wreck included). */
- blowUp(){
-  if(this.wrecked||!this.motorbike)return;this.wrecked=true;this.health=0;this.pendingExplosion=true;vehicleDestroyed.report?.('road',this.modelId);
+ blowUp(byPlayer=false){
+  if(this.wrecked||!this.motorbike||this.canBeDamaged===false)return;this.explosionByPlayer=byPlayer;this.wrecked=true;this.health=0;this.bombTimerMs=0;this.pendingExplosion=true;vehicleDestroyed.report?.('road',this.modelId);
   if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
  }
  /** Set upright at its heading, still, just clear of the ground: the end of a pick-up (CBike's bGettingPickedUp). */
@@ -310,13 +326,16 @@ export class WorldBike {
   return this.finishEnter();
  }
  beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean;disabled?:boolean}={throttle:0,steer:0,brake:false}){
+  this.clumpAlpha.step(dt);
   // ProcessDelayedExplosion, which CBike::ProcessControl runs too, whether or not the body is in the world: a blast's
   // victim carried out of range still goes up on time.
-  if(stepBombTimer(this,dt*50))this.blowUp();
-  // A body out of the world (far off, frozen, or waiting for collision) takes none of the step: its speed would be
+  if(stepBombTimer(this,dt*50))this.blowUp(this.bombDetonatedByPlayer);
+  // A body out of the world (far off or waiting for collision) takes none of the step: its speed would be
   // worked on with nothing to move it.
-  const nearby=this.distance()<250,active=nearby&&!this.frozen&&this.collisionLoaded(dt);this.body.setEnabled(active);this.root.visible=nearby;if(!active)return;
+  const focus=this.sim.worldFocus??this.sim.player.position,at=this.body.translation();
+  const frozen=syncFrozenVehicle(this.body,this.frozen),nearby=Math.hypot(focus.x-at.x,focus.y-at.y,focus.z-at.z)<250,active=nearby&&this.collisionLoaded(dt);this.body.setEnabled(active);this.root.visible=nearby;if(!active)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
+  if(frozen)return;
   // Attached to another vehicle (ATTACH_CAR_TO_CAR): a kinematic body the host sets on it after the step.
   if(this.body.bodyType()===RAPIER.RigidBodyType.KinematicPositionBased)return;
   // A playback without car AI owns the body (bDisableCollisionForce, a velocity-driven body here): the bike's own

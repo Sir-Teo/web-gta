@@ -41,7 +41,10 @@ export class NativePedGroup{
  /** Every handle the group holds, the leader last, as the slots order them. */
  all(){return this.members.filter((member):member is number=>member!==undefined);}
  /** CPedGroupMembership::Flush. */
- flush(){this.members.fill(undefined);}
+ flush(){this.members.fill(undefined);this.scriptSequence=-1;}
+ /** CPedGroupIntelligence::m_TaskSeqId, -1 after construction/Flush. SET_GROUP_SEQUENCE writes a resolved
+  * sequence slot here. The native ComputeScriptCommandTasks only migrates existing member-task pairs. */
+ scriptSequence=-1;
  /** m_separationRange: SET_GROUP_SEPARATION_RANGE's distance, 60 until a script sets it. */
  separationRange=60;
  /** m_bMembersEnterLeadersVehicle, which SET_GROUP_FOLLOW_STATUS sets: the followers get in when the leader does. */

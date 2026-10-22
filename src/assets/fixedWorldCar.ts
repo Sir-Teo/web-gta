@@ -107,8 +107,8 @@ export async function loadFixedWorldCar(catalog:Awaited<ReturnType<typeof openSt
   const rgb=catalog.colors.palette[index]?.rgb;requireAsset(rgb,`Unresolved generator paint index ${index}.`);colors[slot]=[...rgb!];
  }
  const lightTexture=asset.textures.find(t=>t.name.toLowerCase()==='vehiclelights128');
- // The Vortex and some trailers (PETROTR, UTILTR1) have no vehiclelights128 among their textures.
- requireAsset((lightTexture)||asset.vehicle.id===539||asset.vehicle.type==='trailer','Native car light texture is missing.');
+ // The small RC cars, Vortex and some trailers (PETROTR, UTILTR1) have no vehiclelights128 in their native materials.
+ requireAsset((lightTexture)||[441,539,564,594].includes(asset.vehicle.id)||asset.vehicle.type==='trailer','Native car light texture is missing.');
  const handling=prepareHandling(asset.handling,id);
  return {vehicle:asset.vehicle,handling,model:asset.model,collision:asset.collision!,textures:catalog.lightsOnTexture&&lightTexture?[...asset.textures,catalog.lightsOnTexture]:asset.textures,lightsOnTexture:lightTexture?catalog.lightsOnTexture:undefined,wheelFrames,colors,colourIndices:chosen.indices,colourVariation:variationCount?variation:0,lightTexture,plate:asset.plate,raining:generator.raining,animGroup:readVehicleAnimGroups(catalog.handling.supplements).get(handling.values.animationGroup)};
 }

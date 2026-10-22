@@ -16,6 +16,7 @@ export class Input {
   /** How much two fingers pinching through a scope have spread apart (above 1) or closed (below), for the zoom to take. */
   pinch = 1;
   lookY = 0;
+  private scriptMouseX=0;private scriptMouseY=0;
   private drag = false;
   /** Left-button press point and time, to tell a click from a camera drag. */
   private press?: { x: number; y: number; at: number; moved: number };
@@ -65,6 +66,10 @@ export class Input {
     canvas.addEventListener('auxclick', e => { if (e.button === 1) e.preventDefault(); }, options);
     window.addEventListener('mousemove', e => {
       if (this.press) this.press.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
+      // Scripts read CPad's mouse delta even when player/camera control is disabled (POOL2's cue stroke).
+      if(document.pointerLockElement===canvas||this.drag||this.down('MouseAim')||e.target&&'nodeType'in e.target&&canvas.contains(e.target as Node)){
+        this.scriptMouseX+=e.movementX;this.scriptMouseY+=e.movementY;
+      }
       if (document.pointerLockElement === canvas || this.drag || this.down('MouseAim')) {
         this.lookX += e.movementX; this.lookY += e.movementY;
       }
@@ -99,6 +104,9 @@ export class Input {
   /** A single press, as a key tapped and let go within the frame. */
   tap(code: string) { this.pressed.add(code); this.touches++; }
   down(code: string) { return this.held.has(code); }
+  /** Once a drawn game frame, before the camera consumes lookX/Y. Touch/pad look controls supply the same
+   * script view control when there is no physical mouse delta on that axis. This leaves camera input intact. */
+  takeScriptMouseMovement(){const result={x:this.scriptMouseX||this.lookX,y:this.scriptMouseY||this.lookY};this.scriptMouseX=this.scriptMouseY=0;return result;}
   /** The left button held without dragging the camera (under 6 pixels moved): without pointer lock, the fire button. */
   stillHold() { const p = this.press; return this.held.has('MouseFire') && !!p && p.moved < 6; }
   consume(code: string) { const value = this.pressed.has(code); this.pressed.delete(code); return value; }
@@ -124,6 +132,6 @@ export class Input {
   /** Forget presses nobody consumed (CPad's "just down" lasts one frame): a key pressed during a pause or menu does
    * not act when play resumes. Held keys stay held. */
   dropPresses() { this.pressed.clear(); }
-  clear() { this.held.clear(); this.pressed.clear(); this.lookX = this.lookY = 0; this.gyroYaw = this.gyroPitch = 0; this.pinch = 1; this.drag = false; this.press = undefined; this.stick = undefined; this.carGunStick = undefined; }
+  clear() { this.held.clear(); this.pressed.clear(); this.lookX = this.lookY = 0; this.scriptMouseX=this.scriptMouseY=0;this.gyroYaw = this.gyroPitch = 0; this.pinch = 1; this.drag = false; this.press = undefined; this.stick = undefined; this.carGunStick = undefined; }
   dispose() { this.abort.abort(); }
 }

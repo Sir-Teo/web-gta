@@ -567,6 +567,8 @@ export class TouchControls {
  setAttackArt(art:TouchWidgetArt){
   for(const b of this.buttons)if(b.spec.className==='fire'){const span=b.element.querySelector<HTMLElement>('.widget-art');if(span)setTouchWidgetArt(span,art);}
  }
+ /** The car-gun stick also operates a loader's movable part. */
+ setCarGunLabel(label:string){for(const {spec,element} of this.buttons)if(spec.carGun&&element.getAttribute('aria-label')!==label)element.setAttribute('aria-label',label);}
  /** The contextual buttons (by class) the game offers now: Enter beside a vehicle, in one, or when a prompt asks. */
  setOffered(classNames:Iterable<string>){
   const next=new Set(classNames);

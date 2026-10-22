@@ -979,6 +979,144 @@
       "path": "data/paths/tracks4.dat",
       "bytes": 18347,
       "sha256": "e8decea200f701498cf1414a4d6accb1dc6fdeb147ac30cd3500e0ae27cdcd69"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/fonts.dat",
+      "path": "data/fonts.dat",
+      "bytes": 3576,
+      "sha256": "0b6ecb4493b0261eece4b025e31aa7b55ae68ca8529c4f7064b5b3b7297c913c"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/fonts.txd",
+      "path": "models/fonts.txd",
+      "bytes": 524584,
+      "sha256": "5ca77cddb15f96de29b3786cb5620492dbc310d29af2d1374e644d74f1a61cbf"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_BEAT.txd",
+      "bytes": 22312,
+      "sha256": "3a5ae6968726bb0565fd5ad9bc19b3779d36b4104fa6c238893a76da95eef528",
+      "path": "models/txd/ld_beat.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_NONE.txd",
+      "bytes": 113864,
+      "sha256": "6e256a70f3ca4652766b5c466d92043bbb25b4611136ba54756a67b0b6fbffbe",
+      "path": "models/txd/ld_none.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_SPAC.txd",
+      "bytes": 186312,
+      "sha256": "89f5837f9bc52f6a616b56e41b057a4870d0398491394c793aa817692215fce1",
+      "path": "models/txd/ld_spac.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/ld_shtr.txd",
+      "bytes": 277544,
+      "sha256": "e30327864e16d8c3c42f953dc69fd4ac593fcaf97e20f139e780e5143ef43934",
+      "path": "models/txd/ld_shtr.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/ld_grav.txd",
+      "bytes": 262440,
+      "sha256": "f4141bff49ca4bc9cb1283b030a2044f3095e043647889c97fc14c2ce073a5a7",
+      "path": "models/txd/ld_grav.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_OTB2.txd",
+      "bytes": 198056,
+      "sha256": "f7eb78ef352f7146b1749e85d6c4d1936a910c1aaf4a86c6942594cead6a2641",
+      "path": "models/txd/ld_otb2.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_OTB.txd",
+      "bytes": 605368,
+      "sha256": "8477e90baf6ee8dc638a3ef8817b5514db6683030d52b83db3c50fb0c025f85b",
+      "path": "models/txd/ld_otb.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_POOL.txd",
+      "bytes": 9000,
+      "sha256": "e0d87af9154478cd66edd4f36feaf099d849655fe3bf39cab65f81f934ef1c86",
+      "path": "models/txd/ld_pool.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_BUM.txd",
+      "bytes": 16816,
+      "sha256": "c4585d209d6a80426f607dc36a8de92ae650982915b8c74a1409b016852a7150",
+      "path": "models/txd/ld_bum.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_RCE1.txd",
+      "bytes": 197416,
+      "sha256": "a6c338db957cfb8584aa18c73ee29a81d48d90412745ce451d07efe7a9935af7",
+      "path": "models/txd/ld_rce1.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_RCE2.txd",
+      "bytes": 197416,
+      "sha256": "4afb003eab1a3491a0743372152802fd30d57d1b3134d8f52affb620f3d41ebe",
+      "path": "models/txd/ld_rce2.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_RCE3.txd",
+      "bytes": 197416,
+      "sha256": "ce07ba6d83f7ffa479febbab8654befa33a9ad8698a469e47c65676598b6a586",
+      "path": "models/txd/ld_rce3.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_RCE4.txd",
+      "bytes": 197416,
+      "sha256": "c211ab08aacc4d5838b9ff122707b8fd53de8f339be98596761bc555df6621f9",
+      "path": "models/txd/ld_rce4.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_RCE5.txd",
+      "bytes": 32936,
+      "sha256": "738c4f52c6119a5b9dbf5c7b73b3d3d3af9bd4e608e2ccfa596647f277d5ce27",
+      "path": "models/txd/ld_rce5.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_DRV.txd",
+      "bytes": 258096,
+      "sha256": "2c3c2167a5e2ceba18229ec73670a6c3f1d629eb65602c65429107b4fb1afd2d",
+      "path": "models/txd/ld_drv.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_SLOT.txd",
+      "bytes": 13096,
+      "sha256": "5be3cd59265b9310aa5c86c67abcdd24c9e2fdbb2c3db63ad7ff686b3d877182",
+      "path": "models/txd/ld_slot.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_ROUL.txd",
+      "bytes": 6568,
+      "sha256": "19a583d2a4baed63189745c9deb7cbb72ef09de735178150615d0b716fb4a76c",
+      "path": "models/txd/ld_roul.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_POKE.txd",
+      "bytes": 480936,
+      "sha256": "f73bad52fd697047ae0544ddc8390db8cdc2c47026650e0a77631b1c71d65f61",
+      "path": "models/txd/ld_poke.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_CARD.txd",
+      "bytes": 441000,
+      "sha256": "fb96e3e0f956a34d5e021c1e93ba6bd33cd1f0bcddfc85ebbfa4326819cf6fad",
+      "path": "models/txd/ld_card.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_PLAN.txd",
+      "bytes": 84528,
+      "sha256": "e522d021f8891689404814670d033d29eaca8a9561c8264b63d463ba9b85b4a5",
+      "path": "models/txd/ld_plan.txd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/txd/LD_TATT.txd",
+      "bytes": 104488,
+      "sha256": "fc1d56c1f30258475a6636dfcd7a95e25fbb9547295583377b0923f6dd97895f",
+      "path": "models/txd/ld_tatt.txd"
     }
   ],
   "extraArchives": [

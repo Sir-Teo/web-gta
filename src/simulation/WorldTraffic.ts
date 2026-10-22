@@ -65,6 +65,8 @@ export function recoveryLimit(stopped:string|null){
 }
 /** Small, physics-driven ambient traffic population. No direct pose driving. */
 export class WorldTraffic {
+ /** STATUS_SIMPLE while a distant driver follows its road curve on rails. */
+ isOnRails(car:WorldCar){return this.drivers.some(driver=>driver.car===car&&!!driver.rails);}
   /** How near the player a random car drives under physics (its active radius); beyond, it drives on rails
    * (STATUS_SIMPLE), slowing for the traffic, the peds and the lights ahead. 100 units, or less on a phone, whose CPU
    * pays for each car's suspension, wheels and drive twice a frame: a car 60 units off is a few pixels on its screen. */
@@ -164,7 +166,7 @@ export class WorldTraffic {
    rails:d.rails?{speed:+d.rails.speed.toFixed(2),spendMs:Math.round(d.rails.spendMs),at:+((this.elapsed*1000-d.rails.enteredMs)/d.rails.spendMs).toFixed(2),entry:!!d.rails.entry}:null};})};}
  update(now:number){
   if(this.disposed||this.busy||!this.paths||now<this.nextCheck)return;this.nextCheck=now+2000;
-  const player=this.sim.player.position;
+  const player=this.sim.worldFocus;
   this.drivers=this.drivers.filter(d=>{if(d.car.disposed)return false;if(d.car.occupied||!this.fleet.canChangePopulation(d.car.car.body.translation(),6)||Math.hypot(d.car.car.body.translation().x-player.x,d.car.car.body.translation().z-player.z)<120&&d.car.car.body.translation().y>player.y-25)return true;this.fleet.removeTrafficCar(d.car);return false;});
   const paths=this.paths;this.busy=true;
    void paths.loadAround(player.x,player.z).then(async()=>{
@@ -172,7 +174,7 @@ export class WorldTraffic {
     const maxDrivers=this.fleet.trafficDrivers()??3;
     // CCarCtrl::GenerateRandomCars returns while the current area cannot see outside.
     if(this.drivers.length>=maxDrivers||this.fleet.cars.size>=9||!this.fleet.outside()||this.noSpawn())return;
-   const p=this.sim.player.position,centre=toNative(p),view=this.creationView(),rand=()=>Math.floor(Math.random()*0x80000000);
+   const p=this.sim.worldFocus,centre=toNative(p),view=this.creationView(),rand=()=>Math.floor(Math.random()*0x80000000);
    // CCarCtrl::GenerateOneRandomCar's way to a place (two tries a frame there; a handful a check here, the browser's).
    for(let attempt=0;attempt<RANDOM_CAR_TRIES;attempt++){
     const bearing=randomCarCreationBearing({...view,frameCounter:this.frameCounter++});
@@ -209,7 +211,7 @@ export class WorldTraffic {
     const car=await this.fleet.spawnTrafficCar(pick.modelId,{x,y:foot,z},heading,()=>!this.disposed&&this.fleet.canChangePopulation({x,y:foot+1,z},6));
     if(!car)continue;
     car.gang=pick.gang;
-    if(this.disposed||Math.hypot(x-this.sim.player.position.x,z-this.sim.player.position.z)>100){this.fleet.removeTrafficCar(car);return;}
+    const focus=this.sim.worldFocus;if(this.disposed||Math.hypot(x-focus.x,z-focus.z)>100){this.fleet.removeTrafficCar(car);return;}
     this.error=undefined;car.autopilot={throttle:0,brake:0,steering:0,handbrake:true};car.activeRadius=this.physicsRadius;
     const b=car.nativeBody,length=b.boundsMax.y-b.boundsMin.y;
     const driver:Driver={car,health:100,current:link,currentLane:lane,nextLane:lane,seed:Math.floor(Math.random()*65536),timeToStartMission:this.elapsed*1000,timeSwitchedToRealPhysics:this.elapsed*1000,avoidCars:false,laneCountdown:initialLaneChangeCountdown(rand),speedCode:nodeSpeedCode(hit.node2.flags,false),speedMult:nodeSpeedMultiplier(hit.node2.flags),
@@ -354,6 +356,7 @@ export class WorldTraffic {
     if(this.elapsed>driver.chase.until||this.sim.player.health<=0||Math.hypot(target.x-position.x,target.y-position.y)>CHASE_GIVE_UP_DISTANCE){driver.chase=undefined;driver.fleeScene=true;driver.cruiseSpeed=FLEE_SCENE_CRUISE_SPEED;}
     else{
      if(driver.rails)this.leaveRails(driver,now);
+     car.obstructingEntity=undefined;
      const pedals=steerHeadingForTarget(state,{x:target.x,y:target.y},FLEE_SCENE_CRUISE_SPEED);
      car.autopilot={steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:pedals.swerve,gas:pedals.accel,brake:pedals.brake,handbrake:pedals.handbrake}};driver.stopped=null;continue;
     }
@@ -361,6 +364,7 @@ export class WorldTraffic {
    // Beyond the car's active radius its body sleeps: it drives on rails (STATUS_SIMPLE) instead of freezing. A car
    // told to make way for a siren is put under physics (MakeWayForCarWithSiren sets STATUS_PHYSICS) while it does.
    const onRails=!car.inActiveRange()&&!(driver.temp?.from==='siren'&&now<driver.temp.until);
+   if(!onRails)car.obstructingEntity=undefined;
    if(!onRails&&driver.rails)this.leaveRails(driver,now);
    // SteerAICarWithPhysicsFollowPath's node change, before steering.
    if(!onRails&&driver.next&&shouldPickNextNode(state,travel(driver.current),driver.currentLane,travel(driver.next),driver.nextLane)){
@@ -390,6 +394,7 @@ export class WorldTraffic {
    }else if(!driver.avoidCars){
     car.pedDangerScan=DISTANCE_TO_SCAN_FOR_DANGER;
     const own=view(car),scan=slowCarDownForCars(own,others(),trafficSpeed,cur,(other,proximity,speed)=>{
+     car.obstructingEntity=other.car;
      // SlowCarDownForOtherCar's 15-second standoff, asked of one car of the pair (the executable compares pointers):
      // at least 0.2 of cur, and DRIVINGSTYLE_AVOID_CARS. It also switches a car on rails to physics, which the
      // browser's rails (decided by the active radius) cannot.

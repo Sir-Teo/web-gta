@@ -164,8 +164,8 @@ export function flyAIPlaneInCertainDirection(ai:PlaneAI,body:PlaneAIBody,pilot:P
  * (0x10019939c); following an entity (0x1001995e4) the heading to it and its height as m_maxAltitude; attacking the
  * player (GetAIPlaneToAttackPlayer, 0x10019d134) the same for where the player will be in 50 frames (`target`, his
  * place and speed); flying in a direction keeps the one it was given. Nothing for another mission, or for a followed
- * entity that has gone. (The attack's guns and rockets after the flying, iOS 0x10019fa50 and 0x10019fb60, are not
- * ported, as the helicopters' are not.) */
+ * entity that has gone. The attack/dogfight weapon checks after flying (iOS 0x10019fa50 and 0x10019fb60) run through
+ * nativePlaneWeapons.ts and WeaponSystem; helicopter AI weapons remain unfinished. */
 export function steerAIPlane(ai:PlaneAI,body:PlaneAIBody,pilot:PlanePilot,world:PlaneAIWorld,nowMs:number,searchDue:boolean,ts:number,target?:NativeVec){
  if(pilot.mission===MISSION_PLANE_FLYTOCOORS)ai.heading=atanOfXY(pilot.destination[0]-body.position[0],pilot.destination[1]-body.position[1]);
  else if(pilot.mission===MISSION_PLANE_ATTACK_PLAYER||pilot.mission===MISSION_PLANE_ATTACK_PLAYER_POLICE){

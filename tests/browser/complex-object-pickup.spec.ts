@@ -1,0 +1,26 @@
+import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
+
+test('CASINO2’s original pickup walks, lifts on the real animation clock and carries over a following walk',async({page})=>{
+ test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});await endStoryMission(page);
+ const made=await page.evaluate(()=>{const g=(window as any).__game,m=g.missionForProfiling(),p=g.sim.player.position,x=p.x+10,y=-p.z+10,ground=g.groundAt(x,-y,p.y+20)??p.y;return {object:m.runtime.game.objects.create('cardboardbox',{x,y,z:ground+3},{external:false,missionCleanup:false}).handle,ped:m.peds.create(25,'MALE01',{x:x+2,y,z:ground}),x,y,ground};});
+ await page.waitForFunction(({ped,object})=>{const g=(window as any).__game,m=g.missionForProfiling();return !!m.peds.entity(ped)&&!!g.scriptObjectViews().bodyOf(object)&&g.scriptObjectViews().modelBounds('cardboardbox')!==undefined;},made,{timeout:60000});
+ const start=await page.evaluate(async({ped,object,x,y,ground})=>{
+  const g=(window as any).__game,m=g.missionForProfiling(),r=m.runtime,bounds=g.scriptObjectViews().modelBounds('cardboardbox');r.game.objects.setPosition(object,{x,y,z:ground-bounds.min.z});m.peds.setHeading(ped,90);
+  const path='/src/assets/scm.ts',decoder=await import(/* @vite-ignore */ path),b=new Uint8Array(await(await fetch('/play/world/files/scripts/main.scm')).arrayBuffer()),h=decoder.readScmHeader(b),site=decoder.decodeScmInstructions(b,h.missions[85].start,h.missions[85].end).find((i:any)=>i.offset===2104683),code=new Uint8Array(site.end-site.offset+2);code.set(b.subarray(site.offset,site.end));code.set([78,0],code.length-2);const slot=r.start(0,[],{space:code,mission:true});slot.thread.usesMissionCleanup=false;slot.thread.locals.setInt32(224*4,ped,true);slot.thread.locals.setInt32(228*4,object,true);slot.thread.run(g.gameTimeMs(),10,1);
+  const p=m.peds.entity(ped);return {position:{...p.actor.player.position},order:p.order?.kind,target:{x:p.order?.x,z:p.order?.z},holding:r.world.pedIsHoldingObject(ped,object)};
+ },made);
+ expect(start.order).toBe('goToPoint');expect(start.holding).toBe(false);
+ await page.waitForFunction(({ped})=>{const p=(window as any).__game.missionForProfiling().peds.entity(ped);return p.view.reactionName==='liftup'&&(p.view.reactionProgress??1)<.25;},made,{timeout:15000});
+ await page.evaluate(({ped})=>{const w=(window as any).__game.missionForProfiling().runtime.world;w.setPedAnimPlayingFlag(ped,'LIFTUP',false);w.setPedAnimProgress(ped,'LIFTUP',.1);},made);await page.waitForTimeout(300);
+ const paused=await page.evaluate(({ped,object})=>{const m=(window as any).__game.missionForProfiling(),p=m.peds.entity(ped),o=m.runtime.game.objects.at(object);return {progress:p.view.reactionProgress,holding:!!o.heldBy,collision:o.usesCollision,position:{...p.actor.player.position}};},made);
+ expect(paused.progress).toBeCloseTo(.1,5);expect(paused.holding).toBe(false);expect(paused.collision).toBe(false);expect(Math.hypot(paused.position.x-start.position.x,paused.position.z-start.position.z)).toBeGreaterThan(.5);
+ await page.evaluate(({ped})=>(window as any).__game.missionForProfiling().runtime.world.setPedAnimProgress(ped,'LIFTUP',.5),made);
+ await page.waitForFunction(({ped,object})=>(window as any).__game.missionForProfiling().runtime.game.objects.at(object).heldBy?.ped===ped,made,{timeout:5000});
+ await page.evaluate(({ped})=>(window as any).__game.missionForProfiling().runtime.world.setPedAnimProgress(ped,'LIFTUP',1),made);
+ await page.waitForFunction(({ped})=>(window as any).__game.missionForProfiling().peds.entity(ped).view.carryPoseName==='crry_prtial',made,{timeout:10000});
+ const before=await page.evaluate(({ped,object})=>{const m=(window as any).__game.missionForProfiling(),p=m.peds.positionOf(ped),o=m.runtime.game.objects.at(object);m.runtime.world.givePedScriptedTask(ped,{kind:'goStraightToCoord',x:p.x+3,y:p.y,z:p.z,speed:4,time:5000},0x5d3);return {x:p.x,z:p.y,held:o.heldBy};},made);
+ await page.waitForFunction(({ped,x})=>(window as any).__game.missionForProfiling().peds.positionOf(ped).x>x+.5,{ped:made.ped,x:before.x},{timeout:10000});
+ const result=await page.evaluate(({ped,object})=>{const g=(window as any).__game,m=g.missionForProfiling(),p=m.peds.entity(ped),o=m.runtime.game.objects.at(object),at=m.peds.positionOf(ped),held=m.runtime.world.pedIsHoldingObject(ped,object),distance=Math.hypot(o.position.x-at.x,o.position.y-at.y,o.position.z-at.z);m.runtime.world.setPedDropsObject(ped,true);return {held,distance,after:!!o.heldBy,collision:o.usesCollision,carry:p.view.carryPoseName??null,skipped:m.snapshot().skipped,gaveUp:m.snapshot().gaveUp};},made);
+ expect(before.held).toMatchObject({ped:made.ped,node:6,flags:1});expect(result.held).toBe(true);expect(result.distance).toBeLessThan(2);expect(result.after).toBe(false);expect(result.collision).toBe(true);expect(result.carry).toBeNull();expect(result.skipped).toEqual([]);expect(result.gaveUp).toEqual([]);expect(errors).toEqual([]);
+});

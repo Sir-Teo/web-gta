@@ -109,8 +109,8 @@ export function steerAIHeliFlyingAwayFromPlayer(ai:HeliAI,body:HeliAIBody,pilot:
 
 /** SteerAIHeliToAttackPlayer (iOS 0x10019d244), MISSION_HELI_ATTACK_PLAYER and _FLY_AWAY: runs at the player, full
  * forward at his height (m_fMaxAltitude his z, the destination him), past him inside 15 units along the ground to fly
- * straight away until 18 off, then round again. Returns the mission to go on with. (Its gun and rocket fire after it,
- * iOS 0x10019fa50 and 0x1001a0ac0, are not ported.) */
+ * straight away until 18 off, then round again. Returns the mission to go on with. (WeaponSystem evaluates the shared gun and
+ * helicopter rocket checks after steering: iOS 0x10019fa50 and 0x1001a0ac0.) */
 export function steerAIHeliToAttackPlayer(ai:HeliAI,body:HeliAIBody,pilot:HeliPilot,world:HeliAIWorld,player:NativeVec,probe:boolean,ts:number){
  const dx=player[0]-body.position[0],dy=player[1]-body.position[1];
  let heading=atanOfXY(dx,dy),along=Math.hypot(dx,dy),mission=pilot.mission;

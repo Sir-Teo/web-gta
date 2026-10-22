@@ -2,13 +2,12 @@
  *
  * - CTaskComplexPolicePursuit::SetWeapon (Tasks/TaskTypes/TaskComplexPolicePursuit.cpp,
  *   0x68BAD0), run whenever the pursuit's subtask is the arrest task.
- * - The on-foot arrest in CTaskComplexArrestPed::ControlSubTask (0x68D350). The function
- *   still calls the retail code upstream, but its decompiled body is kept in the file:
- *   while the cop runs CTaskComplexKillPedOnFoot, a suspect whose
- *   CTaskComplexFallAndGetUp is in its fall, within 3 units and 2 units vertically, gets a
- *   100 s down time and the cop switches to CTaskSimpleArrestPed. That task's StartAnim
- *   plays ARRESTgun and sets the suspect's state to PEDSTATE_ARRESTED, which
- *   CGameLogic::Update turns into the busted sequence. Standing still is never an arrest. */
+ * - The on-foot arrest is captured from iOS CTaskComplexArrestPed::ControlSubTask
+ *   (10042ADD8; range calculation 10042AF28..10042AF6C). The unreversed PC candidate
+ *   uses a 3D radius; the executable tests horizontal squared distance <= 9 and
+ *   absolute height <= 2 separately, in float32. A falling suspect gets 100 s down
+ *   time before the cop requests CTaskSimpleArrestPed. Its StartAnim plays ARRESTgun
+ *   and marks the suspect arrested. See scripts/research/native-arrest-task.py. */
 
 /** The street cop's active weapon. CCopPed starts on slot 0, unarmed, carrying a
  * nightstick and a pistol. */
@@ -35,6 +34,6 @@ export const ARREST_DOWN_TIME=100;
 /** The on-foot arrest test. Positions share one frame; `up` picks the vertical axis. */
 export function copCanArrest(o:{cop:{x:number;y:number;z:number};suspect:{x:number;y:number;z:number};suspectFalling:boolean;up:'y'|'z'}){
  if(!o.suspectFalling)return false;
- const d={x:o.cop.x-o.suspect.x,y:o.cop.y-o.suspect.y,z:o.cop.z-o.suspect.z},vertical=o.up==='y'?d.y:d.z;
- return Math.abs(vertical)<=ARREST_HEIGHT&&d.x*d.x+d.y*d.y+d.z*d.z<=ARREST_REACH*ARREST_REACH;
+ const f=Math.fround,d={x:f(f(o.cop.x)-f(o.suspect.x)),y:f(f(o.cop.y)-f(o.suspect.y)),z:f(f(o.cop.z)-f(o.suspect.z))},vertical=o.up==='y'?d.y:d.z,horizontal=o.up==='y'?d.z:d.y;
+ return Math.abs(vertical)<=ARREST_HEIGHT&&f(f(d.x*d.x)+f(horizontal*horizontal))<=ARREST_REACH*ARREST_REACH;
 }

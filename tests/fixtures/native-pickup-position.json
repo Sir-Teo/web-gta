@@ -1,0 +1,310 @@
+{
+  "executableSha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "function": "0x1001c1be4",
+  "cases": [
+    {
+      "name": "zero",
+      "input": [
+        0,
+        0,
+        0
+      ],
+      "compressed": [
+        0,
+        0,
+        0
+      ],
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "handle": 65536
+    },
+    {
+      "name": "signed-zero",
+      "input": [
+        -0.0,
+        0.0,
+        -0.0
+      ],
+      "compressed": [
+        0,
+        0,
+        0
+      ],
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "handle": 65536
+    },
+    {
+      "name": "positive-fractions",
+      "input": [
+        0.12499,
+        0.125,
+        0.24999
+      ],
+      "compressed": [
+        0,
+        1,
+        1
+      ],
+      "position": [
+        0.0,
+        0.125,
+        0.125
+      ],
+      "handle": 65536
+    },
+    {
+      "name": "negative-fractions",
+      "input": [
+        -0.12499,
+        -0.125,
+        -0.24999
+      ],
+      "compressed": [
+        0,
+        -1,
+        -1
+      ],
+      "position": [
+        0.0,
+        -0.125,
+        -0.125
+      ],
+      "handle": 65536
+    },
+    {
+      "name": "float32-rounds-up",
+      "input": [
+        0.1249999999,
+        0.2499999999,
+        -0.1249999999
+      ],
+      "compressed": [
+        1,
+        2,
+        -1
+      ],
+      "position": [
+        0.125,
+        0.25,
+        -0.125
+      ],
+      "handle": 65536
+    },
+    {
+      "name": "verdant-disc",
+      "input": [
+        416.9548034667969,
+        2538.812744140625,
+        9.507699966430664
+      ],
+      "compressed": [
+        3335,
+        20310,
+        76
+      ],
+      "position": [
+        416.875,
+        2538.75,
+        9.5
+      ],
+      "handle": 65536
+    },
+    {
+      "name": "grove-interior",
+      "input": [
+        2495.9,
+        -1707.4,
+        1013.3
+      ],
+      "compressed": [
+        19967,
+        -13659,
+        8106
+      ],
+      "position": [
+        2495.875,
+        -1707.375,
+        1013.25
+      ],
+      "handle": 65536
+    },
+    {
+      "name": "negative-world",
+      "input": [
+        -2035.773,
+        139.434,
+        28.336
+      ],
+      "compressed": [
+        -16286,
+        1115,
+        226
+      ],
+      "position": [
+        -2035.75,
+        139.375,
+        28.25
+      ],
+      "handle": 65536
+    },
+    {
+      "name": "signed-short-limits",
+      "input": [
+        4095.875,
+        -4096,
+        4096
+      ],
+      "compressed": [
+        32767,
+        -32768,
+        -32768
+      ],
+      "position": [
+        4095.875,
+        -4096.0,
+        -4096.0
+      ],
+      "handle": 65536
+    },
+    {
+      "name": "positive-wrap",
+      "input": [
+        4096.125,
+        8191.875,
+        8192
+      ],
+      "compressed": [
+        -32767,
+        -1,
+        0
+      ],
+      "position": [
+        -4095.875,
+        -0.125,
+        0.0
+      ],
+      "handle": 65536
+    },
+    {
+      "name": "negative-wrap",
+      "input": [
+        -4096.125,
+        -8191.875,
+        -8192
+      ],
+      "compressed": [
+        32767,
+        1,
+        0
+      ],
+      "position": [
+        4095.875,
+        0.125,
+        0.0
+      ],
+      "handle": 65536
+    },
+    {
+      "name": "fractional-wrap",
+      "input": [
+        4095.9999,
+        -4095.9999,
+        8192.2499
+      ],
+      "compressed": [
+        -32768,
+        -32768,
+        2
+      ],
+      "position": [
+        -4096.0,
+        -4096.0,
+        0.25
+      ],
+      "handle": 65536
+    },
+    {
+      "name": "int32-scaled-boundaries",
+      "input": [
+        268435440,
+        268435456,
+        -268435456
+      ],
+      "compressed": [
+        -128,
+        -1,
+        0
+      ],
+      "position": [
+        -16.0,
+        -0.125,
+        0.0
+      ],
+      "handle": 65536
+    },
+    {
+      "name": "int32-overflow",
+      "input": [
+        1e+20,
+        -1e+20,
+        1e+30
+      ],
+      "compressed": [
+        -1,
+        0,
+        -1
+      ],
+      "position": [
+        -0.125,
+        0.0,
+        -0.125
+      ],
+      "handle": 65536
+    },
+    {
+      "name": "small-normal",
+      "input": [
+        1e-30,
+        -1e-30,
+        0.0001
+      ],
+      "compressed": [
+        0,
+        0,
+        0
+      ],
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "handle": 65536
+    },
+    {
+      "name": "integer-native",
+      "input": [
+        1,
+        -2,
+        1001
+      ],
+      "compressed": [
+        8,
+        -16,
+        8008
+      ],
+      "position": [
+        1.0,
+        -2.0,
+        1001.0
+      ],
+      "handle": 65536
+    }
+  ]
+}

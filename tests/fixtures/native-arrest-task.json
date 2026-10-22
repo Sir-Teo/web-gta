@@ -1,0 +1,801 @@
+{
+  "version": 1,
+  "executableSha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "functions": {
+    "first": "0x10042abe4",
+    "next": "0x10042a1e8",
+    "control": "0x10042add8"
+  },
+  "captures": [
+    {
+      "input": {
+        "name": "missing-target",
+        "missing": true
+      },
+      "choice": null,
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": false,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "on-foot"
+      },
+      "choice": {
+        "kind": "killPedOnFoot",
+        "parameters": [
+          -1,
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "bike",
+        "inVehicle": true,
+        "vehicleClass": 9
+      },
+      "choice": {
+        "kind": "dragPedFromCar",
+        "timeoutMs": 100000
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "quad",
+        "inVehicle": true,
+        "subclass": 2
+      },
+      "choice": {
+        "kind": "dragPedFromCar",
+        "timeoutMs": 100000
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "upright-car",
+        "inVehicle": true
+      },
+      "choice": {
+        "kind": "openDriverDoor"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "overturned-car",
+        "inVehicle": true,
+        "upsideDown": true
+      },
+      "choice": {
+        "kind": "destroyCar"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "car-on-side",
+        "inVehicle": true,
+        "onSide": true
+      },
+      "choice": {
+        "kind": "destroyCar"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "boat-armed",
+        "inVehicle": true,
+        "subclass": 5
+      },
+      "choice": {
+        "kind": "destroyCar"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "boat-melee-no-gun",
+        "inVehicle": true,
+        "subclass": 5,
+        "melee": true
+      },
+      "choice": {
+        "kind": "destroyCar"
+      },
+      "weaponEvents": [
+        {
+          "give": 22,
+          "ammo": 10
+        },
+        {
+          "select": 22
+        }
+      ],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "boat-melee-has-pistol",
+        "inVehicle": true,
+        "subclass": 5,
+        "melee": true,
+        "weapons": [
+          22
+        ]
+      },
+      "choice": {
+        "kind": "destroyCar"
+      },
+      "weaponEvents": [
+        {
+          "select": 22
+        }
+      ],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "boat-melee-has-shotgun",
+        "inVehicle": true,
+        "subclass": 5,
+        "melee": true,
+        "weapons": [
+          25
+        ]
+      },
+      "choice": {
+        "kind": "destroyCar"
+      },
+      "weaponEvents": [
+        {
+          "select": 25
+        }
+      ],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "kill-next-no-fall",
+        "stage": "next",
+        "subtask": 1000
+      },
+      "choice": {
+        "kind": "killPedOnFoot",
+        "parameters": [
+          -1,
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "kill-next-dead",
+        "stage": "next",
+        "subtask": 1000,
+        "health": 0
+      },
+      "choice": {
+        "kind": "arrestPed"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "kill-next-falling-near",
+        "stage": "next",
+        "subtask": 1000,
+        "hasFall": true,
+        "falling": true,
+        "position": [
+          2,
+          0,
+          0
+        ]
+      },
+      "choice": {
+        "kind": "arrestPed"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [
+        100000
+      ],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "kill-next-horizontal-boundary-height-two",
+        "stage": "next",
+        "subtask": 1000,
+        "hasFall": true,
+        "falling": true,
+        "position": [
+          3,
+          0,
+          2
+        ]
+      },
+      "choice": {
+        "kind": "arrestPed"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [
+        100000
+      ],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "kill-next-outside-horizontal",
+        "stage": "next",
+        "subtask": 1000,
+        "hasFall": true,
+        "falling": true,
+        "position": [
+          3.0001,
+          0,
+          0
+        ]
+      },
+      "choice": {
+        "kind": "seekEntity"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "kill-next-outside-height",
+        "stage": "next",
+        "subtask": 1000,
+        "hasFall": true,
+        "falling": true,
+        "position": [
+          0,
+          0,
+          2.0001
+        ]
+      },
+      "choice": {
+        "kind": "seekEntity"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "kill-next-getting-up",
+        "stage": "next",
+        "subtask": 1000,
+        "hasFall": true,
+        "falling": false
+      },
+      "choice": {
+        "kind": "killPedOnFoot",
+        "parameters": [
+          -1,
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "driver-door-next-succeeded",
+        "stage": "next",
+        "subtask": 722,
+        "inVehicle": true
+      },
+      "choice": {
+        "kind": "arrestPed"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "driver-door-next-failed",
+        "stage": "next",
+        "subtask": 722,
+        "inVehicle": true,
+        "subtaskFlags": 2
+      },
+      "choice": {
+        "kind": "killPedOnFoot",
+        "parameters": [
+          -1,
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "driver-door-next-suspect-left",
+        "stage": "next",
+        "subtask": 722
+      },
+      "choice": {
+        "kind": "killPedOnFoot",
+        "parameters": [
+          -1,
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "passenger-door-next-succeeded",
+        "stage": "next",
+        "subtask": 728,
+        "inVehicle": true
+      },
+      "choice": {
+        "kind": "arrestPed"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "drag-next-falling-near",
+        "stage": "next",
+        "subtask": 703,
+        "hasFall": true,
+        "falling": true,
+        "position": [
+          3,
+          0,
+          2
+        ]
+      },
+      "choice": {
+        "kind": "arrestPed"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [
+        100000
+      ],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "seek-next-arrived-falling",
+        "stage": "next",
+        "subtask": 907,
+        "hasFall": true,
+        "falling": true,
+        "seekArrived": true
+      },
+      "choice": {
+        "kind": "arrestPed"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [
+        100000
+      ],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "seek-next-failed",
+        "stage": "next",
+        "subtask": 907
+      },
+      "choice": {
+        "kind": "killPedOnFoot",
+        "parameters": [
+          -1,
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "wait-out-car-next",
+        "stage": "next",
+        "subtask": 829
+      },
+      "choice": {
+        "kind": "killPedOnFoot",
+        "parameters": [
+          -1,
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "already-being-arrested-next",
+        "stage": "next",
+        "subtask": 1000,
+        "beingArrested": true
+      },
+      "choice": {
+        "kind": "seekEntity"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "control-kill-hold",
+        "stage": "control",
+        "subtask": 1000
+      },
+      "choice": null,
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": true
+    },
+    {
+      "input": {
+        "name": "control-dead-finishes",
+        "stage": "control",
+        "subtask": 1000,
+        "health": 0
+      },
+      "choice": {
+        "kind": "finish"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": false,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "control-missing-finishes",
+        "stage": "control",
+        "subtask": 1000,
+        "missing": true
+      },
+      "choice": {
+        "kind": "finish"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": false,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "control-falling-boundary",
+        "stage": "control",
+        "subtask": 1000,
+        "hasFall": true,
+        "falling": true,
+        "position": [
+          3,
+          0,
+          2
+        ]
+      },
+      "choice": {
+        "kind": "arrestPed"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [
+        100000
+      ],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "control-falling-float-boundary",
+        "stage": "control",
+        "subtask": 1000,
+        "hasFall": true,
+        "falling": true,
+        "position": [
+          3.00000001,
+          0,
+          2
+        ]
+      },
+      "choice": {
+        "kind": "arrestPed"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [
+        100000
+      ],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "control-falling-outside-horizontal",
+        "stage": "control",
+        "subtask": 1000,
+        "hasFall": true,
+        "falling": true,
+        "position": [
+          3.0001,
+          0,
+          0
+        ]
+      },
+      "choice": {
+        "kind": "seekEntity"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "control-falling-outside-height",
+        "stage": "control",
+        "subtask": 1000,
+        "hasFall": true,
+        "falling": true,
+        "position": [
+          0,
+          0,
+          2.0001
+        ]
+      },
+      "choice": {
+        "kind": "seekEntity"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "control-fall-getting-up",
+        "stage": "control",
+        "subtask": 1000,
+        "hasFall": true,
+        "falling": false
+      },
+      "choice": null,
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": true
+    },
+    {
+      "input": {
+        "name": "control-falling-refuses-abort",
+        "stage": "control",
+        "subtask": 1000,
+        "hasFall": true,
+        "falling": true,
+        "canAbort": false
+      },
+      "choice": null,
+      "weaponEvents": [],
+      "downTimesMs": [
+        100000
+      ],
+      "returnedTask": true,
+      "retainedSubtask": true
+    },
+    {
+      "input": {
+        "name": "control-other-cop-arresting",
+        "stage": "control",
+        "subtask": 1000,
+        "beingArrested": true
+      },
+      "choice": {
+        "kind": "seekEntity"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "control-own-arrest-holds",
+        "stage": "control",
+        "subtask": 1100,
+        "beingArrested": true
+      },
+      "choice": null,
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": true
+    },
+    {
+      "input": {
+        "name": "control-door-room-holds",
+        "stage": "control",
+        "subtask": 722,
+        "inVehicle": true
+      },
+      "choice": null,
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": true
+    },
+    {
+      "input": {
+        "name": "control-door-blocked-switches-side",
+        "stage": "control",
+        "subtask": 722,
+        "inVehicle": true,
+        "driverRoom": false
+      },
+      "choice": {
+        "kind": "openPassengerDoor"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "control-passenger-blocked-switches-driver",
+        "stage": "control",
+        "subtask": 728,
+        "inVehicle": true,
+        "passengerRoom": false
+      },
+      "choice": {
+        "kind": "openDriverDoor"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "control-suspect-entered-car",
+        "stage": "control",
+        "subtask": 1000,
+        "inVehicle": true,
+        "melee": true
+      },
+      "choice": {
+        "kind": "openDriverDoor"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "control-suspect-entered-bike",
+        "stage": "control",
+        "subtask": 1000,
+        "inVehicle": true,
+        "vehicleClass": 9,
+        "melee": true
+      },
+      "choice": {
+        "kind": "dragPedFromCar"
+      },
+      "weaponEvents": [],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    },
+    {
+      "input": {
+        "name": "control-suspect-entered-boat",
+        "stage": "control",
+        "subtask": 1000,
+        "inVehicle": true,
+        "vehicleClass": 5,
+        "melee": true
+      },
+      "choice": {
+        "kind": "destroyCar"
+      },
+      "weaponEvents": [
+        {
+          "select": 22
+        }
+      ],
+      "downTimesMs": [],
+      "returnedTask": true,
+      "retainedSubtask": false
+    }
+  ]
+}

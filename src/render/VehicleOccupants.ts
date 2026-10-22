@@ -12,7 +12,7 @@ export function driverSeat(car:WorldCar){const dummy=car.car.root.getObjectByNam
 export interface OccupantVehicle {car:{root:import('three').Object3D;body:{handle:number}}}
 export interface OccupantPose {key:string;car:OccupantVehicle;model:number|string;local:{x:number;y:number;z:number};clip:string;seconds:number;animation?:NativeAnimation;
  /** A turn about the vertical off the vehicle's own heading (an attached ped facing its side). */
- headingOffset?:number;gun?:{model:Parameters<typeof modelObject>[0];textures:Parameters<typeof modelObject>[1]}}
+ headingOffset?:number;scorched?:boolean;gun?:{model:Parameters<typeof modelObject>[0];textures:Parameters<typeof modelObject>[1]}}
 /** NPC vehicle occupants: CAR_sit/CAR_sitp in their seats, or their exit clip while leaving. */
 export class VehicleOccupants {
  private catalog?:Awaited<ReturnType<typeof openWorldPedestrians>>;
@@ -57,7 +57,7 @@ export class VehicleOccupants {
    let entry=this.views.get(pose.key);
    if(entry&&(entry.model!==pose.model||(entry.gun?.model??null)!==(pose.gun?.model??null))){entry.gun?.dispose();entry.view.dispose();this.views.delete(pose.key);entry=undefined;}
    if(!entry){const source=this.source(pose.model);if(!source)continue;const view=new NativeCharacter(source);view.installVehicleClips(Object.fromEntries(['car_sit','car_sitp','car_lsit','car_sitplo'].filter(n=>catalog.animations[n]).map(n=>[n,catalog.animations[n]])));this.scene.add(view.root);entry={view,model:pose.model};this.views.set(pose.key,entry);}
-   const {view}=entry;view.setAmbient(ambient);view.setNight(night);
+   const {view}=entry;view.setAmbient(ambient);view.setScorched(!!pose.scorched);view.setNight(night);
    if(pose.animation)view.installVehicleClips({[pose.clip]:pose.animation});
    else if(!view.hasVehicleClip(pose.clip)&&catalog.animations[pose.clip])view.installVehicleClips({[pose.clip]:catalog.animations[pose.clip]});
    // Drive-by shooters keep their gun in the firing hand (officer pattern).

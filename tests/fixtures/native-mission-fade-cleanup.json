@@ -1,0 +1,558 @@
+{
+  "executableSha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "fadeHandler": "0x1001d2600",
+  "cleanupPrefix": "0x1001ca0bc..0x1001ca130",
+  "scriptHasFadedOut": "0x10079d221",
+  "intercepts": [
+    "CollectParameters",
+    "CCamera::Fade",
+    "CPad::GetPad"
+  ],
+  "scope": "Complete DO_FADE flag updates and cleanup fade/flag/pad branch. Remaining cleanup body is outside this capture.",
+  "fadeCases": [
+    {
+      "input": {
+        "mission": false,
+        "direction": 0,
+        "flag": false,
+        "milliseconds": 0
+      },
+      "native": {
+        "flag": false,
+        "fades": [
+          {
+            "seconds": 0.0,
+            "direction": 0
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "mission": false,
+        "direction": 0,
+        "flag": false,
+        "milliseconds": 500
+      },
+      "native": {
+        "flag": false,
+        "fades": [
+          {
+            "seconds": 0.5,
+            "direction": 0
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "mission": false,
+        "direction": 0,
+        "flag": true,
+        "milliseconds": 0
+      },
+      "native": {
+        "flag": true,
+        "fades": [
+          {
+            "seconds": 0.0,
+            "direction": 0
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "mission": false,
+        "direction": 0,
+        "flag": true,
+        "milliseconds": 500
+      },
+      "native": {
+        "flag": true,
+        "fades": [
+          {
+            "seconds": 0.5,
+            "direction": 0
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "mission": false,
+        "direction": 1,
+        "flag": false,
+        "milliseconds": 0
+      },
+      "native": {
+        "flag": false,
+        "fades": [
+          {
+            "seconds": 0.0,
+            "direction": 1
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "mission": false,
+        "direction": 1,
+        "flag": false,
+        "milliseconds": 500
+      },
+      "native": {
+        "flag": false,
+        "fades": [
+          {
+            "seconds": 0.5,
+            "direction": 1
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "mission": false,
+        "direction": 1,
+        "flag": true,
+        "milliseconds": 0
+      },
+      "native": {
+        "flag": true,
+        "fades": [
+          {
+            "seconds": 0.0,
+            "direction": 1
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "mission": false,
+        "direction": 1,
+        "flag": true,
+        "milliseconds": 500
+      },
+      "native": {
+        "flag": true,
+        "fades": [
+          {
+            "seconds": 0.5,
+            "direction": 1
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "mission": true,
+        "direction": 0,
+        "flag": false,
+        "milliseconds": 0
+      },
+      "native": {
+        "flag": true,
+        "fades": [
+          {
+            "seconds": 0.0,
+            "direction": 0
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "mission": true,
+        "direction": 0,
+        "flag": false,
+        "milliseconds": 500
+      },
+      "native": {
+        "flag": true,
+        "fades": [
+          {
+            "seconds": 0.5,
+            "direction": 0
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "mission": true,
+        "direction": 0,
+        "flag": true,
+        "milliseconds": 0
+      },
+      "native": {
+        "flag": true,
+        "fades": [
+          {
+            "seconds": 0.0,
+            "direction": 0
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "mission": true,
+        "direction": 0,
+        "flag": true,
+        "milliseconds": 500
+      },
+      "native": {
+        "flag": true,
+        "fades": [
+          {
+            "seconds": 0.5,
+            "direction": 0
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "mission": true,
+        "direction": 1,
+        "flag": false,
+        "milliseconds": 0
+      },
+      "native": {
+        "flag": false,
+        "fades": [
+          {
+            "seconds": 0.0,
+            "direction": 1
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "mission": true,
+        "direction": 1,
+        "flag": false,
+        "milliseconds": 500
+      },
+      "native": {
+        "flag": false,
+        "fades": [
+          {
+            "seconds": 0.5,
+            "direction": 1
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "mission": true,
+        "direction": 1,
+        "flag": true,
+        "milliseconds": 0
+      },
+      "native": {
+        "flag": false,
+        "fades": [
+          {
+            "seconds": 0.0,
+            "direction": 1
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "mission": true,
+        "direction": 1,
+        "flag": true,
+        "milliseconds": 500
+      },
+      "native": {
+        "flag": false,
+        "fades": [
+          {
+            "seconds": 0.5,
+            "direction": 1
+          }
+        ]
+      }
+    }
+  ],
+  "cleanupCases": [
+    {
+      "input": {
+        "flag": false,
+        "playerState": 0,
+        "padFlags": 0
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 0,
+        "fades": []
+      }
+    },
+    {
+      "input": {
+        "flag": false,
+        "playerState": 0,
+        "padFlags": 65535
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 65535,
+        "fades": []
+      }
+    },
+    {
+      "input": {
+        "flag": false,
+        "playerState": 1,
+        "padFlags": 0
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 0,
+        "fades": []
+      }
+    },
+    {
+      "input": {
+        "flag": false,
+        "playerState": 1,
+        "padFlags": 65535
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 65535,
+        "fades": []
+      }
+    },
+    {
+      "input": {
+        "flag": false,
+        "playerState": 2,
+        "padFlags": 0
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 0,
+        "fades": []
+      }
+    },
+    {
+      "input": {
+        "flag": false,
+        "playerState": 2,
+        "padFlags": 65535
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 65535,
+        "fades": []
+      }
+    },
+    {
+      "input": {
+        "flag": false,
+        "playerState": 3,
+        "padFlags": 0
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 0,
+        "fades": []
+      }
+    },
+    {
+      "input": {
+        "flag": false,
+        "playerState": 3,
+        "padFlags": 65535
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 65535,
+        "fades": []
+      }
+    },
+    {
+      "input": {
+        "flag": false,
+        "playerState": 4,
+        "padFlags": 0
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 0,
+        "fades": []
+      }
+    },
+    {
+      "input": {
+        "flag": false,
+        "playerState": 4,
+        "padFlags": 65535
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 65535,
+        "fades": []
+      }
+    },
+    {
+      "input": {
+        "flag": true,
+        "playerState": 0,
+        "padFlags": 0
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 0,
+        "fades": [
+          {
+            "seconds": 0.5,
+            "direction": 1
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "flag": true,
+        "playerState": 0,
+        "padFlags": 65535
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 65503,
+        "fades": [
+          {
+            "seconds": 0.5,
+            "direction": 1
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "flag": true,
+        "playerState": 1,
+        "padFlags": 0
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 0,
+        "fades": []
+      }
+    },
+    {
+      "input": {
+        "flag": true,
+        "playerState": 1,
+        "padFlags": 65535
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 65535,
+        "fades": []
+      }
+    },
+    {
+      "input": {
+        "flag": true,
+        "playerState": 2,
+        "padFlags": 0
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 0,
+        "fades": []
+      }
+    },
+    {
+      "input": {
+        "flag": true,
+        "playerState": 2,
+        "padFlags": 65535
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 65535,
+        "fades": []
+      }
+    },
+    {
+      "input": {
+        "flag": true,
+        "playerState": 3,
+        "padFlags": 0
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 0,
+        "fades": [
+          {
+            "seconds": 0.5,
+            "direction": 1
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "flag": true,
+        "playerState": 3,
+        "padFlags": 65535
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 65503,
+        "fades": [
+          {
+            "seconds": 0.5,
+            "direction": 1
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "flag": true,
+        "playerState": 4,
+        "padFlags": 0
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 0,
+        "fades": [
+          {
+            "seconds": 0.5,
+            "direction": 1
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "flag": true,
+        "playerState": 4,
+        "padFlags": 65535
+      },
+      "native": {
+        "flag": false,
+        "padFlags": 65503,
+        "fades": [
+          {
+            "seconds": 0.5,
+            "direction": 1
+          }
+        ]
+      }
+    }
+  ]
+}

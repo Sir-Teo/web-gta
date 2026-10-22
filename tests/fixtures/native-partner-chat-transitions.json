@@ -1,0 +1,3307 @@
+{
+  "executableSha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "function": "0x10041f988",
+  "scope": "Partner NextSubTask, makePedAlwaysFacePartner=false, animations ready, four direction updates; task lookup, constructors and sequence creation intercepted",
+  "cases": [
+    {
+      "input": {
+        "phase": 1,
+        "otherPhase": 1,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 2,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 1,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 2,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          12.699999809265137,
+          23.600000381469727,
+          30.0
+        ],
+        "otherPoint": [
+          13.300000190734863,
+          24.399999618530273,
+          30.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 1,
+        "otherPhase": 2,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 2,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 1,
+        "otherPhase": 2,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 2,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          12.699999809265137,
+          23.600000381469727,
+          30.0
+        ],
+        "otherPoint": [
+          13.300000190734863,
+          24.399999618530273,
+          30.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 1,
+        "otherPhase": 3,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 2,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 1,
+        "otherPhase": 3,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 2,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          12.699999809265137,
+          23.600000381469727,
+          30.0
+        ],
+        "otherPoint": [
+          13.300000190734863,
+          24.399999618530273,
+          30.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 1,
+        "otherPhase": 4,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 2,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 1,
+        "otherPhase": 4,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 2,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          12.699999809265137,
+          23.600000381469727,
+          30.0
+        ],
+        "otherPoint": [
+          13.300000190734863,
+          24.399999618530273,
+          30.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 1,
+        "otherPhase": 5,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 2,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 1,
+        "otherPhase": 5,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 2,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          12.699999809265137,
+          23.600000381469727,
+          30.0
+        ],
+        "otherPoint": [
+          13.300000190734863,
+          24.399999618530273,
+          30.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 1,
+        "otherPhase": 6,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 2,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 1,
+        "otherPhase": 6,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 2,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          12.699999809265137,
+          23.600000381469727,
+          30.0
+        ],
+        "otherPoint": [
+          13.300000190734863,
+          24.399999618530273,
+          30.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 2,
+        "otherPhase": 1,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "goto",
+            "point": [
+              10.0,
+              20.0,
+              30.0
+            ]
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 2,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "goto",
+            "point": [
+              10.0,
+              20.0,
+              30.0
+            ]
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 2,
+        "otherPhase": 2,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "goto",
+            "point": [
+              10.0,
+              20.0,
+              30.0
+            ]
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 2,
+        "otherPhase": 2,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "goto",
+            "point": [
+              10.0,
+              20.0,
+              30.0
+            ]
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 2,
+        "otherPhase": 3,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "goto",
+            "point": [
+              10.0,
+              20.0,
+              30.0
+            ]
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 2,
+        "otherPhase": 3,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "goto",
+            "point": [
+              10.0,
+              20.0,
+              30.0
+            ]
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 2,
+        "otherPhase": 4,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "goto",
+            "point": [
+              10.0,
+              20.0,
+              30.0
+            ]
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 2,
+        "otherPhase": 4,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "goto",
+            "point": [
+              10.0,
+              20.0,
+              30.0
+            ]
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 2,
+        "otherPhase": 5,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "goto",
+            "point": [
+              10.0,
+              20.0,
+              30.0
+            ]
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 2,
+        "otherPhase": 5,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "goto",
+            "point": [
+              10.0,
+              20.0,
+              30.0
+            ]
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 2,
+        "otherPhase": 6,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "goto",
+            "point": [
+              10.0,
+              20.0,
+              30.0
+            ]
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 2,
+        "otherPhase": 6,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "goto",
+            "point": [
+              10.0,
+              20.0,
+              30.0
+            ]
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 1,
+        "lead": false,
+        "subtype": 903,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "turn"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 1,
+        "lead": false,
+        "subtype": 920,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 1,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [],
+        "ended": true
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 903,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "turn"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 920,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [],
+        "ended": true
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 2,
+        "lead": false,
+        "subtype": 903,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "turn"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 2,
+        "lead": false,
+        "subtype": 920,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 2,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [],
+        "ended": true
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 2,
+        "lead": true,
+        "subtype": 903,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "turn"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 2,
+        "lead": true,
+        "subtype": 920,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 2,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [],
+        "ended": true
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 3,
+        "lead": false,
+        "subtype": 903,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "turn"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 3,
+        "lead": false,
+        "subtype": 920,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 3,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [],
+        "ended": true
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 3,
+        "lead": true,
+        "subtype": 903,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "turn"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 3,
+        "lead": true,
+        "subtype": 920,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 3,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [],
+        "ended": true
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 4,
+        "lead": false,
+        "subtype": 903,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "turn"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 4,
+        "lead": false,
+        "subtype": 920,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 4,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [],
+        "ended": true
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 4,
+        "lead": true,
+        "subtype": 903,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "turn"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 4,
+        "lead": true,
+        "subtype": 920,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 4,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [],
+        "ended": true
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 5,
+        "lead": false,
+        "subtype": 903,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "turn"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 5,
+        "lead": false,
+        "subtype": 920,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 5,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [],
+        "ended": true
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 5,
+        "lead": true,
+        "subtype": 903,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "turn"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 5,
+        "lead": true,
+        "subtype": 920,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 5,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [],
+        "ended": true
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 6,
+        "lead": false,
+        "subtype": 903,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "turn"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 6,
+        "lead": false,
+        "subtype": 920,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 6,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [],
+        "ended": true
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 6,
+        "lead": true,
+        "subtype": 903,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "turn"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 6,
+        "lead": true,
+        "subtype": 920,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 6,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 3,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [],
+        "ended": true
+      }
+    },
+    {
+      "input": {
+        "phase": 4,
+        "otherPhase": 1,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": 1,
+        "directions": 4,
+        "otherFirst": 0,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          12.0,
+          24.0,
+          30.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 4,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": 1,
+        "directions": 4,
+        "otherFirst": 0,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          12.0,
+          24.0,
+          30.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 4,
+        "otherPhase": 2,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": 1,
+        "directions": 4,
+        "otherFirst": 0,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          12.0,
+          24.0,
+          30.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 4,
+        "otherPhase": 2,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": 1,
+        "directions": 4,
+        "otherFirst": 0,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          12.0,
+          24.0,
+          30.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 4,
+        "otherPhase": 3,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": 1,
+        "directions": 4,
+        "otherFirst": 0,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          12.0,
+          24.0,
+          30.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 4,
+        "otherPhase": 3,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": 1,
+        "directions": 4,
+        "otherFirst": 0,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          12.0,
+          24.0,
+          30.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 4,
+        "otherPhase": 4,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 5,
+        "first": 0,
+        "directions": 4,
+        "otherFirst": 1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 4,
+        "otherPhase": 4,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 5,
+        "first": 0,
+        "directions": 4,
+        "otherFirst": 1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 4,
+        "otherPhase": 5,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 5,
+        "first": 0,
+        "directions": 4,
+        "otherFirst": 1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 4,
+        "otherPhase": 5,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 5,
+        "first": 0,
+        "directions": 4,
+        "otherFirst": 1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 4,
+        "otherPhase": 6,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": 1,
+        "directions": 4,
+        "otherFirst": 0,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          12.0,
+          24.0,
+          30.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 4,
+        "otherPhase": 6,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 4,
+        "first": 1,
+        "directions": 4,
+        "otherFirst": 0,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          12.0,
+          24.0,
+          30.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 5,
+        "otherPhase": 1,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 5,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 5,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 5,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 5,
+        "otherPhase": 2,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 5,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 5,
+        "otherPhase": 2,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 5,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 5,
+        "otherPhase": 3,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 5,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 5,
+        "otherPhase": 3,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 5,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 5,
+        "otherPhase": 4,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 5,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 5,
+        "otherPhase": 4,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 5,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 5,
+        "otherPhase": 5,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 6,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 5,
+        "otherPhase": 5,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 6,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 5,
+        "otherPhase": 6,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 6,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 5,
+        "otherPhase": 6,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 6,
+        "first": -1,
+        "directions": 4,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "stand",
+            "ms": 50
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 6,
+        "otherPhase": 1,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 6,
+        "first": -1,
+        "directions": 3,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "sequence"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 6,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 6,
+        "first": -1,
+        "directions": 3,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "sequence"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 6,
+        "otherPhase": 2,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 6,
+        "first": -1,
+        "directions": 3,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "sequence"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 6,
+        "otherPhase": 2,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 6,
+        "first": -1,
+        "directions": 3,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "sequence"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 6,
+        "otherPhase": 3,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 6,
+        "first": -1,
+        "directions": 3,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "sequence"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 6,
+        "otherPhase": 3,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 6,
+        "first": -1,
+        "directions": 3,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "sequence"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 6,
+        "otherPhase": 4,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 6,
+        "first": -1,
+        "directions": 3,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "sequence"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 6,
+        "otherPhase": 4,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 6,
+        "first": -1,
+        "directions": 3,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "sequence"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 6,
+        "otherPhase": 5,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 6,
+        "first": -1,
+        "directions": 3,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "sequence"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 6,
+        "otherPhase": 5,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 6,
+        "first": -1,
+        "directions": 3,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "sequence"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 6,
+        "otherPhase": 6,
+        "lead": false,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 6,
+        "first": -1,
+        "directions": 3,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "sequence"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 6,
+        "otherPhase": 6,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": true
+      },
+      "native": {
+        "phase": 6,
+        "first": -1,
+        "directions": 3,
+        "otherFirst": -1,
+        "point": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "otherPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actions": [
+          {
+            "kind": "sequence"
+          }
+        ],
+        "ended": false
+      }
+    },
+    {
+      "input": {
+        "phase": 1,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 203,
+        "exists": false,
+        "reciprocal": true
+      },
+      "native": {
+        "ended": true,
+        "actions": []
+      }
+    },
+    {
+      "input": {
+        "phase": 1,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": false
+      },
+      "native": {
+        "ended": true,
+        "actions": []
+      }
+    },
+    {
+      "input": {
+        "phase": 2,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 203,
+        "exists": false,
+        "reciprocal": true
+      },
+      "native": {
+        "ended": true,
+        "actions": []
+      }
+    },
+    {
+      "input": {
+        "phase": 2,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": false
+      },
+      "native": {
+        "ended": true,
+        "actions": []
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 203,
+        "exists": false,
+        "reciprocal": true
+      },
+      "native": {
+        "ended": true,
+        "actions": []
+      }
+    },
+    {
+      "input": {
+        "phase": 3,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": false
+      },
+      "native": {
+        "ended": true,
+        "actions": []
+      }
+    },
+    {
+      "input": {
+        "phase": 4,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 203,
+        "exists": false,
+        "reciprocal": true
+      },
+      "native": {
+        "ended": true,
+        "actions": []
+      }
+    },
+    {
+      "input": {
+        "phase": 4,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": false
+      },
+      "native": {
+        "ended": true,
+        "actions": []
+      }
+    },
+    {
+      "input": {
+        "phase": 5,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 203,
+        "exists": false,
+        "reciprocal": true
+      },
+      "native": {
+        "ended": true,
+        "actions": []
+      }
+    },
+    {
+      "input": {
+        "phase": 5,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": false
+      },
+      "native": {
+        "ended": true,
+        "actions": []
+      }
+    },
+    {
+      "input": {
+        "phase": 6,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 203,
+        "exists": false,
+        "reciprocal": true
+      },
+      "native": {
+        "ended": true,
+        "actions": []
+      }
+    },
+    {
+      "input": {
+        "phase": 6,
+        "otherPhase": 1,
+        "lead": true,
+        "subtype": 203,
+        "exists": true,
+        "reciprocal": false
+      },
+      "native": {
+        "ended": true,
+        "actions": []
+      }
+    }
+  ]
+}

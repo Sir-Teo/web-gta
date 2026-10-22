@@ -1,0 +1,756 @@
+{
+  "executableSha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "handler": "0x1001d0f48",
+  "cases": [
+    {
+      "input": {
+        "handle": 7,
+        "status": 2,
+        "health": 0,
+        "timer": 0,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 2,
+        "health": 0,
+        "timer": 0,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 2,
+        "health": 0,
+        "timer": 1234,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 2,
+        "health": 0,
+        "timer": 1234,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 2,
+        "health": 0,
+        "timer": 65535,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 2,
+        "health": 0,
+        "timer": 65535,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 2,
+        "health": 300,
+        "timer": 0,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 2,
+        "health": 300,
+        "timer": 0,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 2,
+        "health": 300,
+        "timer": 1234,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 2,
+        "health": 300,
+        "timer": 1234,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 2,
+        "health": 300,
+        "timer": 65535,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 2,
+        "health": 300,
+        "timer": 65535,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 2,
+        "health": 1000,
+        "timer": 0,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 2,
+        "health": 1000,
+        "timer": 0,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 2,
+        "health": 1000,
+        "timer": 1234,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 2,
+        "health": 1000,
+        "timer": 1234,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 2,
+        "health": 1000,
+        "timer": 65535,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 2,
+        "health": 1000,
+        "timer": 65535,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 10,
+        "health": 0,
+        "timer": 0,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 10,
+        "health": 0,
+        "timer": 0,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 10,
+        "health": 0,
+        "timer": 1234,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 10,
+        "health": 0,
+        "timer": 1234,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 10,
+        "health": 0,
+        "timer": 65535,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 10,
+        "health": 0,
+        "timer": 65535,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 10,
+        "health": 300,
+        "timer": 0,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 10,
+        "health": 300,
+        "timer": 0,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 10,
+        "health": 300,
+        "timer": 1234,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 10,
+        "health": 300,
+        "timer": 1234,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 10,
+        "health": 300,
+        "timer": 65535,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 10,
+        "health": 300,
+        "timer": 65535,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 10,
+        "health": 1000,
+        "timer": 0,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 10,
+        "health": 1000,
+        "timer": 0,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 10,
+        "health": 1000,
+        "timer": 1234,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 10,
+        "health": 1000,
+        "timer": 1234,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 10,
+        "health": 1000,
+        "timer": 65535,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 10,
+        "health": 1000,
+        "timer": 65535,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 18,
+        "health": 0,
+        "timer": 0,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 18,
+        "health": 0,
+        "timer": 0,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 18,
+        "health": 0,
+        "timer": 1234,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 18,
+        "health": 0,
+        "timer": 1234,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 18,
+        "health": 0,
+        "timer": 65535,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 18,
+        "health": 0,
+        "timer": 65535,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 18,
+        "health": 300,
+        "timer": 0,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 18,
+        "health": 300,
+        "timer": 0,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 18,
+        "health": 300,
+        "timer": 1234,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 18,
+        "health": 300,
+        "timer": 1234,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 18,
+        "health": 300,
+        "timer": 65535,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 18,
+        "health": 300,
+        "timer": 65535,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 18,
+        "health": 1000,
+        "timer": 0,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 18,
+        "health": 1000,
+        "timer": 0,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 18,
+        "health": 1000,
+        "timer": 1234,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 18,
+        "health": 1000,
+        "timer": 1234,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 18,
+        "health": 1000,
+        "timer": 65535,
+        "drowning": false
+      },
+      "dead": false
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 18,
+        "health": 1000,
+        "timer": 65535,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 42,
+        "health": 0,
+        "timer": 0,
+        "drowning": false
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 42,
+        "health": 0,
+        "timer": 0,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 42,
+        "health": 0,
+        "timer": 1234,
+        "drowning": false
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 42,
+        "health": 0,
+        "timer": 1234,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 42,
+        "health": 0,
+        "timer": 65535,
+        "drowning": false
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 42,
+        "health": 0,
+        "timer": 65535,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 42,
+        "health": 300,
+        "timer": 0,
+        "drowning": false
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 42,
+        "health": 300,
+        "timer": 0,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 42,
+        "health": 300,
+        "timer": 1234,
+        "drowning": false
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 42,
+        "health": 300,
+        "timer": 1234,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 42,
+        "health": 300,
+        "timer": 65535,
+        "drowning": false
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 42,
+        "health": 300,
+        "timer": 65535,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 42,
+        "health": 1000,
+        "timer": 0,
+        "drowning": false
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 42,
+        "health": 1000,
+        "timer": 0,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 42,
+        "health": 1000,
+        "timer": 1234,
+        "drowning": false
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 42,
+        "health": 1000,
+        "timer": 1234,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 42,
+        "health": 1000,
+        "timer": 65535,
+        "drowning": false
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 7,
+        "status": 42,
+        "health": 1000,
+        "timer": 65535,
+        "drowning": true
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": -1,
+        "status": 18,
+        "health": 1000,
+        "timer": 0,
+        "drowning": false
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 0,
+        "status": 18,
+        "health": 1000,
+        "timer": 0,
+        "drowning": false
+      },
+      "dead": true
+    },
+    {
+      "input": {
+        "handle": 8,
+        "status": 18,
+        "health": 1000,
+        "timer": 0,
+        "drowning": false
+      },
+      "dead": true
+    }
+  ]
+}

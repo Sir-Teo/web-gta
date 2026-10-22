@@ -2,6 +2,7 @@ import {describe,expect,test} from 'vitest';
 import {readFileSync} from 'node:fs';
 import {ScmThread,type ScmThreadHost,type ScmWorldCommands} from '../src/engine/ScmThread';
 import {ScmGameState} from '../src/engine/ScmGameState';
+import {ScmRuntime} from '../src/engine/ScmRuntime';
 import {MAX_NUM_SCRIPT_RECTANGLES,RECT_INACTIVE,RECT_MONOCOLOR,RECT_MONOCOLOR_ANGLED,RECT_TEXT,RECT_TEXTURED,ScmIntroRectangles,USE_TEXT_DISABLED,USE_TEXT_ENABLED_BY_SCRIPT} from '../src/engine/ScmMessages';
 import {readScmHeader,decodeScmInstructions} from '../src/assets/scm';
 
@@ -22,6 +23,19 @@ function find(name:string){
 }
 
 describe('script sprites and boxes',()=>{
+ test('sprite slots retain their loaded dictionary through switches and removal deletes every texture binding',()=>{
+  const rectangles=new ScmIntroRectangles();rectangles.loadDictionary('LD_OTB2');rectangles.loadSprite(1,'BACKBET');rectangles.loadDictionary('LD_OTB');rectangles.loadSprite(2,'HORSE');
+  expect(rectangles.spriteBindings.slice(0,2)).toEqual([{dictionary:'ld_otb2',name:'backbet'},{dictionary:'ld_otb',name:'horse'}]);rectangles.removeDictionary();expect(rectangles.dictionary).toBeUndefined();expect(rectangles.sprites.every(s=>s===undefined)).toBe(true);expect(rectangles.spriteBindings.every(s=>s===undefined)).toBe(true);
+ });
+
+ test('mission cleanup removes its script dictionary while a non-mission dictionary remains loaded',()=>{
+  for(const owned of [false,true]){const runtime=new ScmRuntime(new Uint8Array([0x4e,0])),rectangles=runtime.game.introRectangles;rectangles.loadDictionary('LD_BEAT',owned);rectangles.loadSprite(1,'up');runtime.start(0,[],{mission:true});runtime.process(100,16);expect(rectangles.dictionary).toBe(owned?undefined:'ld_beat');expect(!!rectangles.spriteBindings[0]).toBe(!owned);}
+ });
+
+ test('the original dictionary load registers mission ownership and explicit removal clears it',()=>{
+  const {bytes,instruction}=find('LOAD_TEXTURE_DICTIONARY'),game=new ScmGameState(),thread=threadAt(bytes,instruction.offset,game);thread.usesMissionCleanup=true;runOne(thread);expect(game.introRectangles.dictionary).toBe(String(instruction.parameters[0].value).toLowerCase());expect(game.introRectangles.missionDictionary).toBe(true);game.introRectangles.loadSprite(1,'test');const remove=find('REMOVE_TEXTURE_DICTIONARY');runOne(threadAt(remove.bytes,remove.instruction.offset,game));expect(game.introRectangles.missionDictionary).toBe(false);expect(game.introRectangles.spriteBindings[0]).toBeUndefined();
+ });
+
  test('LOAD_SPRITE lowers the name into its slot',()=>{
   const {bytes,instruction}=find('LOAD_SPRITE');
   const game=new ScmGameState();

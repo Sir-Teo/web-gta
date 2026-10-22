@@ -39,6 +39,7 @@ export const nativeVertexLighting = `
  #endif
  vec3 nativeLight = nativeAmbient * (nativeAmbientEnabled ? nativeAmbientColor : nativeIndirect);
  nativeLight += nativeDiffuse * nativeDirect * (nativeAmbientEnabled ? nativeContactMultiplier : 1.0);
+ if(nativeRenderScorched) nativeLight = nativeAmbient * vec3(0.18);
  #if defined(USE_COLOR) || defined(USE_COLOR_ALPHA)
   nativeLight += vColor.rgb;
  #endif

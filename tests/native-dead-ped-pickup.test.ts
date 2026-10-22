@@ -30,5 +30,5 @@ test('the line back to the ped asks after vehicles and objects only in the first
  const asked:boolean[]=[];
  deadPedPickupCoors(ped,{x:100,y:100},world([0,0],{lineOfSightClear:(_a,_b,both)=>{asked.push(both);return false;}}));
  expect(asked.length).toBe(32);expect(asked.slice(0,16).every(Boolean)).toBe(true);expect(asked.slice(16).some(Boolean)).toBe(false);
- expect(deadPedPickupCoors(ped,{x:100,y:100},world([0,0],{groundZ:()=>undefined}))).toEqual({x:10,y:20,z:5.4});
+ expect(deadPedPickupCoors(ped,{x:100,y:100},world([0,0],{groundZ:()=>undefined}))).toEqual({x:10,y:20,z:Math.fround(5.4)});
 });

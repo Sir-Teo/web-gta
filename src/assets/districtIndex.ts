@@ -13,6 +13,8 @@ export interface IndexedDistrict {
  /** Per row: origin X/Y, world native XY minimum/maximum. Double precision
   * preserves the same boundary decisions as selectSceneRegion's transforms. */
  rectangles:Float64Array;hasCollisionBounds:Uint8Array;
+ /** Area and native XYZ bounds for interior placements, excluding area 13's shared entities. */
+ interiorBounds?:Float64Array;
 }
 /** Build once from text and binary district placements, then reuse for moving
  * region requests. This is source discovery, not loaded-entity ownership. */
@@ -22,7 +24,7 @@ export function buildDistrictIndex(sources:readonly DistrictIndexSource[]):Index
  return sources.map(source=>{
   const id=source.id.toLowerCase();requireAsset(!!id&&!ids.has(id),'Duplicate or empty district index source.');ids.add(id);
   total+=source.placements.length;requireAsset(total<=250000,'District index exceeds the placement limit.');
-  const placements=source.placements,rectangles=new Float64Array(placements.length*6),hasCollisionBounds=new Uint8Array(placements.length),interiors=new Uint8Array(placements.map(p=>p.interior));let collisionBounds=0;
+  const placements=source.placements,rectangles=new Float64Array(placements.length*6),hasCollisionBounds=new Uint8Array(placements.length),interiors=new Uint8Array(placements.map(p=>p.interior)),interiorBounds:number[]=[];let collisionBounds=0;
   placements.forEach((p,i)=>{
    requireAsset(p.position.every(Number.isFinite),'Invalid district placement position.');
    const [x,y]=p.position,bounds=source.boundsFor?.(p);
@@ -30,9 +32,10 @@ export function buildDistrictIndex(sources:readonly DistrictIndexSource[]):Index
     const box=new Box3(new Vector3(...bounds.min),new Vector3(...bounds.max)).applyMatrix4(placementMatrix(p));
     requireAsset(!box.isEmpty()&&[...box.min.toArray(),...box.max.toArray()].every(Number.isFinite),'Invalid district collision bounds.');
     rectangles.set([x,y,box.min.x,-box.max.z,box.max.x,-box.min.z],i*6);hasCollisionBounds[i]=1;collisionBounds++;
-   }else rectangles.set([x,y,x,y,x,y],i*6);
+    if(p.interior&&p.interior!==13)interiorBounds.push(p.interior,box.min.x,-box.max.z,box.min.y,box.max.x,-box.min.z,box.max.y);
+   }else{rectangles.set([x,y,x,y,x,y],i*6);if(p.interior&&p.interior!==13)interiorBounds.push(p.interior,x,y,p.position[2],x,y,p.position[2]);}
   });
-  return {id,placements:placements.length,collisionBounds,interiors,rectangles,hasCollisionBounds};
+  return {id,placements:placements.length,collisionBounds,interiors,rectangles,hasCollisionBounds,interiorBounds:new Float64Array(interiorBounds)};
  });
 }
 /** Narrow-phase circle/AABB tests match the existing region selector, in the region's area. A model

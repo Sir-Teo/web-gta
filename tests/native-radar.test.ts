@@ -37,3 +37,8 @@ test('CRadar::DisplayThisBlip indoors keeps only traces and the centre, north, w
  for(const sprite of [5,10,20,63])expect(displayThisBlip(sprite,true)).toBe(false);
  expect(displayThisBlip(10,false)).toBe(true);
 });
+
+test('remote mode keeps the on-foot radar range even in a fast or high occupied vehicle',()=>{
+ expect(radarRange({inVehicle:true,speed:1,remote:true})).toBe(180);
+ expect(radarRange({inVehicle:true,plane:true,altitude:700,remote:true})).toBe(180);
+});

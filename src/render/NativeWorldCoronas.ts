@@ -12,12 +12,13 @@ void main(){vec3 c=texture2D(raster,vUv).rgb*vTint.rgb*vTint.a;c=mix(pow((c+.055
 }`;
 /** CCoronas::Render (0x6FAEC0) for textured coronas: each a camera-facing CSprite::RenderOneXLUSprite_Rotate_Aspect
  * quad, pulled toward the camera by its near clip, faded from half its far clip and stretched by fog. Sets each
- * corona's off-screen flag, which the next CCoronas::Update reads. Flares and wet-road reflections are not drawn. */
+ * corona's off-screen flag, which the next CCoronas::Update reads. Flares and wet-road reflections have separate passes. */
 export class NativeWorldCoronas {
- private mesh:THREE.Mesh<THREE.BufferGeometry,THREE.ShaderMaterial>;
+ private mesh:THREE.Mesh<THREE.BufferGeometry,THREE.ShaderMaterial[]>;
  private center=new Float32Array(MAX_NUM_CORONAS*12);private extent=new Float32Array(MAX_NUM_CORONAS*8);private tint=new Float32Array(MAX_NUM_CORONAS*16);
  private point=new THREE.Vector3();private pulled=new THREE.Vector3();private cameraPosition=new THREE.Vector3();
  drawn=0;
+ drawnTypes:number[]=[];
  /** The NDC centre of the first corona drawn last frame. */
  firstCenter:[number,number]|null=null;
  constructor(scene:THREE.Scene){
@@ -29,22 +30,24 @@ export class NativeWorldCoronas {
   geometry.setAttribute('extent',new THREE.BufferAttribute(this.extent,2).setUsage(THREE.DynamicDrawUsage));
   geometry.setAttribute('tint',new THREE.BufferAttribute(this.tint,4).setUsage(THREE.DynamicDrawUsage));
   geometry.setIndex(new THREE.BufferAttribute(index,1));geometry.setDrawRange(0,0);
-  this.mesh=new THREE.Mesh(geometry,new THREE.ShaderMaterial({uniforms:{raster:{value:null}},vertexShader,fragmentShader,transparent:true,depthTest:true,depthWrite:false,side:THREE.DoubleSide,
+  const materials=Array.from({length:10},()=>new THREE.ShaderMaterial({uniforms:{raster:{value:null}},vertexShader,fragmentShader,transparent:true,depthTest:true,depthWrite:false,side:THREE.DoubleSide,
    blending:THREE.CustomBlending,blendSrc:THREE.OneFactor,blendDst:THREE.OneFactor}));
+  this.mesh=new THREE.Mesh(geometry,materials);
   // RenderEffects: after the birds, skidmarks and glass.
   this.mesh.name='Native coronas';this.mesh.frustumCulled=false;this.mesh.visible=false;this.mesh.renderOrder=6;
   scene.add(this.mesh);
  }
  /** `foggyness` is CWeather::Foggyness. */
- frame(camera:THREE.PerspectiveCamera,coronas:NativeCoronas,raster:THREE.Texture|undefined,foggyness:number,sourceFov=GAME_CAMERA_FOV){
-  let n=0;camera.getWorldPosition(this.cameraPosition);
+ frame(camera:THREE.PerspectiveCamera,coronas:NativeCoronas,raster:THREE.Texture|undefined,foggyness:number,sourceFov=GAME_CAMERA_FOV,rasterForType?:(type:number)=>THREE.Texture|undefined){
+  let n=0;camera.getWorldPosition(this.cameraPosition);const geometry=this.mesh.geometry;geometry.clearGroups();this.drawnTypes=[];
   for(const c of coronas.coronas){
    if(!c.id||!c.faded&&!c.alpha)continue;
    // Native (x, y, z) is the renderer's (x, z, -y).
    this.point.set(c.position[0],c.position[2],-c.position[1]);
    const onScreen=projectCorona(camera,this.point,1,1,sourceFov);
    c.offScreen=!onScreen||onScreen.x<0||onScreen.x>1||onScreen.y<0||onScreen.y>1;
-   if(!onScreen||!c.faded||onScreen.depth>=c.farClip||!raster)continue;
+   const type=c.coronaType===1?0:c.coronaType,texture=type===0?raster:rasterForType?.(type);
+   if(!onScreen||!c.faded||onScreen.depth>=c.farClip||!texture||type<0||type>=this.mesh.material.length)continue;
    const intensity=Math.trunc(c.faded*coronaIntensity(onScreen.depth,c.farClip));
    const scale=Math.min(40,onScreen.depth)*foggyness/40+1;
    this.pulled.copy(this.point).sub(this.cameraPosition).normalize().multiplyScalar(-c.nearClip).add(this.point);
@@ -55,13 +58,14 @@ export class NativeWorldCoronas {
     this.extent.set([pulled.widthScale*c.size*2,pulled.heightScale*c.size*scale*2],(n*4+v)*2);
     this.tint.set([Math.trunc(c.color[0]/scale)/255,Math.trunc(c.color[1]/scale)/255,Math.trunc(c.color[2]/scale)/255,intensity/256],(n*4+v)*4);
    }
-   n++;
+   this.mesh.material[type].uniforms.raster.value=texture;const last=geometry.groups.at(-1);
+   if(last?.materialIndex===type)last.count+=6;else geometry.addGroup(n*6,6,type);
+   this.drawnTypes.push(c.coronaType);n++;
   }
   this.drawn=n;this.firstCenter=n?[this.center[0],this.center[1]]:null;this.mesh.visible=n>0;this.mesh.geometry.setDrawRange(0,n*6);
   if(n){
-   this.mesh.material.uniforms.raster.value=raster;
    for(const name of ['center','extent','tint'])(this.mesh.geometry.getAttribute(name) as THREE.BufferAttribute).needsUpdate=true;
   }
  }
- dispose(){this.mesh.removeFromParent();this.mesh.geometry.dispose();this.mesh.material.dispose();}
+ dispose(){this.mesh.removeFromParent();this.mesh.geometry.dispose();for(const m of this.mesh.material)m.dispose();}
 }

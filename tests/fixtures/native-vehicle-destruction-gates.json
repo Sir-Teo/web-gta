@@ -1,0 +1,1417 @@
+{
+  "executableSha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "functions": [
+    {
+      "name": "bike",
+      "vtable": "0x1005c0120",
+      "entry": "0x1004566d4",
+      "body": "0x100456708",
+      "stores": "0x100456744"
+    },
+    {
+      "name": "boat",
+      "vtable": "0x1005c0580",
+      "entry": "0x10045c9c4",
+      "body": "0x10045c9f0",
+      "stores": "0x10045ca2c"
+    },
+    {
+      "name": "helicopter",
+      "vtable": "0x1005c0868",
+      "entry": "0x100467858",
+      "body": "0x10046787c",
+      "stores": "0x100467a84"
+    },
+    {
+      "name": "plane",
+      "vtable": "0x1005c0d08",
+      "entry": "0x10046d550",
+      "body": "0x10046d574",
+      "stores": "0x10046d8a0"
+    }
+  ],
+  "gates": [
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": false,
+        "health": 0,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": false,
+        "health": 0,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": false,
+        "health": 0,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": false,
+        "health": 0,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": false,
+        "health": 300,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": false,
+        "health": 300,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": false,
+        "health": 300,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": false,
+        "health": 300,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": false,
+        "health": 1000,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": false,
+        "health": 1000,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": false,
+        "health": 1000,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": false,
+        "health": 1000,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": true,
+        "health": 0,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": true,
+        "health": 0,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": true,
+        "health": 0,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": true,
+        "health": 0,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": true,
+        "health": 300,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": true,
+        "health": 300,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": true,
+        "health": 300,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": true,
+        "health": 300,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": true,
+        "health": 1000,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": true,
+        "health": 1000,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": true,
+        "health": 1000,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "canBeDamaged": true,
+        "health": 1000,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": false,
+        "health": 0,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": false,
+        "health": 0,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": false,
+        "health": 0,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": false,
+        "health": 0,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": false,
+        "health": 300,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": false,
+        "health": 300,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": false,
+        "health": 300,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": false,
+        "health": 300,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": false,
+        "health": 1000,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": false,
+        "health": 1000,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": false,
+        "health": 1000,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": false,
+        "health": 1000,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": true,
+        "health": 0,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": true,
+        "health": 0,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": true,
+        "health": 0,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": true,
+        "health": 0,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": true,
+        "health": 300,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": true,
+        "health": 300,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": true,
+        "health": 300,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": true,
+        "health": 300,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": true,
+        "health": 1000,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": true,
+        "health": 1000,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": true,
+        "health": 1000,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "canBeDamaged": true,
+        "health": 1000,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": false,
+        "health": 0,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": false,
+        "health": 0,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": false,
+        "health": 0,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": false,
+        "health": 0,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": false,
+        "health": 300,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": false,
+        "health": 300,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": false,
+        "health": 300,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": false,
+        "health": 300,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": false,
+        "health": 1000,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": false,
+        "health": 1000,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": false,
+        "health": 1000,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": false,
+        "health": 1000,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": true,
+        "health": 0,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": true,
+        "health": 0,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": true,
+        "health": 0,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": true,
+        "health": 0,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": true,
+        "health": 300,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": true,
+        "health": 300,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": true,
+        "health": 300,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": true,
+        "health": 300,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": true,
+        "health": 1000,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": true,
+        "health": 1000,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": true,
+        "health": 1000,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "canBeDamaged": true,
+        "health": 1000,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": false,
+        "health": 0,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": false,
+        "health": 0,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": false,
+        "health": 0,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": false,
+        "health": 0,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": false,
+        "health": 300,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": false,
+        "health": 300,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": false,
+        "health": 300,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": false,
+        "health": 300,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": false,
+        "health": 1000,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": false,
+        "health": 1000,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": false,
+        "health": 1000,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": false,
+        "health": 1000,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": false,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": true,
+        "health": 0,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": true,
+        "health": 0,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": true,
+        "health": 0,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": true,
+        "health": 0,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": true,
+        "health": 300,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": true,
+        "health": 300,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": true,
+        "health": 300,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": true,
+        "health": 300,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": true,
+        "health": 1000,
+        "status": 2,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": true,
+        "health": 1000,
+        "status": 2,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": true,
+        "health": 1000,
+        "status": 18,
+        "hideExplosion": false
+      },
+      "entered": true,
+      "objectUnchanged": true
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "canBeDamaged": true,
+        "health": 1000,
+        "status": 18,
+        "hideExplosion": true
+      },
+      "entered": true,
+      "objectUnchanged": true
+    }
+  ],
+  "stores": [
+    {
+      "vehicle": "bike",
+      "input": {
+        "health": 0,
+        "timer": 0
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "health": 0,
+        "timer": 1000
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "health": 0,
+        "timer": 65535
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "health": 300,
+        "timer": 0
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "health": 300,
+        "timer": 1000
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "health": 300,
+        "timer": 65535
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "health": 1000,
+        "timer": 0
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "health": 1000,
+        "timer": 1000
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "bike",
+      "input": {
+        "health": 1000,
+        "timer": 65535
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "health": 0,
+        "timer": 0
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "health": 0,
+        "timer": 1000
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "health": 0,
+        "timer": 65535
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "health": 300,
+        "timer": 0
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "health": 300,
+        "timer": 1000
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "health": 300,
+        "timer": 65535
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "health": 1000,
+        "timer": 0
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "health": 1000,
+        "timer": 1000
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "boat",
+      "input": {
+        "health": 1000,
+        "timer": 65535
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "health": 0,
+        "timer": 0
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "health": 0,
+        "timer": 1000
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "health": 0,
+        "timer": 65535
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "health": 300,
+        "timer": 0
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "health": 300,
+        "timer": 1000
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "health": 300,
+        "timer": 65535
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "health": 1000,
+        "timer": 0
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "health": 1000,
+        "timer": 1000
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "helicopter",
+      "input": {
+        "health": 1000,
+        "timer": 65535
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "health": 0,
+        "timer": 0
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "health": 0,
+        "timer": 1000
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "health": 0,
+        "timer": 65535
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "health": 300,
+        "timer": 0
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "health": 300,
+        "timer": 1000
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "health": 300,
+        "timer": 65535
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "health": 1000,
+        "timer": 0
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "health": 1000,
+        "timer": 1000
+      },
+      "health": 0.0,
+      "timer": 0
+    },
+    {
+      "vehicle": "plane",
+      "input": {
+        "health": 1000,
+        "timer": 65535
+      },
+      "health": 0.0,
+      "timer": 0
+    }
+  ]
+}

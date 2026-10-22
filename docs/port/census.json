@@ -1,7 +1,7 @@
 {
- "generated": "2026-10-21T18:09:21.248Z",
+ "generated": "2026-10-22T22:16:42.533Z",
  "reference": {
-  "path": "../gta-reversed/gta-reversed",
+  "path": "../../tmp/web-gta-research/reference",
   "commit": "4281f82d8af83e14935ac84a69dfd1ceebb9f256"
  },
  "totals": {
@@ -10,11 +10,11 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1318,
-   "authored": 18,
+   "faithful": 1343,
+   "authored": 40,
    "silent": 1,
-   "skipped": 53,
-   "stops": 1
+   "skipped": 7,
+   "stops": 0
   }
  },
  "missions": [
@@ -27,8 +27,8 @@
    "byStatus": {
     "core": 12583,
     "nop": 163,
-    "faithful": 3821,
-    "authored": 18,
+    "faithful": 3818,
+    "authored": 21,
     "silent": 0,
     "skipped": 2,
     "stops": 0
@@ -43,6 +43,11 @@
      "name": "ARE_MEASUREMENTS_IN_METRES",
      "status": "authored",
      "sites": 5
+    },
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 3
     },
     {
      "name": "ACTIVATE_SAVE_MENU",
@@ -70,19 +75,13 @@
    "byStatus": {
     "core": 501,
     "nop": 0,
-    "faithful": 122,
-    "authored": 3,
+    "faithful": 125,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "GET_CHAR_VELOCITY",
-     "status": "authored",
-     "sites": 3
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "parachute.scm",
@@ -93,19 +92,13 @@
    "byStatus": {
     "core": 665,
     "nop": 0,
-    "faithful": 145,
-    "authored": 7,
+    "faithful": 152,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "GET_CHAR_VELOCITY",
-     "status": "authored",
-     "sites": 7
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "bcesar2.scm",
@@ -139,13 +132,19 @@
    "byStatus": {
     "core": 631,
     "nop": 42,
-    "faithful": 250,
-    "authored": 0,
+    "faithful": 248,
+    "authored": 2,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 2
+    }
+   ]
   },
   {
    "id": "slot_machine.scm",
@@ -570,16 +569,21 @@
    "byStatus": {
     "core": 2622,
     "nop": 23,
-    "faithful": 1320,
-    "authored": 0,
+    "faithful": 1318,
+    "authored": 4,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
      "name": "LOCK_DOOR",
-     "status": "skipped",
+     "status": "authored",
+     "sites": 2
+    },
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
      "sites": 2
     }
    ]
@@ -767,19 +771,13 @@
    "byStatus": {
     "core": 95,
     "nop": 0,
-    "faithful": 34,
+    "faithful": 36,
     "authored": 0,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "SKIP_TO_NEXT_ALLOWED_STATION",
-     "status": "skipped",
-     "sites": 2
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "zero_ambience.scm",
@@ -954,10 +952,10 @@
     "core": 232,
     "nop": 4,
     "faithful": 78,
-    "authored": 1,
+    "authored": 2,
     "silent": 0,
     "skipped": 0,
-    "stops": 1
+    "stops": 0
    },
    "gaps": [
     {
@@ -967,7 +965,7 @@
     },
     {
      "name": "TASK_USE_CLOSEST_MAP_ATTRACTOR",
-     "status": "stops",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -982,10 +980,10 @@
     "core": 74,
     "nop": 4,
     "faithful": 19,
-    "authored": 1,
+    "authored": 2,
     "silent": 0,
     "skipped": 0,
-    "stops": 1
+    "stops": 0
    },
    "gaps": [
     {
@@ -995,7 +993,7 @@
     },
     {
      "name": "TASK_USE_CLOSEST_MAP_ATTRACTOR",
-     "status": "stops",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -1010,10 +1008,10 @@
     "core": 94,
     "nop": 4,
     "faithful": 24,
-    "authored": 1,
+    "authored": 2,
     "silent": 0,
     "skipped": 0,
-    "stops": 1
+    "stops": 0
    },
    "gaps": [
     {
@@ -1023,7 +1021,7 @@
     },
     {
      "name": "TASK_USE_CLOSEST_MAP_ATTRACTOR",
-     "status": "stops",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -1061,10 +1059,10 @@
     "core": 65,
     "nop": 4,
     "faithful": 14,
-    "authored": 1,
+    "authored": 2,
     "silent": 0,
     "skipped": 0,
-    "stops": 1
+    "stops": 0
    },
    "gaps": [
     {
@@ -1074,7 +1072,7 @@
     },
     {
      "name": "TASK_USE_CLOSEST_MAP_ATTRACTOR",
-     "status": "stops",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -1089,10 +1087,10 @@
     "core": 227,
     "nop": 9,
     "faithful": 77,
-    "authored": 1,
+    "authored": 2,
     "silent": 0,
     "skipped": 0,
-    "stops": 1
+    "stops": 0
    },
    "gaps": [
     {
@@ -1102,7 +1100,7 @@
     },
     {
      "name": "TASK_USE_CLOSEST_MAP_ATTRACTOR",
-     "status": "stops",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -1117,10 +1115,10 @@
     "core": 227,
     "nop": 9,
     "faithful": 77,
-    "authored": 1,
+    "authored": 2,
     "silent": 0,
     "skipped": 0,
-    "stops": 1
+    "stops": 0
    },
    "gaps": [
     {
@@ -1130,7 +1128,7 @@
     },
     {
      "name": "TASK_USE_CLOSEST_MAP_ATTRACTOR",
-     "status": "stops",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -1237,10 +1235,10 @@
     "core": 133,
     "nop": 4,
     "faithful": 28,
-    "authored": 1,
+    "authored": 2,
     "silent": 0,
     "skipped": 0,
-    "stops": 1
+    "stops": 0
    },
    "gaps": [
     {
@@ -1250,7 +1248,7 @@
     },
     {
      "name": "TASK_USE_CLOSEST_MAP_ATTRACTOR",
-     "status": "stops",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -1645,27 +1643,17 @@
    "byStatus": {
     "core": 1566,
     "nop": 0,
-    "faithful": 559,
-    "authored": 0,
+    "faithful": 555,
+    "authored": 9,
     "silent": 0,
-    "skipped": 5,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "GET_CAR_BLOCKING_CAR",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "GET_PARKING_NODE_IN_AREA",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "IS_CHAR_STUCK_UNDER_CAR",
-     "status": "skipped",
-     "sites": 1
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 9
     }
    ]
   },
@@ -1901,15 +1889,15 @@
     "core": 1350,
     "nop": 0,
     "faithful": 223,
-    "authored": 0,
+    "authored": 3,
     "silent": 0,
-    "skipped": 3,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
      "name": "GET_STRING_WIDTH",
-     "status": "skipped",
+     "status": "authored",
      "sites": 3
     }
    ]
@@ -1924,9 +1912,9 @@
     "core": 5047,
     "nop": 321,
     "faithful": 1075,
-    "authored": 4,
+    "authored": 9,
     "silent": 0,
-    "skipped": 8,
+    "skipped": 3,
     "stops": 0
    },
    "gaps": [
@@ -1937,12 +1925,12 @@
     },
     {
      "name": "SET_POOL_TABLE_COORDS",
-     "status": "skipped",
+     "status": "authored",
      "sites": 2
     },
     {
      "name": "SET_OBJECT_DRAW_LAST",
-     "status": "skipped",
+     "status": "authored",
      "sites": 2
     },
     {
@@ -1957,7 +1945,7 @@
     },
     {
      "name": "GET_STRING_WIDTH_WITH_NUMBER",
-     "status": "skipped",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -1971,13 +1959,19 @@
    "byStatus": {
     "core": 1995,
     "nop": 18,
-    "faithful": 1101,
-    "authored": 0,
+    "faithful": 1096,
+    "authored": 5,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 5
+    }
+   ]
   },
   {
    "id": 10,
@@ -1988,47 +1982,17 @@
    "byStatus": {
     "core": 154,
     "nop": 1,
-    "faithful": 117,
-    "authored": 0,
+    "faithful": 124,
+    "authored": 2,
     "silent": 0,
-    "skipped": 9,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "REMOVE_RC_BUGGY",
-     "status": "skipped",
-     "sites": 3
-    },
-    {
-     "name": "GIVE_REMOTE_CONTROLLED_MODEL_TO_PLAYER",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "GET_REMOTE_CONTROLLED_CAR",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SET_ENABLE_RC_DETONATE_ON_CONTACT",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SET_ENABLE_RC_DETONATE",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SET_FORCE_RANDOM_CAR_MODEL",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "IS_PLAYER_IN_REMOTE_MODE",
-     "status": "skipped",
-     "sites": 1
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 2
     }
    ]
   },
@@ -2041,13 +2005,19 @@
    "byStatus": {
     "core": 1747,
     "nop": 1,
-    "faithful": 1113,
-    "authored": 0,
+    "faithful": 1100,
+    "authored": 13,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION_AND_DONT_LOAD_COLLISION",
+     "status": "authored",
+     "sites": 13
+    }
+   ]
   },
   {
    "id": 12,
@@ -2075,13 +2045,19 @@
    "byStatus": {
     "core": 1199,
     "nop": 1,
-    "faithful": 852,
-    "authored": 0,
+    "faithful": 849,
+    "authored": 3,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION_AND_DONT_LOAD_COLLISION",
+     "status": "authored",
+     "sites": 3
+    }
+   ]
   },
   {
    "id": 14,
@@ -2109,13 +2085,19 @@
    "byStatus": {
     "core": 1294,
     "nop": 1,
-    "faithful": 823,
-    "authored": 0,
+    "faithful": 821,
+    "authored": 2,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 2
+    }
+   ]
   },
   {
    "id": 16,
@@ -2177,13 +2159,19 @@
    "byStatus": {
     "core": 2703,
     "nop": 41,
-    "faithful": 1533,
-    "authored": 0,
+    "faithful": 1524,
+    "authored": 9,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 9
+    }
+   ]
   },
   {
    "id": 20,
@@ -2194,13 +2182,19 @@
    "byStatus": {
     "core": 2708,
     "nop": 2,
-    "faithful": 1575,
-    "authored": 0,
+    "faithful": 1567,
+    "authored": 8,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 8
+    }
+   ]
   },
   {
    "id": 21,
@@ -2262,13 +2256,19 @@
    "byStatus": {
     "core": 3798,
     "nop": 8,
-    "faithful": 1745,
-    "authored": 0,
+    "faithful": 1739,
+    "authored": 6,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 6
+    }
+   ]
   },
   {
    "id": 25,
@@ -2279,13 +2279,18 @@
    "byStatus": {
     "core": 1294,
     "nop": 9,
-    "faithful": 1111,
-    "authored": 1,
+    "faithful": 1107,
+    "authored": 5,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 4
+    },
     {
      "name": "TASK_EVERYONE_LEAVE_CAR",
      "status": "authored",
@@ -2302,13 +2307,18 @@
    "byStatus": {
     "core": 3536,
     "nop": 38,
-    "faithful": 1429,
-    "authored": 3,
+    "faithful": 1417,
+    "authored": 15,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 12
+    },
     {
      "name": "SET_VEHICLE_IS_CONSIDERED_BY_PLAYER",
      "status": "authored",
@@ -2325,19 +2335,13 @@
    "byStatus": {
     "core": 2466,
     "nop": 3,
-    "faithful": 1431,
+    "faithful": 1432,
     "authored": 0,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "SET_GROUP_SEQUENCE",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 28,
@@ -2382,13 +2386,19 @@
    "byStatus": {
     "core": 3840,
     "nop": 2,
-    "faithful": 3043,
-    "authored": 0,
+    "faithful": 3037,
+    "authored": 6,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 6
+    }
+   ]
   },
   {
    "id": 31,
@@ -2399,13 +2409,18 @@
    "byStatus": {
     "core": 1276,
     "nop": 1,
-    "faithful": 716,
-    "authored": 1,
+    "faithful": 714,
+    "authored": 3,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 2
+    },
     {
      "name": "REQUEST_VEHICLE_MOD",
      "status": "authored",
@@ -2439,8 +2454,8 @@
    "byStatus": {
     "core": 2023,
     "nop": 3,
-    "faithful": 1328,
-    "authored": 10,
+    "faithful": 1322,
+    "authored": 16,
     "silent": 0,
     "skipped": 1,
     "stops": 0
@@ -2450,6 +2465,11 @@
      "name": "MARK_CAR_AS_CONVOY_CAR",
      "status": "authored",
      "sites": 10
+    },
+    {
+     "name": "FREEZE_CAR_POSITION_AND_DONT_LOAD_COLLISION",
+     "status": "authored",
+     "sites": 6
     },
     {
      "name": "TASK_CHAR_ARREST_CHAR",
@@ -2484,13 +2504,18 @@
    "byStatus": {
     "core": 4769,
     "nop": 48,
-    "faithful": 721,
-    "authored": 4,
+    "faithful": 716,
+    "authored": 9,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 5
+    },
     {
      "name": "REQUEST_VEHICLE_MOD",
      "status": "authored",
@@ -2517,13 +2542,19 @@
    "byStatus": {
     "core": 467,
     "nop": 1,
-    "faithful": 270,
-    "authored": 0,
+    "faithful": 266,
+    "authored": 4,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 4
+    }
+   ]
   },
   {
    "id": 37,
@@ -2534,13 +2565,19 @@
    "byStatus": {
     "core": 4680,
     "nop": 1,
-    "faithful": 3753,
-    "authored": 0,
+    "faithful": 3750,
+    "authored": 3,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 3
+    }
+   ]
   },
   {
    "id": 38,
@@ -2551,13 +2588,18 @@
    "byStatus": {
     "core": 1618,
     "nop": 6,
-    "faithful": 983,
-    "authored": 1,
+    "faithful": 975,
+    "authored": 9,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 8
+    },
     {
      "name": "TASK_EVERYONE_LEAVE_CAR",
      "status": "authored",
@@ -2574,13 +2616,19 @@
    "byStatus": {
     "core": 1238,
     "nop": 2,
-    "faithful": 568,
-    "authored": 0,
+    "faithful": 565,
+    "authored": 3,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 3
+    }
+   ]
   },
   {
    "id": 40,
@@ -2625,13 +2673,19 @@
    "byStatus": {
     "core": 2649,
     "nop": 5,
-    "faithful": 1577,
-    "authored": 0,
+    "faithful": 1567,
+    "authored": 10,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 10
+    }
+   ]
   },
   {
    "id": 43,
@@ -2642,13 +2696,19 @@
    "byStatus": {
     "core": 1706,
     "nop": 2,
-    "faithful": 804,
-    "authored": 0,
+    "faithful": 797,
+    "authored": 7,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 7
+    }
+   ]
   },
   {
    "id": 44,
@@ -2659,13 +2719,19 @@
    "byStatus": {
     "core": 1628,
     "nop": 3,
-    "faithful": 973,
-    "authored": 0,
+    "faithful": 970,
+    "authored": 3,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 3
+    }
+   ]
   },
   {
    "id": 45,
@@ -2716,13 +2782,18 @@
    "byStatus": {
     "core": 1417,
     "nop": 4,
-    "faithful": 830,
-    "authored": 0,
+    "faithful": 827,
+    "authored": 3,
     "silent": 0,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 3
+    },
     {
      "name": "TASK_CHAR_ARREST_CHAR",
      "status": "skipped",
@@ -2739,13 +2810,19 @@
    "byStatus": {
     "core": 202,
     "nop": 0,
-    "faithful": 195,
-    "authored": 0,
+    "faithful": 186,
+    "authored": 9,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 9
+    }
+   ]
   },
   {
    "id": 49,
@@ -2756,13 +2833,19 @@
    "byStatus": {
     "core": 2052,
     "nop": 1,
-    "faithful": 1008,
-    "authored": 0,
+    "faithful": 999,
+    "authored": 9,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 9
+    }
+   ]
   },
   {
    "id": 50,
@@ -2773,26 +2856,31 @@
    "byStatus": {
     "core": 1666,
     "nop": 49,
-    "faithful": 845,
-    "authored": 0,
+    "faithful": 843,
+    "authored": 7,
     "silent": 0,
-    "skipped": 5,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
      "name": "SWAP_NEAREST_BUILDING_MODEL",
-     "status": "skipped",
+     "status": "authored",
      "sites": 3
     },
     {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 2
+    },
+    {
      "name": "SET_VEHICLE_QUATERNION",
-     "status": "skipped",
+     "status": "authored",
      "sites": 1
     },
     {
      "name": "CONTROL_MOVABLE_VEHICLE_PART",
-     "status": "skipped",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -2806,24 +2894,13 @@
    "byStatus": {
     "core": 1481,
     "nop": 8,
-    "faithful": 873,
+    "faithful": 875,
     "authored": 0,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "GET_CAR_BLOCKING_CAR",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "GET_PARKING_NODE_IN_AREA",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 52,
@@ -2851,13 +2928,18 @@
    "byStatus": {
     "core": 2127,
     "nop": 3,
-    "faithful": 1304,
-    "authored": 1,
+    "faithful": 1300,
+    "authored": 5,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 4
+    },
     {
      "name": "TASK_EVERYONE_LEAVE_CAR",
      "status": "authored",
@@ -2874,13 +2956,19 @@
    "byStatus": {
     "core": 533,
     "nop": 7,
-    "faithful": 598,
-    "authored": 0,
+    "faithful": 595,
+    "authored": 3,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 3
+    }
+   ]
   },
   {
    "id": 55,
@@ -2925,10 +3013,10 @@
    "byStatus": {
     "core": 1805,
     "nop": 5,
-    "faithful": 1553,
+    "faithful": 1554,
     "authored": 6,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -2936,11 +3024,6 @@
      "name": "ROTATE_OBJECT",
      "status": "authored",
      "sites": 6
-    },
-    {
-     "name": "ADD_SMOKE_PARTICLE",
-     "status": "skipped",
-     "sites": 1
     }
    ]
   },
@@ -2953,13 +3036,19 @@
    "byStatus": {
     "core": 1556,
     "nop": 3,
-    "faithful": 663,
-    "authored": 0,
+    "faithful": 662,
+    "authored": 1,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
   },
   {
    "id": 59,
@@ -2970,13 +3059,19 @@
    "byStatus": {
     "core": 2426,
     "nop": 45,
-    "faithful": 1246,
-    "authored": 0,
+    "faithful": 1237,
+    "authored": 9,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 9
+    }
+   ]
   },
   {
    "id": 60,
@@ -2987,13 +3082,24 @@
    "byStatus": {
     "core": 1680,
     "nop": 1,
-    "faithful": 779,
-    "authored": 0,
+    "faithful": 768,
+    "authored": 11,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION_AND_DONT_LOAD_COLLISION",
+     "status": "authored",
+     "sites": 8
+    },
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 3
+    }
+   ]
   },
   {
    "id": 61,
@@ -3004,21 +3110,16 @@
    "byStatus": {
     "core": 861,
     "nop": 14,
-    "faithful": 889,
-    "authored": 0,
+    "faithful": 891,
+    "authored": 1,
     "silent": 0,
-    "skipped": 3,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "CREATE_BIRDS",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "IS_CHAR_STUCK_UNDER_CAR",
-     "status": "skipped",
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -3032,16 +3133,21 @@
    "byStatus": {
     "core": 774,
     "nop": 4,
-    "faithful": 467,
-    "authored": 0,
+    "faithful": 465,
+    "authored": 3,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 2
+    },
+    {
      "name": "SET_VEHICLE_CAN_BE_TARGETTED",
-     "status": "skipped",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -3055,13 +3161,19 @@
    "byStatus": {
     "core": 926,
     "nop": 6,
-    "faithful": 939,
-    "authored": 0,
+    "faithful": 935,
+    "authored": 4,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 4
+    }
+   ]
   },
   {
    "id": 64,
@@ -3072,16 +3184,21 @@
    "byStatus": {
     "core": 2216,
     "nop": 4,
-    "faithful": 1873,
-    "authored": 0,
+    "faithful": 1872,
+    "authored": 2,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 1
+    },
+    {
      "name": "TASK_GREET_PARTNER",
-     "status": "skipped",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -3095,13 +3212,19 @@
    "byStatus": {
     "core": 998,
     "nop": 1,
-    "faithful": 537,
-    "authored": 0,
+    "faithful": 534,
+    "authored": 3,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 3
+    }
+   ]
   },
   {
    "id": 66,
@@ -3112,13 +3235,19 @@
    "byStatus": {
     "core": 1470,
     "nop": 1,
-    "faithful": 798,
-    "authored": 0,
+    "faithful": 796,
+    "authored": 2,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 2
+    }
+   ]
   },
   {
    "id": 67,
@@ -3146,13 +3275,18 @@
    "byStatus": {
     "core": 2236,
     "nop": 2,
-    "faithful": 1852,
-    "authored": 1,
+    "faithful": 1848,
+    "authored": 5,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 4
+    },
     {
      "name": "REQUEST_VEHICLE_MOD",
      "status": "authored",
@@ -3203,13 +3337,19 @@
    "byStatus": {
     "core": 4181,
     "nop": 2,
-    "faithful": 1389,
-    "authored": 0,
+    "faithful": 1380,
+    "authored": 9,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 9
+    }
+   ]
   },
   {
    "id": 72,
@@ -3220,19 +3360,13 @@
    "byStatus": {
     "core": 1449,
     "nop": 1,
-    "faithful": 830,
+    "faithful": 831,
     "authored": 0,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "REMOVE_RC_BUGGY",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 73,
@@ -3243,37 +3377,17 @@
    "byStatus": {
     "core": 851,
     "nop": 1,
-    "faithful": 487,
-    "authored": 0,
+    "faithful": 497,
+    "authored": 3,
     "silent": 0,
-    "skipped": 13,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "REMOVE_RC_BUGGY",
-     "status": "skipped",
-     "sites": 9
-    },
-    {
-     "name": "GIVE_REMOTE_CONTROLLED_MODEL_TO_PLAYER",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "GET_REMOTE_CONTROLLED_CAR",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SET_ENABLE_RC_DETONATE_ON_CONTACT",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SET_ENABLE_RC_DETONATE",
-     "status": "skipped",
-     "sites": 1
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 3
     }
    ]
   },
@@ -3286,47 +3400,17 @@
    "byStatus": {
     "core": 2395,
     "nop": 68,
-    "faithful": 647,
-    "authored": 0,
+    "faithful": 653,
+    "authored": 4,
     "silent": 0,
-    "skipped": 10,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "IS_OBJECT_INTERSECTING_WORLD",
-     "status": "skipped",
-     "sites": 3
-    },
-    {
-     "name": "TAKE_REMOTE_CONTROL_OF_CAR",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "SET_ENABLE_RC_DETONATE",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SET_ENABLE_RC_DETONATE_ON_CONTACT",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "REMOVE_OIL_PUDDLES_IN_AREA",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SET_HELI_STABILISER",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "REMOVE_RC_BUGGY",
-     "status": "skipped",
-     "sites": 1
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 4
     }
    ]
   },
@@ -3339,13 +3423,19 @@
    "byStatus": {
     "core": 1060,
     "nop": 4,
-    "faithful": 436,
-    "authored": 0,
+    "faithful": 434,
+    "authored": 2,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 2
+    }
+   ]
   },
   {
    "id": 76,
@@ -3379,17 +3469,17 @@
    "byStatus": {
     "core": 2251,
     "nop": 55,
-    "faithful": 1098,
-    "authored": 0,
+    "faithful": 1097,
+    "authored": 4,
     "silent": 0,
-    "skipped": 3,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "SET_HELI_STABILISER",
-     "status": "skipped",
-     "sites": 3
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 4
     }
    ]
   },
@@ -3436,35 +3526,25 @@
    "byStatus": {
     "core": 1843,
     "nop": 9,
-    "faithful": 951,
-    "authored": 1,
+    "faithful": 953,
+    "authored": 6,
     "silent": 0,
-    "skipped": 7,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "IS_LAST_BUILDING_MODEL_SHOT_BY_PLAYER",
-     "status": "skipped",
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
      "sites": 3
     },
     {
      "name": "CONTROL_MOVABLE_VEHICLE_PART",
-     "status": "skipped",
+     "status": "authored",
      "sites": 2
     },
     {
      "name": "TASK_COMPLEX_PICKUP_OBJECT",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "CLEAR_LAST_BUILDING_MODEL_SHOT_BY_PLAYER",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "GET_CHAR_VELOCITY",
      "status": "authored",
      "sites": 1
     }
@@ -3479,16 +3559,21 @@
    "byStatus": {
     "core": 1409,
     "nop": 1,
-    "faithful": 1730,
-    "authored": 1,
+    "faithful": 1728,
+    "authored": 4,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
+     "name": "FREEZE_CAR_POSITION_AND_DONT_LOAD_COLLISION",
+     "status": "authored",
+     "sites": 2
+    },
+    {
      "name": "TASK_JETPACK",
-     "status": "skipped",
+     "status": "authored",
      "sites": 1
     },
     {
@@ -3507,21 +3592,16 @@
    "byStatus": {
     "core": 207,
     "nop": 1,
-    "faithful": 228,
-    "authored": 0,
+    "faithful": 229,
+    "authored": 1,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
      "name": "TASK_JETPACK",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "DRAW_WEAPONSHOP_CORONA",
-     "status": "skipped",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -3535,17 +3615,17 @@
    "byStatus": {
     "core": 2961,
     "nop": 2,
-    "faithful": 970,
-    "authored": 0,
+    "faithful": 955,
+    "authored": 16,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "FIRE_HUNTER_GUN",
-     "status": "skipped",
-     "sites": 1
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 16
     }
    ]
   },
@@ -3559,15 +3639,15 @@
     "core": 2109,
     "nop": 2,
     "faithful": 515,
-    "authored": 0,
+    "authored": 1,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
      "name": "TASK_DIVE_FROM_ATTACHMENT_AND_GET_UP",
-     "status": "skipped",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -3581,13 +3661,18 @@
    "byStatus": {
     "core": 1254,
     "nop": 12,
-    "faithful": 1057,
-    "authored": 3,
+    "faithful": 1054,
+    "authored": 9,
     "silent": 0,
-    "skipped": 3,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 3
+    },
     {
      "name": "TASK_EVERYONE_LEAVE_CAR",
      "status": "authored",
@@ -3595,12 +3680,12 @@
     },
     {
      "name": "TASK_COMPLEX_PICKUP_OBJECT",
-     "status": "skipped",
+     "status": "authored",
      "sites": 2
     },
     {
      "name": "CONTROL_MOVABLE_VEHICLE_PART",
-     "status": "skipped",
+     "status": "authored",
      "sites": 1
     },
     {
@@ -3619,13 +3704,18 @@
    "byStatus": {
     "core": 979,
     "nop": 2,
-    "faithful": 828,
-    "authored": 1,
+    "faithful": 826,
+    "authored": 3,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 2
+    },
     {
      "name": "ADD_EXPLOSION_VARIABLE_SHAKE",
      "status": "authored",
@@ -3659,17 +3749,17 @@
    "byStatus": {
     "core": 4212,
     "nop": 8,
-    "faithful": 1920,
-    "authored": 2,
+    "faithful": 1916,
+    "authored": 8,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "SET_VEHICLE_TO_FADE_IN",
-     "status": "skipped",
-     "sites": 2
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 6
     },
     {
      "name": "TASK_EVERYONE_LEAVE_CAR",
@@ -3705,9 +3795,9 @@
     "core": 2481,
     "nop": 4,
     "faithful": 1344,
-    "authored": 2,
+    "authored": 5,
     "silent": 0,
-    "skipped": 5,
+    "skipped": 2,
     "stops": 0
    },
    "gaps": [
@@ -3723,12 +3813,12 @@
     },
     {
      "name": "IS_CHAR_AT_SCRIPTED_ATTRACTOR",
-     "status": "skipped",
+     "status": "authored",
      "sites": 2
     },
     {
      "name": "RESET_STUFF_UPON_RESURRECTION",
-     "status": "skipped",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -3742,13 +3832,19 @@
    "byStatus": {
     "core": 1059,
     "nop": 1,
-    "faithful": 499,
-    "authored": 0,
+    "faithful": 496,
+    "authored": 3,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 3
+    }
+   ]
   },
   {
    "id": 92,
@@ -3759,13 +3855,19 @@
    "byStatus": {
     "core": 1479,
     "nop": 1,
-    "faithful": 1239,
-    "authored": 0,
+    "faithful": 1237,
+    "authored": 2,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 2
+    }
+   ]
   },
   {
    "id": 93,
@@ -3828,15 +3930,15 @@
     "core": 1750,
     "nop": 4,
     "faithful": 1428,
-    "authored": 0,
+    "authored": 1,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
      "name": "LOCK_DOOR",
-     "status": "skipped",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -3867,16 +3969,21 @@
    "byStatus": {
     "core": 1449,
     "nop": 8,
-    "faithful": 913,
-    "authored": 0,
+    "faithful": 911,
+    "authored": 3,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 2
+    },
+    {
      "name": "TASK_USE_ATM",
-     "status": "skipped",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -3890,13 +3997,19 @@
    "byStatus": {
     "core": 1018,
     "nop": 5,
-    "faithful": 696,
-    "authored": 0,
+    "faithful": 695,
+    "authored": 1,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
   },
   {
    "id": 100,
@@ -3907,13 +4020,19 @@
    "byStatus": {
     "core": 1731,
     "nop": 1,
-    "faithful": 1111,
-    "authored": 0,
+    "faithful": 1108,
+    "authored": 3,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 3
+    }
+   ]
   },
   {
    "id": 101,
@@ -3924,13 +4043,18 @@
    "byStatus": {
     "core": 3088,
     "nop": 18,
-    "faithful": 3181,
-    "authored": 3,
+    "faithful": 3173,
+    "authored": 12,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 8
+    },
     {
      "name": "ROTATE_OBJECT",
      "status": "authored",
@@ -3938,7 +4062,7 @@
     },
     {
      "name": "GET_CAR_MOVING_COMPONENT_OFFSET",
-     "status": "skipped",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -3952,13 +4076,19 @@
    "byStatus": {
     "core": 2824,
     "nop": 1,
-    "faithful": 1574,
-    "authored": 0,
+    "faithful": 1573,
+    "authored": 1,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
   },
   {
    "id": 103,
@@ -3969,17 +4099,27 @@
    "byStatus": {
     "core": 4564,
     "nop": 54,
-    "faithful": 1279,
-    "authored": 0,
+    "faithful": 1273,
+    "authored": 9,
     "silent": 0,
-    "skipped": 3,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
+     "name": "FREEZE_CAR_POSITION_AND_DONT_LOAD_COLLISION",
+     "status": "authored",
+     "sites": 4
+    },
+    {
      "name": "CAN_CHAR_SEE_DEAD_CHAR",
-     "status": "skipped",
+     "status": "authored",
      "sites": 3
+    },
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 2
     }
    ]
   },
@@ -4009,13 +4149,19 @@
    "byStatus": {
     "core": 993,
     "nop": 2,
-    "faithful": 666,
-    "authored": 0,
+    "faithful": 654,
+    "authored": 12,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 12
+    }
+   ]
   },
   {
    "id": 106,
@@ -4077,10 +4223,10 @@
    "byStatus": {
     "core": 2527,
     "nop": 2,
-    "faithful": 2620,
-    "authored": 12,
+    "faithful": 2621,
+    "authored": 14,
     "silent": 0,
-    "skipped": 3,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -4090,9 +4236,9 @@
      "sites": 12
     },
     {
-     "name": "SET_GUNSHOT_SENSE_RANGE_FOR_RIOT2",
-     "status": "skipped",
-     "sites": 3
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 2
     }
    ]
   },
@@ -4105,13 +4251,18 @@
    "byStatus": {
     "core": 2295,
     "nop": 1,
-    "faithful": 1848,
-    "authored": 1,
+    "faithful": 1845,
+    "authored": 4,
     "silent": 0,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 3
+    },
     {
      "name": "SET_PLAYER_MOOD",
      "status": "skipped",
@@ -4161,22 +4312,17 @@
    "byStatus": {
     "core": 3644,
     "nop": 1,
-    "faithful": 2749,
-    "authored": 0,
+    "faithful": 2750,
+    "authored": 2,
     "silent": 0,
-    "skipped": 3,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
      "name": "CONTROL_MOVABLE_VEHICLE_PART",
-     "status": "skipped",
+     "status": "authored",
      "sites": 2
-    },
-    {
-     "name": "GET_DOOR_ANGLE_RATIO",
-     "status": "skipped",
-     "sites": 1
     }
    ]
   },
@@ -4257,13 +4403,18 @@
    "byStatus": {
     "core": 1529,
     "nop": 43,
-    "faithful": 248,
-    "authored": 1,
+    "faithful": 247,
+    "authored": 2,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 1
+    },
     {
      "name": "ATTACH_TRAILER_TO_CAB",
      "status": "authored",
@@ -4281,20 +4432,20 @@
     "core": 2246,
     "nop": 28,
     "faithful": 835,
-    "authored": 1,
+    "authored": 6,
     "silent": 0,
-    "skipped": 5,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
      "name": "GET_CAR_MOVING_COMPONENT_OFFSET",
-     "status": "skipped",
+     "status": "authored",
      "sites": 3
     },
     {
-     "name": "SET_OBJECT_RENDER_SCORCHED",
-     "status": "skipped",
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
      "sites": 2
     },
     {
@@ -4313,13 +4464,19 @@
    "byStatus": {
     "core": 2630,
     "nop": 2,
-    "faithful": 1722,
-    "authored": 0,
+    "faithful": 1716,
+    "authored": 6,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 6
+    }
+   ]
   },
   {
    "id": 120,
@@ -4387,13 +4544,18 @@
    "byStatus": {
     "core": 1133,
     "nop": 4,
-    "faithful": 465,
-    "authored": 3,
+    "faithful": 456,
+    "authored": 12,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION_AND_DONT_LOAD_COLLISION",
+     "status": "authored",
+     "sites": 9
+    },
     {
      "name": "TASK_EVERYONE_LEAVE_CAR",
      "status": "authored",
@@ -4434,15 +4596,15 @@
     "core": 878,
     "nop": 7,
     "faithful": 309,
-    "authored": 0,
+    "authored": 2,
     "silent": 0,
-    "skipped": 3,
+    "skipped": 1,
     "stops": 0
    },
    "gaps": [
     {
      "name": "GET_CLOSEST_STEALABLE_OBJECT",
-     "status": "skipped",
+     "status": "authored",
      "sites": 2
     },
     {
@@ -4495,13 +4657,19 @@
    "byStatus": {
     "core": 1430,
     "nop": 3,
-    "faithful": 658,
-    "authored": 0,
+    "faithful": 656,
+    "authored": 2,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": []
+   "gaps": [
+    {
+     "name": "FREEZE_CAR_POSITION",
+     "status": "authored",
+     "sites": 2
+    }
+   ]
   },
   {
    "id": 129,
@@ -4581,15 +4749,15 @@
     "core": 313,
     "nop": 0,
     "faithful": 81,
-    "authored": 0,
+    "authored": 1,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
      "name": "DRAW_SHADOW",
-     "status": "skipped",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -4614,13 +4782,30 @@
  ],
  "queue": [
   {
+   "name": "FREEZE_CAR_POSITION",
+   "opcode": "0519",
+   "status": "authored",
+   "notes": [
+    "adapter comments name an authored stand-in (freezeVehiclePosition)"
+   ],
+   "handlerLine": 710,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Locks the vehicle's position",
+   "sites": 277,
+   "missions": 63,
+   "firstMission": "MAIN",
+   "portable": false
+  },
+  {
    "name": "ROTATE_OBJECT",
    "opcode": "034d",
    "status": "authored",
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 3192,
+   "handlerLine": 3207,
    "ref": {
     "kind": "absent"
    },
@@ -4637,7 +4822,7 @@
    "notes": [
     "adapter comments name an authored stand-in (measurementsAreInMetres)"
    ],
-   "handlerLine": 2248,
+   "handlerLine": 2251,
    "ref": {
     "kind": "absent"
    },
@@ -4654,7 +4839,7 @@
    "notes": [
     "adapter lacks activateSaveMenu (skipped: outputs read as none)"
    ],
-   "handlerLine": 2694,
+   "handlerLine": 2703,
    "ref": {
     "kind": "absent"
    },
@@ -4671,7 +4856,7 @@
    "notes": [
     "adapter lacks hasSaveGameFinished (skipped: outputs read as none)"
    ],
-   "handlerLine": 2695,
+   "handlerLine": 2704,
    "ref": {
     "kind": "absent"
    },
@@ -4688,7 +4873,7 @@
    "notes": [
     "adapter comments name an authored stand-in (getRidOfPlayerProstitute)"
    ],
-   "handlerLine": 1253,
+   "handlerLine": 1263,
    "ref": {
     "kind": "handler",
     "fn": "GetRidOfPlayerProstitute",
@@ -4702,33 +4887,13 @@
    "portable": true
   },
   {
-   "name": "GET_CHAR_VELOCITY",
-   "opcode": "083d",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 1218,
-   "ref": {
-    "kind": "handler",
-    "fn": "GetCharVelocity",
-    "where": "CharacterCommands.cpp:309",
-    "stub": false
-   },
-   "doc": "Gets the characters velocity",
-   "sites": 11,
-   "missions": 3,
-   "firstMission": "player_parachute.scm",
-   "portable": true
-  },
-  {
    "name": "GET_USER_OF_CLOSEST_MAP_ATTRACTOR",
    "opcode": "091c",
    "status": "authored",
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 3279,
+   "handlerLine": 3293,
    "ref": {
     "kind": "absent"
    },
@@ -4745,7 +4910,7 @@
    "notes": [
     "adapter comments name an authored stand-in (taskPlayAnimSecondary)"
    ],
-   "handlerLine": 2550,
+   "handlerLine": 2555,
    "ref": {
     "kind": "absent"
    },
@@ -4762,7 +4927,7 @@
    "notes": [
     "adapter comments name an authored stand-in (debugCameraSource)"
    ],
-   "handlerLine": 1273,
+   "handlerLine": 1283,
    "ref": {
     "kind": "handler",
     "fn": "GetDebugCameraCoordinates",
@@ -4782,7 +4947,7 @@
    "notes": [
     "adapter comments name an authored stand-in (debugCameraSource)"
    ],
-   "handlerLine": 1277,
+   "handlerLine": 1287,
    "ref": {
     "kind": "handler",
     "fn": "GetDebugCameraPointAt",
@@ -4802,7 +4967,7 @@
    "notes": [
     "adapter comments name an authored stand-in (setPedWantedByPolice)"
    ],
-   "handlerLine": 2397,
+   "handlerLine": 2400,
    "ref": {
     "kind": "handler",
     "fn": "SetCharWantedByPolice",
@@ -4818,11 +4983,11 @@
   {
    "name": "LOCK_DOOR",
    "opcode": "0905",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks lockDoor (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (lockDoor)"
    ],
-   "handlerLine": 2800,
+   "handlerLine": 2813,
    "ref": {
     "kind": "absent"
    },
@@ -4839,7 +5004,7 @@
    "notes": [
     "adapter comments name an authored stand-in (addAttractor)"
    ],
-   "handlerLine": 2666,
+   "handlerLine": 2675,
    "ref": {
     "kind": "absent"
    },
@@ -4856,7 +5021,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 3281,
+   "handlerLine": 3296,
    "ref": {
     "kind": "handler-disabled",
     "fn": "GetRandomCharInSphereNoBrain",
@@ -4870,33 +5035,13 @@
    "portable": false
   },
   {
-   "name": "SKIP_TO_NEXT_ALLOWED_STATION",
-   "opcode": "0a07",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks skipTrainToNextStation (skipped: outputs read as none)"
-   ],
-   "handlerLine": 762,
-   "ref": {
-    "kind": "handler",
-    "fn": "SkipToNextAllowedStation",
-    "where": "VehicleCommands.cpp:76",
-    "stub": false
-   },
-   "doc": "Puts the script created train at the next allowed station",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "trains.scm",
-   "portable": true
-  },
-  {
    "name": "IS_CHAR_USING_MAP_ATTRACTOR",
    "opcode": "09c5",
    "status": "authored",
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 3280,
+   "handlerLine": 3294,
    "ref": {
     "kind": "handler",
     "fn": "IsCharUsingMapAttractor",
@@ -4912,10 +5057,11 @@
   {
    "name": "TASK_USE_CLOSEST_MAP_ATTRACTOR",
    "opcode": "08a0",
-   "status": "stops",
+   "status": "authored",
    "notes": [
-    "no handler (the thread gives up)"
+    "handler comments name an authored stand-in"
    ],
+   "handlerLine": 3292,
    "ref": {
     "kind": "absent"
    },
@@ -4932,7 +5078,7 @@
    "notes": [
     "adapter comments name an authored stand-in (requestVehicleMod)"
    ],
-   "handlerLine": 2471,
+   "handlerLine": 2474,
    "ref": {
     "kind": "absent"
    },
@@ -4949,7 +5095,7 @@
    "notes": [
     "adapter lacks manageAllPopulation"
    ],
-   "handlerLine": 2575,
+   "handlerLine": 2580,
    "ref": {
     "kind": "absent"
    },
@@ -4960,67 +5106,13 @@
    "portable": false
   },
   {
-   "name": "GET_CAR_BLOCKING_CAR",
-   "opcode": "0987",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks getCarBlockingCar (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2752,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns a handle of the vehicle preventing this car from getting to its destination",
-   "sites": 3,
-   "missions": 2,
-   "firstMission": "valet.scm",
-   "portable": false
-  },
-  {
-   "name": "GET_PARKING_NODE_IN_AREA",
-   "opcode": "0810",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks getParkingNodeInArea (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2753,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Stores the coordinates of the nearest car park node in the specified area",
-   "sites": 3,
-   "missions": 2,
-   "firstMission": "valet.scm",
-   "portable": false
-  },
-  {
-   "name": "IS_CHAR_STUCK_UNDER_CAR",
-   "opcode": "095d",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks isCharStuckUnderCar (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2764,
-   "ref": {
-    "kind": "handler-disabled",
-    "fn": "IsCharStuckUnderCar",
-    "where": "CharacterCommands.cpp:4307",
-    "stub": false
-   },
-   "doc": "Returns true if the char is stuck under a car",
-   "sites": 2,
-   "missions": 2,
-   "firstMission": "valet.scm",
-   "portable": false
-  },
-  {
    "name": "GET_STRING_WIDTH",
    "opcode": "09fd",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks getStringWidth (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (getStringWidth)"
    ],
-   "handlerLine": 2504,
+   "handlerLine": 2507,
    "ref": {
     "kind": "absent"
    },
@@ -5037,7 +5129,7 @@
    "notes": [
     "adapter lacks setScriptCoopGame (skipped: outputs read as none)"
    ],
-   "handlerLine": 2505,
+   "handlerLine": 2508,
    "ref": {
     "kind": "absent"
    },
@@ -5050,11 +5142,11 @@
   {
    "name": "SET_POOL_TABLE_COORDS",
    "opcode": "0830",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks setPoolTableCoords (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (setPoolTableCoords)"
    ],
-   "handlerLine": 2599,
+   "handlerLine": 2604,
    "ref": {
     "kind": "absent"
    },
@@ -5067,11 +5159,11 @@
   {
    "name": "SET_OBJECT_DRAW_LAST",
    "opcode": "0418",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks setObjectDrawLast (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (setObjectDrawLast)"
    ],
-   "handlerLine": 2600,
+   "handlerLine": 2605,
    "ref": {
     "kind": "absent"
    },
@@ -5084,11 +5176,11 @@
   {
    "name": "GET_STRING_WIDTH_WITH_NUMBER",
    "opcode": "0a08",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks getStringWidthWithNumber (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (getStringWidthWithNumber)"
    ],
-   "handlerLine": 2711,
+   "handlerLine": 2720,
    "ref": {
     "kind": "absent"
    },
@@ -5099,134 +5191,21 @@
    "portable": false
   },
   {
-   "name": "REMOVE_RC_BUGGY",
-   "opcode": "04db",
-   "status": "skipped",
+   "name": "FREEZE_CAR_POSITION_AND_DONT_LOAD_COLLISION",
+   "opcode": "0574",
+   "status": "authored",
    "notes": [
-    "adapter lacks removeRCBuggy (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (freezeVehiclePositionAndDontLoadCollision)"
    ],
-   "handlerLine": 765,
-   "ref": {
-    "kind": "handler",
-    "fn": "RemoveRCBuggy",
-    "where": "VehicleCommands.cpp:23",
-    "stub": false
-   },
-   "doc": "Exits remote-control mode",
-   "sites": 14,
-   "missions": 4,
-   "firstMission": "ZERO5",
-   "portable": true
-  },
-  {
-   "name": "SET_ENABLE_RC_DETONATE_ON_CONTACT",
-   "opcode": "04d6",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setEnableRcDetonateOnContact (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2508,
+   "handlerLine": 1622,
    "ref": {
     "kind": "absent"
    },
-   "doc": "Sets whether RC Bandits detonate on contact with the wheels of any four-wheeled vehicles",
-   "sites": 3,
-   "missions": 3,
-   "firstMission": "ZERO5",
+   "doc": "Makes the car maintain its position",
+   "sites": 45,
+   "missions": 7,
+   "firstMission": "INTRO1",
    "portable": false
-  },
-  {
-   "name": "SET_ENABLE_RC_DETONATE",
-   "opcode": "048a",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setEnableRcDetonate (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2509,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Enables a remote-control vehicle detonation",
-   "sites": 3,
-   "missions": 3,
-   "firstMission": "ZERO5",
-   "portable": false
-  },
-  {
-   "name": "GIVE_REMOTE_CONTROLLED_MODEL_TO_PLAYER",
-   "opcode": "046e",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks giveRemoteControlledModelToPlayer (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2604,
-   "ref": {
-    "kind": "handler",
-    "fn": "GiveRemoteControlledModelToPlayer",
-    "where": "PlayerCommands.cpp:260",
-    "stub": false
-   },
-   "doc": "Puts the player in control of a remote-control vehicle",
-   "sites": 2,
-   "missions": 2,
-   "firstMission": "ZERO5",
-   "portable": true
-  },
-  {
-   "name": "GET_REMOTE_CONTROLLED_CAR",
-   "opcode": "0484",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks getRemoteControlledCar (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2605,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns the player's radio-controlled vehicle (alts:00D9,03C0,0811)",
-   "sites": 2,
-   "missions": 2,
-   "firstMission": "ZERO5",
-   "portable": false
-  },
-  {
-   "name": "SET_FORCE_RANDOM_CAR_MODEL",
-   "opcode": "09bf",
-   "status": "skipped",
-   "notes": [
-    "dispatch unreversed; follows the routines it reaches",
-    "adapter lacks setForceRandomCarModel (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2720,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Forces all cars spawned to be of the specified model",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "ZERO5",
-   "portable": false
-  },
-  {
-   "name": "IS_PLAYER_IN_REMOTE_MODE",
-   "opcode": "0241",
-   "status": "skipped",
-   "notes": [
-    "dispatch unreversed; follows the routines it reaches",
-    "adapter lacks isPlayerInRemoteMode (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2721,
-   "ref": {
-    "kind": "handler",
-    "fn": "IsPlayerInRemoteMode",
-    "where": "PlayerCommands.cpp:203",
-    "stub": false
-   },
-   "doc": "Returns true if the player is controlling a remote-control vehicle",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "ZERO5",
-   "portable": true
   },
   {
    "name": "TASK_EVERYONE_LEAVE_CAR",
@@ -5235,7 +5214,7 @@
    "notes": [
     "adapter comments name an authored stand-in (givePedScriptedTask)"
    ],
-   "handlerLine": 1990,
+   "handlerLine": 2000,
    "ref": {
     "kind": "absent"
    },
@@ -5252,7 +5231,7 @@
    "notes": [
     "adapter comments name an authored stand-in (setVehicleIsConsideredByPlayer)"
    ],
-   "handlerLine": 2282,
+   "handlerLine": 2285,
    "ref": {
     "kind": "absent"
    },
@@ -5263,30 +5242,13 @@
    "portable": false
   },
   {
-   "name": "SET_GROUP_SEQUENCE",
-   "opcode": "087d",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setGroupSequence (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2736,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Sets the default task sequence for members of the group",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "TWAR7",
-   "portable": false
-  },
-  {
    "name": "MARK_CAR_AS_CONVOY_CAR",
    "opcode": "04bd",
    "status": "authored",
    "notes": [
     "adapter comments name an authored stand-in (markVehicleAsConvoyCar)"
    ],
-   "handlerLine": 1928,
+   "handlerLine": 1938,
    "ref": {
     "kind": "absent"
    },
@@ -5303,7 +5265,7 @@
    "notes": [
     "adapter lacks taskCharArrestChar (skipped: outputs read as none)"
    ],
-   "handlerLine": 2614,
+   "handlerLine": 2619,
    "ref": {
     "kind": "handler-disabled",
     "fn": "TaskCharArrestChar",
@@ -5319,11 +5281,11 @@
   {
    "name": "CONTROL_MOVABLE_VEHICLE_PART",
    "opcode": "08a4",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks controlMovableVehiclePart (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (controlMovableVehiclePart)"
    ],
-   "handlerLine": 2316,
+   "handlerLine": 2319,
    "ref": {
     "kind": "absent"
    },
@@ -5336,11 +5298,11 @@
   {
    "name": "SWAP_NEAREST_BUILDING_MODEL",
    "opcode": "03b6",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks swapNearestBuildingModel (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (swapNearestBuildingModel)"
    ],
-   "handlerLine": 2532,
+   "handlerLine": 2535,
    "ref": {
     "kind": "absent"
    },
@@ -5353,11 +5315,11 @@
   {
    "name": "SET_VEHICLE_QUATERNION",
    "opcode": "07c6",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks setVehicleQuaternion (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (setVehicleQuaternion)"
    ],
-   "handlerLine": 2750,
+   "handlerLine": 2760,
    "ref": {
     "kind": "absent"
    },
@@ -5368,47 +5330,13 @@
    "portable": false
   },
   {
-   "name": "ADD_SMOKE_PARTICLE",
-   "opcode": "095c",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks addSmokeParticle (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2762,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "WUZI5",
-   "portable": false
-  },
-  {
-   "name": "CREATE_BIRDS",
-   "opcode": "0876",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks createBirds (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2638,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Creates a flock of birds flying in the specified direction",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "SYND4",
-   "portable": false
-  },
-  {
    "name": "SET_VEHICLE_CAN_BE_TARGETTED",
    "opcode": "084e",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks setVehicleCanBeTargetted (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (setVehicleCanBeTargetted)"
    ],
-   "handlerLine": 2765,
+   "handlerLine": 2775,
    "ref": {
     "kind": "absent"
    },
@@ -5421,11 +5349,11 @@
   {
    "name": "TASK_GREET_PARTNER",
    "opcode": "0823",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks taskGreetPartner (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (taskGreetPartner)"
    ],
-   "handlerLine": 2767,
+   "handlerLine": 2777,
    "ref": {
     "kind": "absent"
    },
@@ -5436,81 +5364,13 @@
    "portable": false
   },
   {
-   "name": "SET_HELI_STABILISER",
-   "opcode": "04df",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setHeliStabiliser (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2491,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Limits the amount a helicopter can tilt",
-   "sites": 4,
-   "missions": 2,
-   "firstMission": "ZERO4",
-   "portable": false
-  },
-  {
-   "name": "IS_OBJECT_INTERSECTING_WORLD",
-   "opcode": "09fc",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks isObjectIntersectingWorld (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2537,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Appears to return true if something had entered the object's position since it was created or its position was changed",
-   "sites": 3,
-   "missions": 1,
-   "firstMission": "ZERO4",
-   "portable": false
-  },
-  {
-   "name": "TAKE_REMOTE_CONTROL_OF_CAR",
-   "opcode": "0715",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks takeRemoteControlOfCar (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2642,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Puts the specified player in control of a remote-control vehicle",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "ZERO4",
-   "portable": false
-  },
-  {
-   "name": "REMOVE_OIL_PUDDLES_IN_AREA",
-   "opcode": "07df",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks removeOilPuddlesInArea (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2779,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "ZERO4",
-   "portable": false
-  },
-  {
    "name": "ATTACH_TRAILER_TO_CAB",
    "opcode": "0893",
    "status": "authored",
    "notes": [
     "adapter comments name an authored stand-in (attachTrailerToCab)"
    ],
-   "handlerLine": 2428,
+   "handlerLine": 2431,
    "ref": {
     "kind": "absent"
    },
@@ -5523,11 +5383,11 @@
   {
    "name": "TASK_COMPLEX_PICKUP_OBJECT",
    "opcode": "07c9",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks taskComplexPickupObject (skipped: outputs read as none)"
+    "handler comments name an authored stand-in"
    ],
-   "handlerLine": 2538,
+   "handlerLine": 2541,
    "ref": {
     "kind": "absent"
    },
@@ -5538,47 +5398,13 @@
    "portable": false
   },
   {
-   "name": "IS_LAST_BUILDING_MODEL_SHOT_BY_PLAYER",
-   "opcode": "0a3a",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks isLastBuildingModelShotByPlayer (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2539,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns true if the player's last shot model is the model specified",
-   "sites": 3,
-   "missions": 1,
-   "firstMission": "DESERT9",
-   "portable": false
-  },
-  {
-   "name": "CLEAR_LAST_BUILDING_MODEL_SHOT_BY_PLAYER",
-   "opcode": "0a3b",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks clearLastBuildingModelShotByPlayer (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2784,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Resets the status of the last model the player has shot",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "DESERT9",
-   "portable": false
-  },
-  {
    "name": "TASK_JETPACK",
    "opcode": "07a7",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks taskJetpack (skipped: outputs read as none)"
+    "handler comments name an authored stand-in"
    ],
-   "handlerLine": 2658,
+   "handlerLine": 2666,
    "ref": {
     "kind": "absent"
    },
@@ -5589,47 +5415,13 @@
    "portable": false
   },
   {
-   "name": "DRAW_WEAPONSHOP_CORONA",
-   "opcode": "04d5",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks drawWeaponshopCorona (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2789,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Displays a corona with the lowered draw distance at the specified coordinates",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "DES10",
-   "portable": false
-  },
-  {
-   "name": "FIRE_HUNTER_GUN",
-   "opcode": "0541",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks fireHunterGun (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2793,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes the Hunter helicopter fire cannon gun",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "DESERT5",
-   "portable": false
-  },
-  {
    "name": "TASK_DIVE_FROM_ATTACHMENT_AND_GET_UP",
    "opcode": "06a5",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks taskDiveFromAttachmentAndGetUp (skipped: outputs read as none)"
+    "handler comments name an authored stand-in"
    ],
-   "handlerLine": 2794,
+   "handlerLine": 2807,
    "ref": {
     "kind": "absent"
    },
@@ -5646,7 +5438,7 @@
    "notes": [
     "adapter comments name an authored stand-in (addExplosionVariableShake)"
    ],
-   "handlerLine": 1733,
+   "handlerLine": 1743,
    "ref": {
     "kind": "absent"
    },
@@ -5657,30 +5449,13 @@
    "portable": false
   },
   {
-   "name": "SET_VEHICLE_TO_FADE_IN",
-   "opcode": "0594",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setVehicleToFadeIn (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2665,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Sets the alpha transparency of a distant vehicle",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "CASINO4",
-   "portable": false
-  },
-  {
    "name": "ADD_PEDTYPE_AS_ATTRACTOR_USER",
    "opcode": "0680",
    "status": "skipped",
    "notes": [
     "adapter lacks addPedtypeAsAttractorUser (skipped: outputs read as none)"
    ],
-   "handlerLine": 2667,
+   "handlerLine": 2676,
    "ref": {
     "kind": "absent"
    },
@@ -5693,11 +5468,11 @@
   {
    "name": "IS_CHAR_AT_SCRIPTED_ATTRACTOR",
    "opcode": "0642",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks pedIsAtScriptedAttractor (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (pedIsAtScriptedAttractor)"
    ],
-   "handlerLine": 1341,
+   "handlerLine": 1351,
    "ref": {
     "kind": "handler",
     "fn": "IsCharAtScriptedAttractor",
@@ -5713,11 +5488,11 @@
   {
    "name": "RESET_STUFF_UPON_RESURRECTION",
    "opcode": "0974",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks resetStuffUponResurrection (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (resetStuffUponResurrection)"
    ],
-   "handlerLine": 2798,
+   "handlerLine": 2811,
    "ref": {
     "kind": "absent"
    },
@@ -5730,11 +5505,11 @@
   {
    "name": "TASK_USE_ATM",
    "opcode": "05c7",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks taskUseAtm (skipped: outputs read as none)"
+    "handler comments name an authored stand-in"
    ],
-   "handlerLine": 2803,
+   "handlerLine": 2818,
    "ref": {
     "kind": "absent"
    },
@@ -5747,11 +5522,11 @@
   {
    "name": "GET_CAR_MOVING_COMPONENT_OFFSET",
    "opcode": "098d",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks getCarMovingComponentOffset (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (getCarMovingComponentOffset)"
    ],
-   "handlerLine": 2500,
+   "handlerLine": 2503,
    "ref": {
     "kind": "absent"
    },
@@ -5764,11 +5539,11 @@
   {
    "name": "CAN_CHAR_SEE_DEAD_CHAR",
    "opcode": "0480",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks pedCanSeeDeadPed (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (pedCanSeeDeadPed)"
    ],
-   "handlerLine": 1232,
+   "handlerLine": 1242,
    "ref": {
     "kind": "handler",
     "fn": "CanCharSeeDeadChar",
@@ -5782,30 +5557,13 @@
    "portable": true
   },
   {
-   "name": "SET_GUNSHOT_SENSE_RANGE_FOR_RIOT2",
-   "opcode": "098a",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setGunshotSenseRangeForRiot2 (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2547,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 3,
-   "missions": 1,
-   "firstMission": "RIOT2",
-   "portable": false
-  },
-  {
    "name": "SET_PLAYER_MOOD",
    "opcode": "04e3",
    "status": "skipped",
    "notes": [
     "adapter lacks setPlayerMood (skipped: outputs read as none)"
    ],
-   "handlerLine": 2677,
+   "handlerLine": 2686,
    "ref": {
     "kind": "handler",
     "fn": "SetPlayerMood",
@@ -5819,47 +5577,13 @@
    "portable": true
   },
   {
-   "name": "GET_DOOR_ANGLE_RATIO",
-   "opcode": "095f",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks getDoorAngleRatio (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2812,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Gets the specified car doors angle, relative to the hinge",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "FINALEC",
-   "portable": false
-  },
-  {
-   "name": "SET_OBJECT_RENDER_SCORCHED",
-   "opcode": "0654",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setObjectRenderScorched (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2682,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes the object look like it has been burnt",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "QUARRY",
-   "portable": false
-  },
-  {
    "name": "GET_CLOSEST_STEALABLE_OBJECT",
    "opcode": "0866",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks getClosestStealableObject (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (getClosestStealableObject)"
    ],
-   "handlerLine": 2688,
+   "handlerLine": 2697,
    "ref": {
     "kind": "absent"
    },
@@ -5876,7 +5600,7 @@
    "notes": [
     "adapter lacks isProceduralInteriorActive (skipped: outputs read as none)"
    ],
-   "handlerLine": 2819,
+   "handlerLine": 2834,
    "ref": {
     "kind": "absent"
    },
@@ -5889,11 +5613,11 @@
   {
    "name": "DRAW_SHADOW",
    "opcode": "016f",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks drawShadow (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (drawShadow)"
    ],
-   "handlerLine": 2831,
+   "handlerLine": 2846,
    "ref": {
     "kind": "handler",
     "fn": "DrawShadow",

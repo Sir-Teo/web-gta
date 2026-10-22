@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import {SUN_FLARE,type FlareSprite} from '../world/nativeCoronaFlares';
+import {MAX_NUM_CORONAS} from '../world/nativeCoronas';
 
-const CAPACITY=SUN_FLARE.length;
+const CAPACITY=(MAX_NUM_CORONAS+1)*SUN_FLARE.length;
 const vertexShader=`attribute vec2 corner;attribute vec2 center;attribute vec2 extent;attribute vec3 tint;varying vec2 vUv;varying vec3 vTint;
 void main(){vUv=vec2(corner.x*.5+.5,.5-corner.y*.5);vTint=tint;gl_Position=vec4(center+corner*extent,0.,1.);}`;
 // The sprite's own colour bytes modulate the raster in display space; additive (ONE, ONE).

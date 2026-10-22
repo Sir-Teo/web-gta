@@ -1,5 +1,6 @@
 import { AdditiveBlending, DoubleSide, Mesh, type Material, type Object3D, type Color } from 'three';
 import {nativeAlphaReference} from './nativeAlphaReference';
+import {setNativeScorched} from '../assets/nativeScorched';
 
 /** The flag-dependent "normal" material copies of one model definition, shared by its placements in one interior:
  * they depend on nothing per placement, so one copy per source material serves every placement of the part
@@ -26,7 +27,7 @@ export function persistentNormalMaterials(ideFlags: number, interior: number): S
   };
 }
 /** Reusable per-placement overrides; original materials/textures remain shared and untouched. */
-export function placementFade(root: Object3D, ideFlags = 0, interior = 0,worldRendering=false,sharedNormals?:SharedNormalMaterials) {
+function placementFadeMaterials(root: Object3D, ideFlags = 0, interior = 0,worldRendering=false,sharedNormals?:SharedNormalMaterials) {
   const meshes: { mesh: Mesh; original: Material | Material[]; order: number; normal?: Material | Material[]; faded?: Material | Material[] }[] = [];
   root.traverse(object => { if (object instanceof Mesh) meshes.push({ mesh: object, original: object.material, order: object.renderOrder }); });
   const copies = new Map<Material, Material>();
@@ -66,7 +67,18 @@ export function placementFade(root: Object3D, ideFlags = 0, interior = 0,worldRe
       entry.mesh.material = entry.normal;
     }
   }
-  let last = 255, lastFading = false, disposed = false;
+  let last = 255, lastFading = false, disposed = false,scorched=false;
+  const scorchedCopies=new Map<Material,Material>();
+  const applyScorched=()=>{
+    const select=(source:Material)=>{
+      if(!scorched)return source;
+      let material=scorchedCopies.get(source);
+      if(!material){material=clone(source);setNativeScorched(material,true);scorchedCopies.set(source,material);}
+      material.opacity=source.opacity;material.visible=source.visible;material.transparent=source.transparent;
+      return material;
+    };
+    for(const entry of meshes){const base=(lastFading?entry.faded:entry.normal)??entry.normal??entry.original;entry.mesh.material=scorched?(Array.isArray(base)?base.map(select):select(base)):base;}
+  };
   const slotAlpha = new Map<number, number>();
   const copy = (source: Material) => {
     let material = copies.get(source);
@@ -86,6 +98,8 @@ export function placementFade(root: Object3D, ideFlags = 0, interior = 0,worldRe
     return material;
   };
   return {
+    /** CPhysical::bRenderScorched on one placement, isolated from siblings and shared normal/fade materials. */
+    setScorched(state:boolean){if(disposed||state===scorched)return;scorched=state;applyScorched();},
     setDistance(distance: number) {
       if (disposed) return;
       if (!Number.isFinite(distance) || distance < 0) throw new Error('Placement render distance must be finite and nonnegative.');
@@ -108,6 +122,7 @@ export function placementFade(root: Object3D, ideFlags = 0, interior = 0,worldRe
       for (const [source, material] of copies) material.opacity = Math.min(source.opacity, alpha / 255);
       // A material slot with its own alpha fades from it.
       if (fading) for (const entry of meshes) if (Array.isArray(entry.faded)) for (const [slot, value] of slotAlpha) { const m = entry.faded[slot]; if (m) m.opacity = Math.min(value, alpha / 255); }
+      if(scorched)applyScorched();
     },
     /** RpMaterialGetColor(material)->alpha for one material slot of this placement's meshes (CTagManager::RenderTagForPC
      * sets slot 1, the player's tag, to the tag's alpha). Normal and faded copies both keep it. */
@@ -118,12 +133,36 @@ export function placementFade(root: Object3D, ideFlags = 0, interior = 0,worldRe
         const material = Array.isArray(materials) ? materials[slot] : undefined;
         if (material) { material.transparent = true; material.opacity = alpha / 255; material.visible = alpha > 0; }
       }
+      if(scorched)applyScorched();
     },
     dispose() {
       if (disposed) return; disposed = true;
       meshes.forEach(entry => { entry.mesh.material = entry.original; entry.mesh.renderOrder = entry.order; });
       copies.forEach(material => material.dispose()); copies.clear();
+      scorchedCopies.forEach(material=>material.dispose());scorchedCopies.clear();
       if (ownNormals) { ownNormals.forEach(material => material.dispose()); ownNormals.clear(); }
     },
   };
+}
+
+/** One entity's render policy. Changing bDrawLast rebuilds its material selection while retaining fade,
+ * per-slot alpha and scorched state; shared source materials and geometry stay owned by their original model. */
+export function placementFade(root:Object3D,ideFlags=0,interior=0,worldRendering=false,sharedNormals?:SharedNormalMaterials){
+ let flags=ideFlags,current=placementFadeMaterials(root,flags,interior,worldRendering,sharedNormals),disposed=false,alpha=255,fading=false,scorched=false,distance:number|undefined;
+ const slotAlpha=new Map<number,number>();
+ return {
+  setDrawLast(state:boolean){
+   if(disposed)return;const next=state?flags|4:flags&~4;if(next===flags)return;
+   current.dispose();flags=next;
+   const shared=sharedNormals?(flags===ideFlags?sharedNormals:persistentNormalMaterials(flags,interior)):undefined;
+   current=placementFadeMaterials(root,flags,interior,worldRendering,shared);
+   for(const [slot,value] of slotAlpha)current.setMaterialAlpha(slot,value);
+   current.setAlpha(alpha,fading);current.setScorched(scorched);if(distance!==undefined)current.setDistance(distance);
+  },
+  setDistance(value:number){if(disposed)return;current.setDistance(value);distance=value;},
+  setAlpha(value:number,isFading=value<255){if(disposed)return;current.setAlpha(value,isFading);alpha=value;fading=isFading;},
+  setMaterialAlpha(slot:number,value:number){if(disposed)return;current.setMaterialAlpha(slot,value);slotAlpha.set(slot,value);},
+  setScorched(state:boolean){if(disposed)return;current.setScorched(state);scorched=state;},
+  dispose(){if(disposed)return;disposed=true;current.dispose();},
+ };
 }

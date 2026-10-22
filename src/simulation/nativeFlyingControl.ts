@@ -160,12 +160,13 @@ export interface HeliInputs {yaw:number;pitch:number;roll:number;accel:number}
  * - self-levelling toward the (wind-tilted) vertical by fAttackLift, its lean clamped to fFormLift;
  * - pitch and roll inputs by fPitch and fRoll, quadratic side slip, the yaw input twice by fYaw with fYawStab
  *   turning the nose into a slip. */
-export function heliFlyingControl(body:FlyingBody,flight:FlyingHandling['values'],input:HeliInputs,model:number,ts:number,o:{wind?:NativeVec;liftAxis?:NativeVec}={}){
+export function heliFlyingControl(body:FlyingBody,flight:FlyingHandling['values'],input:HeliInputs,model:number,ts:number,o:{wind?:NativeVec;liftAxis?:NativeVec;minimumTilt?:boolean}={}){
  const F=body.forward,R=body.right,U=body.up,wind=o.wind??[0,0,0];
  const turn=(D:NativeVec,X:NativeVec,c:number)=>{body.turnSpeed=add(body.turnSpeed,cross(X,D),c);};
  const vel=add(body.moveSpeed,wind);
  body.moveSpeed=scale(body.moveSpeed,Math.pow(flight.moveResistance,ts));
- const lift=o.liftAxis??U;
+ // bHeliMinimumTilt: four times the rotor tilt, paired with a smaller stick response below (iOS 0x10047a800).
+ const lift:NativeVec=o.minimumTilt?[Math.sin(4*Math.asin(U[0])),Math.sin(4*Math.asin(U[1])),Math.cos(4*Math.acos(U[2]))]:o.liftAxis??U;
  let up=dot(vel,lift);if(up>0)up*=2;
  let thrust=input.accel*flight.thrust+.45-flight.thrustFallOff*up;
  body.moveSpeed[2]+=(.5-body.moveSpeed[2])*.008*ts;
@@ -180,8 +181,10 @@ export function heliFlyingControl(body:FlyingBody,flight:FlyingHandling['values'
   turn(U,R,(R[2]<0?flight.formLift:-flight.formLift)*flight.attackLift*ts);
   turn(U,F,(F[2]<0?flight.formLift:-flight.formLift)*flight.attackLift*ts);
  }
- turn(U,F,input.pitch*flight.pitch*ts);
- turn(U,R,input.roll*flight.roll*ts);
+ // Both stick axes use fPitch / fAttackLift, even when fRoll differs (0x10047b220).
+ const tiltScale=o.minimumTilt?Math.sin(.25*Math.asin(flight.pitch/flight.attackLift))*flight.attackLift/flight.pitch:1;
+ turn(U,F,input.pitch*tiltScale*flight.pitch*ts);
+ turn(U,R,input.roll*tiltScale*flight.roll*ts);
  const side=dot(vel,R);
  body.moveSpeed=add(body.moveSpeed,R,-flight.sideSlip*side*Math.abs(side)*ts);
  turn(R,scale(F,-1),(input.yaw*flight.yaw-flight.yawStabilization*side*Math.abs(side))*ts);

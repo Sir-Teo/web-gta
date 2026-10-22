@@ -30,7 +30,7 @@ export function catalogScenePlacements(parts:ScenePart[],dataset:string):ScenePl
    const isPhysical=physical.has(index)&&!!part.collision;
    // Snapshot values, not mutable object identity. Geometry/texture bytes belong
    // to the immutable dataset; changing those requires a new dataset identity.
-   const fingerprint=JSON.stringify([part.name.toLowerCase(),placement,part.definition,part.timeCounterpart,part.visibilityBounds,isPhysical,!!part.collision,part.collisionSource,lodTargetKey]);
+   const fingerprint=JSON.stringify([part.name.toLowerCase(),placement,part.definition,part.timeCounterpart,part.visibilityBounds,part.nativeEntityKind,isPhysical,!!part.collision,part.collisionSource,lodTargetKey]);
    entries.set(key,{key,part:partIndex,placement:index,model:part.name,fingerprint,lodTargetKey,unresolvedLodTarget,physical:isPhysical});
   });
  });

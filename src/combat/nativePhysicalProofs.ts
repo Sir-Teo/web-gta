@@ -1,11 +1,11 @@
 /** The five proofs of CPhysical::physicalFlags that SET_CHAR_PROOFS and SET_CAR_PROOFS set. */
 export interface PhysicalProofs {bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean}
 
-/** CPhysical::CanPhysicalBeDamaged (0x5449E0, reversed): which proof turns away damage from a weapon type, or
+/** CPhysical::CanPhysicalBeDamaged (PC 0x5448B0, iOS 0x100252b84): which proof turns away damage from a weapon type, or
  * nothing when none can.
  * - The melee weapons (0 to 15) fall to bMeleeProof.
  * - The bombs, rockets and satchels, and WEAPON_EXPLOSION (51), fall to bExplosionProof.
- * - The molotov and the flamethrower fall to bFireProof.
+ * - The molotov and the flamethrower fall to bFireProof; iOS also checks bExplosionProof for the molotov.
  * - The guns, and WEAPON_UZI_DRIVEBY (52), fall to bBulletProof.
  * - WEAPON_RAMMEDBYCAR (49), WEAPON_RUNOVERBYCAR (50) and WEAPON_FALL (54) fall to bCollisionProof.
  * Tear gas, the spray can, the extinguisher, the camera, the goggles, the parachute and drowning always get
@@ -21,4 +21,8 @@ export function physicalProofFor(weapon:number):keyof PhysicalProofs|undefined{
  }
 }
 /** Whether a weapon's damage reaches something with these proofs. */
-export const physicalCanBeDamaged=(proofs:PhysicalProofs|undefined,weapon:number)=>{const proof=physicalProofFor(weapon);return !proof||!proofs?.[proof];};
+export const physicalCanBeDamaged=(proofs:PhysicalProofs|undefined,weapon:number)=>{
+ // iOS 0x100252bf0 tests both bFireProof and bExplosionProof for the molotov.
+ if(weapon===18&&proofs?.explosion)return false;
+ const proof=physicalProofFor(weapon);return !proof||!proofs?.[proof];
+};

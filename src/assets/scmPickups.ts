@@ -1,11 +1,12 @@
 import {requireAsset} from './binary';
+import {nativePickupCoordinate} from './nativePickupPosition';
 import {readScmHeader,decodeScmInstructions,type ScmInstruction,type ScmParameter} from './scm';
 import type {IdeAssociation} from './ide';
 /** ePickupType. */
 export const PICKUP_TYPE={none:0,inShop:1,onStreet:2,once:3,onceTimeout:4,onceTimeoutSlow:5,collectable1:6,money:8,onStreetSlow:15,assetRevenue:16,propertyLocked:17,propertyForSale:18,moneyDoesntDisappear:19,snapshot:20,onceForMission:22} as const;
 export type PickupCategory='weapon'|'health'|'armour'|'bribe'|'info'|'save'|'snapshot'|'horseshoe'|'oyster'|'propertyLocked'|'propertyForSale'|'revenue'|'keycard'|'briefcase'|'clothes'|'adrenaline'|'money'|'jetpack'|'other';
 export interface ScmPickup {
- /** Stable save key: model and rounded native position. */
+ /** Stable save key: model and rounded source position (kept across native storage corrections). */
  id:string;command:string;section:string;offset:number;
  modelId:number;model:string;dictionary:string;type:number;category:PickupCategory;
  /** Explicit CREATE_PICKUP_WITH_AMMO count, or 0 for AmmoForWeapon_OnStreet. */
@@ -55,8 +56,8 @@ export function readInitialPickups(bytes:Uint8Array,definitions:readonly IdeAsso
   if(!definition){skip('unknown model');continue;}
   const type=layout.type??literal(field('type'));if(type===undefined){skip('unresolved type');continue;}
   const category=pickupCategory(definition);
-  const position:[number,number,number]=[Math.fround(x),Math.fround(y),Math.fround(z)];
-  const id=`${definition.id}:${position.map(v=>v.toFixed(1)).join(',')}`;
+  const sourcePosition=[Math.fround(x),Math.fround(y),Math.fround(z)],id=`${definition.id}:${sourcePosition.map(v=>v.toFixed(1)).join(',')}`;
+  const position=sourcePosition.map(nativePickupCoordinate) as [number,number,number];
   const text=field('text'),record:ScmPickup={id,command:instruction.name,section:name,offset:instruction.offset,modelId:definition.id,model:definition.model,dictionary:definition.dictionary,type,category,ammo:literal(field('ammo'))??0,position};
   const price=literal(field('price')),revenueLimit=literal(field('revenueLimit')),revenueRate=literal(field('revenueRate'));
   if(price!==undefined)record.price=price;if(typeof text?.value==='string')record.text=text.value;if(revenueLimit!==undefined)record.revenueLimit=revenueLimit;if(revenueRate!==undefined)record.revenueRate=revenueRate;

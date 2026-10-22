@@ -1,15 +1,20 @@
+import {hunterGunOrigin,vehicleGunReady,type HunterGunMatrix} from '../simulation/nativeHunterGun';
 import {PLANE_GUN_SHAKE,ROCKET_SHAKE} from '../engine/nativePadShakes';
 import {THROW_START_CLIP,THROW_CLIP,THROW_UP_CLIP,THROW_FORCE_PER_COUNTER,throwClip,throwFireTime,throwFiresNow,throwButtonCounter,type ThrowClip} from './nativeThrowProjectile';
 import {Vector3,Quaternion} from 'three';
 import {OCCUPANT_HEAD_LIFT,occupantHeadHit} from '../vehicle/nativeDieInCar';
 import {isInstantHitGun} from '../simulation/WorldPedestrians';
+import {pedCanBeTargettedVehicleWise} from '../ped/nativeVehicleTargeting';
+import type {AimCandidate} from '../input/aimAssist';
 /** What a seated target rides, by its body: a car, or a script's boat or aircraft (CheckForShootingVehicleOccupant
  * asks only that the line's first hit be a vehicle). */
-export interface SeatedVehicle {car:{body:{handle:number;translation():Vec3;rotation():{x:number;y:number;z:number;w:number}}}}
+export interface SeatedVehicle {car:{body:{handle:number;translation():Vec3;rotation():{x:number;y:number;z:number;w:number}}};pedTargetable?:boolean;occupied?:boolean;disposed?:boolean;wrecked?:boolean;driverDead?:boolean}
 /** A seated NPC a bullet can reach: its vehicle, seat index and seat local (native vehicle space). */
 export interface SeatedTarget<V extends SeatedVehicle=import('../simulation/WorldCar').WorldCar> {car:V;seat:number;local:Vec3;kind:'traffic'|'police'|'driveby'|'script';
  /** A script's ped in its seat: the host's own record of it. */
  rider?:unknown;
+ /** Automatic targeting and bullet eligibility are separate pedestrian flags. */
+ bike?:boolean;crew?:boolean;neverTargeted?:boolean;canBeShot?:boolean;
  /** Its head node in the world (renderer axes), where its view is drawn; else it is taken to be SEATED_HEAD_OFFSET from
   * the seat point. */
  head?:Vec3;
@@ -19,12 +24,19 @@ export interface SeatedTarget<V extends SeatedVehicle=import('../simulation/Worl
  * occupant whose view is not drawn: measured from the drawn CAR_sit pose (0.23 back and 0.62 to 0.70 up across the
  * Landstalker, Greenwood, Voodoo and Sultan). */
 export const SEATED_HEAD_OFFSET={x:0,y:-.23,z:.64} as const;
+/** FindPlayerEntity/FindPlayerVehicle includes a passenger without giving that vehicle player controls. */
+const carriesPlayer=(vehicle:{occupied:boolean;playerPassengerSeat?:number})=>vehicle.occupied||!!vehicle.playerPassengerSeat;
 /** A point in a vehicle's native space (x right, y forward, z up) in the world (renderer axes), from its body. */
 function seatWorldPoint(vehicle:SeatedVehicle,local:Vec3){
  const b=vehicle.car.body,q=b.rotation(),p=b.translation();
  return new Vector3(local.x,local.z,-local.y).applyQuaternion(new Quaternion(q.x,q.y,q.z,q.w)).add(p as Vector3);
 }
 import type {WorldPlane} from '../simulation/WorldPlane';
+import {planeWeaponRequests} from '../simulation/nativePlaneWeapons';
+import {heliWeaponRequests} from '../simulation/nativeHeliWeapons';
+import {MISSION_HELI_ATTACK_PLAYER,MISSION_HELI_ATTACK_PLAYER_FLY_AWAY} from '../simulation/nativeHeliAI';
+import {PED_ORIGIN_HEIGHT} from '../simulation/nativeSwim';
+import {MISSION_PLANE_ATTACK_PLAYER,MISSION_PLANE_ATTACK_PLAYER_POLICE,MISSION_PLANE_DOG_FIGHT_PLAYER} from '../simulation/nativePlaneAI';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {WeaponInventory} from './Inventory';
 import {weaponById,type WeaponDefinition} from './catalog';
@@ -159,7 +171,8 @@ export class WeaponSystem {
  get crosshairRadius(){const info=this.inventory.info();return info&&info.fire!=='melee'?nativeWeaponRadiusOnScreen(info,this.attackButtonCounter,this.sim.player.crouched):.2;}
  hits=0;explosions=0;aircraftShots=0;private serial=0;
  /** CVehicle::m_nGunFiringTime and m_nProjectileWeaponFiringTime: the guns and the ordnance keep their own clocks. */
- private aircraftGunCooldown=0;private aircraftOrdnanceCooldown=0;
+ private aircraftOrdnanceCooldown=0;
+ private vehicleGunTimes=new WeakMap<object,number>();
  /** The camera's first-person weapon mode (the sniper, rocket or camera view), set by the caller each frame. */
  firstPerson?:FirstPersonMode;
  /** The heat seeker's lock in its camera (CPlayerPedData's HS missile fields), keyed by vehicle body handle. */
@@ -171,8 +184,27 @@ export class WeaponSystem {
  /** Twin pistols alternate hands; true when the next shot leaves the left gun. */
  leftHand=false;lastHand:'right'|'left'='right';
  muzzle?:(left?:boolean)=>Vec3|undefined;
+ /** Ordinary player FireInstantHit ignores its unflagged occupied/attached vehicle. Drive-by fire supplies its
+  * own unconditional exclusion, and sniper/projectile/area paths keep their separate native rules. */
+ instantHitIgnoredBody?:()=>RAPIER.RigidBody|undefined;
  /** The seated NPCs a bullet line can reach (traffic drivers, police crews): seat locals in car space. */
  seatedPeds?:()=>readonly SeatedTarget<SeatedVehicle>[];
+ private aimSeatKeys=new WeakMap<SeatedVehicle,Map<number,number>>();
+ private nextAimSeatKey=-1;
+ /** Touch lock-on uses the existing authored angular picker, with the native vehicle eligibility gate.
+  * Stable negative seat keys cannot alias on-foot Rapier collider handles. Mouse rays do not use this list. */
+ automaticAimTargets():AimCandidate[]{
+  const targets:AimCandidate[]=[...(this.pedestrians()?.targets()??[])];
+  for(const t of this.seatedPeds?.()??[]){
+   if(t.neverTargeted||t.car.occupied||t.car.disposed||t.car.wrecked||t.seat===0&&t.car.driverDead||
+    !pedCanBeTargettedVehicleWise(true,{bike:t.bike,pedTargetable:t.car.pedTargetable}))continue;
+   let seats=this.aimSeatKeys.get(t.car);if(!seats){seats=new Map();this.aimSeatKeys.set(t.car,seats);}
+   let handle=seats.get(t.seat);if(handle===undefined){handle=this.nextAimSeatKey--;seats.set(t.seat,handle);}
+   const position=t.head??seatWorldPoint(t.car,{x:t.local.x+SEATED_HEAD_OFFSET.x,y:t.local.y+SEATED_HEAD_OFFSET.y,z:t.local.z+SEATED_HEAD_OFFSET.z});
+   targets.push({handle,position:{...position},crew:t.crew});
+  }
+  return targets;
+ }
  /** A seated ped hit through the window: the host applies CPed damage and CTaskComplexDieInCar. */
  onSeatedShot?:(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number)=>'hit'|'killed'|undefined;
  /** CWeapon::CheckForShootingVehicleOccupant (iOS 0x100498190): with the line's first hit a car (`hitBody`), the
@@ -182,7 +214,7 @@ export class WeaponSystem {
   // Bodies by handle: Rapier's collider.parent() may hand back a fresh wrapper for the same body.
   const hit=(hitBody as {handle?:number}|undefined)?.handle;if(hit===undefined)return undefined;
   const own=(except as {handle?:number;car?:{body?:{handle:number}}}|undefined);const ownHandle=own?.car?.body?.handle??own?.handle;
-  const targets=(this.seatedPeds?.()??[]).filter(t=>t.car.car.body.handle===hit&&t.car.car.body.handle!==ownHandle);
+  const targets=(this.seatedPeds?.()??[]).filter(t=>t.canBeShot!==false&&t.car.car.body.handle===hit&&t.car.car.body.handle!==ownHandle);
   const heads=targets.map(t=>{const h=t.head??seatWorldPoint(t.car,{x:t.local.x+SEATED_HEAD_OFFSET.x,y:t.local.y+SEATED_HEAD_OFFSET.y,z:t.local.z+SEATED_HEAD_OFFSET.z});return {x:h.x,y:h.y+OCCUPANT_HEAD_LIFT,z:h.z};});
   const found=occupantHeadHit(source,direction,heads,range);
   return found&&{target:targets[found.index],t:found.t};
@@ -192,6 +224,8 @@ export class WeaponSystem {
  static occupantDamage(target:Pick<SeatedTarget<SeatedVehicle>,'noCriticalHits'>,damage:number,weapon:number){return !target.noCriticalHits&&isInstantHitGun(weapon)?Math.max(damage,1000):damage;}
  /** CAECollisionAudioEntity::ReportBulletHit: the struck collider, the hit point and asin(-dir·normal) in degrees. */
  onBulletHit?:(hit:RAPIER.RayColliderIntersection,point:Vec3,angle:number)=>void;
+ /** DoBulletImpact / CBulletInfo::Update with a player ped creator; the world checks ENTITY_TYPE_BUILDING. */
+ onPlayerBulletImpact?:(collider:number)=>void;
  onSound?:(event:import('../assets/nativeCombatAudio').CombatSound,weapon:number,position:Vec3,source?:'player'|'npc'|'aircraft'|'stealth')=>void;
  private reloadSoundId=-1;private reloadSoundA=false;private reloadSoundB=false;
  onUse?:(w:WeaponDefinition)=>void;
@@ -209,8 +243,8 @@ export class WeaponSystem {
  /** CExplosion::AddExplosion's CShadows::AddPermanentShadow scorch, for every explosion. */
  onScorch?:(point:Vec3)=>void;
  /** CWeapon::DoBulletImpact's object branch for a bullet hitting a non-ped, non-vehicle collider. `incremental` marks a shotgun pellet. */
- /** DoBulletImpact on an object the player's fire hits, with the weapon type it goes in as. */
- onObjectShot?:(hit:RAPIER.RayColliderIntersection,point:Vec3,incremental:boolean,sniper:boolean,weapon:number)=>void;
+ /** DoBulletImpact on an object, preserving whether the player fired the round. */
+ onObjectShot?:(hit:RAPIER.RayColliderIntersection,point:Vec3,incremental:boolean,sniper:boolean,weapon:number,byPlayer?:boolean)=>void;
  /** The melee swing CTaskSimpleFight plays: a combo stage, the ground attack or the moving attack. */
  onMeleeSwing?:(w:WeaponDefinition,swing:MeleeSwing)=>void;
  onHit?:(weapon:number)=>void;
@@ -287,8 +321,8 @@ export class WeaponSystem {
  /** The bullet line test along `direction`, for probes: the distance to what a shot there would hit. */
  lineOfFire(from:Vec3,direction:Vec3,range:number){return this.ray(from,direction,range)?.timeOfImpact;}
  /** CWeapon's line tests pass doShootThroughCheck, so a shoot-through face (a chain-link fence) is flown through. */
- private ray(from:Vec3,direction:Vec3,range:number,body=this.sim.playerBody,filter?:(c:RAPIER.Collider)=>boolean){
-  return bulletLine(this.sim.world,from,direction,range,{isShootThrough:hit=>!!this.fx?.isShootThrough?.(hit),excludeCollider:this.sim.playerCollider,excludeBody:body,filter});
+ private ray(from:Vec3,direction:Vec3,range:number,body:RAPIER.RigidBody|null=this.sim.playerBody,filter?:(c:RAPIER.Collider)=>boolean,byPlayer=true){
+  return bulletLine(this.sim.world,from,direction,range,{isShootThrough:hit=>!!this.fx?.isShootThrough?.(hit),excludeCollider:byPlayer?this.sim.playerCollider:undefined,excludeBody:body??undefined,filter});
  }
  /** CTaskSimplePlayerOnFire's timer: when the player's current fire started, in game milliseconds. */
  private playerFireSince?:number;
@@ -305,7 +339,7 @@ export class WeaponSystem {
    this.hits++;
    if(typeof victim==='object'){
     const id=`ped:${victim.id}`,cop=victim.officer;
-    if(kind==='melee'||kind==='bullet'||kind==='spray'){
+    if(hit?.byPlayer!==false&&(kind==='melee'||kind==='bullet'||kind==='spray')){
      // CWeapon::GenerateDamageEvent reports DAMAGED_PED for the player's damage with a witness check, and
      // DoBulletImpact adds DAMAGE_CAR for a bullet; neither has a cop variant.
      this.onCrime?.(CRIME.damagedPed,id);
@@ -319,11 +353,11 @@ export class WeaponSystem {
    return true;
   }
   const vehicleHit={kind:kind==='melee'?'melee' as const:kind==='fire'?'fire' as const:'bullet' as const,byPlayer:hit?.byPlayer??(kind!=='explosion'),weapon:hit?.weapon};
-   for(const car of this.fleet()?.cars??[]){for(let i=0;i<car.car.body.numColliders();i++)if(car.car.body.collider(i).handle===handle&&!car.wrecked){this.hits++;this.hitTrains=car.health>0&&car.canBeDamaged&&!car.proofs?.bullet;if(car.damage(amount,handle,explosive,kind==='bullet'?direction:undefined,{kind:kind==='melee'?'melee':kind==='fire'?'fire':'bullet',byPlayer:hit?.byPlayer??(kind!=='explosion'),weapon:hit?.weapon,point:kind==='bullet'?hit?.point:undefined}))this.onCrime?.(CRIME.destroyVehicle,`car:${car.car.body.handle}`);this.releaseExplosions();return true;}}
-   for(const boat of this.fleet()?.boats??[])if(!boat.wrecked&&boat.body.numColliders()&&[...Array(boat.body.numColliders()).keys()].some(i=>boat.body.collider(i).handle===handle)){this.hits++;this.hitTrains=true;if(boat.damage(amount,handle,explosive,undefined,vehicleHit))this.onCrime?.(CRIME.destroyVehicle,`boat:${boat.body.handle}`);return true;}
+   for(const car of this.fleet()?.cars??[]){for(let i=0;i<car.car.body.numColliders();i++)if(car.car.body.collider(i).handle===handle&&!car.wrecked){this.hits++;this.hitTrains=car.health>0&&car.canBeDamaged&&!car.proofs?.bullet;if(car.damage(amount,handle,explosive,kind==='bullet'?direction:undefined,{kind:kind==='melee'?'melee':kind==='fire'?'fire':'bullet',byPlayer:hit?.byPlayer??(kind!=='explosion'),weapon:hit?.weapon,point:kind==='bullet'?hit?.point:undefined})&&vehicleHit.byPlayer)this.onCrime?.(CRIME.destroyVehicle,`car:${car.car.body.handle}`);this.releaseExplosions();return true;}}
+   for(const boat of this.fleet()?.boats??[])if(!boat.wrecked&&boat.body.numColliders()&&[...Array(boat.body.numColliders()).keys()].some(i=>boat.body.collider(i).handle===handle)){this.hits++;this.hitTrains=true;if(boat.damage(amount,handle,explosive,undefined,vehicleHit)&&vehicleHit.byPlayer)this.onCrime?.(CRIME.destroyVehicle,`boat:${boat.body.handle}`);return true;}
    // CWeapon::DoBulletImpact harms a bike as any vehicle (CVehicle::InflictDamage).
-   for(const bike of this.fleet()?.bikes??[])if(!bike.wrecked&&[...Array(bike.body.numColliders()).keys()].some(i=>bike.body.collider(i).handle===handle)){this.hits++;this.hitTrains=bike.health>0;if(bike.damage(amount,handle,explosive,undefined,vehicleHit))this.onCrime?.(CRIME.destroyVehicle,`bike:${bike.body.handle}`);return true;}
-  for(const plane of this.fleet()?.planes??[])for(let i=0;i<plane.body.numColliders();i++)if(plane.body.collider(i).handle===handle&&plane.health>0){this.hits++;this.hitTrains=true;if(plane.damage(amount,explosive?51:hit?.weapon??-1,vehicleHit.byPlayer)){this.onCrime?.(plane.helicopter?CRIME.destroyHeli:CRIME.destroyPlane,`plane:${plane.body.handle}`);if(!plane.bombTimerMs)this.explode(plane.body.translation(),EXPLOSION_TYPE.aircraft,plane);}return true;}
+   for(const bike of this.fleet()?.bikes??[])if(!bike.wrecked&&[...Array(bike.body.numColliders()).keys()].some(i=>bike.body.collider(i).handle===handle)){this.hits++;this.hitTrains=bike.health>0;if(bike.damage(amount,handle,explosive,undefined,vehicleHit)&&vehicleHit.byPlayer)this.onCrime?.(CRIME.destroyVehicle,`bike:${bike.body.handle}`);return true;}
+  for(const plane of this.fleet()?.planes??[])for(let i=0;i<plane.body.numColliders();i++)if(plane.body.collider(i).handle===handle&&plane.health>0){this.hits++;this.hitTrains=true;if(plane.damage(amount,explosive?51:hit?.weapon??-1,vehicleHit.byPlayer)){if(vehicleHit.byPlayer)this.onCrime?.(plane.helicopter?CRIME.destroyHeli:CRIME.destroyPlane,`plane:${plane.body.handle}`);if(!plane.bombTimerMs)this.explode(plane.body.translation(),EXPLOSION_TYPE.aircraft,plane,vehicleHit.byPlayer);}return true;}
   return false;
  }
  private radial(position:Vec3,radius:number,damage:number,ignitePeople=false,gas=false){
@@ -436,9 +470,9 @@ export class WeaponSystem {
  private hazard(kind:Hazard['kind'],position:Vec3,radius:number,remaining=kind==='flame'?6:9){if(this.hazards.length>=16)this.hazards.shift();this.hazards.push({kind,position:{...position},radius,remaining,tick:0});}
  /** A plane or helicopter (EXPLOSION_AIRCRAFT, with its follow-up rockets while it lasts), a boat (EXPLOSION_BOAT) or a
   * bike blowing up. CBike::BlowUpCar is unreversed; its Vice City ancestor uses EXPLOSION_CAR. */
- vehicleExplosion(position:Vec3,kind:'aircraft'|'boat'|'bike'='aircraft',victim?:()=>Vec3|undefined){
-  this.explode(position,kind==='boat'?EXPLOSION_TYPE.boat:kind==='bike'?EXPLOSION_TYPE.car:EXPLOSION_TYPE.aircraft);
-  if(kind==='aircraft'&&victim)this.aircraftExplosions.push({victim,remainingMs:explosionParams(EXPLOSION_TYPE.aircraft).durationMs,frameMs:0});
+ vehicleExplosion(position:Vec3,kind:'aircraft'|'boat'|'bike'='aircraft',victim?:()=>Vec3|undefined,byPlayer=false){
+  this.explode(position,kind==='boat'?EXPLOSION_TYPE.boat:kind==='bike'?EXPLOSION_TYPE.car:EXPLOSION_TYPE.aircraft,undefined,byPlayer);
+  if(kind==='aircraft'&&victim)this.aircraftExplosions.push({victim,byPlayer,remainingMs:explosionParams(EXPLOSION_TYPE.aircraft).durationMs,frameMs:0});
  }
  /** Development: add an explosion of a native type at a renderer-frame point. */
  /** CExplosion::AddExplosion from the script: no creator; `makeSound` false leaves out only the blast's sound. */
@@ -582,30 +616,119 @@ export class WeaponSystem {
   return found;
  }
  fireAircraft(plane:WorldPlane,rocket=false){
-  if(!plane.occupied||plane.health<=0||!plane.armed||(rocket?this.aircraftOrdnanceCooldown:this.aircraftGunCooldown)>0||this.sim.player.health<=0)return false;
+  if(!(plane.occupied||plane.remoteControlled)||plane.health<=0||!plane.armed||rocket&&this.aircraftOrdnanceCooldown>0||this.sim.player.health<=0)return false;
+  const gunRate=({447:40,464:40,476:80,520:17} as Record<number,number>)[plane.modelId]??60;
+  if(!rocket&&!vehicleGunReady(this.nowMs,this.vehicleGunTimes.get(plane)??0,gunRate))return false;
   // FirePlaneGuns and FireUnguidedMissile fire a fresh CWeapon each time: an aircraft's guns and rockets never run out.
   if(rocket&&(!plane.rocketsArmed||this.projectiles.length+2>MAX_PROJECTILES))return false;
   // GetPlaneGunsRateOfFire (Seasparrow 40, Rustler 80, Hydra 17, others 60 ms) and GetPlaneOrdnanceRateOfFire (Hunter and
   // Hydra 500, Rustler and Seasparrow 1000 ms).
   if(rocket)this.aircraftOrdnanceCooldown=({425:.5,520:.5,476:1,447:1} as Record<number,number>)[plane.modelId]??.35;
-  else this.aircraftGunCooldown=({447:.04,476:.08,520:.017} as Record<number,number>)[plane.modelId]??.06;
+  else this.vehicleGunTimes.set(plane,this.nowMs>>>0);
   this.aircraftShots++;
   // FirePlaneGuns fires a CWeapon of WEAPON_MINIGUN (Hunter, Hydra) or WEAPON_M4 (Rustler, Seasparrow): its weapon.dat
   // damage and range.
-  const gunWeapon=plane.modelId===476||plane.modelId===447?31:38,gunInfo=this.inventory.info(gunWeapon),gunDamage=gunInfo?.damage??35,gunRange=gunInfo?.weaponRange??400;const q=new Quaternion().copy(plane.body.rotation()),direction=new Vector3(0,0,-1).applyQuaternion(q),position=plane.body.translation(),from=new Vector3(0,0,-Math.min(6,plane.assets.collision!.bounds.radius)).applyQuaternion(q).add(position);
+  const q=new Quaternion().copy(plane.body.rotation()),direction=new Vector3(0,0,-1).applyQuaternion(q),position=plane.body.translation(),from=new Vector3(0,0,-Math.min(6,plane.assets.collision!.bounds.radius)).applyQuaternion(q).add(position);
   // FireUnguidedMissile: two rockets a press, each from the ordnance position (right, forward, up in the model) moved
   // ahead by the frame's forward travel.
   if(rocket){const [ox,oy,oz]=plane.ordnancePosition(),v=plane.body.linvel(),ahead=Math.max(0,direction.dot(new Vector3(v.x,v.y,v.z)))/50,origin=new Vector3(ox,oz,-oy).applyQuaternion(q).add(position).addScaledVector(direction,ahead);
    // AddProjectile for a vehicle's rocket: along the vehicle's forward at 0.4 units a frame plus its own speed.
    const launch=launchVelocity('rocket',{x:direction.x,y:direction.y,z:direction.z},0,Math.hypot(v.x,v.y,v.z));
    for(let i=0;i<2;i++)this.projectiles.push({id:this.serial++,weapon:35,position:origin.clone(),velocity:{...launch},fuse:projectileTuning('rocket').fuse,stuck:false,owner:plane.body.handle,byPlayer:true,forward:{x:direction.x,y:direction.y,z:direction.z}});}
-  else{const hit=this.ray(from,direction,gunRange,plane.body),end=from.clone().addScaledVector(direction,hit?.timeOfImpact??gunRange);this.tracer(from,end,'aircraft',.1);this.fx?.gunshot(from,direction,38,true);if(hit){this.hitFx(hit,end,8,38,direction);this.damage(hit.collider.handle,gunDamage,direction);}}
+  else this.fireAircraftGun(plane,true);
   this.onSound?.('fire',rocket?35:38,from,'aircraft');this.onCrime?.(rocket?CRIME.explosion:CRIME.fireWeapon,'player');
   // FireUnguidedMissile shakes the player's pad 240 ms at 160; FireFixedMachineGuns 240 at the model's GetModelGunInfo
   // frequency (the Hunter and Cargobob 160, the Seasparrow, RC Baron and Mavericks 92, the Rustler 225, the Hydra 123).
   const gunFrequency=PLANE_GUN_SHAKE[plane.modelId];
   if(rocket)this.onPadShakeDirect?.(240,ROCKET_SHAKE);else if(gunFrequency)this.onPadShakeDirect?.(240,gunFrequency);
   return true;
+ }
+ /** FirePlaneGuns through the existing fixed forward gun line. Enemy rounds include CJ in the line test and
+  * carry their creator through damage; only the player's shots report his crimes or shake his controller. */
+ private fireAircraftGun(plane:WorldPlane,byPlayer:boolean){
+  const weapon=plane.modelId===476||plane.modelId===447||plane.modelId===464?31:38,q=new Quaternion().copy(plane.body.rotation());
+  const direction=new Vector3(0,0,-1).applyQuaternion(q),position=plane.body.translation();
+  const from=new Vector3(0,0,plane.modelId===464?-.45:-Math.min(6,plane.assets.collision!.bounds.radius)).applyQuaternion(q).add(position);
+  this.fireMountedGun(plane.body,from,direction,weapon,byPlayer);
+ }
+ private fireMountedGun(body:RAPIER.RigidBody,from:Vector3,direction:Vector3,weapon:number,byPlayer:boolean,fxOptions?:Parameters<WeaponFxHost['gunshot']>[4]){
+  const info=this.inventory.info(weapon),amount=info?.damage??35,range=info?.weaponRange??400;
+  const hit=this.ray(from,direction,range,body,undefined,byPlayer),end=from.clone().addScaledVector(direction,hit?.timeOfImpact??range);
+  this.tracer(from,end,'aircraft',.1);this.fx?.gunshot(from,direction,weapon,true,fxOptions);
+  if(hit){
+   this.hitFx(hit,end,8,weapon,direction,false,byPlayer,false);
+   if(!byPlayer&&hit.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(amount,false,{weapon,from});
+   else this.damage(hit.collider.handle,amount,direction,false,'bullet',{weapon,point:end,byPlayer});
+  }
+ }
+ /** The SCM command creates a fresh minigun, independent of the held weapon and its ammo; timestamp is shared
+  * with regular plane guns, and script gunfire itself adds no player-input crime or controller shake. */
+ fireHunterGun(vehicle:object,body:RAPIER.RigidBody,matrix:HunterGunMatrix,nowMs:number,timeStep:number,byPlayer:boolean,bounds?:{center:readonly number[];radius:number}){
+  if(!vehicleGunReady(nowMs,this.vehicleGunTimes.get(vehicle)??0,150))return false;
+  const v=body.linvel(),origin=hunterGunOrigin(matrix,{x:Math.fround(v.x/50),y:Math.fround(-v.z/50),z:Math.fround(v.y/50)},timeStep);
+  const from=new Vector3(origin.x,origin.z,-origin.y),direction=new Vector3(matrix.forward.x,matrix.forward.z,-matrix.forward.y).normalize();
+  const c=bounds?.center??[0,0,0],center={x:matrix.position.x+matrix.right.x*c[0]+matrix.forward.x*c[1]+matrix.up.x*c[2],y:matrix.position.z+matrix.right.z*c[0]+matrix.forward.z*c[1]+matrix.up.z*c[2],z:-(matrix.position.y+matrix.right.y*c[0]+matrix.forward.y*c[1]+matrix.up.y*c[2])};
+  this.fireMountedGun(body,from,direction,38,byPlayer,{shell:{direction:[0,Math.fround(.1)],size:Math.fround(.025),creator:{position:{x:matrix.position.x,y:matrix.position.z,z:-matrix.position.y},center,radius:bounds?.radius??0}}});
+  this.vehicleGunTimes.set(vehicle,nowMs>>>0);this.aircraftShots++;this.onSound?.('fire',38,from,'aircraft');return true;
+ }
+
+ /** Attack missions target FindPlayerVehicle only; dogfight targets the player's vehicle or his ped.
+  * The native missile check directly calls AddProjectile, independently of FireUnguidedMissile's model gates. */
+ private updateAIPlaneWeapons(previousMs:number){
+  if(this.sim.player.health<=0)return;
+  const f=this.fleet();if(!f)return;
+  const attackers=[...f.planes??[]].filter(plane=>{
+   const mission=plane.planePilot?.mission;
+   return !plane.occupied&&plane.health>0&&!plane.frozen&&!plane.helicopter&&
+    (mission===MISSION_PLANE_ATTACK_PLAYER||mission===MISSION_PLANE_ATTACK_PLAYER_POLICE||mission===MISSION_PLANE_DOG_FIGHT_PLAYER);
+  });
+  if(!attackers.length)return;
+  const ride=[...f.cars].find(carriesPlayer)?.car.body??
+   [...f.boats??[],...f.bikes??[],...f.planes??[]].find(carriesPlayer)?.body;
+  for(const plane of attackers){
+   const mission=plane.planePilot!.mission;
+   const target=ride??(mission===MISSION_PLANE_DOG_FIGHT_PLAYER?this.sim.playerBody:undefined);
+   const q=new Quaternion().copy(plane.body.rotation()),forward=new Vector3(0,0,-1).applyQuaternion(q),position=plane.body.translation();
+   const request=planeWeaponRequests(position,forward,target?.translation(),plane.weaponSelection,this.nowMs,previousMs);
+   const rate=({447:40,476:80,520:17} as Record<number,number>)[plane.modelId]??60;
+   if(request.guns&&plane.armed&&vehicleGunReady(this.nowMs,this.vehicleGunTimes.get(plane)??0,rate)){
+    this.vehicleGunTimes.set(plane,this.nowMs>>>0);this.fireAircraftGun(plane,false);this.aircraftShots++;
+    this.onSound?.('fire',plane.modelId===476||plane.modelId===447||plane.modelId===464?31:38,position,'aircraft');
+   }
+   if(request.missile&&target&&this.projectiles.length<MAX_PROJECTILES){
+    const origin=new Vector3().copy(position).addScaledVector(forward,4).addScaledVector(new Vector3(0,1,0).applyQuaternion(q),-3);
+    const v=plane.body.linvel();
+    this.projectiles.push({id:this.serial++,weapon:36,position:origin,velocity:launchVelocity('guided',forward,1,Math.hypot(v.x,v.y,v.z)),
+     fuse:projectileTuning('guided').fuse,stuck:false,target:target.handle,kind:'guided',owner:plane.body.handle,forward,byPlayer:false});
+    this.aircraftShots++;this.onSound?.('fire',36,origin,'aircraft');
+   }
+  }
+ }
+ /** SteerAIHeliToAttackPlayer calls the shared gun check and the helicopter's unguided-rocket check.
+  * FindPlayerEntity selects CJ on foot or his occupied vehicle; these helpers use native Z-up float32 order. */
+ private updateAIHelicopterWeapons(previousMs:number){
+  if(this.sim.player.health<=0)return;
+  const fleet=this.fleet();if(!fleet)return;
+  const attackers=[...fleet.planes??[]].filter(heli=>heli.helicopter&&!heli.occupied&&!heli.remoteControlled&&!heli.frozen&&heli.health>0&&
+   (heli.heliPilot?.mission===MISSION_HELI_ATTACK_PLAYER||heli.heliPilot?.mission===MISSION_HELI_ATTACK_PLAYER_FLY_AWAY));
+  if(!attackers.length)return;
+  const ride=[...fleet.cars].find(carriesPlayer)?.car.body??[...fleet.boats??[],...fleet.bikes??[],...fleet.planes??[]].find(carriesPlayer)?.body;
+  const p=this.sim.player.position,target=ride?.translation()??{x:p.x,y:p.y+PED_ORIGIN_HEIGHT,z:p.z};
+  const native=(v:Vec3)=>({x:v.x,y:-v.z,z:v.y});
+  for(const heli of attackers){
+   const q=new Quaternion().copy(heli.body.rotation()),position=heli.body.translation(),forward=new Vector3(0,0,-1).applyQuaternion(q),right=new Vector3(1,0,0).applyQuaternion(q);
+   const request=heliWeaponRequests(native(position),native(right),native(forward),native(target),heli.weaponSelection,this.nowMs,previousMs),rate=heli.modelId===447?40:60;
+   if(request.guns&&heli.armed&&vehicleGunReady(this.nowMs,this.vehicleGunTimes.get(heli)??0,rate)){
+    this.vehicleGunTimes.set(heli,this.nowMs>>>0);this.fireAircraftGun(heli,false);this.aircraftShots++;
+    this.onSound?.('fire',heli.modelId===447?31:38,position,'aircraft');
+   }
+   if(request.rocket&&this.projectiles.length<MAX_PROJECTILES){
+    const r=request.rocket,origin=new Vector3(r.origin.x,r.origin.z,-r.origin.y),direction={x:r.direction.x,y:r.direction.z,z:-r.direction.y},v=heli.body.linvel();
+    this.projectiles.push({id:this.serial++,weapon:35,position:origin,velocity:launchVelocity('rocket',direction,1,Math.hypot(v.x,v.y,v.z)),
+     fuse:projectileTuning('rocket').fuse,stuck:false,kind:'rocket',owner:heli.body.handle,forward:direction,byPlayer:false});
+    this.aircraftShots++;this.onSound?.('fire',35,origin,'aircraft');
+   }
+  }
  }
  /** Random offset inside the native free-aim crosshair circle (CPlayerPed::GetWeaponRadiusOnScreen). */
  private aimSpread(direction:Vec3,info:NativeWeaponInfo){
@@ -627,7 +750,8 @@ export class WeaponSystem {
  private gunTaskUntilMs=-Infinity;
   /** Camera selects a target; a separate muzzle ray prevents firing through nearby walls. */
   fire(camera:{origin:Vec3;direction:Vec3}){
-   const w=this.inventory.weapon;if(!this.ready||this.sim.player.health<=0||this.sim.player.swimming||!this.sim.playerBody.isEnabled()||!this.sim.playerCollider.isEnabled())return false;
+   // Attachment disables the ped's collision, without disabling his weapon task. Seated bodies are disabled.
+   const w=this.inventory.weapon;if(!this.ready||this.sim.player.health<=0||this.sim.player.swimming||!this.sim.playerBody.isEnabled())return false;
   // CWeapon::Fire does nothing with the parachute: player_parachute.scm opens it on the button the fire reads, and
   // without the script the browser's own canopy stands in for it.
   if(w.kind==='parachute'&&(this.sim.player.grounded||this.scriptParachute()))return false;
@@ -675,9 +799,10 @@ export class WeaponSystem {
   if(mode==='sniper'&&info)return this.fireSniper(w,info,camera);
   // CTaskSimpleUseGun::SetPedPosition fires the right hand first, and twin pistols' left hand straight after it.
   const left=false;this.lastHand='right';this.leftHand=false;
+  const shotBody=(w.kind==='bullet'||w.kind==='shotgun'?this.instantHitIgnoredBody?.():undefined)??this.sim.playerBody;
   const handSource=(leftHand:boolean)=>{let at={...this.sim.player.position,y:this.sim.player.position.y+(this.sim.player.crouched?.9:1.3)};
    const m=w.kind==='bullet'||w.kind==='shotgun'||info?.fire==='area'?this.muzzle?.(leftHand):undefined;
-   if(m&&distance(at,m)<3&&!this.ray(at,normalize(add(m,at,-1)),distance(at,m)))at={...m};return at;};
+   if(m&&distance(at,m)<3&&!this.ray(at,normalize(add(m,at,-1)),distance(at,m),shotBody))at={...m};return at;};
   let source=handSource(left);
   const range=info&&info.fire!=='melee'?playerAimReach(w.kind,info):w.range;
   let direction=normalize(camera.direction);
@@ -686,7 +811,7 @@ export class WeaponSystem {
    // CCamera::Find3rdPersonCamTargetVector: the crosshair line starts where it passes the muzzle (the camera source moved
    // along it by the muzzle's projection), so nothing between the camera and CJ is the sight, and the range counts from there.
    const along=Math.max(0,(source.x-camera.origin.x)*direction.x+(source.y-camera.origin.y)*direction.y+(source.z-camera.origin.z)*direction.z);
-   const start=add(camera.origin,direction,along),sight=this.ray(start,direction,range),target=add(start,direction,sight?.timeOfImpact??range);
+   const start=add(camera.origin,direction,along),sight=this.ray(start,direction,range,shotBody),target=add(start,direction,sight?.timeOfImpact??range);
    direction=normalize(add(target,source,-1));
   }
   if(w.kind==='melee'){
@@ -733,13 +858,13 @@ export class WeaponSystem {
   // (flamethrower, spray can, extinguisher) reports with no victim, which CCrime::ReportCrime ignores.
   if(!['flame','spray','extinguisher'].includes(w.kind))this.onCrime?.(['rocket','guided','grenade','molotov','satchel'].includes(w.kind)?CRIME.explosion:CRIME.fireWeapon,'player');
   if(info&&(w.kind==='bullet'||w.kind==='shotgun')){
-   const fired=this.fireInstantHit(w,info,source,direction,undefined,range);
-   if(fired&&twin&&this.inventory.fireAgain()){this.lastHand='left';this.leftHand=true;this.fireInstantHit(w,info,handSource(true),direction,undefined,range);}
+   const fired=this.fireInstantHit(w,info,source,direction,shotBody,range);
+   if(fired&&twin&&this.inventory.fireAgain()){this.lastHand='left';this.leftHand=true;this.fireInstantHit(w,info,handSource(true),direction,shotBody,range);}
    return fired;
   }
   if(['bullet','shotgun'].includes(w.kind)){
    const right=normalize({x:-direction.z,y:0,z:direction.x}),up=normalize({x:-direction.y*direction.x,y:direction.x**2+direction.z**2,z:-direction.y*direction.z});
-   for(let i=0;i<w.pellets;i++){const angle=i*2.399963+(this.inventory.shots%11)*.3,r=w.spread*(1-this.inventory.proficiency*.25)*(w.pellets>1?Math.sqrt((i+.5)/w.pellets):this.aiming?.2:1),dir=normalize(add(add(direction,right,Math.cos(angle)*r),up,Math.sin(angle)*r));const hit=this.ray(source,dir,w.range),end=add(source,dir,hit?.timeOfImpact??w.range);this.tracer(source,end,'player',.065);if(hit){this.effect('impact',end);if(this.damage(hit.collider.handle,w.damage,dir,false,'bullet',{weapon:w.id,point:end})&&this.hitTrains)this.onHit?.(w.id);}}
+   for(let i=0;i<w.pellets;i++){const angle=i*2.399963+(this.inventory.shots%11)*.3,r=w.spread*(1-this.inventory.proficiency*.25)*(w.pellets>1?Math.sqrt((i+.5)/w.pellets):this.aiming?.2:1),dir=normalize(add(add(direction,right,Math.cos(angle)*r),up,Math.sin(angle)*r));const hit=this.ray(source,dir,w.range,shotBody),end=add(source,dir,hit?.timeOfImpact??w.range);this.tracer(source,end,'player',.065);if(hit){this.effect('impact',end);if(this.damage(hit.collider.handle,w.damage,dir,false,'bullet',{weapon:w.id,point:end})&&this.hitTrains)this.onHit?.(w.id);}}
    return true;
   }
   if(info?.fire==='area'){this.addAreaShot(w.id,info,source,add(source,direction,range));this.fx?.areaEffect(w.id,source,direction);return true;}
@@ -820,10 +945,11 @@ export class WeaponSystem {
   }
  }
  /** CWeapon::DoBulletImpact FX for a ray hit: blood on pedestrians, sparks on vehicles, the surface BULLET_FX elsewhere. */
- private hitFx(hit:RAPIER.RayColliderIntersection,point:Vec3,amount:number,weapon:number,direction?:Vec3,sniper=false){
+ private hitFx(hit:RAPIER.RayColliderIntersection,point:Vec3,amount:number,weapon:number,direction?:Vec3,sniper=false,byPlayer=true,playerPedCreator=byPlayer){
   const handle=hit.collider.handle;
+  if(playerPedCreator)this.onPlayerBulletImpact?.(handle);
   if(direction)this.onBulletHit?.(hit,point,Math.asin(Math.max(-1,Math.min(1,-(direction.x*hit.normal.x+direction.y*hit.normal.y+direction.z*hit.normal.z))))*180/Math.PI);
-  this.onObjectShot?.(hit,point,amount<8,sniper,weapon);
+  this.onObjectShot?.(hit,point,amount<8,sniper,weapon,byPlayer);
   if(!this.fx?.ready)return;
    const ped=this.pedestrians()?.targets().some(t=>t.handle===handle),vehicle=[...(this.fleet()?.cars??[])].some(c=>{for(let i=0;i<c.car.body.numColliders();i++)if(c.car.body.collider(i).handle===handle)return true;return false;})||[...(this.fleet()?.boats??[])].some(b=>{for(let i=0;i<b.body.numColliders();i++)if(b.body.collider(i).handle===handle)return true;return false;});
   this.fx.bulletHit({point,normal:{x:hit.normal.x,y:hit.normal.y,z:hit.normal.z},collider:handle,featureType:hit.featureType,featureId:hit.featureId,ped:ped?{head:false,dead:false}:undefined,vehicle},amount);
@@ -834,7 +960,7 @@ export class WeaponSystem {
   // The player's shot shakes his pad (StartShake_Distance at the player, 240 ms at 128).
   this.onPadShake?.(240,128,source);
   const shotgun=w.id===25||w.id===26||w.id===27,direction=this.aimSpread(aim,info),hit=this.ray(source,direction,reach,exclude),end=add(source,direction,hit?.timeOfImpact??reach);
-  const tyre=this.tyreHit(source,direction,hit?.timeOfImpact??reach);
+  const tyre=this.tyreHit(source,direction,hit?.timeOfImpact??reach,exclude);
   if(tyre){
    // DoBulletImpact on a wheel piece: BurstTyre instead of vehicle damage.
    const at=add(source,direction,tyre.t);this.tracer(source,at,'player',.065);this.fx?.gunshot(source,direction,w.id,false);this.effect('impact',at);
@@ -877,7 +1003,7 @@ export class WeaponSystem {
  private pushShotVehicle(hit:RAPIER.RayColliderIntersection,point:Vec3,weapon:number){
   const car=[...(this.fleet()?.cars??[])].find(c=>hit.collider.parent()?.handle===c.car.body.handle);if(car)pushShotVehicle(car,hit.normal,point,weapon);
  }
- private tyreHit(source:Vec3,direction:Vec3,reach:number){return bulletTyreHit(this.fleet()?.cars??[],source,direction,reach);}
+ private tyreHit(source:Vec3,direction:Vec3,reach:number,exclude?:RAPIER.RigidBody){const cars=this.fleet()?.cars??[];return bulletTyreHit(exclude?[...cars].filter(c=>c.car.body.handle!==exclude.handle):cars,source,direction,reach);}
  /** CWeapon::FireAreaEffect for a ped (spray can, extinguisher, flamethrower): CShotInfo::AddShot with the ped as the
   * creator, whose shots pass it by and whose finished tags play no chime. */
  pedAreaShot(weapon:number,origin:Vec3,target:Vec3,creator:number){
@@ -900,10 +1026,16 @@ export class WeaponSystem {
  /** Molotov explosions still active (3000 ms): each frame they set peds, the world and cars alight. */
  private molotovs:{position:Vec3;remaining:number}[]=[];
  /** CProjectileInfo::m_pCreator's position: the player's, or the thrower's body. */
- private projectileThrower(p:Projectile):Vec3|undefined{return p.owner===undefined?this.sim.player.position:this.sim.world.getRigidBody(p.owner)?.translation();}
+ private projectileThrower(p:Projectile):Vec3|undefined{return p.owner===undefined?this.sim.player.position:p.owner<0?undefined:this.sim.world.getRigidBody(p.owner)?.translation();}
+ /** SAM's -1 sentinel must not enter Rapier's handle lookup (it can alias body 0). A vanished launcher excludes
+  * nothing; crime attribution and homing behavior are determined separately by byPlayer. */
+ private projectileOwner(p:Projectile){
+  if(p.owner===undefined)return p.byPlayer?this.sim.playerBody:null;
+  return p.owner<0?null:this.sim.world.getRigidBody(p.owner)??null;
+ }
  /** Live EXPLOSION_AIRCRAFT explosions with a victim: CExplosion::Update adds an EXPLOSION_ROCKET at the victim one
   * frame in twenty (GetRandomNumberInRange(0, 100) < 5) for their 3000 ms. Frames are the PC game's 30 a second. */
- private aircraftExplosions:{victim:()=>Vec3|undefined;remainingMs:number;frameMs:number}[]=[];
+ private aircraftExplosions:{victim:()=>Vec3|undefined;byPlayer:boolean;remainingMs:number;frameMs:number}[]=[];
  /** Pedestrian handles on fire with the seconds left to burn. */
  get burning(){const out=new Map<number,number>();for(const f of this.fires.active)if(f.target?.kind==='ped')out.set(f.target.key as number,Math.max(0,(f.timeToBurn-this.nowMs)/1000));return out;}
  private readonly toNative=(v:Vec3)=>({x:v.x,y:-v.z,z:v.y});
@@ -961,7 +1093,7 @@ export class WeaponSystem {
   for(const m of this.molotovs){m.remaining-=dt;this.setPedsOnFire(m.position,6);this.setWorldOnFire(m.position,6);this.setCarsOnFire(m.position,.1);}
   for(const e of this.aircraftExplosions){
    e.remainingMs-=dt*1000;e.frameMs+=dt*1000;
-   while(e.frameMs>=1000/30&&e.remainingMs>0){e.frameMs-=1000/30;const at=e.victim();if(at&&Math.floor(Math.random()*100)<5)this.explode(at,EXPLOSION_TYPE.rocket);}
+   while(e.frameMs>=1000/30&&e.remainingMs>0){e.frameMs-=1000/30;const at=e.victim();if(at&&Math.floor(Math.random()*100)<5)this.explode(at,EXPLOSION_TYPE.rocket,undefined,e.byPlayer);}
   }
   this.aircraftExplosions=this.aircraftExplosions.filter(e=>e.remainingMs>0);
   this.molotovs=this.molotovs.filter(m=>m.remaining>0);
@@ -1123,6 +1255,7 @@ export class WeaponSystem {
   return {position:{...body.translation()},velocity:{...body.linvel()},plane};
  }
  private heatSeekBody(handle:number){
+  if(handle===this.sim.playerBody.handle)return this.sim.player.health>0?this.sim.playerBody:undefined;
   const f=this.fleet();if(!f)return undefined;
   for(const c of f.cars)if(c.car.body.handle===handle)return c.wrecked?undefined:c.car.body;
   for(const v of [...f.boats,...f.bikes??[]])if(v.body.handle===handle)return v.wrecked?undefined:v.body;
@@ -1158,7 +1291,7 @@ export class WeaponSystem {
   this.lock=vehicle?{handle:vehicle.collider(0).handle,position:{...vehicle.translation()}}:undefined;
  }
   tick(dt:number,camera?:{origin:Vec3;direction:Vec3}){
-   this.aircraftGunCooldown=Math.max(0,this.aircraftGunCooldown-dt);this.aircraftOrdnanceCooldown=Math.max(0,this.aircraftOrdnanceCooldown-dt);
+   this.aircraftOrdnanceCooldown=Math.max(0,this.aircraftOrdnanceCooldown-dt);
    this.inventory.crouched=this.sim.player.crouched;
    if(camera)this.lockCamera={origin:{...camera.origin},direction:{...camera.direction}};
   // CTaskSimpleUseGun::ProcessPed: m_fAttackButtonCounter decays by 0.96 a frame while the gun task runs (aiming, or a
@@ -1199,7 +1332,7 @@ export class WeaponSystem {
    const p=this.sim.player.position;this.fire({origin:{...p,y:p.y+1.3},direction:{x:Math.sin(this.sim.player.heading),y:0,z:Math.cos(this.sim.player.heading)}});
   }
   if(this.strike){this.strike.remaining-=dt;if(this.strike.remaining<=0){const strike=this.strike;this.strike=undefined;this.resolveStrike(strike);}}
-  this.updateAreaShots(dt);this.updateBullets(dt);this.nowMs+=dt*1000;this.explosionSlots.expire(this.nowMs);this.updateFires(dt);this.releaseExplosions();
+  this.updateAreaShots(dt);this.updateBullets(dt);const previousMs=this.nowMs;this.nowMs+=dt*1000;this.updateAIPlaneWeapons(previousMs);this.updateAIHelicopterWeapons(previousMs);this.explosionSlots.expire(this.nowMs);this.updateFires(dt);this.releaseExplosions();
   for(const h of this.hazards){h.remaining-=dt;h.tick-=dt;if(h.tick<=0){h.tick=.5;this.effect(h.kind,h.position,h.position,.7,h.radius);this.radial(h.position,h.radius,h.kind==='flame'?12:4,h.kind==='flame',h.kind==='gas');this.pedestrians()?.frighten(h.position,15);}}
   this.hazards=this.hazards.filter(h=>h.remaining>0);
   const survivors:Projectile[]=[];
@@ -1212,9 +1345,9 @@ export class WeaponSystem {
    // gravity, drag and bounce (AUTHORED).
    let impact=false;
    if(!p.stuck){
-    if(rocket)stepRocketVelocity(p,p.kind??w.kind,dt,p.target!==undefined?this.heatSeekTarget(p.target):undefined,p.owner===undefined);
+    if(rocket)stepRocketVelocity(p,p.kind??w.kind,dt,p.target!==undefined?this.heatSeekTarget(p.target):undefined,p.byPlayer);
     else{p.velocity.y-=tune.gravity*dt;const air=projectileAirResistance(dt);p.velocity={x:p.velocity.x*air,y:p.velocity.y*air,z:p.velocity.z*air};
-     p.elasticity=settledElasticity(w.kind,p.velocity,p.elasticity??tune.bounce);}const length=Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)*dt,dir=normalize(p.velocity),hit=this.ray(p.position,dir,length+.06,p.owner===undefined?this.sim.playerBody:this.sim.world.getRigidBody(p.owner)??this.sim.playerBody);
+     p.elasticity=settledElasticity(w.kind,p.velocity,p.elasticity??tune.bounce);}const length=Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)*dt,dir=normalize(p.velocity),hit=this.ray(p.position,dir,length+.06,this.projectileOwner(p),undefined,p.byPlayer);
     // A molotov within √2 of its thrower is not yet tested and bounces like the rest (molotovArmed).
     const armed=w.kind!=='molotov'||molotovArmed(p.position,this.projectileThrower(p));
     if(hit){p.position=add(p.position,dir,Math.max(0,hit.timeOfImpact-.07));impact=armed;

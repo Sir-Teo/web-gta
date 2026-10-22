@@ -2,6 +2,8 @@
  * 0x6FABF0) for the world's coronas: slots registered each frame, faded in and out, and drawn by the caller. Positions
  * are native world units. The sun keeps its own `SunCoronas`. */
 export const MAX_NUM_CORONAS=64;
+/** CCoronas::aCoronaSpriteNames (PC 0x8d4950). Empty entries have no raster. */
+export const CORONA_TEXTURE_NAMES=['coronastar','coronastar','coronamoon','coronareflect','coronaheadlightline','','','','','coronaringb'] as const;
 export interface NativeCorona {
  /** m_dwId; 0 is a free slot. */
  id:number;
@@ -13,17 +15,17 @@ export interface NativeCorona {
  position:[number,number,number];size:number;farClip:number;
  /** m_fNearClip: how far the sprite is pulled toward the camera. */
  nearClip:number;
- checkObstacles:boolean;fadeSpeed:number;onlyFromBelow:boolean;flareType:number;reflection:boolean;
+ checkObstacles:boolean;fadeSpeed:number;onlyFromBelow:boolean;flareType:number;reflection:boolean;coronaType:number;
  offScreen:boolean;justCreated:boolean;registeredThisFrame:boolean;
  /** m_bHasValidHeightAboveGround and m_fHeightAboveGround, for the wet-road reflection. */
  validHeight:boolean;heightAboveGround:number;
 }
 export interface CoronaRegistration {
  id:number;color:readonly [number,number,number];intensity:number;position:readonly [number,number,number];size:number;range:number;
- flareType?:number;reflection?:boolean;checkObstacles?:boolean;neonFade?:boolean;pullTowardsCamera?:number;fullBrightAtStart?:boolean;
+ flareType?:number;reflection?:boolean;checkObstacles?:boolean;neonFade?:boolean;pullTowardsCamera?:number;fullBrightAtStart?:boolean;coronaType?:number;
  fadeSpeed?:number;onlyFromBelow?:boolean;
 }
-const empty=():NativeCorona=>({id:0,color:[0,0,0],alpha:0,faded:0,position:[0,0,0],size:0,farClip:0,nearClip:0,checkObstacles:false,fadeSpeed:15,onlyFromBelow:false,flareType:0,reflection:false,offScreen:true,justCreated:false,registeredThisFrame:false,validHeight:false,heightAboveGround:0});
+const empty=():NativeCorona=>({id:0,color:[0,0,0],alpha:0,faded:0,position:[0,0,0],size:0,farClip:0,nearClip:0,checkObstacles:false,fadeSpeed:15,onlyFromBelow:false,flareType:0,reflection:false,coronaType:0,offScreen:true,justCreated:false,registeredThisFrame:false,validHeight:false,heightAboveGround:0});
 
 export class NativeCoronas {
  readonly coronas:NativeCorona[]=Array.from({length:MAX_NUM_CORONAS},empty);
@@ -52,7 +54,7 @@ export class NativeCoronas {
   }
   c.color=[r.color[0],r.color[1],r.color[2]];c.alpha=alpha;c.position=[r.position[0],r.position[1],r.position[2]];c.size=r.size;
   c.registeredThisFrame=true;c.farClip=r.range;c.nearClip=r.pullTowardsCamera??1.5;c.flareType=r.flareType??0;c.reflection=!!r.reflection;
-  c.checkObstacles=!!r.checkObstacles;c.fadeSpeed=r.fadeSpeed??15;c.onlyFromBelow=!!r.onlyFromBelow;
+  c.checkObstacles=!!r.checkObstacles;c.fadeSpeed=r.fadeSpeed??15;c.onlyFromBelow=!!r.onlyFromBelow;c.coronaType=r.coronaType??0;
  }
  /** CCoronas::UpdateCoronaCoors (0x6FC4D0). */
  updateCoors(id:number,position:readonly [number,number,number],range:number,camera:readonly [number,number,number]){

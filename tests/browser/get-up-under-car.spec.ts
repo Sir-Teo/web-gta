@@ -2,6 +2,10 @@ import {test,expect,type Page} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 
 const state=(page:Page)=>page.evaluate(()=>(window as any).__game.state());
+const stuckQuery=(page:Page,handle=1)=>page.evaluate(handle=>{
+ const g=(window as any).__game,m=g.missionForProfiling(),code=new Uint8Array([0x5d,9,1,0,0,0,0,0x4e,0]);new DataView(code.buffer).setInt32(3,handle,true);
+ const slot=m.runtime.start(0,[],{space:code});slot.thread.run(g.gameTimeMs(),100,1);return slot.thread.condition;
+},handle);
 /** The placed civilian by id. */
 const ped=(page:Page,id:number)=>page.evaluate(id=>{
  const best=((window as any).__game.pedestrians().people as any[]).find(p=>p.id===id);
@@ -13,22 +17,29 @@ test('a car parked over a fallen ped or CJ keeps them down until it moves; the g
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  await expect.poll(async()=>(await state(page)).player.grounded).toBe(true);
+ // Ending INTRO can leave its temporary player safety on; this fixture needs ordinary run-over damage.
+ await page.evaluate(()=>{const w=(window as any).__game.missionForProfiling().runtime.world;w.makePlayerSafe(0,false,10000);w.setPlayerControl(0,true);w.setAllVehiclesCanBeDamaged(false);});
+ expect(await stuckQuery(page)).toBe(false);
  // CJ: the empty starter car twelve metres behind runs him down. It coasts and brakes on the way, and the hit needs
  // 25 m/s at contact, so it leaves at 36.
- await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2491,12.6,1668);g.placeCar(2491,13.3,1680,0);});
+ await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2491,12.6,1668);g.sim.player.health=1000;g.sim.player.armour=0;g.placeCar(2491,13.3,1680,0);});
  await page.waitForTimeout(800);
  await page.evaluate(()=>(window as any).__game.launchCar(36));
  await expect.poll(async()=>(await state(page)).knockdown,{timeout:3000}).toBeGreaterThan(0);
  const hurt=(await state(page)).player.health;
  // Parked back over him (peds and cars share no solver group, so it settles on the road) he stays down, run over for
  // the time step a frame.
- await page.evaluate(()=>{const g=(window as any).__game,s=g.state();g.placeCar(s.player.position.x,s.player.position.y+.7,s.player.position.z,0);});
- await expect.poll(async()=>(await state(page)).stuckUnderCar,{timeout:8000}).toBe(true);
- await page.waitForTimeout(600);
+ await expect.poll(()=>page.evaluate(()=>{const g=(window as any).__game,s=g.state();if(s.stuckUnderCar)return true;
+  // Remove the fixture's residual strike impulse, then hold the parked car over CJ while the fall reaches get-up.
+  g.sim.collisionPush={x:0,z:0};g.placeCar(s.player.position.x,s.player.position.y+.7,s.player.position.z,0);return false;
+ }),{timeout:12000}).toBe(true);
+ expect(await stuckQuery(page)).toBe(true);
+ await expect.poll(async()=>(await state(page)).player.health,{timeout:5000}).toBeLessThan(hurt-10);
  const stuck=await state(page);expect(stuck.knockdown).toBeGreaterThan(0);expect(stuck.player.health).toBeLessThan(hurt-10);
  // The car moved off, he gets up and the bleeding stops.
  await page.evaluate(()=>{const g=(window as any).__game,s=g.state();g.placeCar(s.player.position.x+15,s.player.position.y+.7,s.player.position.z,0);});
  await expect.poll(async()=>(await state(page)).stuckUnderCar,{timeout:3000}).toBe(false);
+ expect(await stuckQuery(page)).toBe(false);
  const freed=(await state(page)).player.health;
  await expect.poll(async()=>(await state(page)).knockdown,{timeout:6000}).toBe(0);
  expect((await state(page)).player.health).toBe(freed);
@@ -37,6 +48,8 @@ test('a car parked over a fallen ped or CJ keeps them down until it moves; the g
  const id=await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2480,12.6,1676);g.placeCar(2491,13.3,1680,0);return g.placePed(2491,12.6,1676.5);});
  expect(typeof id).toBe('number');
  await page.waitForTimeout(500);
+ const handle=await page.evaluate(id=>{const g=(window as any).__game,m=g.missionForProfiling(),p=g.pedestrians().people.find((p:any)=>p.id===id),at=p.actor.player.position;return m.peds.adopt(p,4,p.modelRef,{x:at.x,y:-at.z,z:at.y},p.actor.player.heading,p.health);},id);
+ expect(await stuckQuery(page,handle)).toBe(false);
  // A parked car's brakes stop a single push within a metre, so the launch repeats until the strike.
  const trail:string[]=[];
  for(let i=0;i<60&&!((await ped(page,id))!.down>0);i++){await page.evaluate(()=>(window as any).__game.launchCar(6));const p=(await ped(page,id))!;trail.push(`${p.down}/${p.evade}/${p.x.toFixed(1)},${p.z.toFixed(1)}`);await page.waitForTimeout(50);}
@@ -49,11 +62,13 @@ test('a car parked over a fallen ped or CJ keeps them down until it moves; the g
  const after:string[]=[];
  for(let i=0;i<80&&!(await ped(page,id))?.stuck;i++){const p=await ped(page,id);const n=await page.evaluate(()=>((window as any).__game.pedestrians().people as any[]).length);after.push(p?`${p.down.toFixed(2)}/${p.health}/${p.reaction}/${p.stuck}/${n}/y${p.y.toFixed(2)}/a${p.alpha}${p.fadeOut?'F':''}`:`gone/${n}`);await page.waitForTimeout(100);}
  {const gone=after.findIndex(e=>e.startsWith('gone'));expect((await ped(page,id))?.stuck,after.slice(Math.max(0,gone-8),gone+1).join(' ')).toBe(true);}
+ expect(await stuckQuery(page,handle)).toBe(true);
  await page.waitForTimeout(2000);
  const held=(await ped(page,id))!;expect(held.down).toBeGreaterThan(0);expect(held.stuck).toBe(true);expect(held.reaction).not.toMatch(/^getup/);
  // The car moved away, the get-up plays: GETUP_FRONT only after a front fall.
  await page.evaluate(([x,y,z])=>(window as any).__game.placeCar(x+15,y+.7,z,0),[fallen.x,fallen.y,fallen.z] as const);
  await expect.poll(async()=>(await ped(page,id))?.reaction,{timeout:4000}).toMatch(/^getup/);
+ expect(await stuckQuery(page,handle)).toBe(false);
  const rising=(await ped(page,id))!;
  expect(rising.reaction).toBe(['ko_shot_front','ko_skid_back','floor_hit_f'].includes(fallen.fall)?'getup_front':'getup');
  await expect.poll(async()=>(await ped(page,id))?.down,{timeout:6000}).toBe(0);

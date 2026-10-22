@@ -36,3 +36,23 @@ test('a crate inside a van passes out through it and collides with it again once
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.sortedOutCollisions().length),{timeout:10000}).toBe(0);
  expect(errors).toEqual([]);
 });
+
+test('SORT_OUT accepts the RC helicopter and releases its object pair when the helicopter moves clear',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});await endStoryMission(page);
+ const heli=await page.evaluate(()=>{const m=(window as any).__game.missionForProfiling(),p=m.runtime.world.pedPosition(1);return m.vehicles.create(501,{x:p.x+20,y:p.y,z:p.z+20});});
+ await page.waitForFunction(h=>!!(window as any).__game.missionForProfiling().vehicles.entity(h),heli,{timeout:60000});
+ const object=await page.evaluate(async h=>{
+  const path='/tests/fixtures/native-render-dependencies.ts',{RAPIER}=await import(/* @vite-ignore */ path),g=(window as any).__game,m=g.missionForProfiling(),v=m.vehicles.entity(h);
+  v.body.setBodyType(RAPIER.RigidBodyType.Fixed,true);
+  return m.runtime.game.objects.create('barrel2',m.vehicles.positionOf(h),{external:false,missionCleanup:false}).handle as number;
+ },heli);
+ await page.waitForFunction(h=>!!(window as any).__game.scriptObjectViews()?.bodyOf(h),object,{timeout:60000});
+ await page.evaluate(({object,heli})=>(window as any).__game.missionForProfiling().runtime.world.sortOutObjectCollisionWithVehicle(object,heli),{object,heli});
+ expect(await page.evaluate(()=>(window as any).__game.sortedOutCollisions())).toContain(object);
+ expect(await page.evaluate(h=>(window as any).__game.missionForProfiling().runtime.world.isObjectIntersectingWorld(h),object)).toBe(false);
+ await page.evaluate(h=>{const m=(window as any).__game.missionForProfiling(),p=m.vehicles.positionOf(h);m.runtime.world.setVehicleCoordinates(h,p.x+50,p.y,p.z);},heli);
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.sortedOutCollisions()),{timeout:15000}).not.toContain(object);
+ expect(errors).toEqual([]);
+});

@@ -14,10 +14,10 @@ test('vehicle destruction kills its driver regardless of armour or damage scalin
     const destroy=()=>kind==='plane'?vehicle.damage(10000):vehicle.blowUp();
     destroy();expectDestroyed();
     function expectDestroyed(){if(vehicle.health!==0)throw new Error(`${kind} fixture did not destroy the vehicle`);}
-    const death={health:sim.player.health,armour:sim.player.armour,timer:sim.deathRemaining,occupied:vehicle.occupied};
+    const death={health:sim.player.health,armour:sim.player.armour,timer:sim.deathRemaining,occupied:vehicle.occupied,scorched:sim.playerRenderScorched};
     sim.advancePlayerDeath(1);const remaining=sim.deathRemaining;
     destroy(); // repeated destruction of the same wreck cannot restart death
-    results.push({kind,death,remaining,afterRepeat:sim.deathRemaining});
+    const afterRepeat=sim.deathRemaining;sim.resetPlayer();results.push({kind,death,remaining,afterRepeat,resetScorched:sim.playerRenderScorched});
    }finally{vehicle.dispose();sim.dispose();}
   }
   return results;
@@ -26,5 +26,6 @@ test('vehicle destruction kills its driver regardless of armour or damage scalin
   expect(r.death.health,r.kind).toBe(0);expect(r.death.armour,r.kind).toBe(100);
   expect(r.death.timer,r.kind).toBeGreaterThan(0);expect(r.death.occupied,r.kind).toBe(false);
   expect(r.afterRepeat,r.kind).toBe(r.remaining);
+  expect(r.death.scorched,r.kind).toBe(true);expect(r.resetScorched,r.kind).toBe(false);
  }
 });

@@ -13,6 +13,7 @@ test('new-game pickups come from MAIN initialization, INITIAL and INITIL2 with r
  const pistol=pickups.find(p=>p.category==='weapon'&&p.model==='colt45');expect(pistol).toBeDefined();
  const armour=pickups.find(p=>p.category==='armour');expect(armour?.modelId).toBe(1242);expect(armour?.dictionary).toBe('icons7');
  expect(pickups.filter(p=>p.category==='save'&&p.position[2]<INTERIOR_HEIGHT).map(p=>p.position.map(v=>Math.round(v)))).toEqual([[417,2539,10]]);
+ const verdant=pickups.find(p=>p.category==='save'&&p.position[2]<INTERIOR_HEIGHT)!;expect(verdant.position).toEqual([416.875,2538.75,9.5]);expect(verdant.id).toBe('1277:417.0,2538.8,9.5');
  expect(pickups.find(p=>p.category==='propertyForSale')?.price).toBeGreaterThan(0);
  expect(new Set(pickups.map(p=>p.id)).size).toBe(pickups.length);
 });

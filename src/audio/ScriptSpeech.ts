@@ -36,8 +36,17 @@ export class ScriptSpeech {
  private decoded=new Map<number,AudioBuffer>();
  constructor(private base:string,private decode:(mp3:ArrayBuffer)=>Promise<AudioBuffer>,private fetcher:typeof fetch=(...a)=>fetch(...a)){}
  private readManifest(){
-  return this.manifest??=this.fetcher(new URL('script.json',this.base)).then(r=>r.ok?r.json():undefined).then((m:ScriptSpeechManifest|undefined)=>
-   m&&m.version===1&&m.firstBank===SCRIPT_BANK_FIRST&&Array.isArray(m.banks)?m:undefined).catch(()=>undefined);
+  if(!this.manifest){
+   const pending=this.fetcher(new URL('script.json',this.base)).then(r=>{
+    if(r.status===404)return undefined;
+    if(!r.ok)throw new Error('Speech manifest unavailable.');
+    return r.json();
+   }).then((m:ScriptSpeechManifest|undefined)=>m&&m.version===1&&m.firstBank===SCRIPT_BANK_FIRST&&Array.isArray(m.banks)?m:undefined);
+   this.manifest=pending;
+   // A transient failure must also reject the dependent bank/line requests, so their caches evict it.
+   void pending.catch(()=>{if(this.manifest===pending)this.manifest=undefined;});
+  }
+  return this.manifest;
  }
  private bank(id:number){
   let pending=this.banks.get(id);

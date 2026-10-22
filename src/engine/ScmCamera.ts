@@ -6,7 +6,7 @@ import {requireAsset} from '../assets/binary';
 /** eCamMode values the script's restore and take-control paths use. */
 export const MODE_FOLLOWPED=4,MODE_FIXED=15,MODE_CAM_ON_A_STRING=18,MODE_ATTACHCAM=47;
 /** eSwitchType. */
-export const SWITCH_INTERPOLATION=0,SWITCH_JUMPCUT=1;
+export const SWITCH_INTERPOLATION=1,SWITCH_JUMPCUT=2;
 /** m_nModeObbeCamIsInForCar, which both restores set back to thirty. */
 export const OBBE_MODE_DEFAULT=30;
 export interface Vec3 {x:number;y:number;z:number}

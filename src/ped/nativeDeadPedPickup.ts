@@ -1,6 +1,6 @@
 /** CPed::CreateDeadPedPickupCoors (GET_DEAD_CHAR_PICKUP_COORDS, and where a dead ped's weapons land). SA hands it to
- * CPickups::CreatePickupCoorsCloseToCoors (0x458A80), which gta-reversed leaves unreversed; this is VC's own body of
- * the same function (reVC Pickups.cpp), which SA's grew out of. Native axes, Z up.
+ * CPickups::CreatePickupCoorsCloseToCoors (PC 0x458A80, iOS 0x1001c416c). Seventeen executable captures establish
+ * the shared random angle, float32 arithmetic and retry decisions. Native axes, Z up.
  *
  * Thirty-two tries at a random point 1.5 units round the ped, each dropped to the ground under it (FindGroundZFor3DCoord
  * from the ped's height) and lifted 0.5: a try is taken once it stands more than 2 units from the player, no pickup is
@@ -19,21 +19,23 @@ export interface DeadPedPickupWorld {
  /** CGeneral::GetRandomNumber() % 256. */
  random256():number;
 }
-const ATTEMPTS=32;
+const ATTEMPTS=32,f=Math.fround,ANGLE_STEP=f(Math.PI*2/256);
 export function deadPedPickupCoors(ped:{x:number;y:number;z:number},player:{x:number;y:number},world:DeadPedPickupWorld){
+ const px=f(ped.x),py=f(ped.y),pz=f(ped.z),playerX=f(player.x),playerY=f(player.y);
  for(let i=0;i<ATTEMPTS;i++){
-  const x=1.5*Math.sin(world.random256()/256*Math.PI*2)+ped.x,y=1.5*Math.cos(world.random256()/256*Math.PI*2)+ped.y;
-  const ground=world.groundZ(x,y,ped.z);if(ground===undefined)continue;
-  const pickup={x,y,z:ground+.5},middle={x:ped.x,y:ped.y,z:ped.z+.3};
-  const d={x:pickup.x-middle.x,y:pickup.y-middle.y,z:pickup.z-middle.z},length=Math.hypot(d.x,d.y,d.z);
+  const angle=f((world.random256()&255)*ANGLE_STEP),x=f(f(f(Math.sin(angle))*1.5)+px),y=f(f(f(Math.cos(angle))*1.5)+py);
+  const ground=world.groundZ(x,y,pz);if(ground===undefined)continue;
+  const pickup={x,y,z:f(f(ground)+.5)},middle={x:px,y:py,z:f(pz+f(.3))};
+  const d={x:f(x-px),y:f(y-py),z:f(pickup.z-middle.z)},length=f(Math.sqrt(f(f(f(d.x*d.x)+f(d.y*d.y))+f(d.z*d.z))));
   // The pickup's outer edge, 0.4 further out along the line from the ped.
-  const k=length>0?(length+.4)/length:1,edge={x:middle.x+d.x*k,y:middle.y+d.y*k,z:middle.z+d.z*k};
+  const k=f(f(length+f(.4))/length),edge={x:f(px+f(d.x*k)),y:f(py+f(d.y*k)),z:f(middle.z+f(d.z*k))};
   const late=i>ATTEMPTS/2;
-  if(!(Math.hypot(pickup.x-player.x,pickup.y-player.y)>2||late))continue;
-  if(!late&&world.pickupsInBubble(pickup,1.3))continue;
+  const dx=f(x-playerX),dy=f(y-playerY),distance=f(Math.sqrt(f(f(dx*dx)+f(dy*dy))));
+  if(!(distance>2||late))continue;
+  if(!late&&world.pickupsInBubble(pickup,f(1.3)))continue;
   if(!world.lineOfSightClear(edge,middle,i<ATTEMPTS/2))continue;
-  if(!late&&world.vehicleInSphere(pickup,1.2))continue;
+  if(!late&&world.vehicleInSphere(pickup,f(1.2)))continue;
   return pickup;
  }
- return {x:ped.x,y:ped.y,z:ped.z+.4};
+ return {x:px,y:py,z:f(pz+f(.4))};
 }

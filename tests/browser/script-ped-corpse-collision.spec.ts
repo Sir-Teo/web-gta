@@ -17,11 +17,15 @@ test('a dead script ped lies where it fell while CJ is away',async({page})=>{
  await page.waitForTimeout(1500);
  await w('setPedHealth',ped,0);
  await expect.poll(()=>w('pedIsDeadForScript',ped),{timeout:10000}).toBe(true);
- await page.waitForTimeout(2000);
+ // A wall-clock delay can expire while the held death animation and low collider are still falling,
+ // especially during terrain installation. Record the resting pose only after real animation/contact completion.
+ await page.waitForFunction(h=>{const p=(window as any).__game.missionForProfiling().peds.entity(h);return p.view.reactionPlayedOut&&p.controller.computedGrounded();},ped,{timeout:30000});
  const lying=(await w('pedPosition',ped) as {z:number}).z;
+ const sample=()=>page.evaluate(h=>{const g=(window as any).__game,p=g.missionForProfiling().peds.entity(h);return {position:{...p.actor.player.position},body:{...p.body.translation()},wait:p.collisionWait??null,grounded:p.actor.player.grounded,death:p.deathState,clip:p.view.reactionName,progress:p.view.reactionProgress};},ped);
+ const before=await sample();
  // CJ goes back to Grove Street, five hundred units off: the window round him no longer holds the drive-thru.
  await w('setPedCoordinates',1,2495,-1687,-100);
- await page.waitForTimeout(10000);
- expect(Math.abs((await w('pedPosition',ped) as {z:number}).z-lying)).toBeLessThan(.5);
+ const samples=[];for(let i=0;i<10;i++){await page.waitForTimeout(1000);samples.push(await sample());}
+ expect(Math.abs((await w('pedPosition',ped) as {z:number}).z-lying),JSON.stringify({before,samples})).toBeLessThan(.5);
  expect(errors).toEqual([]);
 });

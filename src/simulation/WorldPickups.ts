@@ -5,6 +5,7 @@ import {openStaticWorld} from '../assets/staticWorldArchive';
 import {ModelReadCache,readModel} from '../assets/readModel';
 import {modelObject} from '../assets/ModelObjects';
 import {INTERIOR_HEIGHT,PICKUP_TYPE,type ScmPickup} from '../assets/scmPickups';
+import {nativePickupCoordinate} from '../assets/nativePickupPosition';
 import type {Simulation} from './Simulation';
 /** AmmoForWeapon_OnStreet, indexed by eWeaponType. */
 export const AMMO_ON_STREET=[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,8,8,8,8,4,4,30,10,10,15,10,10,60,60,80,80,60,20,10,4,3,100,500,5,1,500,500,36,0,0,1] as const;
@@ -89,7 +90,7 @@ export class WorldPickups {
  counts(){const count=(category:string)=>this.states.filter(s=>s.pickup.category===category&&this.collected.has(s.pickup.id)).length;return {horseshoe:count('horseshoe'),oyster:count('oyster'),snapshot:count('snapshot')};}
  /** A pickup's renderer-space position, made once per pickup (pickups do not move); callers only read it. */
  private readonly worlds=new WeakMap<ScmPickup,Vector3>();
- private world(p:ScmPickup){let w=this.worlds.get(p);if(!w){w=new Vector3(p.position[0],p.position[2],-p.position[1]);this.worlds.set(p,w);}return w;}
+ private world(p:ScmPickup){let w=this.worlds.get(p);if(!w){w=new Vector3(nativePickupCoordinate(p.position[0]),nativePickupCoordinate(p.position[2]),-nativePickupCoordinate(p.position[1]));this.worlds.set(p,w);}return w;}
  /** Each revenue pickup's property, linked once per change of the pickup list. */
  private revenueLinks?:Map<ScmPickup,ScmPickup|undefined>;
  private load(p:ScmPickup){

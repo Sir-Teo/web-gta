@@ -3,10 +3,11 @@ import {test,expect} from '@playwright/test';
  * the missions use: LOAD_MISSION_AUDIO streams INTRO1's first line (sample 20000, bank 237) and holds the slot loading
  * until it has decoded, PLAY_MISSION_AUDIO plays it for its own length, PLAY_MISSION_PASSED_TUNE plays track 183, and a dance's
  * beat track is heard with its beats read off the audio's clock. */
-test('a mission line and the mission-passed tune play from the published packs',async({page})=>{
+test('mission speech recovers from a failed manifest and its line and passed tune play',async({page})=>{
  test.setTimeout(360000);
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  const fetched:string[]=[];page.on('request',r=>{const u=r.url();if(/play\/audio\/(script|streams)\//.test(u))fetched.push(u.split('/play/audio/')[1]);});
+ let manifestRequests=0;await page.route('**/play/audio/script/script.json',async route=>{if(++manifestRequests===1)await route.fulfill({status:503,body:'Temporary speech outage'});else await route.continue();});
  await page.goto('/');
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
@@ -27,7 +28,7 @@ test('a mission line and the mission-passed tune play from the published packs',
  const slot=2,sample=20000;
  await page.evaluate(({slot,sample})=>{const r=(window as any).__game.missionForProfiling().runtime;r.game.missionAudio.preload(slot,sample);r.world.loadMissionAudio(slot,sample);},{slot,sample});
  await expect.poll(async()=>await page.evaluate(slot=>(window as any).__game.missionForProfiling().runtime.game.missionAudio.hasLoaded(slot),slot),{timeout:30000}).toBe(true);
- expect(fetched.filter(f=>f.startsWith('script/'))).toEqual(['script/script.json','script/bank-237.bin']);
+ expect(fetched.filter(f=>f.startsWith('script/'))).toEqual(['script/script.json','script/script.json','script/bank-237.bin']);expect(manifestRequests).toBe(2);
  const length=await page.evaluate(({slot,sample})=>{
   const r=(window as any).__game.missionForProfiling().runtime,ms=r.world.missionAudioLengthMs(sample,undefined);
   if(r.game.missionAudio.play(slot,ms))r.world.playMissionAudio(slot);return ms;

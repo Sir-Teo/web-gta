@@ -4,6 +4,7 @@ import {playerMoveBlend} from '../animation/playerMoveBlend';
 import {STAMINA_EXHAUST_FLOOR} from '../locomotion/player';
 import {bindPlayerShoulders} from '../animation/playerShoulders';
 import { nativeAmbientState } from '../assets/nativeMaterial';
+import {setNativeScorched} from '../assets/nativeScorched';
 import {nativePlayerMaterial} from './nativePlayerMaterial';
 import { MotionTransition } from '../animation/MotionTransition';
 import { PoseTransition } from '../animation/PoseTransition';
@@ -874,6 +875,12 @@ export class NativeCharacter {
     this.ambient.enabled.value=!!rgb;
   }
   setNight(amount: number) { this.owner.setNight(amount); }
+  private renderScorched=false;
+  /** CPed::SetupLighting -> CRenderer::SetupLightingForEntity: scorched peds use .18 grey ambient and no normal lights. */
+  setScorched(state:boolean){
+    if(state===this.renderScorched)return;this.renderScorched=state;
+    for(const {material} of this.owner.materialBindings)setNativeScorched(material,state);
+  }
   /** A look-at from the ped's own tasks (LookAtInterestingEntities, scripts): the world target and the blend. */
   private externalLook?:{target:Vector3;blend:number};
   /** The look-at chain's IK orientation of the head (neck space), kept while any look holds the head. */

@@ -87,7 +87,10 @@ test('a phone steers by tilting with the Tilt setting',async({page})=>{
  const gameWait=async(s:number)=>{const t0=await clock();await expect.poll(clock,{timeout:60000}).toBeGreaterThan(t0+s);};
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await expect.poll(async()=>(await state()).nativeCar!=null,{timeout:30000}).toBe(true);
- await page.evaluate(()=>(window as any).__game.placeCar(2491,13.3,1680,0));await gameWait(.5);
+ // Isolate steering from Grove Street's kerbs and fences; the native car and touch controls run normally.
+ await page.evaluate(async()=>{const path='/tests/fixtures/native-render-dependencies.ts',{RAPIER}=await import(/* @vite-ignore */ path);
+  (window as any).__game.sim.world.createCollider(RAPIER.ColliderDesc.cuboid(150,1,150).setTranslation(2491,99,1687));});
+ await page.evaluate(()=>(window as any).__game.placeCar(2491,101.3,1680,0));await gameWait(.5);
  await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2491,g.groundAt(2491,1684,300)+.05,1684);g.turnPlayer(0);});
  await expect.poll(async()=>{const s=await state();return !s.terrainHold&&s.player.grounded;},{timeout:30000}).toBe(true);await gameWait(.5);
  const finger=(selector:string,type:string,id:number)=>page.evaluate(({selector,type,id})=>{const b=document.querySelector(selector)!.getBoundingClientRect();
@@ -101,8 +104,11 @@ test('a phone steers by tilting with the Tilt setting',async({page})=>{
  const early=(await state()).nativeCar;await tilt(30);await gameWait(1.3);const turning=(await state()).nativeCar;
  const course=(v:{x:number;z:number})=>Math.atan2(v.x,v.z),turned=Math.atan2(Math.sin(course(turning.velocity)-course(early.velocity)),Math.cos(course(turning.velocity)-course(early.velocity)));
  expect(Math.abs(turned),JSON.stringify({early:early.velocity,turning:turning.velocity})).toBeGreaterThan(.3);
- // Held level, it runs straight on.
- await tilt(0);await gameWait(.8);const a=(await state()).nativeCar;await gameWait(.8);const b=(await state()).nativeCar;
+ // Measure neutral steering from a fresh pose on the same clear fixture, independent of the preceding turn.
+ await finger('.touch-button.gas:not([hidden])','pointerup',11);await tilt(0);
+ await page.evaluate(()=>(window as any).__game.placeCar(2491,101.3,1687,-Math.PI/2));await gameWait(.5);
+ await finger('.touch-button.gas:not([hidden])','pointerdown',11);
+ await gameWait(.8);const a=(await state()).nativeCar;await gameWait(.8);const b=(await state()).nativeCar;
  const straight=Math.atan2(Math.sin(course(b.velocity)-course(a.velocity)),Math.cos(course(b.velocity)-course(a.velocity)));
  expect(Math.abs(straight)).toBeLessThan(Math.abs(turned)/2);
  await finger('.touch-button.gas:not([hidden])','pointerup',11);

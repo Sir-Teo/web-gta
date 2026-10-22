@@ -7,6 +7,24 @@ import {CRIME} from '../src/simulation/nativeWanted';
 
 beforeAll(async()=>{await RAPIER.init();});
 
+for(const launcher of ['sam','removed aircraft'] as const)test(`a rocket from a ${launcher} collides with CJ before its fuse expires`,()=>{
+ const sim=new Simulation(),weapons=new WeaponSystem(sim,()=>undefined,()=>undefined),explosion=vi.fn();
+ try{
+  sim.player.position={x:0,y:99.1,z:-2};sim.player.previous={...sim.player.position};
+  sim.playerBody.setTranslation({x:0,y:100,z:-2},true);sim.world.step();
+  weapons.onExplosion=explosion;
+  weapons.launchHeatSeeker({x:0,y:100,z:0},{x:0,y:0,z:-1},undefined);
+  // A removed launcher's handle no longer resolves to a rigid body. It must not exclude CJ's body in its place.
+  if(launcher==='removed aircraft'){
+   const body=sim.world.createRigidBody(RAPIER.RigidBodyDesc.fixed());weapons.projectiles[0].owner=body.handle;
+   sim.world.removeRigidBody(body);
+  }
+  weapons.tick(.1);
+  expect(weapons.projectiles).toHaveLength(0);expect(explosion).toHaveBeenCalled();
+  expect(explosion.mock.calls[0][2]).toBe(false);
+ }finally{weapons.dispose();sim.dispose();}
+});
+
 // Exercise launch -> projectile update -> blast, including both ped and vehicle criminal events.
 for(const source of ['sam','launcher','aircraft'] as const)test(`${source} rocket keeps its creator attribution when it explodes`,()=>{
  const sim=new Simulation();

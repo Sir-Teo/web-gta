@@ -25,6 +25,7 @@ export class ScmRuntime {
  // Init prepends each of ScriptsArray's 96 entries: slot 95 is allocated first.
  private readonly idle=Array.from({length:96},(_,i)=>95-i);
  private processing=false;
+ private clockMs=0;
  /** LocalVariablesForCurrentMission, shared by every mission thread. */
  readonly missionLocals=new DataView(new ArrayBuffer(MISSION_LOCAL_COUNT*4));
  private readonly globals:DataView;
@@ -120,13 +121,24 @@ export class ScmRuntime {
   * go of the mission's peds, cars and objects and puts the camera back. */
  private missionCleanUp(){
   const g=this.game;
+  // CMissionCleanup::Process prefix (iOS 0x1001ca0bc): consume a mission's outstanding fade-out.
+  // Death/arrest owns its restart fade; otherwise Fade(0.5, 1) and clear only the pad's player-safe bit.
+  if(g.scriptHasFadedOut){
+   g.scriptHasFadedOut=false;
+   if(!this.world?.isPlayerRestarting?.()){
+    this.world?.fade(500,1,this.clockMs);g.pads.setPlayerSafe(0,false);this.world?.setPlayerControl?.(0,true);
+   }
+  }
   g.pedDensityMultiplier=1;g.carDensityMultiplier=1;g.wantedMultiplier=1;
   g.widescreenOn=false;
+  // CMissionCleanup::Process, iOS 0x1001ca3c4: civilian traffic returns to ordinary model selection.
+  g.forceRandomCarModel=-1;
   for(let slot=1;slot<=MISSION_AUDIO_COUNT;slot++)g.missionAudio.clear(slot);
   g.releaseWeather();
   g.playerInfo.policeBackOff=false;g.playerInfo.everybodyBackOff=false;g.playerInfo.canDoDriveBy=true;
   g.upsideDownCars.init();g.stuckCars.init();
   g.sequences.cleanUpMissionSequences();g.decisionMakers.cleanUpMissionMakers();
+  if(g.introRectangles.missionDictionary)g.introRectangles.removeDictionary();
   this.world?.missionCleanUp?.();
  }
  private retire(slot:Slot){
@@ -168,6 +180,7 @@ export class ScmRuntime {
   requireAsset(Number.isFinite(timeStepMs)&&timeStepMs>=0&&timeStepMs<=0x7fffffff,'Invalid SCM frame time.');
   requireAsset(Number.isInteger(instructionBudget)&&instructionBudget>0,'Invalid SCM instruction budget.');
   const delta=Math.trunc(timeStepMs);this.processing=true;
+  this.clockMs=nowMs;
   const tick=(view:DataView)=>{for(const index of [TIMER_A,TIMER_B]){const at=index*4;view.setInt32(at,view.getInt32(at,true)+delta,true);}};
   try{
    // CTheScripts::Process: the two car watches, fail countdown, text-line reset, mission timers, then threads.

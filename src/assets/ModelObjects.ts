@@ -42,6 +42,8 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
   const cpuPrelight = new Set(model.atomics.filter(a => (a.flags & 4) && !buildingAtomic(a)).map(a => a.geometry));
   const skeletons: THREE.Skeleton[] = [];
   const root = new THREE.Group();
+  // Animation binding stops at separately constructed models attached under this instance's bones.
+  root.userData.nativeModelRoot = true;
   if (placement) { root.matrixAutoUpdate = false; root.matrix.copy(placementMatrix(placement)); }
   else root.rotation.x = -Math.PI / 2;
   const frames = model.frames.map((frame, index) => { const group = frame.hanim ? new THREE.Bone() : new THREE.Group(); group.name = frame.name; group.userData.nativeFrame = index; group.matrixAutoUpdate = false; matrixFromNative(group.matrix, frame.matrix); return group; });

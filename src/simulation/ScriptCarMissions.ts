@@ -14,6 +14,7 @@ export interface ScriptDrivable {
  readonly nativeBody:{boundsMin:{x:number;y:number;z:number};boundsMax:{x:number;y:number;z:number}};
  readonly modelId?:number;
  autopilot?:WorldCar['autopilot'];
+ obstructingEntity?:object;
  autopilotFields?:{stayInSlowLane?:number;stayInFastLane?:number};
 }
 
@@ -425,10 +426,12 @@ export class ScriptCarMissions{
   * speed the vehicles ahead allow, which SLOW_DOWN_FOR_CARS averages with the cruise speed. */
  private trafficSpeed(car:ScriptDrivable,cruise:number,slowDown:boolean){
   const others=[...this.traffic?.()??[]],own=others.find(o=>o.vehicle===car);if(!own)return cruise;
-  const speed=slowCarDownForCars(own,others,cruise,cruise).speed;
+  const speed=slowCarDownForCars(own,others,cruise,cruise,(other,_proximity,speed)=>{car.obstructingEntity=other.vehicle as object;return speed;}).speed;
   return slowDown?(speed+cruise)/2:speed;
  }
  private drive(car:ScriptDrivable,m:Mission,dt:number):WorldCar['autopilot']{
+  // SteerAICarWithPhysics clears the old reference before dispatching the mission (iOS 0x100198534).
+  car.obstructingEntity=undefined;
   const p=car.car.body.translation(),v=car.car.body.linvel(),f=this.forward(car);
   const state={position:{x:p.x,y:-p.z},forward:f,moveSpeed:{x:v.x/50,y:-v.z/50,z:v.y/50},forward3:this.forward3(car)};
   if(m.temp){

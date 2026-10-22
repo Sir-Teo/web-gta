@@ -10,10 +10,14 @@ import {readPlayerBaseBody,PLAYER_CLASSIC_FILES} from '../src/assets/readPlayerB
 import {playerShoulderMatrix} from '../src/animation/playerShoulders';
 import { Simulation } from '../src/simulation/Simulation';
 let sim: Simulation, character: NativeCharacter;
-beforeAll(async () => RAPIER.init()); afterEach(() => { character?.dispose(); sim?.dispose(); });
+beforeAll(async () => RAPIER.init()); afterEach(() => { character?.dispose(); sim?.dispose();character=undefined!;sim=undefined!; });
 const source = (): CharacterSource => ({model:readDff(new Uint8Array(readFileSync('tests/fixtures/dragonff-skin.dff'))),textures:[],clip:readIfp(new Uint8Array(readFileSync('tests/fixtures/animation-rig.ifp'))).animations[0],track:0});
 const controls = { x:0,y:1,cameraYaw:Math.PI,sprint:false,jump:false,handbrake:false };
 function setup() { sim=new Simulation(); sim.player.grounded=true; character=new NativeCharacter(source()); }
+test('scorched character lighting survives normal ambient updates and thermal replacement, then restores per-material uniforms',()=>{
+ setup();const materials=new Set<import('three').Material>();character.root.traverse(o=>{if(o instanceof Mesh)for(const material of [o.material].flat())materials.add(material);});expect(materials.size).toBeGreaterThan(0);
+ character.setScorched(true);character.setAmbient([1,1,1],4,2);expect([...materials].every(m=>m.userData.nativeRenderScorched.value)).toBe(true);character.setThermal(true);character.setScorched(false);character.setThermal(false);expect([...materials].every(m=>m.userData.nativeRenderScorched.value===false)).toBe(true);
+});
 test('native player correction requires an explicit marker, native coordinates and the actual shoulder bones',()=>{
  const data=source();
  expect(()=>new NativeCharacter({...data,playerBody:'yes' as any})).toThrow('Invalid player body marker');

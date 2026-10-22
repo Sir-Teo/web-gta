@@ -1,5 +1,5 @@
 import {readFile} from 'node:fs/promises';
-import {expect,test} from 'vitest';
+import {expect,test,vi} from 'vitest';
 import {readFxProject} from '../src/assets/fxProject';
 import {FX_KILL,FX_PARTICLE_POOL,NativeFxManager,fxIdentity,fxPrtMult,type FxVec} from '../src/simulation/fx/NativeFx';
 import {EXPLOSION,NativeFxEffects,fxMatFromVec} from '../src/simulation/fx/nativeFxEffects';
@@ -65,6 +65,20 @@ test('static AddParticle systems keep the supplied velocity and fall under the b
  expect(prt.vel[2]).toBeLessThan(1.2);
  effects.blood([0,0,1],[1,0,0],8,1);
  expect(fx.prims.find(p=>p.system.name==='prt_blood')!.particles.length).toBe(9);
+});
+test('mounted gun shells use the creator position for the native ten metre camera gate',async()=>{
+ const fx=new NativeFxManager(await blueprints(),{random:seeded(21)}),effects=new NativeFxEffects(fx,()=>[0,0,0]);
+ const shells=()=>fx.prims.find(p=>p.system.name==='prt_gunshell')!.particles;
+ effects.gunshell([20,0,0],[0,.1],.025,false,[10,0,0]);
+ expect(shells()).toHaveLength(1);expect(shells()[0].pos).toEqual([20,0,0]);expect(shells()[0].vel[1]).toBe(.1);
+ effects.gunshell([0,0,0],[0,.1],.025,false,[10.001,0,0]);expect(shells()).toHaveLength(1);
+});
+test('script smoke uses the large static system and native multipliers, then follows the blueprint until expiry',async()=>{
+ const fx=new NativeFxManager(await blueprints(),{random:seeded(25)}),effects=new NativeFxEffects(fx,()=>[0,-5,0]),system=effects.statics.prt_smoke_huge!,add=vi.spyOn(system,'addParticle');
+ effects.scriptSmoke([1,2,3],[.25,-.5,1],.3,.4,.5,.2,.75,.5);
+ expect(add).toHaveBeenCalledExactlyOnceWith([1,2,3],[.25,-.5,1],0,fxPrtMult(Math.fround(.3),Math.fround(.4),.5,Math.fround(.2),.75,1,.5),-1,Math.fround(1.2),Math.fround(.6),false);
+ const prim=fx.prims.find(p=>p.system.name==='prt_smoke_huge')!,p=prim.particles[0];expect(p).toBeDefined();expect(p.vel).toEqual([.25,-.5,1]);expect(p.multColor).toEqual([76,102,127,51]);expect(p.multRot).toBe(1);expect(p.brightness).toBe(1);const start=p.pos[2];
+ run(fx,[0,-5,0],.1);expect(p.pos[2]).toBeGreaterThan(start);run(fx,[0,-5,0],10);expect(prim.particles).toEqual([]);expect(fx.systems.includes(system)).toBe(true);
 });
 test('weapon effects follow the muzzle matrix and killed loops wait for their particles',async()=>{
  const fx=new NativeFxManager(await blueprints(),{random:seeded(11)}),effects=new NativeFxEffects(fx,()=>[0,-2,1]);

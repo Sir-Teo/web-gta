@@ -1,0 +1,331 @@
+{
+  "executableSha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "control": "0x1003b8d50",
+  "subtask": 704,
+  "cases": [
+    {
+      "input": {
+        "exists": false,
+        "status": 2,
+        "healthBits": 0
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": false,
+        "status": 2,
+        "healthBits": 2147483648
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": false,
+        "status": 2,
+        "healthBits": 1065353216
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": false,
+        "status": 2,
+        "healthBits": 3212836864
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": false,
+        "status": 2,
+        "healthBits": 2139095040
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": false,
+        "status": 2,
+        "healthBits": 4286578688
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": false,
+        "status": 2,
+        "healthBits": 2143289344
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": false,
+        "status": 2,
+        "healthBits": 1
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": false,
+        "status": 2,
+        "healthBits": 2147483649
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": false,
+        "status": 42,
+        "healthBits": 0
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": false,
+        "status": 42,
+        "healthBits": 2147483648
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": false,
+        "status": 42,
+        "healthBits": 1065353216
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": false,
+        "status": 42,
+        "healthBits": 3212836864
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": false,
+        "status": 42,
+        "healthBits": 2139095040
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": false,
+        "status": 42,
+        "healthBits": 4286578688
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": false,
+        "status": 42,
+        "healthBits": 2143289344
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": false,
+        "status": 42,
+        "healthBits": 1
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": false,
+        "status": 42,
+        "healthBits": 2147483649
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": true,
+        "status": 2,
+        "healthBits": 0
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": true,
+        "status": 2,
+        "healthBits": 2147483648
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": true,
+        "status": 2,
+        "healthBits": 1065353216
+      },
+      "active": true,
+      "subtaskQueries": 1
+    },
+    {
+      "input": {
+        "exists": true,
+        "status": 2,
+        "healthBits": 3212836864
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": true,
+        "status": 2,
+        "healthBits": 2139095040
+      },
+      "active": true,
+      "subtaskQueries": 1
+    },
+    {
+      "input": {
+        "exists": true,
+        "status": 2,
+        "healthBits": 4286578688
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": true,
+        "status": 2,
+        "healthBits": 2143289344
+      },
+      "active": true,
+      "subtaskQueries": 1
+    },
+    {
+      "input": {
+        "exists": true,
+        "status": 2,
+        "healthBits": 1
+      },
+      "active": true,
+      "subtaskQueries": 1
+    },
+    {
+      "input": {
+        "exists": true,
+        "status": 2,
+        "healthBits": 2147483649
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": true,
+        "status": 42,
+        "healthBits": 0
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": true,
+        "status": 42,
+        "healthBits": 2147483648
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": true,
+        "status": 42,
+        "healthBits": 1065353216
+      },
+      "active": true,
+      "subtaskQueries": 1
+    },
+    {
+      "input": {
+        "exists": true,
+        "status": 42,
+        "healthBits": 3212836864
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": true,
+        "status": 42,
+        "healthBits": 2139095040
+      },
+      "active": true,
+      "subtaskQueries": 1
+    },
+    {
+      "input": {
+        "exists": true,
+        "status": 42,
+        "healthBits": 4286578688
+      },
+      "active": false,
+      "subtaskQueries": 0
+    },
+    {
+      "input": {
+        "exists": true,
+        "status": 42,
+        "healthBits": 2143289344
+      },
+      "active": true,
+      "subtaskQueries": 1
+    },
+    {
+      "input": {
+        "exists": true,
+        "status": 42,
+        "healthBits": 1
+      },
+      "active": true,
+      "subtaskQueries": 1
+    },
+    {
+      "input": {
+        "exists": true,
+        "status": 42,
+        "healthBits": 2147483649
+      },
+      "active": false,
+      "subtaskQueries": 0
+    }
+  ]
+}

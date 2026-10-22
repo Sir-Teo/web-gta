@@ -4,7 +4,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
  * Car-to-pedestrian impacts follow CPhysical::ApplyCollision's ped branch in
  * WorldPedestrians, where the car counts ten times its mass instead of meeting a
  * kinematic wall. Memberships sit in the high 16 bits, filters in the low 16. */
-const CAR=0x0002,PED=0x0004,FALLEN=0x0008,WORLD_MESH=0x0010,CAR_MESH=0x0020;
+const CAR=0x0002,PED=0x0004,FALLEN=0x0008,WORLD_MESH=0x0010,CAR_MESH=0x0020,POOL_BALL=0x0040,SCRIPT_OBJECT=0x0080;
 const groups=(membership:number,filter:number)=>((membership<<16)|(filter&0xffff))>>>0;
 export const CAR_SOLVER_GROUPS=groups(CAR,0xffff&~PED);
 export const PED_SOLVER_GROUPS=groups(PED,0xffff&~CAR&~CAR_MESH);
@@ -18,5 +18,11 @@ export const FALLEN_LAMPPOST_SOLVER_GROUPS=groups(FALLEN,0xffff&~CAR&~CAR_MESH);
  * pickup where it stood at full gas (INTRO2's drive from Ryder's driveway). */
 export const WORLD_MESH_SOLVER_GROUPS=groups(WORLD_MESH,0xffff);
 export const CAR_MESH_SOLVER_GROUPS=groups(CAR_MESH,0xffff&~PED&~WORLD_MESH&~CAR_MESH);
+/** CObject::SpecialEntityPreCollisionStuff: rolling pool balls ignore ordinary CPhysicals.
+ * Once pocketed they can collide with the table again; other pool balls retain bDisableZ in either state. */
+export const POOL_BALL_ROLLING_SOLVER_GROUPS=groups(POOL_BALL,0xffff&~SCRIPT_OBJECT&~CAR&~PED&~CAR_MESH&~FALLEN);
+export const POOL_BALL_FALLING_SOLVER_GROUPS=groups(POOL_BALL,0xffff);
+export const SCRIPT_OBJECT_SOLVER_GROUPS=groups(SCRIPT_OBJECT,0xffff);
+export const SCRIPT_OBJECT_MESH_SOLVER_GROUPS=groups(SCRIPT_OBJECT,0xffff&~CAR_MESH);
 /** A vehicle collider's groups: its mesh apart from the rest. */
 export const vehicleSolverGroups=(collider:RAPIER.Collider)=>collider.shapeType()===RAPIER.ShapeType.TriMesh?CAR_MESH_SOLVER_GROUPS:CAR_SOLVER_GROUPS;

@@ -1,5 +1,6 @@
 import {requireAsset} from '../assets/binary';
 import {physicalCanBeDamaged} from '../combat/nativePhysicalProofs';
+import {objectDetachMotion,type DetachBasis,type DetachVector} from './nativeObjectDetach';
 /* The script's own CObjects, pinned gta-reversed ead3051 (`ObjectCommands.cpp`'s Object namespace, which is
  * reversed, over `CObject::Create` and the CEntity/CPhysical fields each command reaches). The table stands in
  * for CPools' object pool: it holds what the script can read back, so a host can mirror each record into the
@@ -19,7 +20,7 @@ export const DEFAULT_OBJECT_HEALTH=1000;
 const EFFECT_CHANGE_MODEL=1,EFFECT_SMASH_COMPLETELY=20,EFFECT_CHANGE_THEN_SMASH=21,EFFECT_BREAKABLE=200,EFFECT_BREAKABLE_REMOVED=202;
 /** What CObjectData::SetObjectData copies from a model's OBJECT.DAT row; a model without one gets the default
  * object info (a multiplier of one, no effect) and 99999 of mass. */
-export interface ScmObjectInfo {colDamageEffect:number;colDamageMultiplier:number;smashMultiplier:number;mass:number}
+export interface ScmObjectInfo {colDamageEffect:number;colDamageMultiplier:number;smashMultiplier:number;mass:number;specialCollisionResponse?:number}
 /** Who did the damage, as far as ObjectDamage asks: the player's ped or vehicle pass bInvulnerable. */
 export type ScmObjectDamager='player'|'playerVehicle'|'vehicle'|'other'|undefined;
 /** What ObjectDamage did: bWasDestroyed, whether the object lost its collision and was hidden, whether its model
@@ -29,6 +30,14 @@ export interface ScmObjectDamageResult {destroyed:boolean;removed:boolean;change
 const WEAPON_UNIDENTIFIED=55,WEAPON_RUNOVERBYCAR=50;
 export interface ScmObject {
  handle:number;model:number|string;
+ /** OBJECT.DAT response 9: bDisableZ, initially without gravity; a pocket enables it. */
+ poolBall?:{applyGravity:boolean};
+ /** Host observes explicit SET_OBJECT_DYNAMIC writes even if the value repeats a sleeping body's state. */
+ staticRevision?:number;
+ /** Native SWINGDOOR/LOCKDOOR state. Start angle is captured when the static door first moves. */
+ door?:{startAngle:number;open:boolean;moving:boolean};
+ /** LOCK_DOOR physical flags: collision force disabled and collidable. */
+ doorLocked?:boolean;
  position:{x:number;y:number;z:number};
  /** CObject::objectFlags.bIsPhotographed, which TakePhotograph sets and HAS_OBJECT_BEEN_PHOTOGRAPHED reads. */
  photographed?:boolean;
@@ -48,6 +57,10 @@ export interface ScmObject {
  lastWeaponDamage:number;
  /** CEntity::m_bRenderDamaged: the model has swapped to its damaged atomic. */
  renderDamaged:boolean;
+ /** CPhysical::physicalFlags.bRenderScorched, selecting fixed ambient lighting in CObject::SetupLighting. */
+ renderScorched?:boolean;
+ /** CEntity::bDrawLast: draw through the distance-sorted alpha entity list. Unset keeps the model's default. */
+ drawLast?:boolean;
  /** objectFlags.bIsBroken: the break manager took it. */
  broken:boolean;
  /** objectFlags.bIsTargetable, which MAKE_OBJECT_TARGETTABLE sets. */
@@ -85,6 +98,9 @@ export interface ScmObject {
  dontApplySpeed:boolean;
  /** CEntity::m_bIsStatic, the inverse of what SET_OBJECT_DYNAMIC asks for. */
  isStatic:boolean;
+ /** CPhysical's temporary ignored parent after DETACH_OBJECT, until the collision bounds part. */
+ ignoredAttachment?:{kind:'vehicle'|'ped'|'object';handle:number};
+ centreOfMass?:DetachVector;
  /** CPhysical::physicalFlags.bAttachedToEntity: a rope's hook, or what hangs on one. CObject::ProcessControl never lets
   * such an object come to rest. */
  attachedToEntity?:boolean;
@@ -127,6 +143,12 @@ const DEG=Math.PI/180;
 /** The script's objects. Handles are never reused while an object lives, as a pool handle carries a slot and a
  * reuse counter; a deleted object's handle stops existing, which is what DOES_OBJECT_EXIST reports. */
 export class ScmObjects {
+ /** CWorld::SnookerTableMin/Max. SET_POOL_TABLE_COORDS copies raw corners, without sorting. */
+ readonly poolTable={min:{x:0,y:0,z:0},max:{x:0,y:0,z:0}};
+ setPoolTableCoords(x1:number,y1:number,z1:number,x2:number,y2:number,z2:number){
+  this.poolTable.min={x:Math.fround(x1),y:Math.fround(y1),z:Math.fround(z1)};
+  this.poolTable.max={x:Math.fround(x2),y:Math.fround(y2),z:Math.fround(z2)};
+ }
  /** CObjectData::SetObjectData's lookup, which the host fills from OBJECT.DAT once it is read. */
  objectInfo?:(model:number|string)=>ScmObjectInfo|undefined;
  /** Whether the model is a clump (the IDE's anim and hier sections) rather than a single atomic: only a clump takes
@@ -163,6 +185,8 @@ export class ScmObjects {
    const info=this.objectInfo(model);
    if(info){
     object.colDamageEffect=info.colDamageEffect;object.colDamageMultiplier=info.colDamageMultiplier;object.smashMultiplier=info.smashMultiplier;object.mass=info.mass;
+    if(info.specialCollisionResponse===6||info.specialCollisionResponse===7){object.door={startAngle:-1001,open:false,moving:info.specialCollisionResponse===7};object.doorLocked=info.specialCollisionResponse===7;}
+    if(info.specialCollisionResponse===9)object.poolBall={applyGravity:false};
     if(info.mass>=99998&&!info.colDamageEffect)object.proofs.explosion=true;
    }else object.proofs.explosion=true;
   }
@@ -237,8 +261,13 @@ export class ScmObjects {
   requireAsset([offset.x,offset.y,offset.z,rotation.x,rotation.y,rotation.z].every(Number.isFinite),'Invalid script object attachment.');
   object.attachedTo={kind,handle:other,offset:{...offset},rotation:{...rotation}};
  }
- /** DETACH_OBJECT: the object stops hanging and stays where it had got to. */
- detach(handle:number){this.at(handle).attachedTo=undefined;}
+ /** DETACH_OBJECT activates physics at its current pose and inherits the physical parent's native move speed. */
+ detach(handle:number,motion?:{basis:DetachBasis;velocity:DetachVector;x:number;y:number;speed:number;turn:boolean}){
+  const object=this.at(handle),parent=object.attachedTo;if(!parent)return;
+  if(motion){const result=objectDetachMotion(motion.basis,motion.velocity,{x:motion.x,y:motion.y,speed:motion.speed},{apply:motion.turn,basis:this.matrix(handle),centre:object.centreOfMass??{x:0,y:0,z:0},mass:object.turnMass??object.mass,speed:object.turnSpeed});object.velocity=result.velocity;object.turnSpeed=result.turnSpeed;}
+  object.isStatic=false;object.staticRevision=(object.staticRevision??0)+1;object.attachedToEntity=false;
+  object.ignoredAttachment={kind:parent.kind,handle:parent.handle};object.attachedTo=undefined;
+ }
  isAttached(handle:number){return this.at(handle).attachedTo!==undefined;}
  /** GET_OBJECT_SPEED: m_vecMoveSpeed's magnitude times fifty, as the car command reads its own. */
  speed(handle:number){const v=this.at(handle).velocity;return Math.hypot(v.x,v.y,v.z)*50;}
@@ -354,7 +383,16 @@ export class ScmObjects {
  /** FREEZE_OBJECT_POSITION: bDontApplySpeed, as the reversed FREEZE_CHAR_POSITION sets it for a ped. */
  freezePosition(handle:number,frozen:boolean){this.at(handle).dontApplySpeed=frozen;}
  /** SET_OBJECT_DYNAMIC: CEntity::SetIsStatic with the opposite of what the script asks for. */
- setDynamic(handle:number,dynamic:boolean){this.at(handle).isStatic=!dynamic;}
+ setDynamic(handle:number,dynamic:boolean){const object=this.at(handle);object.isStatic=!dynamic;object.staticRevision=(object.staticRevision??0)+1;if(dynamic&&object.door&&object.door.startAngle < -1000)object.door.startAngle=object.heading;}
+ /** PC CObject::LockDoor/ResetDoorAngle and inspected iOS 0905 unlock tail. */
+ lockDoor(handle:number,locked:boolean){
+  const object=this.at(handle);object.doorLocked=locked;
+  if(!locked){object.turnSpeed={x:0,y:0,z:0};object.isStatic=true;return;}
+  const door=object.door;if(!door)return;door.open=false;
+  if(door.startAngle<=-1000)return;
+  object.heading=door.startAngle;object.rotation={x:0,y:0,z:0};object.matrix=undefined;object.isStatic=true;
+  object.velocity={x:0,y:0,z:0};object.turnSpeed={x:0,y:0,z:0};
+ }
  /** PLAY_OBJECT_ANIM: CAnimManager::BlendAnimation on the object's clump, whose RwObject must be a clump. The
   * association already playing that hierarchy is kept where it is, started again only once it has run to its end;
   * any other is blended out and goes. The fourth operand (lockF) keeps a finished one-shot on its last frame;

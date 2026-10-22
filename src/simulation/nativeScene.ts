@@ -41,6 +41,7 @@ const physicsOwnership=new WeakMap<InstalledNativeScene,{owned:Set<PhysicalObjec
 /** Which window owns its dataset's model-source pool: the one that created it, or the successor it was handed to. */
 const poolOwnership=new WeakMap<InstalledNativeScene,{adopt:()=>void}>();
 export interface InstalledNativeScene {
+  readonly parts:readonly ScenePart[];readonly datasetIdentity:string|undefined;
   area:number;root:Group;sources:Map<number,InstalledCollisionSource>;missingCollision:string[];
   shadowReceivers:(footprint:ShadowFootprint,projection?:Matrix4)=>ReturnType<typeof nativeShadowReceivers>;
   setObjectData:(definitions?:ReadonlyMap<string,ObjectDataRecord>)=>void;
@@ -59,6 +60,9 @@ export interface InstalledNativeScene {
   /** Ped attractor effects of the placed models within `radius` of a native point: the effect's world position and
    * its queue, use and forward directions in native space (CPedAttractorManager::ComputeEffectPos and friends). */
   attractorsNear:(x:number,y:number,radius:number)=>WorldAttractor[];
+  /** Map command search filters entity origins in 3D before ranking their effect points. */
+  mapAttractorsNear:(x:number,y:number,z:number,radius:number)=>WorldAttractor[];
+  mapAttractorExists:(key:string)=>boolean;
   modelPlacementsNear:(models:ReadonlySet<string>,x:number,y:number,radius:number)=>{key:string;model:string;position:[number,number,number];heading:number}[];
   modelTriggerPoint:(model:string,index:number)=>[number,number,number]|undefined;
   setModelPlacementTaken:(key:string,taken:boolean)=>boolean;
@@ -86,6 +90,9 @@ export interface InstalledNativeScene {
   setPlacementHidden:(handle:number,hidden:boolean)=>boolean;
   /** CEntity::bUsesCollision for a placement: its colliders taken out of the world or put back. */
   setPlacementCollision:(handle:number,on:boolean)=>boolean;
+  /** CObject::SetupLighting's fixed scorched lighting, isolated to this placement. */
+  setPlacementScorched:(handle:number,on:boolean)=>boolean;
+  setPlacementDrawLast:(handle:number,on:boolean)=>boolean;
   /** The part, placement and collision sources behind a collider handle, without touching them. */
   placementInfo:(handle:number)=>{part:ScenePart;placement:IplInstance;sources:readonly NativeCollisionSource[]}|undefined;
   /** Unfreezes a placement's fixed body into a dynamic one with OBJECT.DAT mass, as
@@ -112,7 +119,7 @@ export interface InstalledNativeScene {
 /** A placement's renderer matrix with its translation removed: the visual relative to a body placed at its origin. */
 const rotationOnly=(placement:IplInstance)=>placementMatrix(placement).setPosition(0,0,0);
 export interface WorldAttractor {
- key:string;model:string;type:number;scriptName:string;probability:number;
+ key:string;model:string;modelId?:number;type:number;scriptName:string;probability:number;
  position:[number,number,number];queueDir:[number,number,number];useDir:[number,number,number];forwardDir:[number,number,number];
 }
 export function installNativeScene(world: RAPIER.World, scene: Scene, parts: ScenePart[], options:SceneOptions={}):InstalledNativeScene {
@@ -178,6 +185,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   parts=parts.map(part=>({...part,textures:part.textures.slice()}));
   const buildingLighting = shared?.buildingLighting ?? buildingLightingState(), entityLighting=shared?.entityLighting ?? nativeAmbientState();
   const sources = new Map<number, InstalledCollisionSource>(); let disposed = false;
+  let attractorParts:{version:number;parts:{part:ScenePart;index:number;effects:import('../assets/twoDEffect').Model2dEffect[]}[];keys:Set<string>}|undefined;
   /** The window that created the pool disposes its retired sources at the end, unless a same-dataset successor adopted it. */
   let ownsPool = shared === undefined;
   const placementOf=new Map<number,{part:number;placement:number;object:PhysicalObject}>();
@@ -190,7 +198,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     if(ownsPool){ownsPool=false;sourcePool.dispose();}
     // A caller may keep the disposed handle. Do not let its root or closures
     // retain the retired scene's meshes, decoded models and texture payloads.
-    root.clear();visuals.length=0;parts=[];visibility=undefined;
+    root.clear();visuals.length=0;parts=[];visibility=undefined;attractorParts=undefined;
   };
   const smashed:[number,number][]=[],moving=new Map<PhysicalObject,{part:number;placement:number;handle:number;local:Matrix4;
     /** m_vecForce, m_vecTorque (the averaged move and turn speed, native units a frame) and m_nFakePhysics. */
@@ -215,7 +223,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
         // A prop smashed in the previous window stays smashed while it remains streamed in.
         if(retained){reusedPlacementCount++;reusedColliderCount+=object.sources.size;if(object.body.isValid()&&!object.body.isEnabled())smashed.push([partIndex,index]);if(object.body.isValid()&&object.body.isDynamic())moving.set(object,{part:partIndex,placement:index,handle:object.sources.keys().next().value!,local:rotationOnly(placement)});}else physical.add(object);
         if(key!==undefined)keyedPhysical.set(key,object);
-        object.sources.forEach((source, handle) => {sources.set(handle, { modelName: part.name, placement, source,entityKind:'unknown' });placementOf.set(handle,{part:partIndex,placement:index,object});});
+        object.sources.forEach((source, handle) => {sources.set(handle, { modelName: part.name, placement, source,entityKind:part.nativeEntityKind??'unknown' });placementOf.set(handle,{part:partIndex,placement:index,object});});
       }
     }
     // CEntity::CreateEffects' roadsign atomics on every placement instance (also after effects are supplied).
@@ -251,7 +259,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   const setObjectData=(definitions?:ReadonlyMap<string,ObjectDataRecord>)=>{
     if(disposed)return;
     objectData=definitions;
-    for(const source of sources.values())if(!source.procedural)source.entityKind=placedEntityKind(source.modelName,definitions);
+    for(const [handle,source] of sources)if(!source.procedural){const owner=placementOf.get(handle);source.entityKind=(owner&&parts[owner.part].nativeEntityKind)??placedEntityKind(source.modelName,definitions);}
   };
   const shadowReceivers=(footprint:ShadowFootprint,projection?:import('three').Matrix4)=>{
     requireAsset(!disposed,'Imported shadow scene is disposed.');
@@ -329,19 +337,34 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     return out;
   };
   /** The parts whose models carry ped attractor effects, with those effects: fixed until effects are supplied. */
-  let attractorParts:{version:number;parts:{part:ScenePart;effects:import('../assets/twoDEffect').Model2dEffect[]}[]}|undefined;
+
+  /** A map entity keeps its source identity when a streamed window changes local part/placement indices. */
+  const scriptPlacementKey=(part:ScenePart,index:number,placement:number)=>{
+    const p=part.placements[placement];return placementKeys.get(`${index}:${placement}`)??JSON.stringify([part.name.toLowerCase(),p.modelId,p.interior,p.position,p.rotation]);
+  };
+  const scriptPlacementOwner=(key:string):{part:number;placement:number}|undefined=>{
+    if(disposed)return undefined;
+    const source=catalog?.entries.get(key);if(source)return {part:source.part,placement:source.placement};
+    // Scenes without a source catalog use exact model/interior/pose identity, rather than rounded coordinates.
+    let fields:unknown;try{fields=JSON.parse(key);}catch{return undefined;}
+    if(!Array.isArray(fields)||fields.length!==5||typeof fields[0]!=='string')return undefined;
+    for(const [index,part]of parts.entries())if(part.name.toLowerCase()===fields[0])for(let i=0;i<part.placements.length;i++)if(scriptPlacementKey(part,index,i)===key)return{part:index,placement:i};
+    return undefined;
+  };
+
   /** The placements of the named models (lower case) within `radius` of a native point: the dummies CObject would be
    * made from, for the script brains attached to their models. The heading is the placement's turn about the
    * vertical, degrees. */
   const modelPlacementsNear=(models:ReadonlySet<string>,x:number,y:number,radius:number)=>{
     const out:{key:string;model:string;position:[number,number,number];heading:number}[]=[],r2=radius*radius;
-    for(const part of parts){
+    if(disposed)return out;
+    for(const [index,part] of parts.entries()){
       if(!models.has(part.name.toLowerCase()))continue;
       part.placements.forEach((placement,i)=>{
         const [px,py,pz]=placement.position;
         if((px-x)*(px-x)+(py-y)*(py-y)>r2)return;
         const e=nativePlacementMatrix(placement).elements;
-        out.push({key:`${part.name}:${i}:${px.toFixed(1)}:${py.toFixed(1)}`,model:part.name,position:[px,py,pz],heading:Math.atan2(-e[4],e[5])*180/Math.PI});
+        out.push({key:scriptPlacementKey(part,index,i),model:part.name,position:[px,py,pz],heading:Math.atan2(-e[4],e[5])*180/Math.PI});
       });
     }
     return out;
@@ -349,17 +372,13 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   /** A placement modelPlacementsNear listed (by its key) is taken out of the map, or put back: a script that moves the
    * CObject made from it draws and collides its own copy meanwhile. */
   const setModelPlacementTaken=(key:string,taken:boolean)=>{
-    if(disposed)return false;
-    const [name,index]=key.split(':'),part=parts.findIndex(p=>p.name===name),placement=Number(index);
-    if(part<0||!Number.isInteger(placement))return false;
+    const owner=scriptPlacementOwner(key);if(!owner)return false;const {part,placement}=owner;
     for(const owner of new Set(placementOf.values()))if(owner.part===part&&owner.placement===placement&&owner.object.body.isValid())owner.object.body.setEnabled(!taken);
     if(visibility){if(taken)visibility.remove(part,placement);else visibility.restore(part,placement);}
     return true;
   };
   const setModelPlacementHidden=(key:string,hidden:boolean)=>{
-    if(disposed||!visibility)return false;
-    const [name,index]=key.split(':'),part=parts.findIndex(p=>p.name===name),placement=Number(index);
-    if(part<0||!Number.isInteger(placement))return false;
+    const owner=scriptPlacementOwner(key);if(!owner||!visibility)return false;const {part,placement}=owner;
     return hidden?visibility.remove(part,placement):visibility.restore(part,placement);
   };
   /** CEntity::FindTriggerPointCoors' lookup on a model: its EFFECT_TRIGGER_POINT of that index, in the model's own
@@ -368,24 +387,35 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     const name=model.toLowerCase(),part=parts.find(p=>p.name.toLowerCase()===name);
     return part?.model?.geometries.flatMap(g=>g.effects??[]).find(e=>e.triggerPoint===index)?.position;
   };
-  const attractorsNear=(x:number,y:number,radius:number)=>{
-    const out:WorldAttractor[]=[],r2=radius*radius;
+  const attractorKey=(part:ScenePart,index:number,placement:number,effect:number)=>{
+    return `${scriptPlacementKey(part,index,placement)}:attractor:${effect}`;
+  };
+  const ensureAttractors=()=>{
     if(attractorParts?.version!==effectsVersion){
-      attractorParts={version:effectsVersion,parts:[]};
-      for(const part of parts){const effects=part.model?.geometries.flatMap(g=>g.effects??[]).filter(e=>e.attractor)??[];if(effects.length)attractorParts.parts.push({part,effects});}
+      attractorParts={version:effectsVersion,parts:[],keys:new Set()};
+      parts.forEach((part,index)=>{
+        const effects=part.model?.geometries.flatMap(g=>g.effects??[]).filter(e=>e.attractor)??[];
+        if(effects.length){attractorParts!.parts.push({part,index,effects});part.placements.forEach((_,i)=>effects.forEach((_,k)=>attractorParts!.keys.add(attractorKey(part,index,i,k))));}
+      });
     }
-    attractorParts.parts.forEach(({part,effects})=>{
+    return attractorParts;
+  };
+  const mapAttractorExists=(key:string)=>!disposed&&ensureAttractors().keys.has(key);
+  const attractorsNear=(x:number,y:number,radius:number,z?:number)=>{
+    const out:WorldAttractor[]=[],r2=radius*radius;if(disposed)return out;
+    ensureAttractors().parts.forEach(({part,index,effects})=>{
       part.placements.forEach((placement,i)=>{
-        const [px,py]=placement.position;
-        if((px-x)*(px-x)+(py-y)*(py-y)>(radius+30)*(radius+30))return;
+        const [px,py,pz]=placement.position;
+        if(z===undefined){if((px-x)*(px-x)+(py-y)*(py-y)>(radius+30)*(radius+30))return;}
+        else if((px-x)*(px-x)+(py-y)*(py-y)+(pz-z)*(pz-z)>r2)return;
         const m=nativePlacementMatrix(placement),e=m.elements;
         const point=(v:[number,number,number]):[number,number,number]=>[e[0]*v[0]+e[4]*v[1]+e[8]*v[2]+e[12],e[1]*v[0]+e[5]*v[1]+e[9]*v[2]+e[13],e[2]*v[0]+e[6]*v[1]+e[10]*v[2]+e[14]];
         const dir=(v:[number,number,number]):[number,number,number]=>[e[0]*v[0]+e[4]*v[1]+e[8]*v[2],e[1]*v[0]+e[5]*v[1]+e[9]*v[2],e[2]*v[0]+e[6]*v[1]+e[10]*v[2]];
         effects.forEach((effect,k)=>{
           const position=point(effect.position);
-          if((position[0]-x)*(position[0]-x)+(position[1]-y)*(position[1]-y)>r2)return;
+          if(z===undefined&&(position[0]-x)*(position[0]-x)+(position[1]-y)*(position[1]-y)>r2)return;
           const a=effect.attractor!;
-          out.push({key:`${part.name}:${i}:${k}`,model:part.name,type:a.type,scriptName:a.scriptName,probability:a.probability,position,queueDir:dir(a.queueDir),useDir:dir(a.useDir),forwardDir:dir(a.forwardDir)});
+          out.push({key:attractorKey(part,index,i,k),model:part.name,modelId:placement.modelId,type:a.type,scriptName:a.scriptName,probability:a.probability,position,queueDir:dir(a.queueDir),useDir:dir(a.useDir),forwardDir:dir(a.forwardDir)});
         });
       });
     });
@@ -559,6 +589,14 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     for(const h of owner.object.sources.keys())world.getCollider(h)?.setEnabled(on);
     return true;
   };
-  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, occludedCount:()=>visibility?.stats.occluded??0, escalatorPlacements, removePlacement, setPlacementHidden, setPlacementCollision, placementInfo, uprootPlacement, syncMoving, settleMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, attractorsNear, modelPlacementsNear, modelTriggerPoint, setModelPlacementTaken, setModelPlacementHidden,particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), placementsNear:(x:number,z:number,radius:number)=>disposed?[]:visibility!.near(x,z,radius), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},get retiredModelCount(){return sourcePool.retiredCount;},get retiredModelMB(){return sourcePool.retiredMB;},retiredModels:()=>sourcePool.retiredModels(),buildStages:stages,prebuild,previewHandles,advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
+  const setPlacementScorched=(handle:number,on:boolean)=>{
+    const owner=placementOf.get(handle);if(disposed||!owner||!visibility)return false;
+    visibility.setScorched(owner.part,owner.placement,on);return true;
+  };
+  const setPlacementDrawLast=(handle:number,on:boolean)=>{
+    const owner=placementOf.get(handle);if(disposed||!owner||!visibility)return false;
+    visibility.setDrawLast(owner.part,owner.placement,on);return true;
+  };
+  const installed:InstalledNativeScene={ get parts(){return parts;},datasetIdentity:options.datasetIdentity, area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, occludedCount:()=>visibility?.stats.occluded??0, escalatorPlacements, removePlacement, setPlacementHidden, setPlacementCollision, setPlacementScorched, setPlacementDrawLast, placementInfo, uprootPlacement, syncMoving, settleMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, attractorsNear, mapAttractorExists, mapAttractorsNear:(x,y,z,radius)=>attractorsNear(x,y,radius,z), modelPlacementsNear, modelTriggerPoint, setModelPlacementTaken, setModelPlacementHidden,particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), placementsNear:(x:number,z:number,radius:number)=>disposed?[]:visibility!.near(x,z,radius), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},get retiredModelCount(){return sourcePool.retiredCount;},get retiredModelMB(){return sourcePool.retiredMB;},retiredModels:()=>sourcePool.retiredModels(),buildStages:stages,prebuild,previewHandles,advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
   physicsOwnership.set(installed,{owned:physical,active:()=>!disposed});poolOwnership.set(installed,{adopt:()=>{ownsPool=true;}});return installed;
 }

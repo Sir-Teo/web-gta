@@ -3,6 +3,8 @@ import {PED_ORIGIN_HEIGHT} from './nativeSwim';
 import {achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {NATIVE_PLAYER_HEADING_CHANGE_RATE} from './nativePlayerLocomotion';
 import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARGET_TOLERANCE} from './nativeFollowNodeRoute';
+import {npcBurstLength,npcBurstPause} from './npcGun';
+import {createPartnerChat,stepPartnerChat,type PartnerChatState,type ChatPoint} from './nativePartnerChat';
 /** The seek task's walk inside 2 units of its target, as a script ped's (WorldPedestrians). */
 const GO_TO_PED_WALK_DISTANCE=2;
 
@@ -15,8 +17,10 @@ const GO_TO_PED_WALK_DISTANCE=2;
 const MAP_Z_LOW_LIMIT=-100;
 
 type Running=
+ |{kind:'chat';partner:number;task:PartnerChatState}
+ |{kind:'jetpack'}
  |{kind:'standStill';remaining:number}
- |{kind:'dive';phase:'loading'|'diving'|'done';yaw:number;lie:number}
+ |{kind:'dive';phase:'loading'|'turning'|'diving'|'done';yaw:number;lie:number}
  |{kind:'achieveHeading';heading:number}
  |{kind:'goToPoint';x:number;z:number;y?:number;moveState:number;radius:number;moveStateRadius:number;remaining:number}
  |{kind:'playAnim';clip:string;loop:boolean;hold:boolean;release:boolean;remaining:number;phase:'loading'|'ready'|'playing';elapsed:number;uninterruptable:boolean}
@@ -26,7 +30,7 @@ type Running=
  |{kind:'carTask';order:Extract<ScriptedPedOrder,{kind:'carTempAction'|'carDriveToCoord'}>;started:boolean}
  /** CTaskSimpleUseGun aiming at a point (renderer coordinates), or at a script ped where it stands each frame, for
   * the seconds left. */
- |{kind:'gunAt';point:{x:number;y:number;z:number};target?:number;remaining:number}
+ |{kind:'gunAt';point:{x:number;y:number;z:number};target?:number;remaining:number;fire:boolean;burstLeft:number;pause:number;thrown:boolean;started:boolean}
  /** CTaskComplexFollowNodeRoute: the planned points (renderer coordinates) one after another to the target. */
  |{kind:'followNodeRoute';target:{x:number;y:number;z:number};points:{x:number;y:number;z:number}[];nodes:readonly unknown[];at:number;lastIsTarget:boolean;moveState:number;remaining:number;tolerance:number}
  /** CTaskComplexSeekEntity on a script ped (TASK_GOTO_CHAR and its kin), as a script ped's gotoPed runs. */
@@ -92,6 +96,13 @@ export interface PlayerTaskWorld{
  pedPoint?(handle:number):{x:number;y:number;z:number}|undefined;
  /** TASK_AIM_GUN_AT_COORD on the player: his weapon aims at the point (renderer coordinates) until undefined. */
  aimAt?(point:{x:number;y:number;z:number}|undefined):void;
+ /** The current weapon's native controller inputs. CPed's default shooting rate is 40. */
+ gunInfo?():{clip:number;projectile:boolean;thrown:boolean;rate:number};
+ /** Request an actual shot through the player's weapon system; false while it cannot fire. */
+ fireAt?(point:{x:number;y:number;z:number}):boolean;
+ throwing?():boolean;
+ /** Only a reciprocal partner task is returned; a ped without one can still exist. Native axes. */
+ chatPartner?(handle:number):{position:ChatPoint;task?:PartnerChatState}|undefined;
  /** Where the player is with cars: on foot, on his way into one, or in one. */
  carState?():'none'|'entering'|'seated';
  /** CTaskSimpleDuckToggle on the player: he crouches or stands. */
@@ -103,6 +114,10 @@ export interface PlayerTaskWorld{
  diving?():boolean;
  /** CTaskComplexDie: he dies. */
  die?():void;
+ /** CTaskSimpleJetPack owns the task while its existing controller continues reading the player's pad. */
+ startJetpack?():boolean;
+ jetpackRunning?():boolean;
+ endJetpack?():void;
  /** CTaskSimpleTriggerLookAt: the head looks at the ped a script handle names. */
  lookAt?(target:number,seconds:number):void;
  /** CTaskSimpleClearLookAt: the head lets go of what it looks at. */
@@ -124,21 +139,27 @@ export class PlayerScriptTasks{
  private generation=0;
  constructor(private world:PlayerTaskWorld){}
  /** The kinds the player can carry out; anything else the thread gives up on. */
- static runs(order:ScriptedPedOrder){return order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim'||order.kind==='lookAt'||order.kind==='clearLookAt'||order.kind==='followRoute'||order.kind==='duck'&&order.seconds===undefined||
+ static runs(order:ScriptedPedOrder){return order.kind==='jetpack'||order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim'||order.kind==='lookAt'||order.kind==='clearLookAt'||order.kind==='followRoute'||order.kind==='duck'&&order.seconds===undefined||
   order.kind==='enterCar'||order.kind==='leaveCar'||order.kind==='carTempAction'||order.kind==='carDriveToCoord'||
-  order.kind==='lookAtPoint'||order.kind==='die'||order.kind==='diveAndGetUp'||order.kind==='mobilePhone'||order.kind==='followNodeRoute'||order.kind==='gotoPed'||order.kind==='gunAt'&&(!!order.point||order.target!==undefined)&&!order.fire;}
+  order.kind==='lookAtPoint'||order.kind==='die'||order.kind==='diveAndGetUp'||order.kind==='mobilePhone'||order.kind==='followNodeRoute'||order.kind==='gotoPed'||order.kind==='chat'||order.kind==='gunAt'&&(!!order.point||order.target!==undefined);}
+ get chat(){return this.running?.kind==='chat'?this.running:undefined;}
  /** Whether a task of the script's runs on the player (GET_SCRIPT_TASK_STATUS). */
  get active(){return !!(this.running||this.sequence);}
  /** A TASK_PLAY_ANIM_NON_INTERRUPTABLE clip runs on him: the in-air event's fall and landing do not take over. */
  get uninterruptable(){return this.running?.kind==='playAnim'&&this.running.uninterruptable;}
- give(order:ScriptedPedOrder,body:PlayerTaskBody){this.giveSequence([order],false,body,false);}
+ give(order:ScriptedPedOrder,body:PlayerTaskBody){return this.giveSequence([order],false,body,false);}
  /** CTaskComplexSequence on the player: the tasks one after another, from `start` on the first pass (nested
   * sequences arrive run inline, so there can be more than the eight one sequence holds). */
  giveSequence(orders:readonly ScriptedPedOrder[],repeat:boolean,body:PlayerTaskBody,sequence=true,start=0){
+  // CTaskSimpleJetPack::MakeAbortable refuses events below priority 63. A script command is 53, except a direct
+  // looped named animation, die, swim or phone task (71). A complex sequence itself still has priority 53.
+  const first=orders[start],highPriority=!sequence&&(first?.kind==='die'||first?.kind==='mobilePhone'||first?.kind==='playAnim'&&first.loop);
+  if(this.world.jetpackRunning?.()&&!highPriority)return false;
   // CTaskSimpleAnim::MakeAbortable on the command event: the clip the old task plays blends out, a looped one too.
   if(this.running?.kind==='playAnim'&&body.view?.reactionName===this.running.clip)body.view.clearReaction();
   this.sequence={orders:[...orders],at:Math.min(Math.max(0,start),orders.length),repeat,sequence};
   this.next(body);
+  return true;
  }
  /** TASK_USE_MOBILE_PHONE with 0 (iOS 0x1001f7e34): the phone task found in his primary task, a sequence's step
   * too, is told to stop, and the sequence goes on to its next task. */
@@ -147,10 +168,12 @@ export class PlayerScriptTasks{
  get progress(){const s=this.sequence;return s?.sequence?s.at-1:-1;}
  /** CLEAR_CHAR_TASKS (and its immediate form) on the player: the task and any clip it ran go at once. */
  clear(body:PlayerTaskBody){
+  if(this.running?.kind==='chat'&&body.view?.reactionName==='idle_chat')body.view.clearReaction();
   if(this.running?.kind==='gunAt')this.world.aimAt?.(undefined);
   const clip=this.running?.kind==='playAnim'?this.running.clip:this.held;
   if(clip!==undefined&&body.view?.reactionName===clip)body.view.clearReaction();
   this.endCarTask();
+  this.endJetpackTask(true);
   this.running=undefined;this.sequence=undefined;this.held=undefined;this.generation++;
  }
  private next(body:PlayerTaskBody){
@@ -158,7 +181,7 @@ export class PlayerScriptTasks{
    const sequence=this.sequence;
    if(!sequence){this.running=undefined;return;}
    if(sequence.at>=sequence.orders.length){
-    if(!sequence.repeat){this.sequence=undefined;this.running=undefined;return;}
+    if(!sequence.repeat){this.endJetpackTask();this.sequence=undefined;this.running=undefined;return;}
     sequence.at=0;
    }
    this.apply(sequence.orders[sequence.at++],body);
@@ -168,12 +191,23 @@ export class PlayerScriptTasks{
  }
  /** A driving task that had the car gives it back. */
  private endCarTask(){if(this.running?.kind==='carTask'&&this.running.started)this.world.endCarTask?.();}
+ private endJetpackTask(all=false){if(this.running?.kind==='jetpack'||all&&this.world.jetpackRunning?.())this.world.endJetpack?.();}
  private apply(order:ScriptedPedOrder,body:PlayerTaskBody){
+  if(this.running?.kind==='chat'&&body.view?.reactionName==='idle_chat')body.view.clearReaction();
   this.endCarTask();
+  this.endJetpackTask(true);
   if(this.running?.kind==='gunAt')this.world.aimAt?.(undefined);
   this.running=undefined;this.generation++;
   if(this.held!==undefined){if(body.view?.reactionName===this.held)body.view.clearReaction();this.held=undefined;}
   switch(order.kind){
+   case 'chat':{
+    if(!this.world.chatPartner?.(order.partner))break;
+    this.running={kind:'chat',partner:order.partner,task:createPartnerChat(order.chatter)};
+    const generation=this.generation;
+    if(!body.view?.hasReaction('idle_chat'))void this.world.animation('PED','IDLE_chat').then(animation=>{if(animation&&this.generation===generation)body.view?.installReactions({idle_chat:animation});});
+    break;
+   }
+   case 'jetpack':if(this.world.startJetpack?.())this.running={kind:'jetpack'};break;
    case 'standStill':this.running={kind:'standStill',remaining:order.seconds};break;
    // The script's degrees clockwise from north are the renderer's yaw plus half a turn.
    case 'achieveHeading':this.running={kind:'achieveHeading',heading:order.degrees*Math.PI/180+Math.PI};break;
@@ -224,13 +258,13 @@ export class PlayerScriptTasks{
    // TASK_AIM_GUN_AT_CHAR, which follows the ped.
    case 'gunAt':{
     const point=order.point?{x:order.point.x,y:order.point.z,z:-order.point.y}:order.target!==undefined?this.world.pedPoint?.(order.target):undefined;
-    if(point){this.running={kind:'gunAt',point,target:order.point?undefined:order.target,remaining:order.seconds};this.world.aimAt?.(point);}
+    if(point){this.running={kind:'gunAt',point,target:order.point?undefined:order.target,remaining:order.seconds,fire:order.fire,burstLeft:0,pause:0,thrown:!!order.fire&&!!this.world.gunInfo?.().thrown,started:false};this.world.aimAt?.(point);}
     break;
    }
    // The script's (x, y) way is the renderer's (x, -y); its yaw is atan2(x, z) there.
    case 'diveAndGetUp':{
     const own:Running={kind:'dive',phase:'loading',yaw:Math.atan2(order.x,-order.y),lie:order.seconds};this.running=own;
-    const start=()=>{own.phase=this.world.dive?.(own.yaw,own.lie)?'diving':'done';};
+    const start=()=>{own.phase='turning';};
     if(body.view?.hasReaction('ev_dive')){start();break;}
     const generation=this.generation;
     void this.world.animation('ped','EV_dive').then(animation=>{
@@ -247,6 +281,7 @@ export class PlayerScriptTasks{
  step(dt:number,body:PlayerTaskBody):PlayerTaskControl|undefined{
   const o=this.running;if(!o)return undefined;
   switch(o.kind){
+   case 'jetpack':if(!this.world.jetpackRunning?.())this.next(body);return undefined;
    case 'enterCar':{
     const state=this.world.carState?.()??'none';
     if(!o.started){
@@ -278,9 +313,29 @@ export class PlayerScriptTasks{
    case 'gunAt':{
     // A ped aimed at is followed; once he is gone the task is over.
     const point=o.target!==undefined?this.world.pedPoint?.(o.target):o.point;
-    o.remaining-=dt;if(o.remaining<=0||!point){this.world.aimAt?.(undefined);this.next(body);return {kind:'hold'};}
+    // TASK_SHOOT_AT_COORD selects ThrowControl for a thrown weapon, without passing its duration.
+    if(!o.thrown)o.remaining-=dt;
+    if(o.remaining<=0&&!o.thrown||!point||o.thrown&&o.started&&!this.world.throwing?.()){this.world.aimAt?.(undefined);this.next(body);return {kind:'hold'};}
     if(point!==o.point){o.point=point;this.world.aimAt?.(point);}
+    if(o.fire){
+     if(o.thrown){if(!o.started)o.started=!!this.world.fireAt?.(point);}
+     else if(o.pause>0)o.pause=Math.max(0,o.pause-dt);
+     else{
+      const gun=this.world.gunInfo?.()??{clip:1,projectile:false,thrown:false,rate:40};
+      if(o.burstLeft<=0)o.burstLeft=npcBurstLength(gun.clip,gun.rate);
+      if(this.world.fireAt?.(point)&&--o.burstLeft<=0)o.pause=npcBurstPause(gun.projectile,gun.rate);
+     }
+    }
     return {kind:'hold',facing:Math.atan2(point.x-body.position.x,point.z-body.position.z)};
+   }
+   case 'chat':{
+    const partner=this.world.chatPartner?.(o.partner),p=body.position,control=stepPartnerChat(o.task,partner?.task,{x:p.x,y:-p.z,z:p.y+PED_ORIGIN_HEIGHT},partner?.position,body.heading,body.speed,dt);
+    if(control.kind==='chat'){
+     if(body.view?.hasReaction('idle_chat')&&body.view.reactionName!=='idle_chat')body.view.playReaction('idle_chat',Infinity,false,0,true);
+    }else if(body.view?.reactionName==='idle_chat')body.view.clearReaction();
+    if(control.kind==='done'){this.next(body);return{kind:'hold'};}
+    const point=control.point,facing=point&&Math.atan2(point.x-p.x,-point.y-p.z);
+    return control.kind==='move'?{kind:'move',yaw:facing!,walk:true,sprint:false}:{kind:'hold',facing};
    }
    case 'mobilePhone':return {kind:'hold'};
    case 'enterPassenger':{
@@ -296,10 +351,17 @@ export class PlayerScriptTasks{
     const via=this.world.routeRoundCar?.(o.vehicle,q,door)??door;
     return {kind:'move',yaw:Math.atan2(via.x-q.x,via.z-q.z),walk:distance<4,sprint:false};
    }
-   case 'dive':
+   case 'dive':{
     if(o.phase==='loading')return {kind:'hold'};
+    // CTaskComplexEvasiveDiveAndGetUp starts AchieveHeading with rate 2.0 before the dive animation.
+    if(o.phase==='turning'){
+     const turned=achieveHeadingStep(body.heading,o.yaw,NATIVE_PLAYER_HEADING_CHANGE_RATE,dt,2);
+     if(turned.done)o.phase=this.world.dive?.(turned.heading,o.lie)?'diving':'done';
+     return {kind:'hold',facing:turned.heading};
+    }
     if(o.phase==='done'||!this.world.diving?.())this.next(body);
     return undefined;
+   }
    case 'achieveHeading':{
     const turned=achieveHeadingStep(body.heading,o.heading,NATIVE_PLAYER_HEADING_CHANGE_RATE,dt);
     if(turned.done)this.next(body);

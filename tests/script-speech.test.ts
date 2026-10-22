@@ -13,6 +13,30 @@ function bank(...sounds:number[][]){
 }
 const sha=(b:Uint8Array)=>createHash('sha256').update(b).digest('hex');
 
+test.each(['server','network','json'])('speech retries a %s manifest failure and coalesces concurrent lines',async failure=>{
+ const bytes=bank([1],[2]),manifest={version:1,firstBank:147,banks:[{id:147,path:'bank-147.bin',sounds:2,bytes:bytes.length,sha256:sha(bytes)}]};
+ let manifests=0,banks=0,decodes=0;
+ const fetcher=(async(url:URL)=>{
+  if(String(url).endsWith('script.json')){
+   if(++manifests===1){if(failure==='network')throw new TypeError('Failed to fetch');return new Response(failure==='json'?'temporarily invalid JSON':null,{status:failure==='server'?503:200});}
+   return new Response(JSON.stringify(manifest));
+  }
+  banks++;return new Response(bytes.slice());
+ }) as typeof fetch;
+ const speech=new ScriptSpeech('https://game.test/audio/',async()=>{decodes++;return{duration:1.25}as AudioBuffer;},fetcher);
+ expect(await Promise.all([speech.load(2000),speech.load(2001),speech.load(2000)])).toEqual([false,false,false]);expect(manifests).toBe(1);expect(banks).toBe(0);
+ expect(await Promise.all([speech.load(2000),speech.load(2001),speech.load(2000)])).toEqual([true,true,true]);expect(manifests).toBe(2);expect(banks).toBe(1);expect(decodes).toBe(2);expect(speech.line(2000)?.duration).toBe(1.25);
+});
+test('a failed speech decode retries from the retained verified bank',async()=>{
+ const bytes=bank([1]),manifest={version:1,firstBank:147,banks:[{id:147,path:'bank-147.bin',sounds:1,bytes:bytes.length,sha256:sha(bytes)}]};let banks=0,decodes=0;
+ const speech=new ScriptSpeech('https://game.test/audio/',async()=>{if(++decodes===1)throw new Error('Decoder temporarily unavailable');return{duration:2}as AudioBuffer;},(async(url:URL)=>String(url).endsWith('script.json')?new Response(JSON.stringify(manifest)):(banks++,new Response(bytes.slice())))as typeof fetch);
+ expect(await speech.load(2000)).toBe(false);expect(await speech.load(2000)).toBe(true);expect(banks).toBe(1);expect(decodes).toBe(2);
+});
+test('an absent optional speech manifest stays cached without repeated downloads',async()=>{
+ let fetches=0;const speech=new ScriptSpeech('https://game.test/audio/',async()=>{throw new Error('Unexpected decode');},(async()=>{fetches++;return new Response(null,{status:404});})as typeof fetch);
+ expect(await speech.load(2000)).toBe(false);expect(await speech.load(2001)).toBe(false);expect(await speech.load(2000)).toBe(false);expect(fetches).toBe(1);
+});
+
 describe('mission dialogue from the SCRIPT pack',()=>{
  test('a sample names its bank and sound as GetBankAndSoundFromScriptSlotAudioEvent does',()=>{
   expect(scriptSpeechSound(2000)).toEqual({bank:147,sound:0});// AE_SCRIPT_SLOT_ALDEAMALVADA, SND_BANK_SCRIPT_SCANNER_AREAS

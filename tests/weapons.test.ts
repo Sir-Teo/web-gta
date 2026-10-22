@@ -49,6 +49,14 @@ test('dead and seated players cannot spend ammunition or fire',()=>{const f=setu
 import {readFileSync} from 'node:fs';
 import {readWeaponData,nativeWeaponInfo,nativeWeaponReloadMs} from '../src/weapons/weaponData';
 const nativeData=readWeaponData(new TextDecoder('windows-1252').decode(readFileSync('public/play/world/files/data/weapon.dat')));
+test('player ped instant-hit and sniper impacts notify the world independently of loaded FX; misses do not',()=>{
+ const f=setup(),impact=vi.fn();try{
+  f.weapons.installNative(nativeData);f.weapons.onPlayerBulletImpact=impact;f.weapons.inventory.select(22);f.weapons.aiming=true;
+  expect(f.weapons.fire(camera)).toBe(true);expect(impact).toHaveBeenCalledWith(f.target.handle);
+  impact.mockClear();f.tick(1);expect(f.weapons.fire({...camera,direction:{x:0,y:1,z:0}})).toBe(true);expect(impact).not.toHaveBeenCalled();
+  f.tick(1);f.weapons.inventory.select(34);f.weapons.firstPerson='sniper';expect(f.weapons.fire(camera)).toBe(true);expect(impact).not.toHaveBeenCalled();f.tick(.1);expect(impact).toHaveBeenCalledWith(f.target.handle);
+ }finally{f.dispose();}
+});
 test('native WEAPON.DAT skill levels select clips, fire loops, twin pistols and automatic reloads',()=>{
  const inv=new WeaponInventory();inv.installNative(nativeData);inv.select(22);
  expect(inv.snapshot()).toMatchObject({skill:'poor',magazine:17,clip:17,twin:false,animGroup:'colt45'});expect(inv.interval).toBeCloseTo(.354,4);
@@ -223,6 +231,8 @@ function aircraft(sim:Simulation,modelId:number){
 function aircraftSetup(modelId:number){
  const sim=new Simulation(),plane=aircraft(sim,modelId);sim.world.step();sim.player.health=100;
  const weapons=new WeaponSystem(sim,()=>undefined,()=>({cars:[],planes:new Set([plane])}) as any);
+ // Live aircraft become controllable after the initial native gun timer has elapsed.
+ weapons.tick(1);
  return {sim,plane,weapons,dispose:()=>{weapons.dispose();sim.dispose();}};
 }
 test('an aircraft\'s guns never run dry and a rocket press launches two rockets from the ordnance pod',()=>{

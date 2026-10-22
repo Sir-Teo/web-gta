@@ -1,0 +1,668 @@
+{
+  "executableSha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "creationFragment": [
+    "0x1004787c4",
+    "0x10047880c"
+  ],
+  "timerFunction": "0x1004788f8",
+  "creation": [
+    {
+      "source": "none",
+      "random": 0,
+      "timer": 1000,
+      "storedSource": "none",
+      "references": 0
+    },
+    {
+      "source": "none",
+      "random": 1,
+      "timer": 1001,
+      "storedSource": "none",
+      "references": 0
+    },
+    {
+      "source": "none",
+      "random": 2047,
+      "timer": 3047,
+      "storedSource": "none",
+      "references": 0
+    },
+    {
+      "source": "none",
+      "random": 2048,
+      "timer": 1000,
+      "storedSource": "none",
+      "references": 0
+    },
+    {
+      "source": "none",
+      "random": 32767,
+      "timer": 3047,
+      "storedSource": "none",
+      "references": 0
+    },
+    {
+      "source": "player",
+      "random": 0,
+      "timer": 1000,
+      "storedSource": "player",
+      "references": 1
+    },
+    {
+      "source": "player",
+      "random": 1,
+      "timer": 1001,
+      "storedSource": "player",
+      "references": 1
+    },
+    {
+      "source": "player",
+      "random": 2047,
+      "timer": 3047,
+      "storedSource": "player",
+      "references": 1
+    },
+    {
+      "source": "player",
+      "random": 2048,
+      "timer": 1000,
+      "storedSource": "player",
+      "references": 1
+    },
+    {
+      "source": "player",
+      "random": 32767,
+      "timer": 3047,
+      "storedSource": "player",
+      "references": 1
+    },
+    {
+      "source": "playerVehicle",
+      "random": 0,
+      "timer": 1000,
+      "storedSource": "playerVehicle",
+      "references": 1
+    },
+    {
+      "source": "playerVehicle",
+      "random": 1,
+      "timer": 1001,
+      "storedSource": "playerVehicle",
+      "references": 1
+    },
+    {
+      "source": "playerVehicle",
+      "random": 2047,
+      "timer": 3047,
+      "storedSource": "playerVehicle",
+      "references": 1
+    },
+    {
+      "source": "playerVehicle",
+      "random": 2048,
+      "timer": 1000,
+      "storedSource": "playerVehicle",
+      "references": 1
+    },
+    {
+      "source": "playerVehicle",
+      "random": 32767,
+      "timer": 3047,
+      "storedSource": "playerVehicle",
+      "references": 1
+    },
+    {
+      "source": "other",
+      "random": 0,
+      "timer": 1000,
+      "storedSource": "other",
+      "references": 1
+    },
+    {
+      "source": "other",
+      "random": 1,
+      "timer": 1001,
+      "storedSource": "other",
+      "references": 1
+    },
+    {
+      "source": "other",
+      "random": 2047,
+      "timer": 3047,
+      "storedSource": "other",
+      "references": 1
+    },
+    {
+      "source": "other",
+      "random": 2048,
+      "timer": 1000,
+      "storedSource": "other",
+      "references": 1
+    },
+    {
+      "source": "other",
+      "random": 32767,
+      "timer": 3047,
+      "storedSource": "other",
+      "references": 1
+    }
+  ],
+  "ticks": [
+    {
+      "input": {
+        "timer": 0,
+        "timeStep": 1,
+        "source": "none"
+      },
+      "timer": 0,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 16,
+        "timeStep": 1,
+        "source": "none"
+      },
+      "timer": 0,
+      "blowUp": {
+        "source": "none",
+        "hideExplosion": 0
+      }
+    },
+    {
+      "input": {
+        "timer": 17,
+        "timeStep": 1,
+        "source": "none"
+      },
+      "timer": 1,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 32,
+        "timeStep": 1,
+        "source": "none"
+      },
+      "timer": 16,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 8,
+        "timeStep": 0.5,
+        "source": "none"
+      },
+      "timer": 0,
+      "blowUp": {
+        "source": "none",
+        "hideExplosion": 0
+      }
+    },
+    {
+      "input": {
+        "timer": 16,
+        "timeStep": 0.8333333333333334,
+        "source": "none"
+      },
+      "timer": 3,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 1,
+        "timeStep": 0.06,
+        "source": "none"
+      },
+      "timer": 1,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 1,
+        "timeStep": 0.059999999,
+        "source": "none"
+      },
+      "timer": 1,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 1,
+        "timeStep": 0,
+        "source": "none"
+      },
+      "timer": 1,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 10,
+        "timeStep": 1000000000.0,
+        "source": "none"
+      },
+      "timer": 0,
+      "blowUp": {
+        "source": "none",
+        "hideExplosion": 0
+      }
+    },
+    {
+      "input": {
+        "timer": 10,
+        "timeStep": -1,
+        "source": "none"
+      },
+      "timer": 10,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 65535,
+        "timeStep": 0.1,
+        "source": "none"
+      },
+      "timer": 65534,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 20,
+        "timeStep": 1.2,
+        "source": "none"
+      },
+      "timer": 0,
+      "blowUp": {
+        "source": "none",
+        "hideExplosion": 0
+      }
+    },
+    {
+      "input": {
+        "timer": 0,
+        "timeStep": 1,
+        "source": "player"
+      },
+      "timer": 0,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 16,
+        "timeStep": 1,
+        "source": "player"
+      },
+      "timer": 0,
+      "blowUp": {
+        "source": "player",
+        "hideExplosion": 0
+      }
+    },
+    {
+      "input": {
+        "timer": 17,
+        "timeStep": 1,
+        "source": "player"
+      },
+      "timer": 1,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 32,
+        "timeStep": 1,
+        "source": "player"
+      },
+      "timer": 16,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 8,
+        "timeStep": 0.5,
+        "source": "player"
+      },
+      "timer": 0,
+      "blowUp": {
+        "source": "player",
+        "hideExplosion": 0
+      }
+    },
+    {
+      "input": {
+        "timer": 16,
+        "timeStep": 0.8333333333333334,
+        "source": "player"
+      },
+      "timer": 3,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 1,
+        "timeStep": 0.06,
+        "source": "player"
+      },
+      "timer": 1,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 1,
+        "timeStep": 0.059999999,
+        "source": "player"
+      },
+      "timer": 1,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 1,
+        "timeStep": 0,
+        "source": "player"
+      },
+      "timer": 1,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 10,
+        "timeStep": 1000000000.0,
+        "source": "player"
+      },
+      "timer": 0,
+      "blowUp": {
+        "source": "player",
+        "hideExplosion": 0
+      }
+    },
+    {
+      "input": {
+        "timer": 10,
+        "timeStep": -1,
+        "source": "player"
+      },
+      "timer": 10,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 65535,
+        "timeStep": 0.1,
+        "source": "player"
+      },
+      "timer": 65534,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 20,
+        "timeStep": 1.2,
+        "source": "player"
+      },
+      "timer": 0,
+      "blowUp": {
+        "source": "player",
+        "hideExplosion": 0
+      }
+    },
+    {
+      "input": {
+        "timer": 0,
+        "timeStep": 1,
+        "source": "playerVehicle"
+      },
+      "timer": 0,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 16,
+        "timeStep": 1,
+        "source": "playerVehicle"
+      },
+      "timer": 0,
+      "blowUp": {
+        "source": "playerVehicle",
+        "hideExplosion": 0
+      }
+    },
+    {
+      "input": {
+        "timer": 17,
+        "timeStep": 1,
+        "source": "playerVehicle"
+      },
+      "timer": 1,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 32,
+        "timeStep": 1,
+        "source": "playerVehicle"
+      },
+      "timer": 16,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 8,
+        "timeStep": 0.5,
+        "source": "playerVehicle"
+      },
+      "timer": 0,
+      "blowUp": {
+        "source": "playerVehicle",
+        "hideExplosion": 0
+      }
+    },
+    {
+      "input": {
+        "timer": 16,
+        "timeStep": 0.8333333333333334,
+        "source": "playerVehicle"
+      },
+      "timer": 3,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 1,
+        "timeStep": 0.06,
+        "source": "playerVehicle"
+      },
+      "timer": 1,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 1,
+        "timeStep": 0.059999999,
+        "source": "playerVehicle"
+      },
+      "timer": 1,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 1,
+        "timeStep": 0,
+        "source": "playerVehicle"
+      },
+      "timer": 1,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 10,
+        "timeStep": 1000000000.0,
+        "source": "playerVehicle"
+      },
+      "timer": 0,
+      "blowUp": {
+        "source": "playerVehicle",
+        "hideExplosion": 0
+      }
+    },
+    {
+      "input": {
+        "timer": 10,
+        "timeStep": -1,
+        "source": "playerVehicle"
+      },
+      "timer": 10,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 65535,
+        "timeStep": 0.1,
+        "source": "playerVehicle"
+      },
+      "timer": 65534,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 20,
+        "timeStep": 1.2,
+        "source": "playerVehicle"
+      },
+      "timer": 0,
+      "blowUp": {
+        "source": "playerVehicle",
+        "hideExplosion": 0
+      }
+    },
+    {
+      "input": {
+        "timer": 0,
+        "timeStep": 1,
+        "source": "other"
+      },
+      "timer": 0,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 16,
+        "timeStep": 1,
+        "source": "other"
+      },
+      "timer": 0,
+      "blowUp": {
+        "source": "other",
+        "hideExplosion": 0
+      }
+    },
+    {
+      "input": {
+        "timer": 17,
+        "timeStep": 1,
+        "source": "other"
+      },
+      "timer": 1,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 32,
+        "timeStep": 1,
+        "source": "other"
+      },
+      "timer": 16,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 8,
+        "timeStep": 0.5,
+        "source": "other"
+      },
+      "timer": 0,
+      "blowUp": {
+        "source": "other",
+        "hideExplosion": 0
+      }
+    },
+    {
+      "input": {
+        "timer": 16,
+        "timeStep": 0.8333333333333334,
+        "source": "other"
+      },
+      "timer": 3,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 1,
+        "timeStep": 0.06,
+        "source": "other"
+      },
+      "timer": 1,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 1,
+        "timeStep": 0.059999999,
+        "source": "other"
+      },
+      "timer": 1,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 1,
+        "timeStep": 0,
+        "source": "other"
+      },
+      "timer": 1,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 10,
+        "timeStep": 1000000000.0,
+        "source": "other"
+      },
+      "timer": 0,
+      "blowUp": {
+        "source": "other",
+        "hideExplosion": 0
+      }
+    },
+    {
+      "input": {
+        "timer": 10,
+        "timeStep": -1,
+        "source": "other"
+      },
+      "timer": 10,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 65535,
+        "timeStep": 0.1,
+        "source": "other"
+      },
+      "timer": 65534,
+      "blowUp": null
+    },
+    {
+      "input": {
+        "timer": 20,
+        "timeStep": 1.2,
+        "source": "other"
+      },
+      "timer": 0,
+      "blowUp": {
+        "source": "other",
+        "hideExplosion": 0
+      }
+    }
+  ]
+}

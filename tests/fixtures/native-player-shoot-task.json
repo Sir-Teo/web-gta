@@ -1,0 +1,813 @@
+{
+  "executableSha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "handler": "0x1001edf98",
+  "intercepts": [
+    "CollectParameters",
+    "GetWeaponInfo",
+    "operator new",
+    "controller constructors",
+    "GiveScriptTask"
+  ],
+  "cases": [
+    {
+      "input": {
+        "handle": -1,
+        "thrown": false,
+        "duration": 0,
+        "point": [
+          -2237.22,
+          170.55,
+          58.45
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          -2237.219970703125,
+          170.5500030517578,
+          58.45000076293945
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 0
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "thrown": false,
+        "duration": 0,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 0
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "thrown": false,
+        "duration": 3000,
+        "point": [
+          -2237.22,
+          170.55,
+          58.45
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          -2237.219970703125,
+          170.5500030517578,
+          58.45000076293945
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 3000
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "thrown": false,
+        "duration": 3000,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 3000
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "thrown": false,
+        "duration": -1,
+        "point": [
+          -2237.22,
+          170.55,
+          58.45
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          -2237.219970703125,
+          170.5500030517578,
+          58.45000076293945
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 4294967295
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "thrown": false,
+        "duration": -1,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 4294967295
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "thrown": false,
+        "duration": 2147483647,
+        "point": [
+          -2237.22,
+          170.55,
+          58.45
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          -2237.219970703125,
+          170.5500030517578,
+          58.45000076293945
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 2147483647
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "thrown": false,
+        "duration": 2147483647,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 2147483647
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "thrown": true,
+        "duration": 0,
+        "point": [
+          -2237.22,
+          170.55,
+          58.45
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          -2237.219970703125,
+          170.5500030517578,
+          58.45000076293945
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 0
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "thrown": true,
+        "duration": 0,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 0
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "thrown": true,
+        "duration": 3000,
+        "point": [
+          -2237.22,
+          170.55,
+          58.45
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          -2237.219970703125,
+          170.5500030517578,
+          58.45000076293945
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 3000
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "thrown": true,
+        "duration": 3000,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 3000
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "thrown": true,
+        "duration": -1,
+        "point": [
+          -2237.22,
+          170.55,
+          58.45
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          -2237.219970703125,
+          170.5500030517578,
+          58.45000076293945
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 4294967295
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "thrown": true,
+        "duration": -1,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 4294967295
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "thrown": true,
+        "duration": 2147483647,
+        "point": [
+          -2237.22,
+          170.55,
+          58.45
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          -2237.219970703125,
+          170.5500030517578,
+          58.45000076293945
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 2147483647
+      }
+    },
+    {
+      "input": {
+        "handle": -1,
+        "thrown": true,
+        "duration": 2147483647,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 2147483647
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "thrown": false,
+        "duration": 0,
+        "point": [
+          -2237.22,
+          170.55,
+          58.45
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          -2237.219970703125,
+          170.5500030517578,
+          58.45000076293945
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 0
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "thrown": false,
+        "duration": 0,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 0
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "thrown": false,
+        "duration": 3000,
+        "point": [
+          -2237.22,
+          170.55,
+          58.45
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          -2237.219970703125,
+          170.5500030517578,
+          58.45000076293945
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 3000
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "thrown": false,
+        "duration": 3000,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 3000
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "thrown": false,
+        "duration": -1,
+        "point": [
+          -2237.22,
+          170.55,
+          58.45
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          -2237.219970703125,
+          170.5500030517578,
+          58.45000076293945
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 4294967295
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "thrown": false,
+        "duration": -1,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 4294967295
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "thrown": false,
+        "duration": 2147483647,
+        "point": [
+          -2237.22,
+          170.55,
+          58.45
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          -2237.219970703125,
+          170.5500030517578,
+          58.45000076293945
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 2147483647
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "thrown": false,
+        "duration": 2147483647,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "native": {
+        "allocation": 80,
+        "controller": "gun",
+        "target": 0,
+        "point": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "moveTarget": 0,
+        "command": 3,
+        "burst": 5,
+        "duration": 2147483647
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "thrown": true,
+        "duration": 0,
+        "point": [
+          -2237.22,
+          170.55,
+          58.45
+        ]
+      },
+      "native": {
+        "allocation": 48,
+        "controller": "throw",
+        "target": 0,
+        "point": [
+          -2237.219970703125,
+          170.5500030517578,
+          58.45000076293945
+        ]
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "thrown": true,
+        "duration": 0,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "native": {
+        "allocation": 48,
+        "controller": "throw",
+        "target": 0,
+        "point": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "thrown": true,
+        "duration": 3000,
+        "point": [
+          -2237.22,
+          170.55,
+          58.45
+        ]
+      },
+      "native": {
+        "allocation": 48,
+        "controller": "throw",
+        "target": 0,
+        "point": [
+          -2237.219970703125,
+          170.5500030517578,
+          58.45000076293945
+        ]
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "thrown": true,
+        "duration": 3000,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "native": {
+        "allocation": 48,
+        "controller": "throw",
+        "target": 0,
+        "point": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "thrown": true,
+        "duration": -1,
+        "point": [
+          -2237.22,
+          170.55,
+          58.45
+        ]
+      },
+      "native": {
+        "allocation": 48,
+        "controller": "throw",
+        "target": 0,
+        "point": [
+          -2237.219970703125,
+          170.5500030517578,
+          58.45000076293945
+        ]
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "thrown": true,
+        "duration": -1,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "native": {
+        "allocation": 48,
+        "controller": "throw",
+        "target": 0,
+        "point": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "thrown": true,
+        "duration": 2147483647,
+        "point": [
+          -2237.22,
+          170.55,
+          58.45
+        ]
+      },
+      "native": {
+        "allocation": 48,
+        "controller": "throw",
+        "target": 0,
+        "point": [
+          -2237.219970703125,
+          170.5500030517578,
+          58.45000076293945
+        ]
+      }
+    },
+    {
+      "input": {
+        "handle": 7,
+        "thrown": true,
+        "duration": 2147483647,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "native": {
+        "allocation": 48,
+        "controller": "throw",
+        "target": 0,
+        "point": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    }
+  ]
+}

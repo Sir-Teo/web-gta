@@ -1,0 +1,483 @@
+{
+  "executableSha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "parseToken": "0x10037c3c4",
+  "intercepts": [],
+  "cases": [
+    {
+      "input": {
+        "token": "~0~",
+        "blip": false
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~0~",
+        "blip": true
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~1~",
+        "blip": false
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~1~",
+        "blip": true
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~2~",
+        "blip": false
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~2~",
+        "blip": true
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~3~",
+        "blip": false
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~3~",
+        "blip": true
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~4~",
+        "blip": false
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~4~",
+        "blip": true
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~5~",
+        "blip": false
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~5~",
+        "blip": true
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~6~",
+        "blip": false
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~6~",
+        "blip": true
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~7~",
+        "blip": false
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~7~",
+        "blip": true
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~8~",
+        "blip": false
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~8~",
+        "blip": true
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~9~",
+        "blip": false
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~9~",
+        "blip": true
+      },
+      "consumedCodeUnits": 3,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~10~",
+        "blip": false
+      },
+      "consumedCodeUnits": 4,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~10~",
+        "blip": true
+      },
+      "consumedCodeUnits": 4,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~123456~",
+        "blip": false
+      },
+      "consumedCodeUnits": 8,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~123456~",
+        "blip": true
+      },
+      "consumedCodeUnits": 8,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~1number~",
+        "blip": false
+      },
+      "consumedCodeUnits": 9,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~1number~",
+        "blip": true
+      },
+      "consumedCodeUnits": 9,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~9\u00e9~",
+        "blip": false
+      },
+      "consumedCodeUnits": 4,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    },
+    {
+      "input": {
+        "token": "~9\u00e9~",
+        "blip": true
+      },
+      "consumedCodeUnits": 4,
+      "remaining": "TAIL",
+      "colour": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "tag": 90,
+      "newline": 0,
+      "symbol": 127
+    }
+  ]
+}

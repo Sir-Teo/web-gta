@@ -11,6 +11,7 @@ export interface NativeBird {
 }
 /** CBirds::faCreationCoors: the flock's formation offsets. */
 const CREATION_X=[0,-1,2,-3,1,-2],CREATION_Y=[0,-1,-2,1,1,-2],CREATION_Z=[0,.5,1,.7,2,1.2];
+const f=Math.fround;
 export const MAX_BIRDS=6;
 /** GetMaxDistance: past this 2D distance from the camera a bird is removed; its render alpha fades over the last 30%. */
 export const birdMaxDistance=(biome:BirdBiome)=>biome==='water'?45:biome==='desert'?80:40;
@@ -51,31 +52,31 @@ export class NativeBirds {
   const maxDistance=birdMaxDistance(biome);
   for(let i=0;i<count;i++){
    const bird=this.birds.find(b=>!b.created);if(!bird)return;
-   const d=[target[0]-start[0],target[1]-start[1],target[2]-start[2]],length=Math.hypot(...d)||1,dir=d.map(v=>v/length) as [number,number,number];
+   const d=target.map((v,k)=>f(v-start[k])),squared=f(f(f(d[0]*d[0])+f(d[1]*d[1]))+f(d[2]*d[2]));
+   // CVector::Normalise (iOS 0x1002cb4c4) sets x to 1 for a zero vector.
+   const inverse=squared>0?f(1/f(Math.sqrt(squared))):0,dir=(squared>0?d.map(v=>f(v*inverse)):[1,d[1],d[2]]) as [number,number,number];
    const check:[number,number,number]=[start[0]+dir[0]*maxDistance*2.4,start[1]+dir[1]*maxDistance*2.4,start[2]+dir[2]*maxDistance*2.4];
    if(checkObstacles&&world&&!world.lineOfSightClear(start,check))continue;
    this.count++;bird.created=true;bird.maxDistance=maxDistance;bird.mustDoCurves=false;
-   bird.angle=Math.atan2(dir[0],dir[1]);
-   bird.position=[start[0]+CREATION_X[i],start[1]+CREATION_Y[i],start[2]+CREATION_Z[i]];
-   const speedRand=this.rand()%31;let speed:number;
+   bird.angle=f(Math.atan2(dir[0],dir[1]));
+   bird.position=[f(start[0]+CREATION_X[i]),f(start[1]+CREATION_Y[i]),f(start[2]+CREATION_Z[i])];
+   const speedRand=this.rand()%31;
    if(biome==='water'){
-    speed=speedRand/50+4;
     const body=this.rand()%64+80,wings=(this.rand()%64-76)&255;
     bird.bodyColor=[body,body,body];bird.wingsColor=[wings,wings,wings];
     bird.size=this.rangeF(.8,1.2);bird.wingStillness=1000-12*speedRand;
    }else if(biome==='desert'){
-    speed=speedRand/50+3;
     bird.bodyColor=[30,15,10];bird.wingsColor=[80,15,10];
     bird.size=this.rangeF(2,2.5);bird.wingStillness=12*(125-speedRand);
     if(this.rand()&4)bird.wingStillness=1_000_000;
     if(this.rand()&8)bird.mustDoCurves=true;
    }else{
-    speed=speedRand/50+5;
     const body=this.rangeI(128,256),wings=this.rangeI(128,256);
     bird.bodyColor=[body,body,body];bird.wingsColor=[wings,wings,wings];
     bird.size=this.rangeF(.5,.6);bird.wingStillness=500-6*speedRand;
    }
-   bird.targetVelocity=[dir[0]*speed,dir[1]*speed,dir[2]*speed];bird.currentVelocity=[...bird.targetVelocity];
+   const speed=f(f(speedRand/50)+(biome==='water'?4:biome==='desert'?3:5));
+   bird.targetVelocity=[f(dir[0]*speed),f(dir[1]*speed),f(dir[2]*speed)];bird.currentVelocity=[...bird.targetVelocity];
   }
  }
  /** CBirds::Update (0x712330) for one frame: `frame` is CTimer's frame counter, `timeStep` the frame's seconds. */

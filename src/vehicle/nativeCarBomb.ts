@@ -25,12 +25,14 @@ export function detonateStickyBomb(car:CarBomb){
  if(car.bombOnBoard!==BOMB.sticky)return false;
  car.bombOnBoard=BOMB.none;car.bombTimerMs=500;return true;
 }
-/** ProcessDelayedExplosion's tick: the timer less (int16)(timeStep × 100/6) ms (CTimer's step, 1 at 50 frames a
+/** ProcessDelayedExplosion's tick: the timer less trunc(float32(timeStep × float32(100/6))) ms (CTimer's step, 1 at 50 frames a
  * second, so 16 ms a frame rather than 20, and 7000 ms run out in 438 frames, 8.76 s), held at 0. True when it has
  * just run out: BlowUpCar. */
 export function stepBombTimer(car:Pick<CarBomb,'bombTimerMs'>,timeStep:number){
  if(!car.bombTimerMs)return false;
- car.bombTimerMs=Math.max(car.bombTimerMs-Math.trunc(timeStep*100/6),0);
+ // iOS 0x1004788f8 uses float32 operands/multiply and FCVTZU, which saturates negative periods to zero.
+ const scaled=Math.fround(Math.fround(timeStep)*Math.fround(100/6)),period=Math.max(0,Math.min(0xffffffff,Math.trunc(scaled)));
+ car.bombTimerMs=Math.max(car.bombTimerMs-period,0);
  return car.bombTimerMs===0;
 }
 /** What arming tells the game: CGarages::TriggerMessage("GA_12", -1, 3000). */

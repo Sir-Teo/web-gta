@@ -1,0 +1,22 @@
+import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
+
+test('MANSIO2 sees a cached dying ped, checks direction and walls, then drops fully dead bodies on refresh',async({page})=>{
+ test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});await endStoryMission(page);
+ const handles=await page.evaluate(()=>{const g=(window as any).__game,m=g.missionForProfiling(),p=g.sim.player.position;return {observer:m.peds.create(25,'MALE01',{x:p.x+4,y:-p.z,z:p.y}),target:m.peds.create(4,'MALE01',{x:p.x+12,y:-p.z,z:p.y})};});
+ await page.waitForFunction(({observer,target})=>{const m=(window as any).__game.missionForProfiling();return !!m.peds.entity(observer)&&!!m.peds.entity(target);},handles,{timeout:60000});
+ await page.evaluate(({observer,target})=>{const m=(window as any).__game.missionForProfiling(),w=m.runtime.world;w.freezePedPosition(observer,true);w.freezePedPosition(target,true);w.setPedSenseRange(observer,40);m.peds.setHeading(observer,270);},handles);
+ await page.waitForFunction(({observer,target})=>{const m=(window as any).__game.missionForProfiling();return m.peds.entity(observer).pedScanner?.entities.includes(m.peds.entity(target));},handles,{timeout:10000});
+ const first=await page.evaluate(async({observer,target})=>{
+  const g=(window as any).__game,m=g.missionForProfiling(),r=m.runtime,decoderPath='/src/assets/scm.ts',decoder=await import(/* @vite-ignore */ decoderPath),b=new Uint8Array(await(await fetch('/play/world/files/scripts/main.scm')).arrayBuffer()),h=decoder.readScmHeader(b),sites=decoder.decodeScmInstructions(b,h.missions[103].start,h.missions[103].end).filter((i:any)=>i.name==='CAN_CHAR_SEE_DEAD_CHAR');
+  const query=(index=0,negated=false)=>{const i=sites[index],code=new Uint8Array(i.end-i.offset+2);code.set(b.subarray(i.offset,i.end));if(negated)code[1]|=128;code.set([78,0],code.length-2);const slot=r.start(0,[],{space:code,mission:true});slot.thread.usesMissionCleanup=false;for(const local of [131,137])slot.thread.locals.setInt32(local*4,observer,true);slot.thread.locals.setInt32(52*4,0,true);slot.thread.run(g.gameTimeMs(),10,1);return slot.thread.condition;};
+  (window as any).__deadSightQuery=query;const living=query();m.peds.setHealth(target,0);r.world.setPedAnimPlayingFlag(target,'KO_SHOT_FRONT',false);const dying=sites.map((_:any,i:number)=>query(i)),notDying=query(0,true);
+  const dependencyPath='/tests/fixtures/native-render-dependencies.ts',R=(await import(/* @vite-ignore */ dependencyPath)).RAPIER,a=m.peds.entity(observer).actor.player.position,t=m.peds.entity(target).actor.player.position,body=g.sim.world.createRigidBody(R.RigidBodyDesc.fixed().setTranslation((a.x+t.x)/2,a.y+1.75,(a.z+t.z)/2));g.sim.world.createCollider(R.ColliderDesc.cuboid(.25,3,2),body);g.sim.world.step();const wall=query();g.sim.world.removeRigidBody(body);g.sim.world.step();m.peds.setHeading(observer,90);const behind=query();m.peds.setHeading(observer,270);const clear=query();
+  return {living,dying,notDying,wall,behind,clear};
+ },handles);
+ expect(first).toEqual({living:false,dying:[true,true,true],notDying:false,wall:false,behind:false,clear:true});
+ await page.evaluate(({target})=>{const m=(window as any).__game.missionForProfiling();m.runtime.world.setPedAnimProgress(target,'KO_SHOT_FRONT',1);},handles);
+ await page.waitForFunction(({observer,target})=>{const m=(window as any).__game.missionForProfiling(),p=m.peds.entity(target);return p.deathState==='dead'&&!m.peds.entity(observer).pedScanner.entities.includes(p);},handles,{timeout:10000});
+ const last=await page.evaluate(({target})=>{const g=(window as any).__game,m=g.missionForProfiling(),p=m.peds.entity(target),query=(window as any).__deadSightQuery,settled=query(),hit=g.pedestrians().damageCollider(p.collider.handle,100,{x:0,z:1},'bullet',{weapon:22});return {settled,hit,afterHit:query(),deathState:p.deathState,skipped:m.snapshot().skipped,gaveUp:m.snapshot().gaveUp};},handles);
+ expect(last.settled).toBe(false);expect(last.hit).toBe(true);expect(last.afterHit).toBe(false);expect(last.deathState).toBe('dead');expect(last.skipped).toEqual([]);expect(last.gaveUp).toEqual([]);expect(errors).toEqual([]);
+});

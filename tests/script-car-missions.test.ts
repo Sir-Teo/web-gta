@@ -183,6 +183,16 @@ test('under the stop-for-cars styles a script car slows for a car stopped ahead;
  missions.traffic=undefined;expect(speed(c,20,false)).toBe(20);
 });
 
+test('the traffic scan keeps its last accepted vehicle reference and the next physics frame clears it',()=>{
+ const missions=new ScriptCarMissions(()=>undefined),{car:c}=sized(0,0),rect={front:2.4,back:2.4,halfWidth:1,forward:{x:0,y:1,z:0},moveSpeed:{x:0,y:0}},at=(y:number)=>({position:{x:0,y,z:0},centre:{x:0,y,z:0},...rect}),near={},last={};
+ missions.traffic=()=>[{vehicle:c,...at(0)},{vehicle:near,...at(5)},{vehicle:last,...at(10)}];
+ missions.gotoCoords(c,{x:0,y:0,z:-50},{cruise:20,style:0});missions.step(1/50);expect(c.obstructingEntity).toBe(last);
+ // Reading the reference does not redo the scan: moving a target takes effect at the next controller frame.
+ missions.traffic=()=>[{vehicle:c,...at(0)},{vehicle:last,...at(-10)}];expect(c.obstructingEntity).toBe(last);missions.step(1/50);expect(c.obstructingEntity).toBeUndefined();
+ missions.traffic=()=>[{vehicle:c,...at(0)},{vehicle:near,...at(5)}];missions.step(1/50);expect(c.obstructingEntity).toBe(near);
+ missions.gotoCoords(c,{x:0,y:0,z:-50},{cruise:20,style:2});missions.step(1/50);expect(c.obstructingEntity).toBeUndefined();
+});
+
 test('the racing mission never turns straight near the point; the racing command does without a road route',()=>{
  const missions=new ScriptCarMissions(()=>undefined),{car:c,at}=car(0,0);
  // CCarAI::GetCarToGoToCoorsRacing: MISSION_GOTOCOORDINATES_RACING whatever JoinCarWithRoadSystemGotoCoors answers.

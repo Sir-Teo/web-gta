@@ -153,6 +153,7 @@ export class NativeMap {
   if(open)this.panel.focus({preventScroll:true});else if(this.panel.contains(document.activeElement)||document.activeElement instanceof HTMLButtonElement)(document.querySelector('canvas.world') as HTMLCanvasElement|null)?.focus();
   this.draw();}
  update(position:{x:number;z:number},heading:number,radar?:{viewHeading:number;range:number;ring?:number;altitude?:number;zoomed?:boolean;horizon?:number}){this.stepMapKeys();if(radar)this.radar=radar;this.position={x:position.x,z:position.z};this.heading=heading;this.draw();}
+ snapshot(){return {position:{...this.position},heading:this.heading,...this.radar};}
  /** CRadar::DrawBlips with the frontend's map drawing (m_bDrawingMap): every trace at blip size 1 with its height
   * triangle, and every sprite, short-range ones included, sized in the screen lines the menu draws in. */
  /** `ox`, `oy` and `scale`: the frame's window on the map (map fractions) and canvas pixels per map fraction. */

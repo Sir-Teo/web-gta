@@ -15,7 +15,7 @@ test('a script ped and the player dive and get up, and a ped looks at a car',asy
  await page.waitForFunction(c=>!!(window as any).__game.missionForProfiling().vehicles.entity(c),car,{timeout:60000});
  const DIVE=0x0645,LOOK=0x0603,STATUS=(h:number,op:number)=>(window as any).__game.missionForProfiling().runtime.world.scriptTaskStatus?.(h,op);
  await page.evaluate(({h,c,look})=>{const w=(window as any).__game.missionForProfiling().runtime.world;w.givePedScriptedTask(h,{kind:'lookAtVehicle',vehicle:c,time:2000},look);},{h:ped,c:car,look:LOOK});
- const before=await page.evaluate(h=>{const e=(window as any).__game.missionForProfiling().peds.entity(h);return {x:e.actor.player.position.x,z:e.actor.player.position.z,look:!!e.look};},ped);
+ const before=await page.evaluate(h=>{const g=(window as any).__game,e=g.missionForProfiling().peds.entity(h);return {x:e.actor.player.position.x,z:e.actor.player.position.z,look:!!e.look,player:{...g.sim.player.position}};},ped);
  expect(before.look).toBe(true);
  // Dive east (script +x) for a second on the ground.
  await page.evaluate(({h,op})=>{const w=(window as any).__game.missionForProfiling().runtime.world;w.givePedScriptedTask(h,{kind:'diveAndGetUp',x:1,y:0,time:1000},op);w.givePedScriptedTask(1,{kind:'diveAndGetUp',x:0,y:1,time:500},op);},{h:ped,op:DIVE});
@@ -27,5 +27,8 @@ test('a script ped and the player dive and get up, and a ped looks at a car',asy
  // EV_DIVE carries it several units along the dive, east.
  expect(after.x-before.x).toBeGreaterThan(3);
  expect(after.order).not.toBe('dive');
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.sim.knockdown),{timeout:30000}).toBe(0);
+ const player=await page.evaluate(()=>{const g=(window as any).__game;return {position:{...g.sim.player.position},heading:g.sim.player.heading,status:g.missionForProfiling().runtime.world.scriptTaskStatus(1,0x645)};});
+ expect(before.player.z-player.position.z).toBeGreaterThan(3);expect(Math.abs(Math.atan2(Math.sin(player.heading-Math.PI/2),Math.cos(player.heading-Math.PI/2)))).toBeLessThan(.21);expect(player.status).toBe(7);
  expect(errors).toEqual([]);
 });

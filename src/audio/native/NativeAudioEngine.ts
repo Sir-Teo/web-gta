@@ -59,6 +59,9 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  /** CAudioEngine::m_FrontendAE (pickup sounds). */
  readonly frontend:NativeFrontendAudio;
  /** Each garage's CAEDoorAudioEntity (CGarage::m_GarageAudio), by garage name, made as a garage's door first moves. */
+ /** CAudioEngine::m_DoorAE, shared by all entry/exit door movement reports. */
+ readonly doors:NativeDoorAudio;
+ reportDoorMovement(position:NativeVec){this.doors.addMovingDoorEvent(position);}
  private readonly garageDoors=new Map<string,NativeDoorAudio>();
  garageDoor(garage:string){let door=this.garageDoors.get(garage);if(!door){door=new NativeDoorAudio(this.manager,this.bank,e=>this.defaultVolume(e));this.garageDoors.set(garage,door);}return door;}
  /** CAEScriptAudioEntity's ProcessMissionAudioEvent, for the scripts' REPORT_MISSION_AUDIO_EVENT_AT_*. */
@@ -95,6 +98,7 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   this.globalWeapon=new NativeGlobalWeaponAudio(this.manager,bank,random,e=>this.defaultVolume(e));
   this.explosions=new NativeExplosionAudio(this.manager,bank,random,e=>this.defaultVolume(e));
   this.collisions=new NativeCollisionAudio(this.manager,bank,random,e=>this.defaultVolume(e),id=>this.surfaceAudio?.get(id));
+  this.doors=new NativeDoorAudio(this.manager,bank,e=>this.defaultVolume(e));
   this.frontend=new NativeFrontendAudio(this.manager,bank,e=>this.defaultVolume(e));
   this.scriptAudio=new NativeScriptAudio(this.manager,bank,e=>this.defaultVolume(e),this.random,(event,volume,speed)=>this.frontend.addAudioEvent(event,volume,speed));
   this.scriptAudio.weapon=(event,weapon,physical)=>this.globalWeapon.addAudioEvent(event,weapon,physical);
@@ -449,6 +453,6 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   return frames;
  }
   /** Stop everything (CAESoundManager::Reset). */
-  reset(){for(const e of this.entities.values())e.terminate();this.entities.clear();for(const e of this.fires.values())e.terminate();this.fires.clear();this.policeScanner.reset();this.radioTracks.reset();this.manager.reset();}
-  snapshot(){const slots:Record<number,number>={};for(const sound of this.manager.sounds)if(sound.inUse)slots[sound.slot]=(slots[sound.slot]??0)+1;return {waterCannon:this.waterCannon.snapshot(),...this.manager.snapshot(),slots,footsteps:this.playerPed?.footstepsPlayed??0,painCries:this.painCries,scanner:this.policeScanner.snapshot(),script:this.scriptAudio.snapshot(),garageDoors:Object.fromEntries([...this.garageDoors].map(([name,door])=>[name,Object.fromEntries(door.told)])),radio:{...this.radioTracks.snapshot(),stream:this.radioStream?.snapshot?.()??null},banks:this.bank.snapshot(),vehicles:[...this.entities.values()].map(e=>e.snapshot()),fires:this.fires.size,weather:this.weather.snapshot()};}
+  reset(){this.doors.reset();for(const e of this.entities.values())e.terminate();this.entities.clear();for(const e of this.fires.values())e.terminate();this.fires.clear();this.policeScanner.reset();this.radioTracks.reset();this.manager.reset();}
+  snapshot(){const slots:Record<number,number>={};for(const sound of this.manager.sounds)if(sound.inUse)slots[sound.slot]=(slots[sound.slot]??0)+1;return {entryDoors:{started:this.doors.movingSoundsStarted},waterCannon:this.waterCannon.snapshot(),...this.manager.snapshot(),slots,footsteps:this.playerPed?.footstepsPlayed??0,painCries:this.painCries,scanner:this.policeScanner.snapshot(),script:this.scriptAudio.snapshot(),garageDoors:Object.fromEntries([...this.garageDoors].map(([name,door])=>[name,Object.fromEntries(door.told)])),radio:{...this.radioTracks.snapshot(),stream:this.radioStream?.snapshot?.()??null},banks:this.bank.snapshot(),vehicles:[...this.entities.values()].map(e=>e.snapshot()),fires:this.fires.size,weather:this.weather.snapshot()};}
 }

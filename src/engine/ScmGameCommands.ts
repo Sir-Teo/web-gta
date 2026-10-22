@@ -1,6 +1,7 @@
 import {iosPrintReleasesPlayerControls} from './iosMissionHacks';
 import {CUTSCENE_NONE} from './ScmCutscene';
 import type {ScmInstruction,ScmParameter} from '../assets/scm';
+import {nativeScriptLineIntersection} from './nativeScriptLineIntersection';
 import {CHEAT_ALL_TAXIS_NITRO,CHEAT_PROSTITUTES_PAY_YOU} from './ScmCheats';
 import {CRANE_LAS_VEGAS,CRANE_MAGNO,CRANE_NONE,CRANE_QUARRY,CRANE_WRECKING_BALL} from './ScmPlayerInfo';
 import {nativeUppercaseKey} from './nativeKeyGen';
@@ -64,6 +65,12 @@ const storeCarCharIsIn:ScmCommandHandler=(t,p,i)=>{
  * width along x RenderIndicatorShadow sizes its cylinders by. The marker id is the script's this + m_IP, which is the
  * thread and the end of the instruction here. */
 const highlightThreads=new WeakMap<ScmThread,number>();let highlightSerial=0;
+/** Native corona IDs combine a thread pointer and its current IP. Stable browser IDs keep both identities. */
+const scriptCoronaIds=new WeakMap<ScmThread,Map<number,number>>();let scriptCoronaSerial=0x70000000;
+function scriptCoronaId(thread:ScmThread,instruction:ScmInstruction){
+ let sites=scriptCoronaIds.get(thread);if(!sites){sites=new Map();scriptCoronaIds.set(thread,sites);}
+ let id=sites.get(instruction.end);if(id===undefined){id=++scriptCoronaSerial;sites.set(instruction.end,id);}return id;
+}
 function highlightId(t:ScmThread,i:ScmInstruction){
  let serial=highlightThreads.get(t);if(serial===undefined){serial=++highlightSerial&0xfff;highlightThreads.set(t,serial);}
  return ((serial<<20|i.end&0xfffff)>>>0)||1;
@@ -283,6 +290,11 @@ const PED_CENTRE_ABOVE_FEET=1;
  * before CRadar::SetCoordBlip, so the radar's above-and-below arrow reads the real height. */
 function blipPoint(t:ScmThread,p:ScmParameter[],at:number,i:ScmInstruction){
  const point=vec(t,p,at);if(point.z<=ScmCamera.MAP_Z_LOW_LIMIT)point.z=world(t,i,'groundZForCoord')(point.x,point.y);return point;
+}
+/** CREATE_PICKUP (iOS 0x1001d45c0) and WITH_AMMO (0x1001d7fa8): the low-height sentinel becomes ground + 0.5,
+ * before GenerateNewOne compresses the position. Explicit heights are preserved. */
+function pickupPoint(t:ScmThread,p:ScmParameter[],at:number,i:ScmInstruction){
+ const point=vec(t,p,at);if(point.z<=ScmCamera.MAP_Z_LOW_LIMIT)point.z=Math.fround(Math.fround(world(t,i,'groundZForCoord')(point.x,point.y))+.5);return point;
 }
 function entityBlip(type:number):ScmCommandHandler{return (t,p,i)=>{const {radar}=game(t,i),blip=radar.setEntityBlip(type,t.readInt(p[0]),BLIP_DISPLAY_BOTH);radar.changeScale(blip,3);t.writeInt(p[1],blip|0);};}
 /** The sprite blips (ADD_SPRITE_BLIP_FOR_CONTACT_POINT iOS 0x1001d55bc, _FOR_COORD 0x1001d5614, and their short-range
@@ -631,8 +643,8 @@ const handlers:Record<string,ScmCommandHandler>={
  // --- The script's pickups. CPickups::GenerateNewOne is a raw call in the reference, so the slot allocation
  // behind it is unknown; the operand layouts and the implied models and types are the ones the file reader in
  // src/assets/scmPickups.ts already uses, and these commands place the same records while the script runs.
- CREATE_PICKUP:(t,p,i)=>{t.writeInt(p[5],game(t,i).pickups.createPickup(model(t,i,p[0]),t.readInt(p[1]),vec(t,p,2)));},
- CREATE_PICKUP_WITH_AMMO:(t,p,i)=>{t.writeInt(p[6],game(t,i).pickups.createPickup(model(t,i,p[0]),t.readInt(p[1]),vec(t,p,3),t.readInt(p[2])));},
+ CREATE_PICKUP:(t,p,i)=>{t.writeInt(p[5],game(t,i).pickups.createPickup(model(t,i,p[0]),t.readInt(p[1]),pickupPoint(t,p,2,i)));},
+ CREATE_PICKUP_WITH_AMMO:(t,p,i)=>{t.writeInt(p[6],game(t,i).pickups.createPickup(model(t,i,p[0]),t.readInt(p[1]),pickupPoint(t,p,3,i),t.readInt(p[2])));},
  CREATE_MONEY_PICKUP:(t,p,i)=>{t.writeInt(p[5],game(t,i).pickups.createMoneyPickup(vec(t,p,0),t.readInt(p[3])));},
  CREATE_PROTECTION_PICKUP:(t,p,i)=>{t.writeInt(p[5],game(t,i).pickups.createProtectionPickup(vec(t,p,0),t.readInt(p[3]),t.readInt(p[4])));},
  CREATE_LOCKED_PROPERTY_PICKUP:(t,p,i)=>{t.writeInt(p[4],game(t,i).pickups.createLockedPropertyPickup(vec(t,p,0),t.text(p[3])));},
@@ -1211,13 +1223,11 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_CHAR_MALE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsMale')(t.readInt(p[0])),negated(i));},
  IS_CHAR_MODEL:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedModelId')(t.readInt(p[0]))===t.readInt(p[1]),negated(i));},
  GET_CHAR_MODEL:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedModelId')(t.readInt(p[0])));},
- // The script reads the velocity fifty times the engine's, as SET_CHAR_VELOCITY divides it and GET_OBJECT_VELOCITY
- // scales it (AUTHORED: gta-reversed's GetCharVelocity returns m_vecMoveSpeed as it is, but the scripts read units a
- // second: player_parachute's free fall starts under -10, and the Freefall mission hands it back to SET_CHAR_VELOCITY).
- // m_vecMoveSpeed times 50, as the iOS handler (0x1001fe0e4) multiplies it; gta-reversed's returns it unscaled.
+ // iOS 0x1001fe0e4: load each float32 m_vecMoveSpeed component, multiply by 50, store three floats.
+ // Fifteen executable captures establish the scale and rounding; the pinned PC source returns it unscaled.
  GET_CHAR_VELOCITY:(t,p,i)=>{
   const velocity=world(t,i,'pedVelocity')(t.readInt(p[0]));
-  t.writeFloat(p[1],velocity.x*50);t.writeFloat(p[2],velocity.y*50);t.writeFloat(p[3],velocity.z*50);
+  t.writeFloat(p[1],Math.fround(velocity.x)*50);t.writeFloat(p[2],Math.fround(velocity.y)*50);t.writeFloat(p[3],Math.fround(velocity.z)*50);
  },
  IS_CHAR_GETTING_IN_TO_A_CAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsGettingIntoCar')(t.readInt(p[0])),negated(i));},
  IS_CHAR_WAITING_FOR_WORLD_COLLISION:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsWaitingForCollision')(t.readInt(p[0])),negated(i));},
@@ -2104,17 +2114,10 @@ const handlers:Record<string,ScmCommandHandler>={
   const scripts=game(t,i).streamedScripts,index=scripts.properIndexFromScriptIndex(t.readInt(p[0]));
   if(index>=0)t.host?.world?.requestStreamedScript?.(index);
  },
- // One more piece of arithmetic: where two lines cross, which the script reads as a point.
+ // Inspected iOS 0x1001e61d0: finite segments, compare flag, ±.01 tolerance and -1e6 miss outputs.
  GET_2D_LINES_INTERSECT_POINT:(t,p,i)=>{
-  const ax=t.readFloat(p[0]),ay=t.readFloat(p[1]),bx=t.readFloat(p[2]),by=t.readFloat(p[3]);
-  const cx=t.readFloat(p[4]),cy=t.readFloat(p[5]),dx=t.readFloat(p[6]),dy=t.readFloat(p[7]);
-  const denominator=(ax-bx)*(cy-dy)-(ay-by)*(cx-dx);
-  // Parallel lines never cross, and the source leaves the point where it was rather than dividing by nothing.
-  if(denominator!==0){
-   const first=ax*by-ay*bx,second=cx*dy-cy*dx;
-   t.writeFloat(p[8],(first*(cx-dx)-(ax-bx)*second)/denominator);
-   t.writeFloat(p[9],(first*(cy-dy)-(ay-by)*second)/denominator);
-  }
+  const result=nativeScriptLineIntersection(p.slice(0,8).map(parameter=>t.readFloat(parameter)));
+  t.updateCompareFlag(result.intersects,negated(i));t.writeFloat(p[8],result.x);t.writeFloat(p[9],result.y);
  },
  /* --- The last of the tasks. */
  TASK_LOOK_AT_VEHICLE:(t,p,i)=>{
@@ -2466,7 +2469,7 @@ const handlers:Record<string,ScmCommandHandler>={
  DRAW_CROSSHAIR:(t,p,i)=>{world(t,i,'drawCrosshair')(bool(t,p[0]));},
  GET_CAR_SPEED_VECTOR:(t,p,i)=>{const result=world(t,i,'getCarSpeedVector')(t.readInt(p[0]));t.writeFloat(p[1],result.x);t.writeFloat(p[2],result.y);t.writeFloat(p[3],result.z);},
  ADD_BLOOD:(t,p,i)=>{world(t,i,'addBlood')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readInt(p[6]),t.readInt(p[7]));},
- DRAW_CORONA:(t,p,i)=>{world(t,i,'drawCorona')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readInt(p[4]),t.readInt(p[5]),t.readInt(p[6]),t.readInt(p[7]),t.readInt(p[8]),t.base+i.offset);},
+ DRAW_CORONA:(t,p,i)=>{world(t,i,'drawCorona')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readInt(p[4]),t.readInt(p[5]),t.readInt(p[6]),t.readInt(p[7]),t.readInt(p[8]),scriptCoronaId(t,i));},
  MARK_MISSION_TRAINS_AS_NO_LONGER_NEEDED:(t,p,i)=>{world(t,i,'markMissionTrainsAsNoLongerNeeded')();},
  REQUEST_VEHICLE_MOD:(t,p,i)=>{world(t,i,'requestVehicleMod')(model(t,i,p[0]));},
  ADD_VEHICLE_MOD:(t,p,i)=>{t.writeInt(p[2],world(t,i,'addVehicleMod')(t.readInt(p[0]),model(t,i,p[1])));},
@@ -2535,7 +2538,9 @@ const handlers:Record<string,ScmCommandHandler>={
  BOAT_STOP:(t,p,i)=>{world(t,i,'boatStop')(t.readInt(p[0]));},
  SET_TIMER_BEEP_COUNTDOWN_TIME:(t,p,i)=>{game(t,i).onscreenTimer.setClockBeepCountdownSecs(t.globalOffset(p[0]),t.readInt(p[1]));},
  IS_OBJECT_INTERSECTING_WORLD:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isObjectIntersectingWorld')(t.readInt(p[0])),negated(i));},
- TASK_COMPLEX_PICKUP_OBJECT:(t,p,i)=>{world(t,i,'taskComplexPickupObject')(t.readInt(p[0]),t.readInt(p[1]));},
+ TASK_COMPLEX_PICKUP_OBJECT:(t,p,i)=>{ // AUTHORED: native on-foot NPC approach/lift; full task and physical scheduling remain partial.
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'complexPickUpObject',object:t.readInt(p[1])});
+ },
  IS_LAST_BUILDING_MODEL_SHOT_BY_PLAYER:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isLastBuildingModelShotByPlayer')(t.readInt(p[0]),model(t,i,p[1])),negated(i));},
  FORCE_DEATH_RESTART:(t,p,i)=>{world(t,i,'forceDeathRestart')();},
  GET_CAR_PITCH:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'getCarPitch')(t.readInt(p[0])));},
@@ -2635,7 +2640,9 @@ const handlers:Record<string,ScmCommandHandler>={
  ADD_UPSIDEDOWN_CAR_CHECK:(t,p,i)=>{game(t,i).upsideDownCars.add(t.readInt(p[0]));},
  REMOVE_UPSIDEDOWN_CAR_CHECK:(t,p,i)=>{game(t,i).upsideDownCars.remove(t.readInt(p[0]));},
  IS_CAR_STUCK_ON_ROOF:(t,p,i)=>{t.updateCompareFlag(game(t,i).upsideDownCars.hasBeenUpsideDownForAWhile(t.readInt(p[0])),negated(i));},
- CREATE_BIRDS:(t,p,i)=>{world(t,i,'createBirds')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readInt(p[6]),t.readInt(p[7]));},
+ // iOS 0x1001fe744: SCVTF converts the six collected int32 bit patterns, even for float operands.
+ // It calls CBirds::CreateNumberOfBirds with obstacle checks disabled (w2 = 0).
+ CREATE_BIRDS:(t,p,i)=>{world(t,i,'createBirds')(...p.slice(0,6).map(v=>Math.fround(t.readInt(v))) as [number,number,number,number,number,number],t.readInt(p[6]),t.readInt(p[7]));},
  // CTheScripts::ClearAllSuppressedCarModels (0x46A7C0, reversed): the iOS handler (0x1001f5f2c) fills the table with -1.
  DONT_SUPPRESS_ANY_CAR_MODELS:(t,_p,i)=>{game(t,i).suppressedCarModels.clear();},
  SET_FREEBIES_IN_VEHICLE:(t,p,i)=>{world(t,i,'setFreebiesInVehicle')(t.readInt(p[0]),bool(t,p[1]));},
@@ -2655,13 +2662,15 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  ADD_EXPLOSION_NO_SOUND:(t,p,i)=>{world(t,i,'addExplosionNoSound')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readInt(p[3]));},
  SWITCH_ON_GROUND_SEARCHLIGHT:(t,p,i)=>{world(t,i,'switchOnGroundSearchlight')(t.readInt(p[0]),bool(t,p[1]));},
- TASK_JETPACK:(t,p,i)=>{world(t,i,'taskJetpack')(t.readInt(p[0]));},
+ // AUTHORED integration scope: the player's existing native jetpack controller; NPC jetpack tasks remain unsupported.
+ TASK_JETPACK:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'jetpack'});},
  // iOS 0x1001f20b8: the same CTaskComplexDrivePointRoute as the ADVANCED form, in mode 2 (straight line), any model and
  // driving style 0 (stop for cars).
  TASK_DRIVE_POINT_ROUTE:(t,p,i)=>{
   scriptedTask(t,i,t.readInt(p[0]),{kind:'drivePointRouteAdvanced',vehicle:t.readInt(p[1]),speed:t.readFloat(p[2]),driveMode:2,model:-1,drivingStyle:0,route:game(t,i).route.map(point=>({...point}))});
  },
  IS_CAR_DOOR_DAMAGED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCarDoorDamaged')(t.readInt(p[0]),t.readInt(p[1])),negated(i));},
+ // iOS 0x1001e6994 -> CVisibilityPlugins::SetClumpAlpha (0x1003a0cec): the second operand is raw alpha.
  SET_VEHICLE_TO_FADE_IN:(t,p,i)=>{world(t,i,'setVehicleToFadeIn')(t.readInt(p[0]),t.readInt(p[1]));},
  ADD_ATTRACTOR:(t,p,i)=>{t.writeInt(p[6],world(t,i,'addAttractor')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readInt(p[5])));},
  ADD_PEDTYPE_AS_ATTRACTOR_USER:(t,p,i)=>{world(t,i,'addPedtypeAsAttractorUser')(t.readInt(p[0]),t.readInt(p[1]));},
@@ -2717,7 +2726,8 @@ const handlers:Record<string,ScmCommandHandler>={
  // player and the dead included, strictly within the radius of the ped in 3D (the booths and chairs ask before seating
  // someone).
  ARE_ANY_CHARS_NEAR_CHAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'anyPedsNearPed')(t.readInt(p[0]),t.readFloat(p[1])),negated(i));},
- SET_FORCE_RANDOM_CAR_MODEL:(t,p,i)=>{world(t,i,'setForceRandomCarModel')(model(t,i,p[0]));},
+ // iOS 0x100202df4: raw signed parameter to CTheScripts::ForceRandomCarModel, including the -1 reset sentinel.
+ SET_FORCE_RANDOM_CAR_MODEL:(t,p,i)=>{game(t,i).forceRandomCarModel=t.readInt(p[0]);},
  IS_PLAYER_IN_REMOTE_MODE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isPlayerInRemoteMode')(t.readInt(p[0])),negated(i));},
  // The kills are counted by model index; a model the script names by its text is one no kill was counted under.
  GET_NUM_OF_MODELS_KILLED_BY_PLAYER:(t,p,i)=>{const m=model(t,i,p[1]);t.writeInt(p[2],typeof m==='number'?game(t,i).modelsKilledByPlayer(m):0);},
@@ -2786,12 +2796,15 @@ const handlers:Record<string,ScmCommandHandler>={
  // The iOS executable's handler (0x1001d95ac; absent from gta-reversed): no handle comes back.
  CREATE_RANDOM_CAR_FOR_CAR_PARK:(t,p,i)=>{const at=vec(t,p,0);world(t,i,'createRandomCarForCarPark')(at.x,at.y,at.z,t.readFloat(p[3]));},
  ADD_TO_OBJECT_ROTATION_VELOCITY:(t,p,i)=>{world(t,i,'addToObjectRotationVelocity')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
- DRAW_WEAPONSHOP_CORONA:(t,p,i)=>{world(t,i,'drawWeaponshopCorona')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readInt(p[4]),t.readInt(p[5]),t.readInt(p[6]),t.readInt(p[7]),t.readInt(p[8]));},
+ // iOS 0x1001e3aec: RegisterCorona with range 150, pull .2, reflected, full intensity and byte type/flare/colour.
+ DRAW_WEAPONSHOP_CORONA:(t,p,i)=>{world(t,i,'drawWeaponshopCorona')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readInt(p[4]),t.readInt(p[5]),t.readInt(p[6]),t.readInt(p[7]),t.readInt(p[8]),scriptCoronaId(t,i));},
  ATTACH_CAMERA_TO_CHAR_LOOK_AT_CHAR:(t,p,i)=>{
   game(t,i).camera.takeControlAttachToEntity({kind:'ped',handle:t.readInt(p[4])},{kind:'ped',handle:t.readInt(p[0])},vec(t,p,1),undefined,t.readFloat(p[5]),t.readInt(p[6]),1);
  },
+ // iOS 0x1001e569c: strict 150 ms vehicle gun timer, Hunter offset + timestep velocity, fresh minigun.
  FIRE_HUNTER_GUN:(t,p,i)=>{world(t,i,'fireHunterGun')(t.readInt(p[0]));},
- TASK_DIVE_FROM_ATTACHMENT_AND_GET_UP:(t,p,i)=>{world(t,i,'taskDiveFromAttachmentAndGetUp')(t.readInt(p[0]),t.readInt(p[1]));},
+ // iOS 0x1001f0c84: null evade vehicle, supplied pause, zero direction, achieve-heading first.
+ TASK_DIVE_FROM_ATTACHMENT_AND_GET_UP:(t,p,i)=>{/* AUTHORED: NPC vehicle attachments use the native direction/turn/detach order; player/object and association/event integration remain incomplete. */scriptedTask(t,i,t.readInt(p[0]),{kind:'diveFromAttachmentAndGetUp',time:t.readInt(p[1])});},
  CREATE_FX_SYSTEM_ON_CHAR_WITH_DIRECTION:(t,p,i)=>{t.writeInt(p[9],world(t,i,'createFxSystemOnCharWithDirection')(t.text(p[0]),t.readInt(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readFloat(p[6]),t.readFloat(p[7]),bool(t,p[8])));},
  FIX_CAR:(t,p,i)=>{world(t,i,'fixCar')(t.readInt(p[0]));},
  SET_EXTRA_CAR_COLOURS:(t,p,i)=>{world(t,i,'setExtraCarColours')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
@@ -2800,7 +2813,9 @@ const handlers:Record<string,ScmCommandHandler>={
  LOCK_DOOR:(t,p,i)=>{world(t,i,'lockDoor')(t.readInt(p[0]),bool(t,p[1]));},
  // CPhysical::m_fMass (iOS 0x100201cb4 reads +0xb0): OBJECT.DAT's, or 99999 for a model without a row.
  GET_OBJECT_MASS:(t,p,i)=>{t.writeFloat(p[1],game(t,i).objects.at(t.readInt(p[0])).mass);},
- TASK_USE_ATM:(t,p,i)=>{world(t,i,'taskUseAtm')(t.readInt(p[0]));},
+ // iOS 0x1001e7160: CTaskSimpleUseAtm wraps group 0 / animation 151, blend 4, hold-last false.
+ // AUTHORED animation integration: the existing clip runner keeps its blend/event limitations.
+ TASK_USE_ATM:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'useAtm'});},
  // iOS 0x1001f8a70 keeps the number itself as the winch's rope type (1 the magnet, 2 the harness, 3 the RC magnet).
  ATTACH_WINCH_TO_HELI:(t,p,i)=>{world(t,i,'attachWinchToHeli')(t.readInt(p[0]),t.readInt(p[1]));},
  RELEASE_ENTITY_FROM_WINCH:(t,p,i)=>{world(t,i,'releaseEntityFromWinch')(t.readInt(p[0]));},
@@ -3125,8 +3140,8 @@ const handlers:Record<string,ScmCommandHandler>={
  DRAW_WINDOW:(t,p,i)=>{game(t,i).introRectangles.drawWindow(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.text(p[4]),t.readInt(p[5]));},
  SET_SPRITES_DRAW_BEFORE_FADE:(t,p,i)=>{game(t,i).introRectangles.setDrawBeforeFade(bool(t,p[0]));},
  // The script's texture slot: which dictionary it holds is the script's own state; drawing its sprites is the host's.
- LOAD_TEXTURE_DICTIONARY:(t,p,i)=>{game(t,i).introRectangles.dictionary=t.text(p[0]).toLowerCase();},
- REMOVE_TEXTURE_DICTIONARY:(t,_p,i)=>{game(t,i).introRectangles.dictionary=undefined;},
+ LOAD_TEXTURE_DICTIONARY:(t,p,i)=>{game(t,i).introRectangles.loadDictionary(t.text(p[0]),t.usesMissionCleanup);},
+ REMOVE_TEXTURE_DICTIONARY:(t,_p,i)=>{game(t,i).introRectangles.removeDictionary();},
  // --- TheCamera (CameraCommands.cpp is reversed, over routines that only set fields).
  SET_FIXED_CAMERA_POSITION:(t,p,i)=>{game(t,i).camera.setCamPositionForFixedMode(vec(t,p,0),vec(t,p,3));},
  POINT_CAMERA_AT_POINT:(t,p,i)=>{
@@ -3273,11 +3288,11 @@ const handlers:Record<string,ScmCommandHandler>={
  // CScriptsForBrains::IsObjectWithinBrainActivationRange (unreversed): an object brain's script ends itself once this
  // fails.
  IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isObjectWithinBrainActivationRange')(t.readInt(p[0])),negated(i));},
- // CPedAttractorManager's users of the map's attractors. AUTHORED: the port puts no peds on an interior's attractors
- // (InteriorManager_c is unreversed), so the closest attractor has no user, no ped is using one, and there is no
- // brainless random ped to hand a script.
- GET_USER_OF_CLOSEST_MAP_ATTRACTOR:(t,p)=>{t.writeInt(p[6],-1);},
- IS_CHAR_USING_MAP_ATTRACTOR:(t,_p,i)=>{t.updateCompareFlag(false,negated(i));},
+ // AUTHORED map-effect task integration: native selection/registration, existing movement and script-brain runners.
+ TASK_USE_CLOSEST_MAP_ATTRACTOR:(t,p,i)=>{const at=vec(t,p,3);t.updateCompareFlag(world(t,i,'useClosestMapAttractor')(t.readInt(p[0]),t.readFloat(p[1]),model(t,i,p[2]),at.x,at.y,at.z,t.text(p[6])),negated(i));},
+ GET_USER_OF_CLOSEST_MAP_ATTRACTOR:(t,p,i)=>{const at=vec(t,p,0);t.writeInt(p[6],world(t,i,'closestMapAttractorUser')(at.x,at.y,at.z,t.readFloat(p[3]),model(t,i,p[4]),t.text(p[5])));},
+ IS_CHAR_USING_MAP_ATTRACTOR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedUsesMapAttractor')(t.readInt(p[0])),negated(i));},
+ // AUTHORED: procedural interior population has no brainless random ped to hand a script yet.
  GET_RANDOM_CHAR_IN_SPHERE_NO_BRAIN:(t,p)=>{t.writeInt(p[4],-1);},
  // The iOS handler (0x100207fe0; unregistered in gta-reversed): a street ped, not the player, inside the box the point
  // and its half-extents make; slot_machine.scm asks it whether anyone stands at the machine.

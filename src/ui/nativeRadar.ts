@@ -13,8 +13,8 @@
 
 export const RADAR_MIN_RANGE=180,RADAR_MAX_RANGE=350,RADAR_MIN_SPEED=.3,RADAR_MAX_SPEED=.9;
 /** CRadar::DrawMap's range. `speed` is the vehicle's move speed in units per frame, `altitude` native z. */
-export function radarRange(o:{inVehicle:boolean;speed?:number;plane?:boolean;altitude?:number}){
- if(!o.inVehicle)return RADAR_MIN_RANGE;
+export function radarRange(o:{inVehicle:boolean;speed?:number;plane?:boolean;altitude?:number;remote?:boolean}){
+ if(!o.inVehicle||o.remote)return RADAR_MIN_RANGE;
  if(o.plane){
   const z=(o.altitude??0)/200;
   return z<RADAR_MIN_SPEED?RADAR_MAX_RANGE-10:z<RADAR_MAX_SPEED?(z-RADAR_MIN_SPEED)/60+(RADAR_MAX_RANGE-10):RADAR_MAX_RANGE;

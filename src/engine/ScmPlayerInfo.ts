@@ -34,6 +34,8 @@ export class ScmPlayerInfo {
  controlsCrane=CRANE_NONE;waterFogScript=true;
  /** m_PlayerData.m_bCanBeDamaged, which MakePlayerSafe sets the other way from safety. */
  canBeDamaged=true;
+ /** CPlayerPedData::m_nModelIndexOfLastBuildingShot for the two player slots; Init leaves each at -1. */
+ readonly lastBuildingModelsShot=new Int32Array([-1,-1]);
  /** CCutsceneMgr::ms_cutsceneProcessing, which the cutscene-safe command sets. */
  cutsceneProcessing=false;
  /** INCREASE_PLAYER_MAX_HEALTH: the maximum goes up by the amount and the ped is filled to it. The command

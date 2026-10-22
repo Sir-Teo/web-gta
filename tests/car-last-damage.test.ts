@@ -28,7 +28,9 @@ describe('who last damaged a car, and with what',()=>{
   damage(target,20,true,{byPlayer:true});
   expect(target.lastWeaponDamage).toBe(51);expect(target.lastDamagedBy).toEqual({player:true});
   damage(target,5,false,{kind:'fire'});
-  expect(target.lastWeaponDamage).toBe(37);expect(target.lastDamagedBy).toBeUndefined();
+  // A native null source keeps the previous reference; a known other shooter replaces it.
+  expect(target.lastWeaponDamage).toBe(37);expect(target.lastDamagedBy).toEqual({player:true});
+  damage(target,5,false,{kind:'fire',byPlayer:false});expect(target.lastDamagedBy).toBeUndefined();
  });
 
  test('a car that refuses the damage keeps what it had',()=>{

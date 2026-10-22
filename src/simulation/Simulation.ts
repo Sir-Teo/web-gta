@@ -53,11 +53,18 @@ export interface Controls { x: number; y: number; sprint: boolean; walk?: boolea
   duck?: { clip: import('../locomotion/nativeDuck').DuckMoveClip; speed: number }; animationMotion?: { x: number; z: number }; animationMotionY?: number; animationMotionSpace?: 'world' | 'actor'; swimWater?: number;
   /** CTaskSimpleJetPack owns the ped: it flies on the pack's thrust and hangs in the idle pose. */
   jetPack?: boolean;
+  /** CPad::GetAccelerate / GetBrake are separate buttons from the jetpack's walk/tilt axes. */
+  jetPackInput?: {accelerate:boolean;brake:boolean};
+  /** A reaction clip's extracted world-space shift, independent of the pad while knocked down. */
+  reactionMotion?: {x:number;z:number};
   /** The camera's pitch (radians, up positive), which steers an underwater swimmer (CTaskSimpleSwim mouse mode). */
   cameraPitch?: number }
 /** Renderer height below which the player has left the world (no San Andreas ground lies under -50). */
 export const WORLD_FLOOR_Y = -100;
 export class Simulation {
+  /** World streaming may follow a remote-controlled vehicle while the player's own body stays put. */
+  streamingFocus?:()=>Vec3|undefined;
+  get worldFocus(){return this.streamingFocus?.()??this.player.position;}
   animationMovement: { requested: { x: number; z: number }; applied: { x: number; z: number } } | null = null;
   readonly world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
   readonly playerBody: RAPIER.RigidBody;
@@ -178,7 +185,8 @@ export class Simulation {
   /** What the host does once the world has stepped, before anything reads the bodies (PositionAttachedEntity for the
    * vehicles a script attached to others). */
   afterWorldStep?:()=>void;
-  stepWorld(){if(this.ignoredBodyPairs.size||this.towBodyPairs.size)this.world.step(this.hookEvents,this.physicsHooks);else this.world.step();this.afterWorldStep?.();}
+  beforeWorldStep?:()=>void;
+  stepWorld(){this.beforeWorldStep?.();if(this.ignoredBodyPairs.size||this.towBodyPairs.size)this.world.step(this.hookEvents,this.physicsHooks);else this.world.step();this.afterWorldStep?.();}
   /** CPhysical::SetVelocity on the player (SET_CHAR_VELOCITY), in native units per 50th of a second: the air carries
    * the horizontal part as his jump momentum, and a rise takes him off the ground; standing, the next step's
    * animation drives him again, as CPed's own move speed does. */
@@ -198,6 +206,7 @@ export class Simulation {
     return result;
   }
   step(dt: number, controls: Controls) {
+    if(controls.reactionMotion&&(!Number.isFinite(controls.reactionMotion.x)||!Number.isFinite(controls.reactionMotion.z)))throw new Error('Reaction motion must be finite.');
     if (controls.animationMotion && (!Number.isFinite(controls.animationMotion.x) || !Number.isFinite(controls.animationMotion.z))) throw new Error('Animation motion must be finite.');
   if (controls.animationMotionY !== undefined && !Number.isFinite(controls.animationMotionY)) throw new Error('Animation vertical motion must be finite.');
     if (controls.animationMotionSpace !== undefined && controls.animationMotionSpace !== 'world' && controls.animationMotionSpace !== 'actor') throw new Error('Unknown animation motion space.');
@@ -222,7 +231,12 @@ export class Simulation {
     if (this.player.swimming && this.fall.falling) this.fall = { minVz: 0, falling: false };
     // Held (a cutscene's window elsewhere), the player stands where he is, as a ped with no collision loaded under
     // him waits for it (m_bIsStaticWaitingForCollision).
-    if (this.playerHeld) { this.collisionPush = { x: 0, z: 0 }; this.collisionShift = { x: 0, z: 0 }; }
+    if(this.playerFrozen){
+      // CPhysical::ApplyMoveSpeed/ApplyTurnSpeed clear speed under bDontApplySpeed. Scripts can still place the ped.
+      this.collisionPush={x:0,z:0};this.collisionShift={x:0,z:0};this.player.speed=0;this.player.verticalSpeed=0;this.player.jumpMomentum={x:0,z:0};
+      this.playerBody.setNextKinematicTranslation(this.playerBody.translation());
+    }
+    else if (this.playerHeld) { this.collisionPush = { x: 0, z: 0 }; this.collisionShift = { x: 0, z: 0 }; }
     else if (this.climb) { this.collisionPush = { x: 0, z: 0 }; this.collisionShift = { x: 0, z: 0 }; this.stepClimb(dt, controls); }
     else this.moveCharacter(dt, controls);
     this.stepWorld();
@@ -288,6 +302,8 @@ export class Simulation {
   playerCanBeDamaged=true;
   /** The player's own movement is not stepped (the world's is): a host holds him while the scene window is elsewhere. */
   playerHeld=false;
+  /** FREEZE_CHAR_POSITION: bDontApplySpeed holds motion, including gravity, impulses and animation root motion. */
+  playerFrozen=false;
   /** CPlayerInfo::m_bFireProof and CHEAT_INFINITE_HEALTH (playerWeaponProofCheat), which the host answers. */
   playerFireProof?:()=>boolean;playerWeaponProof?:()=>boolean;
   /** SurfacesInfos_c::IsSoftLanding for what the player has just come down on (landingDamage), which the host answers. */
@@ -431,7 +447,7 @@ export class Simulation {
   playerStuck = false;
   /** CEventHandler::ComputeVehicleDiedResponse (0x4BA8B0) assigns zero
    * health directly. This event is not an armour/stat-scaled damage hit.
-   * Native scorch visuals, dying tasks and bike knock-off remain separate work. */
+   * Dying tasks and bike knock-off retain their separate coverage limits. */
   /** CEntity::m_bUsesCollision on the player, which SET_CHAR_COLLISION clears: nothing makes contact with the player's
    * capsule. The capsule stays enabled, since the rest of the game reads an enabled capsule as the player being on foot,
    * and the player's own movement query does not filter by these groups, so the player still walks on the ground. */
@@ -443,8 +459,11 @@ export class Simulation {
   }
   vehicleOccupantDied(){
     if(this.player.health<=0)return;
+    this.playerRenderScorched=true;
     this.player.health=0;this.player.speed=0;this.deathRemaining=DEATH_RECOVERY_SECONDS;
   }
+  /** CPhysical::bRenderScorched from CEventVehicleDied, cleared by resurrection. */
+  playerRenderScorched=false;
   /** Climbs that reached CLIMB_FINISHED or CLIMB_FINISHED_V. */
   climbsFinished = 0;
   /** m_fAimingRotation while a turn from the stick is still under way, and the heading it last left the player at. */
@@ -582,6 +601,7 @@ export class Simulation {
       animationMotion = {x:animationMotion.x*cos+animationMotion.z*sin,z:-animationMotion.x*sin+animationMotion.z*cos};
     }
     const allowedMotion = this.player.health > 0;
+    if(controls.reactionMotion)animationMotion=controls.reactionMotion;
     // Airborne: the move speed carries on with no control (CTaskComplexInAirAndLand).
     // An open canopy glides toward the heading (4.5 m/s, 2 m/s flared).
     const flaring=controls.parachute&&!this.player.grounded&&controls.y<-0.2;
@@ -902,9 +922,9 @@ export class Simulation {
       if(wasGrounded){this.abortJetPack();return;}
       pack.dying(this.jetMs,timeStep,()=>Math.random()<.5,Math.random,jetFrameDue);
     }else{
-      // The pad's walk axis is negative forward and positive right; W also accelerates and S brakes (the PC defaults).
+      // Walk axes tilt the pack. Cross/Square supply separate ascent/brake buttons (PC defaults Space/Shift).
       const dropped=pack.processControlInput({walkUpDown:-128*clamp(controls.y,-1,1),walkLeftRight:128*clamp(controls.x,-1,1),
-        accelerate:controls.y>.1,brake:controls.y<-.1,cameraHeading:controls.cameraYaw,exitVehicle:controls.exitVehicle},wasGrounded,timeStep);
+        accelerate:!!controls.jetPackInput?.accelerate,brake:!!controls.jetPackInput?.brake,cameraHeading:controls.cameraYaw,exitVehicle:controls.exitVehicle},wasGrounded,timeStep);
       // The frame the pack is dropped the ped stands still; the next one walks again.
       if(dropped==='drop'){this.dropJetPack();return;}
     }
@@ -970,6 +990,7 @@ export class Simulation {
   resetPlayer() {
     // A wasted or busted player loses the pack.
     this.abortJetPack();
+    this.playerRenderScorched=false;
     this.animationMovement = null;
     this.collisionPush = { x: 0, z: 0 }; this.playerStuck = false; this.knockdown = 0; this.knockdownGetUp = 0; this.playerInAir = false; this.turnTarget = undefined;
     // RestorePlayerStuffDuringResurrection's SetInitialState: a landing the death replaced is not played after it.

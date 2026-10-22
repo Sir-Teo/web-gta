@@ -67,13 +67,18 @@ export class AudioSystem {
    * native audio, CAEScriptAudioEntity::PreloadMissionAudio asks it into the slot's bank slot too (one decode serves
    * both). */
   async loadSpeech(sample:number,scriptSlot?:number){
-    const script=this.native?.scriptAudio,index=scriptSlot===undefined?-1:scriptSlot-1;
+    const native=this.native,script=native?.scriptAudio,index=scriptSlot===undefined?-1:scriptSlot-1;
     if(script&&index>=0){
       script.preloadMissionAudio(index,sample);
       const link=script.missionLinks[index];
-      if(link?.event===sample&&link.soundId>=0&&await this.native!.bank.loadSoundAsync(link.bank,link.soundId,MISSION_BANK_SLOT_FIRST+index))return true;
+      if(link?.event===sample&&link.soundId>=0&&await native!.bank.loadSoundAsync(link.bank,link.soundId,MISSION_BANK_SLOT_FIRST+index))return true;
     }
-    return this.speech?.load(sample)??false;
+    const loaded=await(this.speech?.load(sample)??false);
+    // A recovered download must fill the native slot too; otherwise playback loses its entity/volume routing.
+    // Another preload may have replaced the link while the line was downloading.
+    const link=script?.missionLinks[index];
+    if(loaded&&link?.event===sample&&link.soundId>=0)await native!.bank.loadSoundAsync(link.bank,link.soundId,MISSION_BANK_SLOT_FIRST+index);
+    return loaded;
   }
   /** The loaded line's length, which the script's HAS_MISSION_AUDIO_FINISHED waits out. */
   speechLengthMs(sample:number){const line=this.speech?.line(sample);return line&&line.duration*1000;}

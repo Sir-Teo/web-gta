@@ -97,3 +97,26 @@ test('wind: the air speed is the move speed less WindDir × fWindMult, so a stil
  const heli=body();heliFlyingControl(heli,{...sparrow,moveResistance:1},{yaw:0,pitch:0,roll:0,accel:0},6,1,{wind:[-.1,0,0]});
  expect(heli.moveSpeed[0]).toBeCloseTo(sparrow.sideSlip*.01,6);
 });
+
+test('the helicopter stabiliser amplifies rotor tilt fourfold without normalizing its components',()=>{
+ const a=.12,up:NativeVec=[Math.sin(a),0,Math.cos(a)];
+ const b=body({right:[Math.cos(a),0,-Math.sin(a)],up});
+ const f={...sparrow,moveResistance:1,sideSlip:0,speedResistanceX:0,speedResistanceY:0,speedResistanceZ:0};
+ heliFlyingControl(b,f,{yaw:0,pitch:0,roll:0,accel:0},6,1,{minimumTilt:true});
+ expect(b.moveSpeed[0]).toBeCloseTo(Math.sin(a*4)*.45*.008,8);
+ expect(b.moveSpeed[2]).toBeCloseTo(.004+Math.cos(a*4)*.45*.008,8);
+});
+
+test('the helicopter stabiliser reduces both stick axes using pitch/attack-lift, leaving yaw alone',()=>{
+ const f={...sparrow,turnResistanceX:1,turnResistanceY:1,turnResistanceZ:1,speedResistanceX:0,speedResistanceY:0,speedResistanceZ:0};
+ const b=body(),i={yaw:.7,pitch:.8,roll:-.4,accel:0};
+ heliFlyingControl(b,f,i,2,1,{minimumTilt:true});
+ const scale=Math.sin(.25*Math.asin(.002/.004))*.004/.002;
+ expect(b.turnSpeed[0]).toBeCloseTo(.8*.002*scale,9);
+ expect(b.turnSpeed[1]).toBeCloseTo(.4*.002*scale,9);
+ expect(b.turnSpeed[2]).toBeCloseTo(.7*2*f.yaw,9);
+ const normal=body();heliFlyingControl(normal,f,i,2,1);
+ expect(b.turnSpeed[0]/normal.turnSpeed[0]).toBeCloseTo(scale,9);
+ expect(b.turnSpeed[1]/normal.turnSpeed[1]).toBeCloseTo(scale,9);
+ expect(b.turnSpeed[2]).toBe(normal.turnSpeed[2]);
+});

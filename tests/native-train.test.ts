@@ -1,7 +1,7 @@
 import {describe,expect,test} from 'vitest';
 import {readFileSync} from 'node:fs';
 import {TRAIN_STATIONS,TRAIN_TRACK_FILES,findClosestTrackNode,readTrainTrack,stationDistances} from '../src/simulation/nativeTrainTracks';
-import {createMissionTrain,findCaboose,findCarriage,nextStation,setTrainCruiseSpeed,setTrainSpeed} from '../src/simulation/nativeTrain';
+import {createMissionTrain,findCaboose,findCarriage,nextStation,skipTrainToAllowedStation,trainStationSkipPlan,setTrainCruiseSpeed,setTrainSpeed} from '../src/simulation/nativeTrain';
 
 const tracks=TRAIN_TRACK_FILES.map(f=>readTrainTrack(readFileSync(`public/play/world/files/data/paths/${f}`,'utf8')));
 const model=(id:number)=>({model:id,boxLength:id===537?18:15,boxMinZ:-1.2,suspensionLowerLimit:-.1});
@@ -63,13 +63,12 @@ describe('a mission train',()=>{
 });
 
 describe('IsNextStationAllowed',()=>{
- test('StationDist reads track 0 at the index of the nearest node on any track (iOS 0x1004712a4)',()=>{
-  const dist=stationDistances(tracks);
+ test('InitTrains uses track-0 station marks and quantized float32 rail distances',()=>{
+  const marks=readFileSync('public/play/world/files/data/paths/tracks.dat','utf8').split(/\r?\n/).slice(1).map(l=>l.trim().split(/\s+/).map(Number)).filter(p=>p[3]);
+  expect(TRAIN_STATIONS).toEqual(marks.map(p=>p.slice(0,3).map(Math.fround)));
   const nearest=TRAIN_STATIONS.map(([x,y,z])=>findClosestTrackNode(tracks,{x,y,z}));
-  // Unity, Market and Cranberry are nearest tracks4.dat's nodes; the index is still read from tracks.dat.
-  expect(nearest.map(n=>n.track)).toEqual([3,3,3,0,0,0]);
-  expect(dist).toEqual(nearest.map(n=>tracks[0].nodes[n.node].distance));
-  expect(dist.slice(3)).toEqual([16645.666666666668,627.6666666666666,1134.6666666666667]);
+  expect(nearest.map(n=>n.track)).toEqual([0,0,0,0,0,0]);expect(nearest.map(n=>n.node)).toEqual([58,106,330,370,596,822]);
+  expect(stationDistances(tracks)).toEqual([617.3333333333334,1135,5646.333333333333,6804.666666666667,11501,16645].map(Math.fround));
  });
  test('the next station ahead, or the one after when the train stands within 100 of it',()=>{
   const dist=[100,1000,2000,3000,4000,5000];
@@ -81,5 +80,35 @@ describe('IsNextStationAllowed',()=>{
   // At a station (within 100) the one after it along the way.
   expect(nextStation(950,true,dist)).toBe(2);expect(nextStation(1050,false,dist)).toBe(0);
   expect(nextStation(5050,true,dist)).toBe(0);expect(nextStation(120,false,dist)).toBe(5);
+ });
+});
+
+describe('SkipToNextAllowedStation',()=>{
+ const distances=[100,300,600,900,1200,1500];
+ test('clockwise travel skips locked stations and stops twenty before the first allowed one',()=>{
+  const visited:number[]=[],target=TRAIN_STATIONS[2];
+  const plan=trainStationSkipPlan(200,true,distances,[target[0]-60,target[1]-80,999],i=>{visited.push(i);return i===2;});
+  expect(visited).toEqual([1,2]);expect(plan).toEqual({station:2,railDistance:580,speed:Math.fround(.1),minutes:28});
+ });
+ test('anticlockwise travel stops twenty above the station and preserves the negative speed',()=>{
+  const visited:number[]=[],target=TRAIN_STATIONS[1];
+  const plan=trainStationSkipPlan(800,false,distances,[target[0]+30,target[1]+40,-999],i=>{visited.push(i);return i===1;});
+  expect(visited).toEqual([2,1]);expect(plan).toEqual({station:1,railDistance:320,speed:Math.fround(-.1),minutes:25});
+ });
+ test('the existing strict 100-unit own-station rule and end-of-track wrapping also apply to skipping',()=>{
+  expect(trainStationSkipPlan(200,true,distances,[0,0,0],()=>true)?.station).toBe(1);
+  expect(trainStationSkipPlan(201,true,distances,[0,0,0],()=>true)?.station).toBe(2);
+  expect(trainStationSkipPlan(1600,true,distances,[0,0,0],()=>true)?.station).toBe(0);
+  expect(trainStationSkipPlan(50,false,distances,[0,0,0],()=>true)?.station).toBe(5);
+  expect(trainStationSkipPlan(200,true,distances,[0,0,0],()=>false)).toBeUndefined();
+ });
+ test('a caboose argument updates its engine; carriage spacing catches up on the next control pass',()=>{
+  const cars=createMissionTrain(tracks,{x:1297,y:-1898,z:3},true,10,model),dist=stationDistances(tracks);
+  for(const c of cars)c.processControl(tracks,0,60000);
+  const old=cars[1].railDistance,plan=skipTrainToAllowedStation(cars[1],dist,i=>i===0)!;
+  expect(plan.station).toBe(0);expect(cars[0].railDistance).toBe(plan.railDistance);expect(cars[0].speed).toBe(Math.fround(.1));expect(cars[1].railDistance).toBe(old);
+  for(const c of cars)c.processControl(tracks,0,60000);
+  expect(cars[1].railDistance).toBeCloseTo(cars[0].railDistance+cars[1].length,5);
+  expect(Math.hypot(cars[1].position[0]-cars[0].position[0],cars[1].position[1]-cars[0].position[1])).toBeGreaterThan(10);
  });
 });

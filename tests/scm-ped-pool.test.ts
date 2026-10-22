@@ -287,6 +287,18 @@ test('a ped keeps its health and what the script set on it through getting in an
  peds.detachFromCar(handle,{x:5,y:5,z:0});await settle();
  expect(spawned[2]).toMatchObject({health:1200,accuracy:90,shootingRate:70,invulnerable:true,proofs:['bullet','explosion']});
 });
+test('a rider killed by the world stays dead while detachment builds its replacement and after it arrives',async()=>{
+ const {pool:peds,settle,spawned}=pool(),h=peds.createOnCar(4,'MALE01',1024,{x:0,y:2,z:1});await settle();spawned[0].health=0;
+ peds.detachFromCar(h,{x:3,y:4,z:5});expect(peds.isDead(h)).toBe(true);expect(peds.healthOf(h)).toBe(0);expect(peds.exists(h)).toBe(true);await settle();expect(spawned[1].health).toBe(0);expect(peds.isDead(h)).toBe(true);expect(peds.maxHealthOf(h)).toBe(100);
+ peds.warpIntoCar(h,1025,0);await settle();expect(spawned[2].health).toBe(0);expect(peds.exists(h)).toBe(true);
+});
+test('the script’s killed flag is applied to a newly built body instead of leaving its default health',async()=>{
+ const {pool:peds,settle,spawned}=pool(),h=peds.createOnCar(4,'MALE01',1024,{x:0,y:2,z:1});await settle();peds.kill(h);peds.detachFromCar(h,{x:3,y:4,z:5});await settle();expect(spawned[1].health).toBe(0);expect(peds.isDead(h)).toBe(true);expect(peds.exists(h)).toBe(true);
+});
+test('a ped revived by the world does not inherit the stale killed cache when its body is rebuilt',async()=>{
+ const {pool:peds,settle,spawned}=pool(),h=peds.createOnCar(4,'MALE01',1024,{x:0,y:2,z:1});await settle();peds.kill(h);spawned[0].health=100;
+ peds.detachFromCar(h,{x:3,y:4,z:5});expect(peds.isDead(h)).toBe(false);expect(peds.healthOf(h)).toBe(100);await settle();expect(spawned[1].health).toBe(100);expect(peds.isDead(h)).toBe(false);
+});
 test('a ped keeps the weapon a script gave it through getting in and out of a car, until the script takes it',async()=>{
  // SWEET1: Sweet is given the spray can on foot, rides to the wall and sprays with it once out.
  const {pool:peds,settle,spawned}=pool();

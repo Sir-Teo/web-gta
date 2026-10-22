@@ -7,6 +7,7 @@ import type {ScmScriptedTask} from '../engine/ScmThread';
  * This turns the tasks in that intersection into an order the world can carry out, and returns nothing for the
  * rest — nothing meaning the runtime gives the asking thread up rather than pretending the ped obeyed. */
 export type ScriptedPedOrder=
+ |{kind:'jetpack'}
  /** CTaskSimpleStandStill: stand where you are. `seconds` is Infinity for the looped form, which never ends. */
  |{kind:'standStill';seconds:number}
  /** CTaskSimpleAchieveHeading: turn, at the ped's own heading rate, to a heading in degrees clockwise from north. */
@@ -129,7 +130,7 @@ export type ScriptedPedOrder=
  |{kind:'swim';x:number;y:number;z:number}
  /** CTaskComplexChat with a partner (a handle, the player's included): the lead speaker chats (CTaskSimpleChat, IDLE_chat),
   * the other stands and listens, each at the script's stage. */
- |{kind:'chat';partner:number;chatter:boolean;stage:number}
+ |{kind:'chat';partner:number;chatter:boolean;updateDirectionCount:number}
  /** CTaskComplexLeaveCar (and the any-car and immediate forms) for the player: out of the car he is in, the one
   * named or any; the on-foot peds' leave tasks run from the mission. */
  |{kind:'leaveCar';vehicle?:number;immediately:boolean}
@@ -139,6 +140,7 @@ export type ScriptedPedOrder=
  |{kind:'carDriveToCoord';vehicle:number;x:number;y:number;z:number;cruise:number;style:number;accurate:boolean;straight:boolean};
 /** Where the peds a task names stand, which a turn or a flight is measured against. */
 export interface ScriptedTaskWorld{
+ isPlayer?:boolean;
  /** The ped being given the task. */
  self():{x:number;y:number;z:number};
  /** A car the task names, where it is, or nothing when the handle names none the browser has built. */
@@ -174,6 +176,9 @@ export const nativeHeadingDegrees=(dx:number,dy:number)=>{
 const FALL_DIRECTION_CLIPS=['ko_skid_front','ko_spin_r','ko_skid_back','ko_spin_l'] as const;
 export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):ScriptedPedOrder|undefined{
  switch(task.kind){
+  case 'jetpack':return world.isPlayer?{kind:'jetpack'}:undefined;
+  // CTaskSimpleUseAtm (0x48DFE0): one PED/ATM association; cash is a separate attractor behavior.
+  case 'useAtm':return {kind:'playAnim',file:'PED',name:'ATM',loop:false,keepLastFrame:false,seconds:Number.POSITIVE_INFINITY};
   // CTaskSimpleStandStill takes its time in milliseconds; a time of nothing is the looped form, which the
   // original builds from CTaskComplexBeStill and which ends only when something aborts it.
   case 'standStill':return {kind:'standStill',seconds:task.time?seconds(task.time):Number.POSITIVE_INFINITY};
@@ -231,7 +236,7 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   // CTaskComplexGoToPointAnyMeans on foot: the vehicle it would take for a long way is not modelled.
   // TASK_CHAT_WITH_CHAR (unreversed) builds CTaskComplexChat from the lead-speaker flag and its last operand (1 in
   // every mission), taken here as the task's stage, with no speech context: nothing is said.
-  case 'chatWithPed':return world.ped(task.other)?{kind:'chat',partner:task.other,chatter:task.leadSpeaker,stage:task.unknown}:undefined;
+  case 'chatWithPed':return world.ped(task.other)?{kind:'chat',partner:task.other,chatter:task.leadSpeaker,updateDirectionCount:task.unknown===0?4:-1}:undefined;
   case 'carTempAction':return {kind:'carTempAction',vehicle:task.vehicle,action:task.actionId,seconds:task.time/1000};
   case 'carDriveToCoord':return {kind:'carDriveToCoord',vehicle:task.vehicle,x:task.x,y:task.y,z:task.z,cruise:task.speed,style:task.drivingStyle,
    accurate:task.driveStyle===1,straight:task.driveStyle===2};
@@ -374,9 +379,9 @@ export function slideToCoordStep(at:{x:number;z:number},goal:{x:number;z:number}
  const share=1-Math.pow(1-Math.min(1,Math.max(0,speed)),seconds*30);
  return {shift:{x:gx*share,z:gz*share},reached:false};
 }
-export function achieveHeadingStep(current:number,desired:number,headingChangeDegrees:number,seconds:number){
+export function achieveHeadingStep(current:number,desired:number,headingChangeDegrees:number,seconds:number,rate=ACHIEVE_HEADING_RATE){
  let delta=desired-current;delta=Math.atan2(Math.sin(delta),Math.cos(delta));
- const turn=headingChangeDegrees*Math.PI/180*ACHIEVE_HEADING_RATE*50*seconds;
+ const turn=headingChangeDegrees*Math.PI/180*rate*50*seconds;
  const step=Math.max(-turn,Math.min(turn,delta));
  return {heading:current+step,done:Math.abs(delta-step)<=ACHIEVE_HEADING_TOLERANCE};
 }

@@ -1,0 +1,248 @@
+{
+  "executableSha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "cameraGeneration": false,
+  "positions": {
+    "ped": [
+      10,
+      20,
+      30
+    ],
+    "occupied": [
+      100,
+      200,
+      300
+    ],
+    "remote": [
+      1000,
+      2000,
+      3000
+    ]
+  },
+  "intercepts": [],
+  "cases": [
+    {
+      "function": "0x10025680c",
+      "input": {
+        "remote": false,
+        "occupied": false,
+        "matrix": false
+      },
+      "source": "ped",
+      "position": [
+        10.0,
+        20.0,
+        30.0
+      ]
+    },
+    {
+      "function": "0x10025680c",
+      "input": {
+        "remote": false,
+        "occupied": false,
+        "matrix": true
+      },
+      "source": "ped",
+      "position": [
+        10.25,
+        20.5,
+        30.75
+      ]
+    },
+    {
+      "function": "0x10025680c",
+      "input": {
+        "remote": false,
+        "occupied": true,
+        "matrix": false
+      },
+      "source": "occupied",
+      "position": [
+        100.0,
+        200.0,
+        300.0
+      ]
+    },
+    {
+      "function": "0x10025680c",
+      "input": {
+        "remote": false,
+        "occupied": true,
+        "matrix": true
+      },
+      "source": "occupied",
+      "position": [
+        100.25,
+        200.5,
+        300.75
+      ]
+    },
+    {
+      "function": "0x10025680c",
+      "input": {
+        "remote": true,
+        "occupied": false,
+        "matrix": false
+      },
+      "source": "remote",
+      "position": [
+        1000.0,
+        2000.0,
+        3000.0
+      ]
+    },
+    {
+      "function": "0x10025680c",
+      "input": {
+        "remote": true,
+        "occupied": false,
+        "matrix": true
+      },
+      "source": "remote",
+      "position": [
+        1000.25,
+        2000.5,
+        3000.75
+      ]
+    },
+    {
+      "function": "0x10025680c",
+      "input": {
+        "remote": true,
+        "occupied": true,
+        "matrix": false
+      },
+      "source": "remote",
+      "position": [
+        1000.0,
+        2000.0,
+        3000.0
+      ]
+    },
+    {
+      "function": "0x10025680c",
+      "input": {
+        "remote": true,
+        "occupied": true,
+        "matrix": true
+      },
+      "source": "remote",
+      "position": [
+        1000.25,
+        2000.5,
+        3000.75
+      ]
+    },
+    {
+      "function": "0x1002568c0",
+      "input": {
+        "remote": false,
+        "occupied": false,
+        "matrix": false
+      },
+      "source": "ped",
+      "position": [
+        10.0,
+        20.0,
+        30.0
+      ]
+    },
+    {
+      "function": "0x1002568c0",
+      "input": {
+        "remote": false,
+        "occupied": false,
+        "matrix": true
+      },
+      "source": "ped",
+      "position": [
+        10.25,
+        20.5,
+        30.75
+      ]
+    },
+    {
+      "function": "0x1002568c0",
+      "input": {
+        "remote": false,
+        "occupied": true,
+        "matrix": false
+      },
+      "source": "occupied",
+      "position": [
+        100.0,
+        200.0,
+        300.0
+      ]
+    },
+    {
+      "function": "0x1002568c0",
+      "input": {
+        "remote": false,
+        "occupied": true,
+        "matrix": true
+      },
+      "source": "occupied",
+      "position": [
+        100.25,
+        200.5,
+        300.75
+      ]
+    },
+    {
+      "function": "0x1002568c0",
+      "input": {
+        "remote": true,
+        "occupied": false,
+        "matrix": false
+      },
+      "source": "remote",
+      "position": [
+        1000.0,
+        2000.0,
+        3000.0
+      ]
+    },
+    {
+      "function": "0x1002568c0",
+      "input": {
+        "remote": true,
+        "occupied": false,
+        "matrix": true
+      },
+      "source": "remote",
+      "position": [
+        1000.25,
+        2000.5,
+        3000.75
+      ]
+    },
+    {
+      "function": "0x1002568c0",
+      "input": {
+        "remote": true,
+        "occupied": true,
+        "matrix": false
+      },
+      "source": "remote",
+      "position": [
+        1000.0,
+        2000.0,
+        3000.0
+      ]
+    },
+    {
+      "function": "0x1002568c0",
+      "input": {
+        "remote": true,
+        "occupied": true,
+        "matrix": true
+      },
+      "source": "remote",
+      "position": [
+        1000.25,
+        2000.5,
+        3000.75
+      ]
+    }
+  ]
+}

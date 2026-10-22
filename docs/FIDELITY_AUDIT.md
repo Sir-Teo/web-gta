@@ -13,7 +13,7 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 
 | System | Current evidence / difference | Required acceptance evidence |
 | --- | --- | --- |
-| Script runtime and campaign | `ScmRuntime` runs the packaged MAIN.SCM and its missions live in the game, with the streamed scripts of script.img and their object and ped brains. Of the 1,570 commands the scripts use, 1,244 follow the reference or the iOS executable, 153 are core control flow, 26 native no-ops, 18 authored stand-ins, 127 skipped where the engine side is not ported, 1 silent and 1 stopping ([census](port/CENSUS.md)). Under the sweep's bot, SWEET7, CRASH4, MUSIC2 and SMOKE2 run to their pass; others stop on bot limits or the unported families in the [roadmap](port/ROADMAP.md). | Original threads, variables, native commands, cleanup, cutscenes, success/failure/retry and saved script state execute correctly across the campaign and side content. |
+| Script runtime and campaign | `ScmRuntime` runs the packaged MAIN.SCM and its missions live in the game, with the streamed scripts of script.img and their object and ped brains. Of the 1,570 commands the scripts use, 1,343 follow the reference or the iOS executable, 153 are core control flow, 26 native no-ops, 40 authored or partial adapters, 7 skipped where the engine side is not ported, 1 silent and none stopping ([census](port/CENSUS.md), October 22). Under the sweep's bot, SWEET7, CRASH4, MUSIC2 and SMOKE2 run to their pass; others stop on bot limits or the unported families in the [roadmap](port/ROADMAP.md). | Original threads, variables, native commands, cleanup, cutscenes, success/failure/retry and saved script state execute correctly across the campaign and side content. |
 | Physics and vehicles | Rapier contacts are approximate; aircraft fly the iOS FlyingControl (`nativeFlyingControl.ts`). Bike lean and boat integration retain authored behavior. | Original dynamics/task semantics and repeated multi-class acceleration, braking, cornering, impact, flight and water trials. |
 | Player, camera and animation | Movement/animation pieces are implemented; native constants do not prove complete transition or collision equivalence. | Matched input/pose/contact/camera traces, including occlusion, interiors and vehicle transitions. |
 | Population and police | Authored recovery, spawn decisions, clamps and roadblock placement remain. | Original task/event scheduling, population selection, pursuit and mission-exception behavior. |
@@ -404,7 +404,8 @@ A traffic car that blew up with its driver aboard simply lost him. CEventVehicle
 CEventHandler::ComputeVehicleDiedResponse sets their health to 0, marks them scorched and gives them CTaskComplexDie
 by WEAPON_EXPLOSION with KO_shot_front. The browser reports the blow-up with a driver aboard (`WorldCar.onBlowUp`,
 `WorldTraffic.onDriverDied`) and lays the driver out at his seat as a street ped killed by the explosion
-(`pedestrians.spawnDead`). Authored: the scorched rendering; police crews and drive-by cars keep their own handling.
+(`pedestrians.spawnDead`). Scorched pedestrian lighting is now wired through the existing callbacks; native
+event scheduling and complete occupant death-task transitions remain incomplete (see the October 22 update).
 
 ## Killing dealers thins the zone's dealers
 
@@ -2309,7 +2310,7 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
   - The forward key leans the thrust toward 75° at `0.9 ^ TimeStep` and adds
     the 0.6 full thrust along it. At the full lean the lift only carries the
     flier, so height is won on the way into the lean and the flight runs on
-    level: the climb comes from pulsing forward, as it does in the original.
+    level. Space supplies independent upward thrust; W/S tilt the pack and Shift brakes its lift.
   - The climb fades out a hundred units above the ground below and is gone by
     two hundred.
   - The side keys strafe at 0.3, their command gaining 0.1 a frame and losing
@@ -2357,7 +2358,7 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
   ported.
 - Verification: unit tests cover the control input, the thrust, the height
   fade, the leg swing and the flame's key time. A browser test types
-  ROCKETMAN, sees the coasting pack hold the player down, pulses forward to
+  ROCKETMAN, sees the coasting pack hold the player down, holds Space and pulses forward to
   climb and fly 20 metres, sees the pack worn with both flames burning, then
   brakes back to the ground, drops the pack and its flames and walks back into
   the pickup to wear it again. The dying flier's spin is covered by a unit
@@ -8140,7 +8141,8 @@ Each is now answered:
 - TASK_DIVE_AND_GET_UP is CTaskComplexEvasiveDiveAndGetUp with its heading first: turn along the dive, EV_DIVE, lie
   for the script's time, turn a quarter back, GETUP_FRONT.
   - A script ped runs the evasive dive the peds already make from cars, with the lie added.
-  - The player goes through his knockdown. EV_DIVE's forward root motion is not applied to him.
+  - The player goes through his knockdown with the clip's extracted root motion, an initial heading task and
+    the post-pause quarter turn. Association/event integration remains partial (October 22 update below).
 - TASK_LOOK_AT_VEHICLE starts CTaskSimpleTriggerLookAt at where the car is.
 - TASK_DRIVE_BY on a rider is CTaskSimpleGangDriveBy (unreversed), built on the gang drive-by's shooter:
   - The rider leans out of its window with GANG_DRIVEBYLHS/RHS and the Micro SMG.
@@ -12235,8 +12237,9 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   the plane is crashing, the command's height as m_minAltitude. GetAIPlaneToAttackPlayer (iOS 0x10019d134; the police
   mission 59 shares it) heads for FindPlayerCoors plus 50 frames of FindPlayerSpeed at its height and flies as in a
   direction. After the flying it sets bFireGun when the player is within 150 and ahead (TestWhetherToFirePlaneGuns,
-  iOS 0x10019fa50) and fires a heat-seeking rocket at most once a second from 30 to 160 off (iOS 0x10019fb60): those,
-  like the helicopters' guns and rockets, are not ported yet. Specs: `script-plane-goto`, `plane-ai`.
+  iOS 0x10019fa50) and fires a heat-seeking rocket from 30 to 160 off (iOS 0x10019fb60). The subsequent weapons
+  integration below corrects the earlier timing description: the native boundary is two seconds, not one.
+  Specs: `script-plane-goto`, `plane-ai`.
 
 ## SAM sites (October 11, 2026)
 
@@ -12265,8 +12268,8 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   and the signed width the IS_..._IN_ANGLED_AREA commands take), law enforcers included, and only hands it over.
   ACTIVATE_HELI_SPEED_CHEAT (DES3; iOS 0x1001f943c) sets CAutoPilot's m_ucHeliSpeedMult (+0x509), the push forward the
   helicopter AI already applies. SELECT_WEAPONS_FOR_VEHICLE (HEIST5; iOS 0x1001fe354) sets the vehicle's weapon choice
-  (+0x6a3), kept on the aircraft for its AI's guns (TestWhetherToFirePlaneGuns fires only on 0 or 1), which are not
-  ported yet. SET_HELI_STABILISER (ZERO4, DES3; iOS 0x1001e33a8, bHeliMinimumTilt) is still skipped: it changes two
+  (+0x6a3), read by the plane's AI guns (TestWhetherToFirePlaneGuns fires only on 0 or 1; integrated below).
+  SET_HELI_STABILISER (ZERO4, DES3; iOS 0x1001e33a8, bHeliMinimumTilt) is still skipped: it changes two
   branches of the helicopter's FlyingControl (iOS 0x10047a638 and 0x10047b220) not yet read. Spec: `script-random-car`.
 
 ## Aircraft pursuit and projectile attribution (October 21, 2026)
@@ -12276,7 +12279,8 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   VehicleCommands.cpp handler does. The iOS dispatch at 0x100199a08 targets the player's vehicle or ped and calls
   GetAIPlaneToDoDogFight (0x10019e280): pursue the target's predicted position, occasionally break away to a point
   up to 300 either side and 50 higher, and resume pursuit after getting within 50 horizontally. Flight goes through
-  the existing direction/obstacle controller. AI guns/missiles and a complete MANSIO2 play-through remain unfinished.
+  the existing direction/obstacle controller. Plane weapons were subsequently integrated below; a complete MANSIO2
+  play-through remains unfinished.
   [Source observations and limits](research/AIRCRAFT_DOGFIGHT.md). Specs: `plane-ai`, `script-plane-goto`.
 - **SAM explosions charged CJ with their damage.** The projectile update always made explosions player-owned;
   the collision-excluded owner body could not distinguish an enemy rocket from one fired by CJ's aircraft.
@@ -12286,3 +12290,1264 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - **The port checklist was stale.** The refreshed static census classifies 1,318 commands as faithful, 53 as skipped,
   18 as authored, one as silent and one as stopping its thread (plus 153 core and 26 no-ops). These are static source
   classifications, not a count of playable missions. The status report retains the last available October 11 sweep.
+
+## AI plane guns and missiles (October 21, 2026)
+
+- **Attack and dogfight planes could steer but could not fire.** The iOS gun and missile checks (0x10019fa50,
+  0x10019fb60) now reach the weapon system in missions 35, 59 and 63. Guns require a current target within 150,
+  normalized forward dot above float32 0.8 and weapon selection 0 or 1, with independent per-aircraft cooldowns.
+  Missiles require 30 < distance < 160, the same angle and a crossed two-second boundary; they launch a single
+  heat-seeker four forward and three below, inheriting the plane's speed. The native missile check bypasses the
+  player's unguided-rocket model/selection gates. Attack missions require a player vehicle; dogfight can target
+  his ped. Helicopter AI weapons and the original's per-barrel gun geometry remain unfinished.
+- **Enemy gunfire must not count as CJ's damage.** Shared gun traces now explicitly preserve player attribution
+  into pedestrian, vehicle and scripted-object damage and immediate aircraft blasts, suppressing player crime reports
+  for enemy hits.
+  Enemy guns can hit CJ's collider; their firing does not shake his controller. Missiles retain the projectile
+  attribution added in the preceding change. A projectile with no remaining launcher excludes no body, rather
+  than CJ's; SAM's negative owner sentinel is checked before Rapier, whose getRigidBody(-1) can alias body 0.
+- Sources, exact boundary observations and limits: [AI plane weapons](research/AIRCRAFT_WEAPONS.md).
+  Specs: `plane-weapons`, `projectile-attribution`, `script-plane-weapons` (live dogfight guns, heat-seekers and
+  damage to the player's aircraft). This does not establish a complete MANSIO2 pass.
+
+## Remote vehicles and hand-back (October 21, 2026)
+
+- **All seven RC commands previously lacked a host implementation.** GIVE and TAKE now acquire a separate remote
+  target, GET/IS preserve the native pointer-plus-recovery semantics, both detonation switches work independently,
+  and REMOVE hands back without exploding. ARM64 routines establish grounding, camera switch values, the 1000 ms
+  fade crossing and strictly greater than 2000 ms deletion boundary. Pending model loads cannot retake control
+  after replacement or completed removal.
+- **Remote control must preserve CJ's actual occupancy.** Cars and aircraft now accept a remote controller;
+  the camera, active fleet and terrain follow that body while CJ stays at his source. The Baron can fire its native
+  M4 nose gun. RC Bandit contact uses other cars' static wheel geometry and suspension, rather than any body contact.
+  Player attribution remains explicit for remote weapons and explosions.
+- The refreshed census has 1,325 faithful commands and 46 skipped, with 18 authored, one silent and one stopping
+  its thread (plus 153 core and 26 no-ops). ZERO2 has no skipped commands; its observed RC flight loop is not a
+  complete mission pass. Mode-specific native camera behavior, ownership reclassification during recovery and
+  ZERO4's helicopter stabilizer/object-intersection support remain unfinished.
+  [Native evidence, integration and limits](research/REMOTE_CONTROL.md). Specs: `remote-control`, `rc-bandit`,
+  `script-remote-control`, live `remote-control.spec.ts`.
+
+## RC mission placement and helicopter stabiliser (October 21, 2026)
+
+- **ZERO2's Baron fell before its handoff, then caught across the roof.** Remote GIVE now waits for its collision
+  window and repeats the native ground query. Aircraft base height includes SetupSuspensionLines' extension of the
+  COL lower bound to the front-left suspension endpoint; the Baron's raw positive min.z left its wheels below the
+  roof. Script aircraft creation, remote grounding and coordinate changes now use the adjusted base. The focused
+  ZERO2 test checks correct roof height, ground clearance, camera/radar focus, actual throttle-driven movement and
+  CJ remaining in the script's frozen van. This verifies its opening, not Mission Passed.
+- **SET_HELI_STABILISER was skipped.** The flag now reaches ordinary and RC heli flight and the Hydra hover branch:
+  fourfold rotor-axis tilt and reduced pitch/roll input, with yaw unchanged, from the iOS branches at 0x10047a800
+  and 0x10047b220. [Evidence and verification](research/HELICOPTER_STABILISER.md).
+- The latest static census classifies 1,326 commands as faithful and 45 as skipped; the remaining queue is 65.
+  ZERO4 still skips object/world intersection and oil-puddle removal. Camera switches now use the native enum
+  (interpolation 1, jump cut 2); the existing camera-follow approximation remains.
+
+## Current-pose object/world intersection (October 21, 2026)
+
+- **ZERO4 skipped IS_OBJECT_INTERSECTING_WORLD.** The iOS handler at 0x100205a94 calls the object's virtual
+  TestCollision(false), at 0x10024c8a4. The query now waits for original COL geometry and tests the script record's
+  current pose, even while its own collision is disabled. It does not use past collision records or the touching
+  commands' 0.1 margin. Native primitive-pair filtering excludes box/box and triangle/triangle contacts; the host
+  honors disabled candidates, explicit ignored body pairs and attachment relationships.
+- The barrel2 live check passes, including immediate pose changes before the next physics frame, collision/record
+  flags off and obstacle removal. Existing touching checks pass. [Native evidence and implementation limits](research/OBJECT_WORLD_INTERSECTION.md).
+- The static census now has 1,327 faithful commands, 44 skipped and 64 queued. ZERO4's only remaining skipped
+  command is oil-puddle removal; this does not establish a complete playable mission.
+
+## ZERO4 helicopter collision pairs and oil cleanup (October 21, 2026)
+
+- **SORT_OUT_OBJECT_COLLISION_WITH_CAR rejected aircraft.** Its native handler stores a vehicle-pool pointer with
+  no automobile subtype check (iOS 0x1001e4364, tail 0x1001e4580). The host now accepts every supported vehicle body
+  and retains the contact-filter/release behavior. RC-helicopter/barrel and van/crate browser checks pass. ZERO4's
+  interior Goblin now takes real keyboard input and climbs with CJ stationary, without a thread give-up.
+- **REMOVE_OIL_PUDDLES_IN_AREA was skipped every arena frame.** The adapter now sorts the corners and removes only
+  permanent-shadow types 4/8 strictly inside XY, at float32 precision, preserving burning oil and scorch marks. The
+  ARM64 edge checks differ from the reversed CRect helper's inclusive check. [Evidence and limits](research/REMOVE_OIL_PUDDLES.md).
+  Oil production/ignition and per-type rendering remain separate work; the current pool's authored fade remains.
+- The census has 1,328 faithful commands, 43 skipped and 63 queued. ZERO4 has no static skipped commands.
+  The focused opening/RC checks do not claim Mission Passed. The full unit suite passes 3,302 tests (51 skipped).
+
+## Train station skipping and initialized station coordinates (October 22, 2026)
+
+- **SKIP_TO_NEXT_ALLOWED_STATION was skipped.** The native routine follows a supplied carriage to its engine,
+  searches past city locks, writes the directional 20-unit station approach and signed 0.1 speed, and advances
+  the clock from the old XY travel distance. The adapter resolves required effects before mutating a train.
+- **Station initialization used the wrong coordinate table and distance inputs.** The native track reader
+  replaces station coordinates from tracks.dat's fourth-column marks and measures joins after eighth-unit
+  quantization, accumulating float32 lengths. Correcting those inputs makes the live SF-to-LS skip reach its
+  station. Caboose selection, clock advancement, carriage spacing, cruise movement and train audio pass browser
+  checks. [Evidence and remaining train/streaming limits](research/TRAIN_STATION_SKIP.md).
+- The full unit suite passes 3,308 tests (51 skipped), and the production build passes. The static census has
+  1,329 faithful commands, 42 skipped and 62 queued (10 portable). This is not a full train activity play-through.
+
+## Forced civilian traffic models (October 22, 2026)
+
+- **ZERO5 skipped SET_FORCE_RANDOM_CAR_MODEL.** The raw signed value now reaches civilian traffic selection;
+  -1 resets it without used-object name lookup. Mission cleanup clears it, while ordinary thread termination
+  preserves it. Gang selection remains earlier in the draw, and car parks/resident draws bypass the override.
+- Actual SCM dispatch produces a new model-459 Berkley van in the main game's traffic. Gang and Las Venturas
+  car-park browser checks pass. [Native evidence and limits](research/FORCED_RANDOM_CAR_MODEL.md).
+- The full unit suite passes 3,311 tests (51 skipped), and the production build passes. The census now has
+  1,330 faithful commands, 41 skipped and 61 queued. ZERO5 has no static skipped commands; its full play-through
+  remains unverified.
+
+## Movable loader parts, with explicit partial coverage (October 22, 2026)
+
+- **CONTROL_MOVABLE_VEHICLE_PART and GET_CAR_MOVING_COMPONENT_OFFSET were skipped.** Supported forklifts,
+  dozers, packers and dumpers now use native angle storage, offset factors, pivot transforms and surface-65 COL
+  updates. The executable's signed pad clamp and forklift rate differ from the reversed source and are followed.
+  Shared assets remain unchanged; existing collider handles and filters are retained.
+- Browser checks pass for all four models, original-pose restoration, moved forklift contact surfaces, keyboard
+  input, disabled controls and the contextual touch Lift stick/release. The full unit suite passes 3,317 tests
+  (51 skipped), the production build and subsequent browser-test typecheck pass.
+- These two commands remain **authored/partial** in the census. Native moving-contact impulses, the four-slot
+  special-COL pool, Andromada hosting and special-truck drawing still need work. [Evidence and limits](research/MOVABLE_VEHICLE_PARTS.md).
+  Current census: 1,330 faithful, 20 authored, 39 skipped, one silent and one stopping; queue 61. This does not
+  establish a complete loader mission pass.
+
+## Vehicle quaternion assignment without input normalization (October 22, 2026)
+
+- **DECON skipped SET_VEHICLE_QUATERNION.** Actual 07C6 dispatch now preserves position and both velocities and
+  makes the raw float32 CQuaternion matrix available in the command's frame. DECON's non-unit quaternion is not
+  normalized; the native cross-product Reorthogonalise result supplies the rigid body orientation. The player
+  vehicle alias and subsequent heading assignment read the correct basis.
+- The focused browser check, car attachment and player-on-bike attachment regressions pass. The full unit suite
+  passes 3,321 tests (51 skipped), and the build passes. [Native evidence and physical timing limits](research/VEHICLE_QUATERNION.md).
+- This remains authored/partial integration: Rapier receives the rigid pose immediately and does not reproduce
+  transient non-rigid collision/drawing. The census now has 1,330 faithful, 21 authored, 38 skipped and 61 queued.
+
+## Raw door angles and fire-ladder sway (October 22, 2026)
+
+- **FINALEC skipped GET_DOOR_ANGLE_RATIO at door index 6.** The native handler copies CDoor::m_angle directly;
+  it does not call the ratio helper. Supported cars now return signed ordinary-door angles or the seventh
+  swinging-chassis angle for index 6+. The fire ladder and handling-flag chassis have their initialized limits,
+  acceleration response, native springs/damping/caps and composed yaw/pitch drawing.
+- Actual 095F bytecode reads the model-544 ladder's changing angle and its original DFF frame has the scripted
+  pitch. Five browser checks pass across ordinary door damage/control, components, loader geometry, keyboard and
+  touch controls, and the ladder. The full unit suite passes 3,326 tests (51 skipped); build passes.
+- The census has 1,331 faithful, 21 authored, 37 skipped and 60 queued. [Evidence and timing/coverage limits](research/DOOR_ANGLE_AND_LADDER.md).
+  Full FINALEC completion remains unverified.
+
+## Cement mixer drum drawing (October 22, 2026)
+
+- **The cement truck held its moving-part angle without drawing its drum.** Its original `misc_a` support and
+  `misc_b` drum now use the native -10-degree pitch and drum accumulator, whose rate is
+  (angle/2500 + 0.5)*0.02*timeStep. It stops for a wreck. The touch stick is offered as Drum or Ladder on those
+  trucks, using the same native car-gun input path.
+- The mixer, four-loader and touch-loader browser checks pass. The full unit suite passes 3,327 tests
+  (51 skipped), and the production build passes. [Evidence and remaining moving-part limits](research/MOVABLE_VEHICLE_PARTS.md).
+
+## Andromada aircraft and moving cargo ramp (October 22, 2026)
+
+- **Model 592 fell through to the car factory.** It now uses the aircraft host with original model, collision,
+  40,000-unit mass and flying handling. Scripts can create it while the hangar selector keeps its seventeen choices.
+  All 21 supported aircraft assemble and dispose correctly.
+- **The cargo ramp uses a plane-specific node alias.** Generic CAR_MISC_E index 24 is PLANE_MISC_B, named
+  `misc_b`; both native collision and drawing use angle*float32(0.00015). Car and plane instances share the COL
+  shape updater, preserving collider handles, groups and original assets. Occupied car-gun input operates the ramp
+  and disabled controls stop it.
+- The actual factory/SCM path, ramp reset and a ten-second native-handling air test pass. Eleven regression checks
+  pass across aircraft, loaders and helicopter/barrel contact filtering, followed by both Andromada input checks.
+  The full unit suite passes 3,327 tests (51 skipped), build and subsequent browser-test typecheck pass.
+  [Source and remaining contact/aircraft limits](research/MOVABLE_VEHICLE_PARTS.md#andromada-cargo-ramp-and-aircraft-host).
+
+## Script Hunter gun and shared vehicle firing time (October 22, 2026)
+
+- **DESERT5 skipped FIRE_HUNTER_GUN.** Actual 0541 dispatch now transforms the Hunter muzzle offset through the
+  vehicle's current matrix, adds a native timestep of move speed and fires the mounted minigun. It follows the
+  strict unsigned 150 ms comparison, emits the native shell parameters and audio, and preserves CJ's ammo.
+- Script fire, AI fire and pilot gun controls now share each vehicle's timestamp. The shell's camera gate uses
+  the vehicle position and bounding sphere. Enemy damage keeps its attribution without player-input crime or
+  shake calls. [Evidence and remaining combat limits](research/AIRCRAFT_WEAPONS.md#fire_hunter_gun-and-the-shared-vehicle-timer-october-22).
+- The actual Hunter bytecode and Hydra dogfight browser checks pass. The full unit suite passes 3,333 tests
+  (51 skipped), and the production build passes. The census has 1,332 faithful commands, 21 authored, 36 skipped
+  and 59 queued. A complete flight-school mission pass remains unverified.
+
+## Scripted bird creation and the native operand quirk (October 22, 2026)
+
+- **SYND4 skipped CREATE_BIRDS.** It now reaches the shared ambient bird pool and renderer, with native biome
+  selection and obstacle checks disabled. Script creation works at night; ordinary distance culling and gunshot
+  interaction still apply.
+- The iOS handler converts six collected integer bit patterns to floats. Both actual SYND4 sites encode float
+  operands, so their birds appear at huge coordinates and are culled. This behavior is preserved and documented;
+  this change does not claim visible mission flocks. Float32 formation positions and the zero-direction native
+  normalization fallback are also corrected. [Evidence and limits](research/SCRIPT_BIRDS.md).
+- Both original sites and an ordinary integer-coordinate flock pass the browser check; the existing ambient
+  flight/render/shooting check passes. The full unit suite passes 3,336 tests (51 skipped), and the build passes.
+  The census now has 1,333 faithful commands, 21 authored, 35 skipped and 58 queued. Full SYND4 completion is
+  unverified.
+
+## Last building model shot queries (October 22, 2026)
+
+- **DESERT9 skipped both its building-shot query and clear.** Player instant-hit and travelling sniper bullets
+  now record the struck IPL building's model ID. Queries resolve negative used-object models, retain the value
+  and honor negation; clear writes -1 only to the selected player's slot. Objects and vehicle-created shots do
+  not replace this ped-specific field.
+- All three actual cargo-model queries and the clear pass unit checks. A browser pistol shot against actual IPL
+  collision records the model, numeric/name queries agree and actual clear bytecode resets it. The Hunter
+  regression also passes. [Native evidence and limits](research/LAST_BUILDING_MODEL_SHOT.md).
+- The full unit suite passes 3,339 tests (51 skipped), and the build passes. The census has 1,335 faithful commands,
+  21 authored, 33 skipped and 56 queued. Full DESERT9 completion remains unverified.
+
+## Vehicle clump assignment and fade cadence (October 22, 2026)
+
+- **CASINO4 skipped SET_VEHICLE_TO_FADE_IN.** Its second operand now writes raw signed clump alpha on every
+  supported vehicle class. Cars, aircraft, bikes and boats advance by 16 at the port's 30 Hz native cadence;
+  trains retain their assignment, matching the absence of the native fade helper in train control.
+- Original opacity and glass transparency survive the fade and restore at full alpha. Collision and pose remain
+  intact. The actual CASINO4 instructions pass across all five classes, including the train's persistent alpha;
+  the script-generator regression passes. [Evidence and limits](research/VEHICLE_CLUMP_ALPHA.md).
+- The full unit suite passes 3,343 tests (51 skipped), and the build passes. The census now has 1,336 faithful
+  commands, 21 authored, 32 skipped and 55 queued. Full CASINO4 completion remains unverified.
+
+## Weapon-shop corona textures and flares (October 22, 2026)
+
+- **DES10 skipped DRAW_WEAPONSHOP_CORONA.** Its native 150-unit range, float32 0.2 camera pull, ground sentinel,
+  byte parameters and stable thread/site identity now reach the shared corona pool. Ordinary script coronas
+  retain their existing range. Requested moon, reflection, headlight and ring rasters are selected rather than
+  drawing every type with the star raster.
+- World coronas now use the existing sun/headlight flare definitions, with vehicle/ped obstruction and enough
+  buffer space for the pool and sun. The actual DES10 loop draws its green moon and flares and fades after stop.
+  Street-lamp rendering/reflection and sun-flare pixel checks pass. [Evidence and limits](research/WEAPONSHOP_CORONA.md).
+- The full unit suite passes 3,346 tests (51 skipped), and the build passes. The census now has 1,337 faithful
+  commands, 21 authored, 31 skipped and 54 queued. Full DES10 completion remains unverified.
+
+## Live get-up flag exposed to scripts (October 22, 2026)
+
+- **valet.scm and SYND4 skipped IS_CHAR_STUCK_UNDER_CAR.** The command now reads the existing get-up flag on CJ
+  or a live NPC, independently of the generic movement-blocked flag. The iOS handler extracts a ped flag directly;
+  it performs no new overlap or distance test. [Evidence and limits](research/STUCK_UNDER_CAR_QUERY.md).
+- Actual 095D bytecode reads false/true/false as a real car traps and releases CJ and an adopted civilian. The
+  existing get-up regression also checks run-over damage and the matching recovery clip. Its fixture now clears
+  INTRO safety/armour and holds its striker over CJ while the strike impulse settles. Both final live runs pass.
+- The full unit suite passes 3,347 tests (51 skipped); build and subsequent browser-test typecheck pass. The census
+  has 1,338 faithful commands, 21 authored, 30 skipped and 53 queued. SYND4 now has no static skipped commands;
+  its full mission pass remains unverified.
+
+## SYND4 skylight opening and sweep routing (October 22, 2026)
+
+- The actual SYND4 opening passes through the exterior PDOMES entrance, area-3 streaming and club cutscene;
+  CJ remains grounded on the lower club floor afterward. Earlier sweep failures bypassed this transition.
+- The diagnostic sweep now respects player control and entrance transitions, routes nearby interior targets
+  through enabled ENEX links, and correctly centers 3D area boxes. A corrected player-only probe reaches the
+  post-cutscene stage without mission failure or runtime errors, then stalls. Full mission completion is
+  unverified. [Evidence and limits](research/SYND4_VALIDATION.md).
+- The full unit suite passes 3,351 tests (51 skipped), and the build passes. Command census counts are unchanged.
+
+## STUNT's script shadow (October 22, 2026)
+
+- DRAW_SHADOW now projects all six native rasters with the native orientation, narrowing, depth and blend modes.
+  STUNT's actual array-based instruction draws its black ped blob, persists between render frames of the same
+  world update and clears when its thread stops. [Evidence and limits](research/SCRIPT_SHADOWS.md).
+- The command remains authored because script shadows have their own 48-slot table while existing ped/car paths
+  use separate pools. Full STUNT completion remains unverified. The census has 1,338 faithful commands, 22 authored,
+  29 skipped and 53 queued.
+- The full unit suite passes 3,355 tests (51 skipped), and the build passes.
+
+## WUZI5's scripted smoke (October 22, 2026)
+
+- ADD_SMOKE_PARTICLE now feeds the native large-smoke blueprint with the script's raw native position, velocity,
+  RGBA, size and lifetime. It uses the shared FX-quality, emission, motion and rendering paths.
+  [Native arguments and checks](research/SCRIPT_SMOKE_PARTICLE.md).
+- The actual WUZI5 instruction emits black smoke through the live mission host; its particles expire after the
+  thread stops. The shared explosion/fire/blood pixel regression passes. Full WUZI5 completion is unverified.
+- All 3,357 unit tests pass (51 skipped); build and subsequent browser-test typecheck pass. The census has 1,339
+  faithful commands, 22 authored, 28 skipped and 52 queued.
+
+## Stored traffic obstruction exposed to scripts (October 22, 2026)
+
+- GET_CAR_BLOCKING_CAR now returns the stored vehicle accepted last by the traffic scan, using a stable script
+  handle. Script-car, civilian and police steering retain this reference and reset it before the next physics
+  steering frame; disposed targets return -1. [Evidence and engine limits](research/CAR_BLOCKING_QUERY.md).
+- The actual SCRASH3 query returns a car in a real script driver's traffic scan, then -1 after it moves away.
+  The existing script-driving, temporary-action, wandering and chase regression passes. Full SCRASH3 and valet
+  completion remain unverified.
+- All 3,359 unit tests pass (51 skipped), with a passing build. The census has 1,340 faithful commands, 22 authored,
+  27 skipped and 51 queued.
+
+## Native parking-node cycling (October 22, 2026)
+
+- GET_PARKING_NODE_IN_AREA now scans loaded exterior vehicle nodes with behaviour 2 strictly inside its box,
+  using native area/index order and a shared cycling cursor. It returns the node's original coordinates or the
+  origin, with no nearest-node, occupancy or switched-off filter. [Evidence](research/PARKING_NODE_QUERY.md).
+- SCRASH3's actual instruction cycles through the ten real San Fierro nodes in its box and wraps to the first
+  two. Unit checks also cover changed boxes, strict float32 boundaries and unloaded data. Full SCRASH3 or valet
+  completion remains unverified.
+- All 3,364 unit tests pass (51 skipped), and the build passes. The census has 1,341 faithful commands, 22 authored,
+  26 skipped and 50 queued.
+
+## Scripted jetpacks and model-instance animation boundaries (October 22, 2026)
+
+- MAF4 and DES10 now give CJ the existing jetpack controller through the normal scripted-task and sequence path.
+  Task status persists during flight; ordinary script events are refused, higher-priority replacements can abort
+  it, and clearing removes it without a dropped pickup. NPC jetpack tasks remain unsupported, so the command
+  stays authored. [Native evidence and limits](research/SCRIPT_JETPACK.md).
+- Flight checks exposed missing independent thrust buttons. Space now supplies ascent and Shift braking/descent,
+  independently of W/S tilt, following the native pad functions and PC bindings. The pause menu lists these keys.
+  The original cheat regression now uses an open takeoff route and game-time key holds, and passes climbing,
+  20-metre travel, landing, drop and pickup checks. It emits an existing terrain-support warning during travel;
+  it does not establish full mission or streaming parity.
+- Replacing the pack with a looped animation exposed a frame-index collision with attached models. Animation
+  binding now excludes nested model instances and their skinned bounds while retaining rejection of peer
+  instances in a wrapper. The original live failure and a dedicated unit regression pass.
+- All 3,371 unit tests pass (51 skipped), with a passing build. The census has 1,341 faithful commands, 23 authored,
+  25 skipped and 50 queued. Full Black Project and Green Goo completion remain unverified.
+
+## RIOT2 gunshot hearing override (October 22, 2026)
+
+- SET_GUNSHOT_SENSE_RANGE_FOR_RIOT2 now updates the shared float32 event range. Mission-created peds use a
+  positive override or their normal hearing/seeing range; ambient peds retain 45. Hearing distance now uses
+  entity origins with native float32 3D boundaries. [Evidence and existing event limits](research/RIOT2_GUNSHOT_RANGE.md).
+- All three original RIOT2 instructions pass against live mission and ambient pedestrians. The mission ped
+  stops hearing at 20 units under the 15-unit override and hears again after each reset. Full RIOT2 completion
+  remains unverified.
+- All 3,376 unit tests pass (51 skipped), and the build passes. The census has 1,342 faithful commands, 23 authored,
+  24 skipped and 49 queued.
+
+## Burglary loot query (October 22, 2026)
+
+- GET_CLOSEST_STEALABLE_OBJECT now queries live script/adopted objects with the native planar search, 16-entry
+  buffer, liftable filter and nearest 3D selection. Moving, unflagging or deleting an object changes the returned
+  handle immediately. Both original BURGJB instructions pass unit and browser checks.
+- The command stays authored: native repeat-sector ordering and unadopted map CObjects remain outside this
+  adapter's coverage. Full burglary completion is unverified. [Evidence and limits](research/CLOSEST_STEALABLE_OBJECT.md).
+- All 3,380 unit tests pass (51 skipped), and the build passes. The census has 1,342 faithful commands, 24 authored,
+  23 skipped and 49 queued.
+
+## Stored group sequence (October 22, 2026)
+
+- SET_GROUP_SEQUENCE now resolves a sequence handle into the native stored group slot, accepting -1 and stale
+  handles as -1 and resetting on flush. The inspected native group-update routine migrates existing task pairs
+  without issuing the recorded sequence from this field. [Trace and scope](research/GROUP_SEQUENCE.md).
+- TWAR7's original instruction and group lifetime checks pass. Full TWAR7 completion remains unverified.
+- All 3,382 unit tests pass (51 skipped), and the build passes. The census has 1,343 faithful commands, 24 authored,
+  22 skipped and 48 queued.
+
+## Scorched object lighting (October 22, 2026)
+
+- SET_OBJECT_RENDER_SCORCHED now reaches the native object-lighting flag. Both generic and building paths use
+  fixed 0.18 grey ambient with existing prelight and surface modulation, restoring normal lighting when cleared.
+  Adopted map placements get independent material copies that follow opacity/fade changes and survive window
+  reloads without changing neighboring placements or collision. [Evidence and render limits](research/OBJECT_SCORCHED.md).
+- Both original QUARRY instructions pass against a live object. Pixel checks verify prelight plus fixed ambient,
+  independence from brighter scene lights and restoration; the existing vertex-lighting regression also passes.
+  Full QUARRY completion remains unverified.
+- All 3,386 unit tests pass (51 skipped), and the build passes. The census has 1,344 faithful commands, 24 authored,
+  21 skipped and 47 queued.
+
+## Scripted resurrection reset (October 22, 2026)
+
+- RESET_STUFF_UPON_RESURRECTION now restores CJ at his current origin, advances twelve hours, clears ordinary
+  messages, armour, wanted status and shaking, and restores maximum health, stamina, controls and follow camera.
+  The inspected iOS routine preserves weapons; the death/arrest penalty remains separate.
+- CASINO6's original instruction passes from a live driver's seat, retaining horizontal position, heading, money
+  and ammunition while exiting the vehicle. The shared touch-wasted hospital regression passes. Population startup
+  bursts, native player-reference invalidation, motion/drunk blur, loaded-shop removal and blocking streaming remain
+  incomplete, so the command stays authored. [Evidence and limits](research/RESURRECTION_RESET.md).
+- All 3,387 unit tests pass (51 skipped), with a passing build and subsequent browser-test typecheck. The census has
+  1,344 faithful commands, 25 authored, 20 skipped and 47 queued. Full CASINO6 recovery remains unverified.
+
+## HEIST2's ATM task (October 22, 2026)
+
+- TASK_USE_ATM now records through the normal scripted-task path, including character -1 inside a sequence.
+  It plays PED/ATM once, lets the animation finish, and changes no money. HEIST2's original complete seven-task
+  repeat block retains the ATM step. [Native arguments and animation limits](research/SCRIPT_USE_ATM.md).
+- Live player and NPC sequences show the clip, retain associated task status and then finish with unchanged
+  money. The command stays authored because it shares the existing animation runner's blend/event limits.
+- All 3,390 unit tests pass (51 skipped), and the build passes. The census has 1,344 faithful commands, 26 authored,
+  19 skipped and 47 queued. Full HEIST2 completion remains unverified.
+
+## Scripted-attractor occupancy (October 22, 2026)
+
+- IS_CHAR_AT_SCRIPTED_ATTRACTOR now reads the arrived user of the existing scripted approach/heading/sequence
+  path. Ownership follows task identity and ends on completion, replacement, clearing, death or attractor deletion.
+  The -1 wildcard and iOS invalid-ped pointer comparison follow the inspected handler.
+- Both original CASINO6 forms pass against a live walking user, natural completion, explicit task clearing and a
+  newly created user. General native registration, queue timing, ambient scripted users and model-readiness behavior
+  remain incomplete, so the query stays authored. [Evidence and limits](research/SCRIPT_ATTRACTOR_QUERY.md).
+- All 3,393 unit tests pass (51 skipped), and the build passes. The census has 1,344 faithful commands, 27 authored,
+  18 skipped and 47 queued. Full CASINO6 completion remains unverified.
+
+## Script object draw-last pass (October 22, 2026)
+
+- SET_OBJECT_DRAW_LAST now selects the later, distance-sorted pass for script objects and adopted placements,
+  using native exterior/interior alpha thresholds and depth policy. Runtime changes retain fading, per-slot alpha
+  and scorched lighting; neighboring placements and collision remain unchanged. [Evidence and limits](research/OBJECT_DRAW_LAST.md).
+- Both original POOL2 instructions pass on a live object. GPU draw-call ordering proves a change of pass, and
+  pixels verify the exterior alpha-threshold transition and restoration. Scorched-lighting regressions pass.
+- The command remains authored because Three's per-mesh pass does not reproduce the native shared entity-list
+  capacity and special lists. All 3,397 unit tests pass (51 skipped), and the build passes. The census has 1,344
+  faithful commands, 28 authored, 17 skipped and 47 queued. Full POOL2 completion remains unverified.
+
+## Scorched vehicle occupants (October 22, 2026)
+
+- Living occupants killed by vehicle destruction now retain CPhysical's scorched lighting flag. Scripted riders
+  also receive health zero before the next script step; attached peds and occupants already killed by a shot
+  are excluded. Traffic, police and drive-by corpse callbacks distinguish destruction from an ordinary bullet victim.
+- Character materials use the existing fixed 0.18 ambient branch; revival and player resurrection restore normal
+  lighting. Native event scheduling, death-task transitions and bike knock-off behavior remain incomplete.
+  [Evidence and limits](research/PED_SCORCHED.md).
+- All 3,402 unit tests pass (51 skipped), and the build passes. Four browser checks pass, including actual scripted
+  occupant material uniforms, all four player vehicle classes, CASINO6's original reset and the touch wasted flow.
+  The script census classifications are unchanged.
+
+## Vehicle occupants in touch targeting (October 22, 2026)
+
+- SET_VEHICLE_CAN_BE_TARGETTED now gates live occupant selection with the native default-off flag and bike
+  exception. The existing touch picker receives stable seat identities and drawn head positions. Mouse rays,
+  bullet eligibility and heat-seeker flags remain independent. [Evidence and limits](research/VEHICLE_PED_TARGETING.md).
+- Never-targeted and shot-proof flags survive getting out and back in; scripted bikes and pillions join the
+  occupant provider. Full native lock-on scanning/priorities, aim-bone selection and firing-ped vehicle-ignore
+  exceptions remain incomplete, so the command is authored.
+- All 3,406 unit tests pass (51 skipped), and the build passes. Six browser checks pass, including the original
+  SYN6 instruction against a helicopter pilot, bike selection, pedestrian flag round trips, touch lock-on,
+  touch free aim, mouse free aim, swipe switching and scorched-occupant regression.
+- Census: 1,344 faithful commands, 29 authored, 16 skipped and 47 queued (10 portable). Full SYN6 completion
+  remains unverified; historical mission sweep outcomes are preserved.
+
+## Scripted evasive-dive movement (October 22, 2026)
+
+- CJ and NPCs now use EV_DIVE's actual extracted horizontal root curve through capsule collision. The player's
+  task turns before diving, keeps sequence ownership through recovery, and applies the native post-pause quarter
+  turn before get-up collision checks. Ordinary pad/walking movement stays suppressed while down.
+- Association blending, reaction-time edits and general abort/event handling remain partial; attached dives
+  use a separate turn/detach path described below. [Source, asset measurements and limits](research/SCRIPT_DIVE_MOTION.md).
+- All 3,410 unit tests pass (51 skipped), and the build passes. The live scripted dive and four shared-path
+  regressions pass, including under-car get-up and civilian/cop/combat evasions. Census classifications are unchanged.
+- Separate SYN6 probes show its opening phone stages complete and the bot driving toward the objective. The
+  helicopter chase and full mission result remain unverified. [Probe evidence](research/SYN6_VALIDATION.md).
+
+## Vehicle-attached NPC dives (October 22, 2026)
+
+- TASK_DIVE_FROM_ATTACHMENT_AND_GET_UP now records normally and runs an NPC through attached turning, detachment
+  at the transformed offset and the existing evasive dive/pause/get-up task. The native padded footprint, side
+  selection and moving-vehicle lateral escape rule are traced from the executable.
+- Attached position/heading queries and plain detachment preserve the actual offset and heading. Player,
+  object-attachment, seated and full event/animation coverage remain incomplete, so the command is authored.
+  [Evidence and limits](research/ATTACHED_DIVE.md).
+- CASINO1's original call passes in the browser with its ten-second pause. Seven rider, player-attachment, dive
+  and nested-sequence regressions pass. All 3,418 unit tests pass (51 skipped), and the build passes.
+- Census: 1,344 faithful commands, 30 authored, 15 skipped and 47 queued (10 portable). Full CASINO1 completion
+  remains unverified; historical sweep outcomes are preserved.
+
+## Scripted corpse health and allocation (October 22, 2026)
+
+- A scripted rider death now preserves its allocated entity and dead-seat/attached pose. Body rebuilds snapshot
+  live health and the dead cache together, keep zero health through loading and apply it to the replacement. A real
+  world revival clears the stale dead cache on the next rebuild.
+- Rebuilt corpses retain scorched state and use a visible held front death pose with a low collider, without another
+  damage event. Full native dying/dead states, prior animation associations and detachment forces remain incomplete.
+  [Evidence and limits](research/SCRIPT_PED_DEATH_REBUILD.md).
+- CASINO1's original die-and-detach pair and an exploded-vehicle corpse transfer pass in the browser. Seven related
+  browser checks pass; the attached-dive check now waits for the next script tick to publish completed task status.
+  All 3,424 unit tests pass (51 skipped), and the build and typecheck pass. Census classifications are unchanged.
+
+## Excavation building swaps (October 22, 2026)
+
+- SWAP_NEAREST_BUILDING_MODEL now selects a loaded CBuilding with the native float32 planar/3D tests and
+  sixteen-entry buffer, then replaces its visual model and COL while retaining source/LOD identity and class.
+- Text IPL overrides survive terrain windows; binary overrides retire only after a successful window commit.
+  The 25-slot ledger supports updates and restoration. Exact sector order, resource lifetime and complete
+  save/undo integration remain incomplete, so coverage is authored. [Evidence and limits](research/BUILDING_MODEL_SWAPS.md).
+- DECON's three original instructions pass in the browser, including changed ground heights, restoration and
+  a streamed return to the filled excavation. Building-shot and distant-teleport regressions pass. Full DECON
+  completion remains unverified. All 3,431 unit tests pass (51 skipped), and the build passes.
+- Census: 1,344 faithful commands, 31 authored, 14 skipped and 47 queued (10 portable). Historical sweep
+  outcomes are preserved.
+
+## Corpse reaction timing (October 22, 2026)
+
+- Corpse hits now follow the actual death-animation clock rather than the removal timer that medical treatment
+  refreshes. Paused/slowed death clips remain dying; completed corpses can restart FLOOR_HIT repeatedly without
+  another damage response. Revival clears readiness, and a fatal floor-hit clip must finish first.
+- The native dead-task/localization/association system remains partial; this fixes the existing browser integration.
+  [Evidence and limits](research/CORPSE_HIT_CLOCK.md). Four added unit checks and the focused browser check pass;
+  the scripted corpse-transfer browser regression also passes. All 3,435 unit tests pass (51 skipped), and the build
+  passes. Census classifications are unchanged.
+
+## Script text measurement (October 22, 2026)
+
+- GET_STRING_WIDTH and GET_STRING_WIDTH_WITH_NUMBER now use the pinned native font-width tables and the pending
+  intro-line style, including float32 advances, font remapping, proportional/fixed spacing and signed outline width.
+  Decoded GXT characters recover font indices; controls use the active input names and numbered text is substituted.
+- The browser still draws substitute glyphs; CFont global state, native icons and non-PC languages remain incomplete,
+  so both commands are authored. [Evidence, reproducible data generation and limits](research/SCRIPT_TEXT_WIDTH.md).
+- All four original OTB/POOL2 query sites pass in unit and browser checks. OTB's original width/display/arithmetic
+  block places the next label using the measured width plus eight. Full mission completion remains unverified.
+  All 3,441 unit tests pass (51 skipped), and the build passes.
+- Census: 1,344 faithful commands, 33 authored, 12 skipped and 47 queued (10 portable). Historical sweep outcomes
+  are preserved.
+
+## Attached player weapon fire (October 22, 2026)
+
+- Player attachment no longer blocks ordinary weapon fire merely because it disables the ped's collider. The
+  native targeting flag now selects an occupied/attached vehicle to exclude from ordinary player instant hits,
+  source/aim tests, shotgun pellets and analytic wheel tests. Drive-by fire keeps its unconditional vehicle exclusion.
+- The player path is covered; complete NPC, target-scanner and shared world-query behavior remain partial.
+  [Evidence and limits](research/ATTACHED_PLAYER_GUNFIRE.md). Five added unit checks and four browser checks pass,
+  including actual keyboard fire aboard and SYN6's original targeting instruction. All 3,446 unit tests pass
+  (51 skipped), and the build passes. Census classifications are unchanged.
+- The live check exposed a separate freeze bug: frozen vehicle bodies lose collision. It uses a fixed body with
+  active colliders to test gunfire independently; the freeze behavior is the next integration correction.
+
+## Frozen vehicle collision and mode restoration (October 22, 2026)
+
+- Frozen cars, bikes, boats and aircraft now hold their pose while retaining nearby loaded collision. Unfreezing
+  restores the prior physics mode, preserving attachment and playback ownership. Explicit teleports remain possible.
+- Native freeze flag/timing and the separate 0574 collision-loading switch remain incomplete. Both adapters are
+  now authored/partial, replacing their previous blanket fidelity classification. [Evidence and limits](research/FROZEN_VEHICLES.md).
+- SYN1's original freeze instruction passes against all four vehicle classes, with solid queries, held poses and
+  resumed movement. Attached gunfire now passes using SCM freeze too; three attachment/targeting regressions pass.
+  All 3,452 unit tests pass (51 skipped), and the build passes.
+- A census member-span boundary bug attributed an inline authored marker to its preceding adjacent adapter.
+  The parser now stops at that boundary, with a regression check; ANCHOR_BOAT retains its own classification.
+  Current census: 1,342 faithful commands, 35 authored, 12 skipped and 49 queued (10 portable). Historical sweep
+  results are preserved. Full SYN1/SYN6 and native physics parity remain unverified.
+
+## PC script-text glyphs and shared metrics (October 22, 2026)
+
+- Script text now draws the published PC font masks with the same table advances used by width queries.
+  Locked PC FONTS.DAT replaces the initial iOS widths; FONTS.TXD is published as a compressed world resource.
+  Packaging and metric generation verify source hashes. Other HUD font components retain their current rendering.
+- Both fade layers, fractional placement, alignment, wrapping, backgrounds, shadows and outlines use the atlas
+  backend. Async installation invalidates cached frames; teardown frees atlases and the bounded tint cache.
+- Native UV insets, filtering, full formatting/icons/languages and exact line/background rules remain partial;
+  the pinned PC PrintChar reference is unreversed. [Sources, reproduction and limits](research/PC_SCRIPT_FONTS.md).
+- Browser pixel comparisons pass for all four styles, alignment and wrapping, with shadows, fade routing and
+  lifecycle checks. The original OTB/POOL2 width instructions pass with the live atlas loader ready. Full missions
+  and pixel comparison against a certified retail executable remain unverified. All 3,456 unit tests pass
+  (51 skipped), and the production build passes. Census remains 1,342 faithful, 35 authored, 12 skipped and
+  49 queued (10 portable). Historical sweep outcomes are preserved.
+
+## Cached dead-body sight in MANSIO2 (October 22, 2026)
+
+- CAN_CHAR_SEE_DEAD_CHAR now inspects a cached nearest-sixteen ped scan with the native refresh counter,
+  strict sense sphere and NPC/player dead-body filtering. Queries apply current death state, target-point
+  direction/range and building/object obstruction, ignoring the native command's second ped-type operand.
+- The browser death-animation phase model and on-foot scan are partial; native task/physical-support transitions,
+  occupants, sector ties, tilted matrices and camera-ignore flags remain incomplete. [Evidence and limits](research/DEAD_BODY_SIGHT.md).
+- All three original MANSIO2 sites pass in the browser, including NOT, dying/dead refresh, a real wall and direction.
+  Death-clock and body-investigation regressions pass. The streamed-corpse check now waits for actual animation
+  completion and ground contact before recording its resting pose; its original displacement limit passes.
+- All 3,462 unit tests pass (51 skipped), and the build passes. Census: 1,342 faithful, 36 authored, 11 skipped,
+  49 queued (10 portable). Historical sweep outcomes are preserved. Full MANSIO2 completion remains unverified.
+
+## Prone ped placement when collision arrives (October 22, 2026)
+
+- WorldPedestrians' ground-placement path now uses the current 0.3-unit prone body centre instead of always
+  using the 0.9-unit standing centre. A corpse or knocked-down ped being lifted out of newly loaded ground
+  no longer receives an extra 0.6-unit displacement. This corrects the existing Rapier integration.
+- Real physics tests reproduce the old prone offset and verify both prone and standing placement. The streamed
+  corpse and MANSIO2 sight browser checks pass. All 3,464 unit tests pass (51 skipped), and the build passes.
+  Census classifications and historical mission outcomes are unchanged.
+
+## Script-text palette and highlights (October 22, 2026)
+
+- Script text retains and draws native GXT palette/highlight tags. Colors preserve alpha; highlights compound
+  with native saturation/truncation, and normal/white tags select light gray. Styled glyphs keep colors across
+  wrapping and explicit newlines without adding advances. Ordinary DOM HUD messages retain their existing path.
+- CFont::ParseToken and CHudColours supply the contract; full string-processing state, controller symbols and
+  other HUD components remain incomplete. [Source and checks](research/PC_SCRIPT_FONTS.md#palette-and-highlight-tokens).
+- Atlas pixel comparisons pass with palette changes, highlights and half alpha over wrapped lines. Original
+  OTB/POOL2 width regressions pass. All 3,468 unit tests pass (51 skipped), and the build passes. Census
+  classifications and historical mission outcomes are unchanged; full OTB/POOL2 completion remains unverified.
+
+## Object bounds after shared collision loads (October 22, 2026)
+
+- Object collision loads now publish COL bounds regardless of which consumer started them. Previously, if
+  rendering or a building-model load got there first, a later model-dimensions/base-offset query could remain
+  pending forever. A failed download also no longer poisons bounds as permanently absent; existing retries apply.
+- Four focused checks cover completed/in-flight shared loads, missing collision and transient failure recovery.
+  The browser reads a native cardboard box's bounds after a separate model load; dynamic-object translation
+  and rotation regressions pass. All 3,472 unit tests pass (51 skipped), and the build passes. Census
+  classifications and historical mission outcomes are unchanged.
+
+## Complex NPC object pickup (October 22, 2026)
+
+- TASK_COMPLEX_PICKUP_OBJECT now captures DESERT9's sequence entry and runs CASINO2's direct NPC tasks through
+  a COL-derived approach point, turn, height-selected lift and secondary carry. Actual association time controls
+  acquisition; paused/slowed clips and script progress edits use the same clock. The script-facing total-time
+  host's milliseconds are converted to native seconds. Packaged carry.ifp supplies the clips.
+- Carry survives later primary tasks; cancellation, explicit dropping, object deletion and holder death restore
+  the relevant browser state. Player/occupant forms fail explicitly. Full native flags, root correction,
+  abort/reference ownership and some scaled/tilted cases remain incomplete. [Sources and limits](research/COMPLEX_OBJECT_PICKUP.md).
+- Eight added unit checks cover plans, original sequence/direct instructions, timing, cancellation and lifetime.
+  The live CASINO2 instruction approaches, pauses before pickup, acquires at the native time, carries through a
+  walk and drops. The player stealable-crate regression passes. All 3,480 unit tests pass (51 skipped), and the
+  build passes. Full DESERT9/CASINO2 completion remains unverified.
+- Census: 1,342 faithful, 37 authored, 10 skipped and 49 queued (10 portable). Historical sweep outcomes are preserved.
+
+## Paired NPC greetings (October 22, 2026)
+
+- TASK_GREET_PARTNER now assigns both NPC participants: biased target positions, approach, facing/alignment,
+  native handshake clip selection and randomized speaker/listener chat stages. Both task records remain active
+  until the pair finishes; clearing/replacing a primary task, death or timeout cancels the shared pair.
+- The native iOS task functions supply the contract; the PC sequence method is a placeholder. Player/occupant
+  forms, complete partner task/callback ownership, exact root alignment, IK and hand-signal integration remain
+  incomplete. [Sources, data and limits](research/PARTNER_GREET.md). Full SYN5 completion remains unverified.
+- Seven added unit checks and the live SYN5 instruction pass, including actual walking/facing, paused peer
+  synchronization, chat completion, distinct C-style clips and paired cancellation. Chat and complex-pickup
+  browser regressions pass. All 3,487 unit tests pass (51 skipped), and the build passes.
+- Census: 1,342 faithful, 38 authored, 9 skipped and 49 queued (10 portable). Historical sweep outcomes are preserved.
+
+## Frozen boat fire timers (October 22, 2026)
+
+- Frozen boats now keep the existing health/fire countdown running and can explode while their hull stays
+  held with solid collision. The native CBoat update runs this timer before physical movement; the browser's
+  early freeze return had accidentally stopped it. Health and strict camera-axis range gates remain active.
+- Two real-Rapier checks reproduce the deadline and gate behavior. A live frozen Speeder burns through to an
+  explosion; the four-class freeze/release regression passes. All 3,489 unit tests pass (51 skipped), and the
+  build passes. [Evidence and remaining freeze limits](research/FROZEN_VEHICLES.md#burning-frozen-boats).
+- Census classifications and historical mission outcomes are unchanged.
+
+## Frozen helicopter rotors (October 22, 2026)
+
+- Frozen helicopters now continue their existing rotor-speed and visible blade updates while body motion stays
+  held. Spin-up, AI blades and wind-down use the same paths as moving helicopters. Native iOS control/rotor
+  routines establish the separate update; full engine/status, prerender and water/freeze parity remain incomplete.
+- Three added unit checks and the packaged Maverick's actual browser rotor frames pass. Collision and pose stay
+  held through spin-up and wind-down. SYN1 freeze/release and DRUGS4 recorded-flight regressions pass. All 3,492
+  unit tests pass (51 skipped), and the build passes. [Evidence and scope](research/FROZEN_VEHICLES.md#helicopter-rotors-during-a-motion-hold).
+- Census classifications and historical mission outcomes are unchanged.
+
+## Script-font indentation and wrap spacing (October 22, 2026)
+
+- Script text retains leading-space advances and consumes a full separator when wrapping. Previously it dropped
+  indentation and left extra trailing width on wrapped rows, shifting alignment. Interior spaces already worked.
+- A focused layout check and twelve independent browser atlas comparisons pass, including indentation under
+  left/center/right alignment. Original OTB/POOL2 queries pass. All 3,493 unit tests pass (51 skipped), and the build
+  passes. This improves the authored layout; full native wrapping remains unverified. [Details](research/PC_SCRIPT_FONTS.md#literal-spacing-in-the-authored-layout).
+- Census classifications and historical mission outcomes are unchanged.
+
+## Script-font string sentinels (October 22, 2026)
+
+- Empty or asterisk-led script strings now suppress glyphs and backgrounds in both the PC atlas renderer and its
+  asynchronous fallback, following CFont::PrintString. Embedded NUL terminates glyph/token parsing. Asterisks after
+  formatting or whitespace remain ordinary glyphs. [Source and checks](research/PC_SCRIPT_FONTS.md#native-string-sentinels).
+- One added unit check and nineteen browser assertions pass, including frame clearing and fallback behavior.
+  Atlas and original OTB/POOL2 width regressions pass. All 3,494 unit tests pass (51 skipped), and the build passes.
+  Census classifications and historical mission outcomes are unchanged.
+
+## Script-font row height and block backgrounds (October 22, 2026)
+
+- Multiline script text now advances by CFont's eighteen-unit font height after HUD scaling, while glyph cells
+  retain their twenty-unit height. Both atlas rendering and fallback use the same row step.
+- Backgrounds use a single PC GetTextRect block with wrap/center bounds and four-pixel padding. Right alignment
+  follows the PC edge, with initialized right-wrap state; other HUD state interactions and full native wrapping
+  remain incomplete. [Evidence and limits](research/PC_SCRIPT_FONTS.md#row-height-and-block-backgrounds).
+- Two added unit checks, six independent background pixel comparisons and the atlas/sentinel/OTB/POOL2 browser
+  regressions pass. All 3,496 unit tests pass (51 skipped), and the build passes. Census classifications and
+  historical mission outcomes are unchanged.
+
+## Captured script-font wrapping and justification (October 22, 2026)
+
+- Atlas and fallback text share the inspected native ASCII layout: retained wrap separators, centered/right-aligned
+  span widths, signed space expansion, final-space termination and eight punctuation prefix exceptions. This
+  refines the earlier authored spacing correction using new native evidence.
+- A reproducible emulator executes the pinned iOS layout with locked PC glyph metrics and intercepted render
+  calls. Twenty-seven checked-in captures and five browser glyph-position/pixel comparisons pass. Full PC retail
+  layout, token-directed breaks, other languages and shared font state remain partial.
+  [Method, captures and limits](research/PC_SCRIPT_FONTS.md#captured-ascii-wrapping-and-justification).
+- All five font browser specs pass. All 3,523 unit tests pass (51 skipped), and the build passes. Census
+  classifications and historical mission outcomes are unchanged.
+
+## Native script sprite artwork (October 22, 2026)
+
+- Script texture slots now bind their loaded dictionary and render textured/rotated rectangles with RGB/alpha
+  modulation, mirroring, native rectangle order and both fade passes. Explicit removal clears all slots; mission
+  cleanup releases its dictionary. Asynchronous arrivals invalidate cached frames without reviving removed slots.
+- All fifteen main.scm dictionaries are published with locked hashes: 224 textures, 2.77 MB raw and 1.02 MB packed.
+  Complete RenderWare sampling/rounding, synchronous streaming and TXD ownership remain partial.
+  [Sources, assets and limits](research/SCRIPT_SPRITES.md).
+- Eight added state/cache/asset tests and seven browser pixel comparisons pass. OTB's actual script displays the
+  native artwork, accepts horse selection and backs out/exits with correct cleanup and unchanged money. A race
+  completion is not inferred. All 3,531 unit tests pass (51 skipped), and the build passes. Historical sweep
+  outcomes are preserved.
+
+## Streamed script artwork and a complete OTB race (October 22, 2026)
+
+- Six more dictionaries supply slots, roulette, video poker, blackjack, tattoo previews and the plane menu.
+  The published set now covers 21 main/streamed script dictionaries: 399 textures, 3.90 MB raw and 1.26 MB packed.
+  Their original first sprite instructions resolve and match independent texture pixels; TATTOO uses a supplied
+  real preview name through its global string-array operand. Complete play-throughs of those six remain unverified.
+- A funded OTB regression selects a horse, places a five-dollar bet, waits for the race result and continues to
+  script exit. It verifies stake deduction, win/loss-dependent return, gambling-stat changes and texture cleanup.
+  The observed win produced 500 → 495 → 510, with ten dollars profit. The test accepts either native outcome.
+  [Sources, scope and screenshots](research/SCRIPT_SPRITES.md). This is a complete OTB bet/race/exit flow, not a
+  campaign completion claim. No skipped commands, script failures or page errors occurred.
+- Seven sprite/font browser specs and both OTB flows pass. All 3,531 unit tests pass (51 skipped), and the build
+  passes. Census classifications and historical sweep outcomes are preserved.
+
+## Script window headers (October 22, 2026)
+
+- DRAW_WINDOW resolves and renders its header with the inspected PC frontend font settings,
+  position, outline and rectangle order. Resolved translations invalidate cached frames; empty
+  headers retain only their backing. Both fade passes and inverted vertical bounds are handled.
+- A browser regression executes the original RACES window instruction and compares six images
+  against independent atlas pixels, including changed text and following-rectangle occlusion.
+  Fallback text and asynchronous font arrival also pass. Shared frontend font state remains partial.
+  [Contract, original sites and limits](research/SCRIPT_SPRITES.md#draw_window-headers).
+- All 3,531 unit tests pass (51 skipped), and the build passes. Census classifications and historical
+  mission outcomes are unchanged.
+
+## Script door locks and closing hinges (October 22, 2026)
+
+- LOCK_DOOR now controls live script doors with their OBJECT.DAT lock/swing response. Unlocked
+  hinges wake on contact, retain their origin, close under the inspected spring and apply travel
+  stops; opened lock doors latch again. Explicit locking restores the remembered heading while
+  retaining solid collision. An unmoved HEIST1 door keeps its authored initial orientation.
+- Five unit checks include both original GF_DATE instructions on all seven girlfriend-door models
+  and HEIST1's original create/rotate/lock sequence. A browser regression exercises those GF_DATE
+  commands on the actual door asset/COL, including turning, reset and a solid ray intersection.
+  [Native evidence, implementation and limits](research/LOCKED_SCRIPT_DOORS.md). Native contact
+  scheduling, end-stop audio and unadopted map doors remain partial; this is an authored adapter.
+- All 3,536 unit tests pass (51 skipped), and the build passes. No browser script failures, skipped
+  commands or page errors occurred. Census: 1,342 faithful, 39 authored, eight skipped, one silent
+  and one stopping command; the 49-item queue still contains ten portable items. Historical mission
+  sweep outcomes are preserved. Full dating/HEIST1 completion is not inferred from focused checks.
+
+## Script hinge movement sounds (October 22, 2026)
+
+- Moving lock doors now report nonzero closing displacement to CAudioEngine's shared door
+  entity. The existing native sample plays at the door position, with its strict four-second
+  gate and suppression while a prior entry-door voice plays. Swing doors do not report this event.
+- Two audio checks cover the gate boundaries, sample/slot/position, playing suppression, reset
+  and unavailable-bank interval. The native-door browser regression observes voice allocation
+  after the original GF_DATE unlock and actual hinge movement.
+  [Evidence and audio limits](research/LOCKED_SCRIPT_DOORS.md#door-movement-audio).
+- All 3,538 unit tests pass (51 skipped), and the build passes. The browser reports no skipped
+  commands, script failures or page errors. Census and historical sweep outcomes are unchanged.
+
+## Named map-attractor handoffs (October 22, 2026)
+
+- TASK_USE_CLOSEST_MAP_ATTRACTOR now reserves a free named effect, walks the ped to it, turns
+  and starts its registered brain. Queries distinguish live registration from an arrived user.
+  The brain's own animation tasks preserve registration; interruption, death and completion release it.
+- Five unit checks include all seven original handoff instructions and the original PCUSTOM
+  streamed-file handoff. A browser enters Cluckin' Bell, uses its published counter effect, observes
+  the NPC walk and start PCUSTOM/IDLE_CHAT, verifies its rendered pixels and clears its registration.
+  CASINO6's existing scripted-attractor browser regression also passes.
+  [Native evidence and limits](research/MAP_ATTRACTOR_HANDOFFS.md). Direct approach, task ownership
+  and native sector/queue details remain authored/partial; procedural customer generation and the
+  ped −1 deferred sequence form are not implemented. No full restaurant/seating cycle is inferred.
+- All 3,543 unit tests pass (51 skipped), and the build passes. Census: 1,342 faithful, 40 authored, eight skipped, one silent
+  and zero stopping commands. The 49-item queue still contains ten portable items. Historical sweep
+  outcomes are preserved. No skipped commands, script failures or page errors occurred in the browsers.
+
+## Map-attractor streaming identity (October 22, 2026)
+
+- Attractor keys now use immutable dataset/source-placement identities rather than window-local
+  placement indexes. Retained effects survive reindexing; a new placement cannot inherit an old
+  reservation by reusing its index. An indexed source-existence check cancels approaches and
+  arrived use when the committed source disappears. Disposed scenes release their effect cache.
+- Two added unit checks cover installed-scene replacement/removal, disposed queries and cancellation
+  during approach/use. The published Cluckin' Bell handoff and NPC pixel check pass with stable keys.
+  [Contract and lifetime limits](research/MAP_ATTRACTOR_HANDOFFS.md#streaming-identity-and-lifetime).
+- All 3,545 unit tests pass (51 skipped), and the build passes. No browser skipped commands, script
+  failures or page errors occurred. Census and historical sweep outcomes are unchanged.
+
+## Captured on-foot arrest reach (October 22, 2026)
+
+- The shared police arrest helper now follows the inspected executable's float32 horizontal
+  radius (three units) and separate height limit (two units). Its earlier full 3D radius rejected
+  valid elevated suspects. A suspect must still be falling.
+- A reproducible native probe captures 44 initial/next/control task decisions. Eleven captured
+  eligibility cases verify rejection, exact boundaries, rounding and down-time-before-abort
+  behavior in both coordinate systems.
+  [Method, task decisions and scope](research/NATIVE_ARREST_TASK.md). The complete scripted
+  arrest command and its vehicle/NPC task graph remain unfinished and are still classified skipped.
+- Both foot/nightstick and bike-pull arrest browser regressions pass, including the foot arrest's
+  restart/cleanup. All 3,556 unit tests pass (51 skipped), and the build passes. Census and
+  historical mission outcomes are unchanged.
+
+## Script sprite connection recovery (October 22, 2026)
+
+- A connection failure no longer permanently blanks a dictionary while its binding stays the same.
+  The browser retries with bounded backoff, invalidates the cached frame on recovery and releases
+  a failed source-open promise. Missing/corrupt assets remain visible errors. Removal/disposal
+  cancel retries, and old generations cannot revive deleted bindings.
+- Five recovery unit checks pass. A browser exhausts the downloader's three HTTP attempts with
+  503 responses, then recovers the original TXD and matches independent pixels without rebinding.
+  The existing sprite image/order/fade regression also passes.
+  [Recovery policy and limits](research/SCRIPT_SPRITES.md#connection-recovery).
+- All 3,561 unit tests pass (51 skipped), and the build passes. Census and historical sweep
+  outcomes are unchanged.
+
+## Script font connection recovery (October 22, 2026)
+
+- The text layer owns pending native-font loads and retries connection failures with bounded
+  backoff. Readable fallback remains while the request fails; a recovered atlas invalidates
+  the unchanged frame. Teardown/replacement cancel timers, and late atlases are disposed.
+  Invalid content stays an observable error. Fonts and sprites share the retry-delay policy.
+- Five font ownership/recovery checks pass. A browser exhausts three HTTP 503 attempts,
+  observes fallback text and compares the recovered frame with independent atlas pixels.
+  Existing native-font pixel/fade and sprite recovery regressions also pass.
+  [Recovery and ownership details](research/PC_SCRIPT_FONTS.md#connection-recovery-and-ownership).
+- All 3,566 unit tests pass (51 skipped), and the build passes. Census and historical mission
+  outcomes are unchanged.
+
+## Pool table bounds, ball contacts and pocket scoring (October 22, 2026)
+
+- SET_POOL_TABLE_COORDS now reaches the pool-ball physics consumer. OBJECT.DAT selects all
+  sixteen native balls. Staged velocities survive static frames and zero-speed Rapier wakes;
+  activation releases the shot, ball contacts wake resting balls, and the native cushion and
+  pocket tests govern table boundaries. Pocketing enables gravity and preserves it across
+  freeze/teleport operations. Ordinary physical-object contacts resume after pocketing.
+- A hash-pinned executable probe supplies 36 movement captures with exact float32 comparisons.
+  Five physics/original-instruction checks pass. A real-table browser verifies visible native
+  models, staged shots, ball contact and rebound, then executes POOL2's original pot-detection
+  loop to delete and score the pocketed ball. [Evidence and limits](research/POOL_BALLS.md).
+- This is authored Rapier coverage: contact/cloth friction, collision scheduling and full
+  minigame play remain partial. All 3,607 unit tests pass (51 skipped), the build passes and
+  six pool/object/door browser regressions pass. The census now records 41 authored and seven
+  skipped commands, with no stopping commands. Historical sweep outcomes are preserved.
+
+## Captured pool cloth and cushion friction (October 22, 2026)
+
+- Pool cloth now converts sliding speed into rolling torque. Cushion tangential friction
+  accumulates during movement and applies on the next control step; vertical spin uses the
+  native damping. The zero-centre-of-mass response-9 case retains native mass/turn-mass and
+  float32 arithmetic. Rapier contact ordering and integration remain partial.
+- A second executable probe executes contact speed, force/torque and cloth accumulation.
+  All 25 captures match exactly, including rolling/topspin/backspin, pending impulses,
+  world heights and different masses. Two added live physics checks verify visible roll
+  and delayed cushion spin. [Method and limitations](research/POOL_BALLS.md#cloth-and-cushion-friction).
+- All 3,634 unit tests pass (51 skipped), and the build passes. The real-table browser again
+  stages a shot, checks the numbered ball's rolling orientation and executes the original
+  pocket scoring loop. Census and historical sweep outcomes are unchanged.
+
+## Frozen player physics and normal pool entry (October 22, 2026)
+
+- FREEZE_CHAR_POSITION now holds CJ's physical position and clears applied movement, rather
+  than only suppressing input. Gravity, impulses, queued targets and animation movement no
+  longer move the frozen body; explicit script placement and release still work. World physics
+  and clocks continue. [Native contract and scope](research/FROZEN_PLAYER.md).
+- The original Ganton bar entry exposed the bug: POOL2 hides/freeze-positions CJ beneath the
+  table, but he fell far enough to unload its brain, table and opponent. The normal entry
+  regression now reaches wagering, holds aiming, enters shooting, returns to aiming and quits
+  with a healthy opponent and the correct committed $50 stake. Full mouse-driven shooting
+  and a complete match remain unverified; SET_SCRIPT_COOP_GAME is still skipped.
+- Two added physics/original-instruction checks pass. All 3,636 unit tests pass (51 skipped),
+  the build passes, and both bar-entry and real-table physics browsers pass. Census and
+  historical mission sweep outcomes are unchanged.
+
+## Script mouse movement and frozen animation tasks (October 22, 2026)
+
+- GET_PC_MOUSE_MOVEMENT now receives per-frame browser deltas independently of camera
+  consumption. It honors vertical inversion, discards held-frame/first-return movement and
+  clears pending input on blur. Touch/pad view controls supply a fallback; native device/DPI
+  behavior remains an authored browser mapping. Frozen CJ now advances his script animation
+  sequences while retaining the physical hold. [Contract and coverage](research/SCRIPT_MOUSE_MOVEMENT.md).
+- Three input checks pass. The normal pool browser uses a real mouse pull-back/forward stroke,
+  observes nine moving balls with matching script/Rapier velocities and waits for the NPC's
+  responding shot. The table, opponent and committed balance remain correct; no script/page
+  errors occur. A complete match and multiplayer remain unverified.
+- All 3,671 unit tests pass (51 skipped), the build passes and three pool browser regressions
+  pass together. Census and historical mission outcomes are unchanged.
+
+## Captured finite-segment intersection (October 22, 2026)
+
+- GET_2D_LINES_INTERSECT_POINT now updates its condition and uses the captured finite-segment
+  algorithm, float32 slope approximation and double-to-float endpoint tolerance. Misses write
+  −1,000,000 to both outputs. The previous infinite-line calculation omitted the condition,
+  leaving POOL2's post-shot position unset and moving CJ to the origin.
+- Thirty-one executable captures match exactly. An original POOL2 instruction verifies stored
+  values, hit/miss flags and negation; the older parallel-line expectation now follows the
+  native sentinel. [Executable method and boundary behavior](research/SCRIPT_LINE_INTERSECTION.md).
+- All 3,671 unit tests pass (51 skipped), the build passes and the three pool browsers pass,
+  including a player shot and NPC response without losing CJ, table or opponent. The census
+  remains at 1,342 faithful, 41 authored, seven skipped and no stopping commands. Historical
+  mission sweep outcomes are preserved byte-for-byte.
+
+## Object-brain identity across streamed windows (October 22, 2026)
+
+- Object-brain map keys now use the immutable placement catalog source identity.
+  Reordering placements no longer changes an adopted object's key or redirects an
+  old hide/take operation to another placement. Removed and disposed source keys
+  are rejected. Map attractors share the same placement identity helper.
+- Two regressions verify retained/removed sources, namespace and array changes,
+  exact-pose fallback, collision and visual isolation, and disposal. The normal
+  bar browser still enters and leaves pool with its table and opponent intact.
+  [Identity contract and fallback limits](research/OBJECT_BRAIN_STREAMING.md).
+- All 3,673 unit tests pass (51 skipped), the build and bar browser pass. Census
+  classification is unchanged; historical mission sweep bytes are preserved.
+
+## Live pool pocket scoring and return to player control (October 22, 2026)
+
+- Extended the normal bar mouse-shot browser past the opponent's response. The
+  original script records potted balls, shows the player's result prompt, accepts
+  confirmation and legal cue-ball placement after a foul, and returns CJ to aiming.
+  The table, opponent and committed stake remain intact; no script/page errors occur.
+- The regression passes with six simultaneously moving balls in the latest run.
+  It checks the frozen aiming pose near the table rather than the standing pose
+  used during shot animation. A complete win/loss match remains unverified.
+- Runtime code and census classifications are unchanged by this coverage extension.
+
+## Captured character velocity scale and rounding (October 22, 2026)
+
+- GET_CHAR_VELOCITY now rounds host engine-speed components to float32 before
+  scaling by 50, matching fifteen executable captures. Six boundary cases failed
+  under the previous ordering. The captured mobile handler establishes the scale
+  explicitly despite the pinned PC source returning the unscaled value.
+  [Method and limits](research/CHAR_VELOCITY.md).
+- All 3,693 unit tests pass (51 skipped), the build and final typecheck pass.
+  The census is now 1,343 faithful, 40 authored, seven skipped, one silent and
+  no stopping commands. Historical mission sweep bytes are unchanged.
+
+## Recoverable mission speech manifest requests (October 22, 2026)
+
+- Transient manifest failures now evict dependent speech download/decode requests
+  so later loads can recover. Concurrent requests still share downloads; verified
+  banks survive decoder failures, and an absent optional manifest stays cached.
+  [Delivery behavior and tests](research/SPEECH_DOWNLOAD_RECOVERY.md).
+- A recovered line also fills its still-current native slot, preserving native
+  attachment and volume routing. Two integration tests cover playback after
+  recovery and a newer preload replacing the line during decoding.
+- Seven added recovery/absence/integration tests pass. All 3,695 unit tests pass
+  (51 skipped). Native audio scheduling and census classification are unchanged.
+- The build and forced-503 speech browser pass: recovered native playback,
+  attachment, audible output, clearing, mission-passed tune and beat clock.
+
+## Complete single-player pool result and rematch exit (October 22, 2026)
+
+- An opt-in browser plays the original POOL2 script through real mouse shots,
+  NPC responses, scoring, fouls, result, next wager and quit. The passing run
+  reached an NPC win: $450 became $400 at the next wager and returned to $450
+  when declined. CJ was unfrozen and the table/opponent remained; no script/page
+  errors occurred. The inspected screenshots show the loss and normal bar exit.
+- An earlier thirteen-player-shot probe reached a CJ win and the correct $550
+  award balance, then the $500 rematch wager. Its quit was not exercised. The
+  permanent test accepts either outcome and checks its accounting, including
+  the new stake refund. [Reproduction and limits](research/POOL_MATCH.md).
+- All 3,695 unit tests pass (51 skipped), the build and full-match browser pass.
+  Multiplayer remains skipped. Census classifications and historical mission
+  sweep bytes are unchanged by this coverage extension.
+
+## Captured pickup coordinate compression (October 22, 2026)
+
+- Runtime and extracted pickup positions now follow native float32-to-signed-short
+  storage at 1/8-unit precision. World drawing and reach use those coordinates.
+  Persistent collection IDs retain their source-coordinate keys.
+  [Captures, boundary behavior and scope](research/PICKUP_POSITION_STORAGE.md).
+- Sixteen captures, an original-data ID check and a live collection boundary check
+  pass. All 3,712 unit tests pass (51 skipped), the build and four pickup browsers
+  pass. Census classifications and historical mission sweep bytes are unchanged.
+- An offline Verdant probe finds terrain at Z=15.53686 and no lower floor at the
+  original Z=9.5 disc. Native creation preserves that height. This remains an
+  unresolved script/world discrepancy; neither reach nor source coordinates were
+  adjusted to conceal it. The [save-point guide](research/NATIVE_SAVE_POINTS.md)
+  records the evidence and remaining save-persistence limits.
+
+## Captured standard pickup ground placement (October 22, 2026)
+
+- CREATE_PICKUP and WITH_AMMO now resolve Z <= −100 to the existing 2D ground
+  query plus float32 0.5, then compress the position. Explicit heights stay intact.
+  Twenty native handler captures match query coordinates/counts, positions,
+  type/ammo and output storage. [Method and scope](research/PICKUP_GROUND.md).
+- All 3,749 unit tests pass (51 skipped), the build and four pickup browsers pass,
+  including an actual VM WITH_AMMO instruction against the installed world.
+  Census and historical mission outcomes are unchanged.
+
+## Captured dead-ped pickup angle and arithmetic (October 22, 2026)
+
+- Fixed independent X/Y random draws to use the native shared angle. The old
+  helper could place drops over two units away; the native point is 1.5 units
+  around the ped. Candidate/edge arithmetic, distance checks, radii and fallback
+  now follow captured float32 behavior. [Evidence and limits](research/DEAD_PED_PICKUP_PLACEMENT.md).
+- Seventeen previously failing captures now match positions, random-draw counts
+  and ground/line/vehicle queries exactly, including retry relaxation at attempt 18.
+  The browser's original 1.6-unit assertion is retained and passes.
+- All 3,749 unit tests pass (51 skipped), the build and four pickup browsers pass.
+  Census classifications and historical mission sweep bytes are unchanged.
+
+## Captured vehicle appearances for script and player queries (October 22, 2026)
+
+- Replaced the script host's blanket automobile result and the player's helicopter
+  as plane result with CVehicle::GetVehicleAppearance's handling-bit rule. Mixed
+  category bits return none; unrelated bits are ignored. Bike/train flag getters
+  share the existing host callback. [Captures and scope](research/VEHICLE_APPEARANCE.md).
+- Thirty-two complete native-function captures and seven host/predicate cases
+  pass. All 3,788 unit tests pass (51 skipped), the build and six browser checks
+  pass, including actual player boarding across the non-car families.
+- SYN6's bot exposed the query error while deciding whether to fire its supplied
+  RPG. That diagnosis does not establish full mission completion. Census and
+  historical mission sweep outcomes remain unchanged.
+
+## Captured vehicle weapon gates and attacker storage (October 22, 2026)
+
+- Bikes, boats and aircraft now consume the script's weapon immunity, player-only
+  flag and physical proofs, and retain the last accepted weapon and attacker.
+  Their existing scaling and destruction paths remain in use. Cars also preserve
+  the previous attacker on source-less damage, as the native storage branch does.
+- The shared physical helper now applies the captured iOS Molotov rule: explosion
+  proof blocks it alongside fire proof. Native captures cover 418 gate cases and
+  twelve storage cases. [Evidence and limits](research/VEHICLE_DAMAGE_GATES.md).
+- All 4,258 unit tests pass (51 skipped), the build and two browser checks pass.
+  Live M4 rounds verify script immunity, bullet proof and accepted-hit queries on
+  a car, BMX, boat, helicopter and plane. Full SYN6 completion remains unverified;
+  the historical sweep report is preserved.
+
+## SYN6 original RPG damage regression (October 22, 2026)
+
+- A permanent browser runs the original phone, stair trigger, helipad camera,
+  pickup event and recorded helicopter flight, then tests combat from a grounded
+  CJ checkpoint. The RPG uses the real aim input and weapon/projectile path.
+- The passing run spends four rounds, observes player-owned rockets and reduces
+  the helicopter from 1500 to 400. Its last weapon is explosion 51 and the script
+  attacker query identifies CJ; skips, give-ups and page errors remain empty.
+- The diagnostic bot now leads aircraft using the existing rocket acceleration,
+  holds aim while tracking and supplies feet height correctly when walking.
+  [Scope and reproduction](research/SYN6_VALIDATION.md). Full mission completion
+  remains unverified, and historical sweep bytes are unchanged.
+
+## Delayed vehicle blast creator and timer captures (October 22, 2026)
+
+- Motorbikes, boats and aircraft now retain the creator of a lethal blast through
+  their delayed timer and main-loop explosion. Existing aircraft follow-up rockets
+  retain that creator as well. Player credit is separate from the last attacker.
+- Twenty native fragment captures establish timer/creator storage; 52 complete
+  timer captures establish countdown and the creator passed to BlowUpCar. Shared
+  timing now uses captured float32 multiplication and unsigned truncation.
+- Seventy-seven cases failed before the fix. All 4,382 unit tests pass (51 skipped),
+  the build passes and a browser verifies six live player/non-player blast cases
+  across a motorbike, boat and helicopter. [Scope](research/VEHICLE_BLAST_CREATOR.md).
+
+## SYN6 native mission result, rewards and cleanup (October 22, 2026)
+
+- The extended permanent browser passes through original RPG/rifle combat,
+  helicopter destruction, stage 99 and mission registration SYND_6 in 1.7 minutes.
+  It verifies the $18,000 cash reward, 50 mission-respect points, RPG removal,
+  restored controls, unfrozen CJ and empty skipped/give-up/page-error lists.
+- The passing run spends one RPG round and records its 1100-point helicopter
+  damage as player-owned explosion 51; normal rifle hits finish it. The inspected
+  result screenshot shows Mission Passed and the native reward.
+- CJ uses controlled approach/firing checkpoints, health maintenance and supplied
+  rifle ammunition. NPCs, mission variables, health and playback follow the
+  original script and normal combat. An uninterrupted drive/chase remains
+  unverified. [Coverage](research/SYN6_VALIDATION.md); historical sweep bytes stay unchanged.
+
+## Whole-pool damage protection and nearby vehicle fires (October 22, 2026)
+
+- The global damage command, player safety and resurrection restoration now update
+  all supported vehicle families. Disposed slots are excluded, wrecks remain valid,
+  and later spawns retain their own default. Trains expose the shared flag state.
+- Twenty native handler/pool-walk captures establish the flag write and the false
+  branch's 4000-unit fire cleanup, including strict float32 distance boundaries.
+  Nearby attached fires and represented health/burn state now reach every family;
+  complete engine damage remains outside the host. [Scope](research/GLOBAL_VEHICLE_DAMAGE.md).
+- All 4,404 unit tests pass (51 skipped), the build and three browsers pass:
+  whole-pool flags/fire cleanup, player proof/respawn cleanup and SYN6's controlled
+  native result/reward regression. Historical sweep bytes are unchanged.
+
+## Captured destruction immunity and aircraft wrecked status (October 22, 2026)
+
+- Motorbike, boat and aircraft destruction now honors immunity and clears health
+  and pending timers when accepted. Aircraft retain explicit wrecked status;
+  health writes and refused expired bombs no longer change script death queries.
+- Ninety-six native entry captures and 36 store fragments establish those gates
+  and resets. Seventy-five native IS_CAR_DEAD cases establish status/drowning
+  selection independently of health and timer, including invalid handles.
+  [Evidence and limits](research/VEHICLE_DESTRUCTION_GATES.md).
+- All 4,617 unit tests pass (51 skipped), the build and two browsers pass. Nine
+  live protection/restoration cases verify timer consumption, health, wrecked
+  state and player-owned secondary blasts. SYN6 still reaches its native result,
+  rewards and cleanup. Historical mission sweep bytes remain unchanged.
+
+## ZERO2 courier collision follows remote focus (October 22, 2026)
+
+- A controlled original-mission probe fired 508 Baron rounds without courier
+  damage because the motorbike's collision was disabled by distance from CJ's
+  high parked van. Bike/boat activation and visibility now follow the same remote
+  world focus as streaming, cars and aircraft. Boarding distance still uses CJ.
+- Five new focus cases failed before the fix; all seven now pass with actual
+  Rapier bodies, including return to CJ, the strict range boundary and streamed
+  bike ground readiness. [Scope](research/REMOTE_VEHICLE_FOCUS.md).
+- All 4,624 unit tests pass (51 skipped), the build and three live checks pass:
+  first-courier M4 damage/death and original counter update, frozen-boat fire, and
+  four-class freeze/release. The release fixture clears the boat's independent
+  anchor before measuring movement. Full ZERO2 completion remains unverified;
+  historical mission sweep bytes are unchanged.
+
+## ZERO2 controlled native result and delayed hand-back (October 22, 2026)
+
+- The extended permanent browser kills all five courier drivers with the Baron's
+  real M4 path, including the dismounted bicycle courier. It verifies original
+  counter updates, player-attributed vehicle damage and CJ remaining in the van.
+- Returning the controlled Baron to the original roof check reaches `ZERO_2`,
+  $5,000, restored controls, an unfrozen CJ and remote mode off after the native
+  delay. No NPC positions/health or mission variables are written by the fixture.
+- The browser passes in 1.4 minutes and the build passes. Checkpoints, frozen RC
+  aiming and its health maintenance limit this evidence; uninterrupted flight,
+  complete NPC attacks and the fuel-label placeholder remain open.
+  [Coverage and artifacts](research/ZERO2_VALIDATION.md). Historical sweep bytes
+  are unchanged; the latest full suite passes 4,624 tests (51 skipped).
+
+## NPC attacks use the actual non-car target (October 22, 2026)
+
+- TASK_DESTROY_CAR now receives a live combat view for bikes, boats and aircraft,
+  uses the target body's visibility and ends on native health selection rather
+  than wrecked status. Thirty-six native captures establish that health gate;
+  the previous status check disagreed with nine cases.
+- Ordinary NPC bullet impacts now dispatch to those vehicle classes, preserving
+  non-player shooter ownership, existing damage gates and aircraft scaling.
+  NPC melee supplies explicit non-player attribution too. Complete tasks, tyre
+  responses and non-car impact pushes remain partial.
+- All 4,683 unit tests pass (51 skipped), the build and five live cases pass:
+  automobile gun/melee attacks, NPC pistol damage to a motorbike, boat and remote
+  Baron, and ZERO2's controlled native result/reward/cleanup. The non-car fixtures
+  retain CJ's position and record real impacts. [Scope](research/SCRIPT_VEHICLE_ATTACK_TARGETS.md).
+  Historical mission sweep bytes remain unchanged.
+
+## Captured numeric font tokens in the live HUD (October 22, 2026)
+
+- The shared DOM text formatter now consumes closed numeric tokens as CFont does,
+  removing ZERO2's literal `FUEL ~1~` label. Number insertion still precedes token
+  processing, and script palette tags remain available to atlas rendering.
+- Twenty-eight complete native ParseToken captures use no intercepted calls;
+  thirty regression checks failed before the fix. [Scope](research/HUD_NUMERIC_TOKENS.md).
+- All 4,713 unit tests pass (51 skipped), the build and ZERO2's controlled full
+  result regression pass. Its live label reads FUEL and its reward/cleanup remain
+  intact. Historical mission sweep bytes and census classifications are unchanged.
+
+## Population follows the captured remote world centre (October 22, 2026)
+
+- Fleet retirement, traffic road loading/creation and pedestrian population now
+  use the same world focus as remote streaming. Delayed asset completion checks
+  read its current value. Direct player interactions and pursuit targets retain
+  their actual entity coordinates.
+- Sixteen complete native helper captures establish remote/occupied/ped priority
+  and both pose forms without intercepted calls. Twenty-five of 49 new update
+  cases failed before the fix. [Scope](research/REMOTE_POPULATION_FOCUS.md).
+- All 4,762 unit tests pass (51 skipped), the build and four live regressions
+  pass: remote population/lifetime and return, ordinary car parks, scripted
+  generators/suppression and ZERO2's controlled original result/reward/cleanup.
+  The remote trace records five ordinary peds and two traffic cars; three
+  released non-car vehicles stay until hand-back, then retire. Historical sweep
+  bytes and census classifications are unchanged.
+
+## Player shooting, partner conversations and Air Raid (October 22, 2026)
+
+- Player script shooting uses real weapons with native-derived burst lengths
+  and pauses, ammo/cooldown/reload, moving targets, expiry and cancellation.
+  Thirty-two handler captures distinguish gun duration from single-throw
+  control. Live pistol and attached-minigun checks require task completion,
+  aim release and stopped ammo consumption. [Scope](research/PLAYER_SHOOT_TASK.md).
+- TASK_CHAT_WITH_CHAR constructs PartnerChat rather than the previously used
+  inner ComplexChat. A shared player/NPC controller uses 154 native captures
+  for constructor fields, reciprocal handshake, approach points and fallback
+  turn-taking. Ped-origin coordinates are explicit. Live paired NPC completion,
+  player participation with controls disabled, missing partners and cancellation
+  pass. Native conversation audio remains unavailable.
+  [Scope](research/PARTNER_CHAT_TASK.md).
+- Air Raid survives its complete original timer at signal 100, fires its own
+  celebration, runs the original dialogue/result and registers `ZERO_1` with
+  $3,000, controls/collision restored and CJ unfrozen. The fixture supplies aim,
+  without player/target moves, health edits or timer/counter writes. No skipped
+  commands, give-ups or page errors occur.
+  [Evidence and limits](research/ZERO1_VALIDATION.md).
+- All 4,956 unit tests pass (51 skipped), the build passes and the controlled
+  full Air Raid result and reciprocal-chat regression pass together. Source
+  census classifications and historical mission sweep bytes remain unchanged.
+
+## Detached cargo and doorless script interiors (October 22, 2026)
+
+- DETACH_OBJECT now activates the object, preserves all command arguments,
+  inherits parent motion and applies float32 ejection/angular-force math.
+  Ninety-six native captures execute matrix composition and angular-force
+  kernels; an encoded opcode check catches lost arguments. Temporary parent
+  collision exclusion uses the existing bounded lifetime integration.
+  Disabled collision-force/heavy-object cases remain outside the captures.
+  [Scope](research/OBJECT_DETACH_MOTION.md).
+- Script scene selection now uses nearby native IPL/COL interior bounds as well
+  as doors. Cutscene return respects a matching script destination; queued scene
+  changes hold simulation before the new floor is ready. The outside-cutscene
+  guard and house/street grounding, position, following and door-stack checks
+  pass, together with occupied-area queries and ZERO4 cargo mechanics.
+  [Scope](research/SCRIPT_INTERIOR_SCENES.md).
+- New Model Army's original arena is visible and collidable. Its real magnet
+  button picks up the original barrel, carries it with the controlled player RC
+  helicopter and releases it to fall and land. CJ is unchanged and skipped
+  commands, give-ups and page errors are empty. This is mechanics coverage;
+  full mission completion remains unverified.
+  [Evidence](research/ZERO4_VALIDATION.md).
+- Final verification passes 5,061 unit tests (51 skipped) and the build. The
+  combined three-browser check passes on the same production code. The source
+  census remains 1,343 faithful, 40 authored, seven skipped and one silent;
+  historical sweep bytes are unchanged.
+
+## Vehicle force and New Model Army cargo (October 22, 2026)
+
+- APPLY_FORCE_TO_CAR now serves cars, bikes, boats and aircraft through shared
+  float32 effective-mass and COM-relative force math. All 120 native handler and
+  CPhysical::ApplyForce captures match; nine body-binding/ownership checks pass.
+  Live checks cover five vehicle models and off-centre spin/lowrider hydraulics.
+  Frozen-controller velocity-query parity and full native integration remain
+  outside the claim. [Scope](research/SCRIPT_VEHICLE_FORCE.md).
+- ZERO4's original magnet places both bridge planks and drops its original bomb
+  onto a tank. Both script bridge flags become one; original explosion damage
+  reduces tank health from 1,000 to zero with weapon 51. Only the player's RC is
+  moved/frozen. CJ is unchanged, and skipped commands, give-ups and page errors
+  are empty. Delayed wreck status and the full route/result remain unverified.
+  [Evidence](research/ZERO4_VALIDATION.md).
+- All 5,190 unit tests pass (51 skipped), the build passes, and the permanent
+  force/hydraulics and cargo browser checks pass together. The refreshed census
+  retains 1,343 faithful, 40 authored, seven skipped and one silent command;
+  historical sweep bytes are unchanged.
+
+## New Model Army result and mission cleanup (October 22, 2026)
+
+- Teleporting CJ's occupied vehicle now updates his position immediately, so a
+  same-step vehicle deletion exits at the destination. The before-fix BMX
+  regression reproduced a moved vehicle and a player thousands of metres away;
+  the fixed browser check requires installed destination terrain and grounding.
+  [Scope](research/PLAYER_VEHICLE_TELEPORT.md).
+- DO_FADE tracks native mission ownership. Cleanup consumes an outstanding
+  fade-out, requests the native 500 ms fade-in and clears only pad player-safe
+  state unless death/arrest owns the restart. Thirty-six native cases match;
+  an encoded-script camera test and shared-camera browser regression pass.
+  [Scope](research/MISSION_FADE_CLEANUP.md).
+- ZERO4 places both bridges, wrecks all three tanks through original bomb drops,
+  clears three starting barrels with its magnet and lets the original recorded
+  Bandit reach the goal at full health. The original result registers ZERO_4,
+  pays $7,000 and returns CJ grounded outside Zero's shop with controls on,
+  remote mode off and the fade cleared. Only the player's RC is checkpointed/
+  frozen; no NPC/object/timer/counter/health edits occur. Skips, give-ups and
+  page errors are empty. The visible MISSION PASSED screenshot is inspected.
+  Manual/uninterrupted play and complete enemy-AI parity remain unverified.
+  [Evidence](research/ZERO4_VALIDATION.md).
+- All 5,227 unit tests pass (51 skipped), the build passes, and the full controlled
+  ZERO4 route/result/return browser regression passes in 5.3 minutes.
+
+## Helicopter attack weapons (October 22, 2026)
+
+- Attack missions 23/56 now fire mounted guns and single unguided enemy rockets
+  through existing damage/projectile paths. All 109 native weapon captures and
+  four target-selection cases match. Sixteen binding checks cover state gates,
+  clocks, launches, real impact/blast and enemy attribution.
+  [Scope](research/HELICOPTER_AI_WEAPONS.md).
+- The live Hunter records guns, alternating rockets and enemy damage to the
+  held player aircraft. Hunter script gunfire and fixed-wing dogfight gun/
+  missile/damage checks pass. Aircraft fixtures wait for destination terrain
+  before combat timing; damage assertions and timeouts are retained.
+- All 5,353 unit tests pass (51 skipped) and the build passes. Full combat
+  missions, police-specific helicopter weapons and complete native muzzle/
+  spread/solver parity remain outside this verification.
+
+## Aircraft passengers (October 22, 2026)
+
+- Interdiction's exact original passenger warp now accepts its Cargobob. Boarding
+  preserves AI and recording ownership, follows the aircraft and renders CAR_SITP
+  at the existing native seat point. Queries include CJ alongside NPC passengers;
+  warp-out, deletion and destruction handle the passenger state. Enemy aircraft
+  target selection recognizes the occupied transport without giving CJ its guns.
+  [Scope](research/AIRCRAFT_PASSENGERS.md).
+- A controlled live check plays original recording 530, holds a movement key and
+  verifies transport without pilot/remote ownership. Seven combined browser
+  regressions cover aircraft transport, car passenger entry/exits and the vehicle
+  teleport regression. A further before/after camera check reproduces the short
+  car distance and verifies the aircraft distance, with an inspected exterior view.
+  Airborne terrain support no longer emits on-foot support warnings for passengers.
+- All 5,360 unit tests pass (51 skipped), and the build passes. Full Interdiction,
+  manual aircraft door entry, native task choreography and complete passenger
+  combat/rendering parity remain unverified.

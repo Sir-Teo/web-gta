@@ -1,4 +1,13 @@
+import {PED_ORIGIN_HEIGHT} from './nativeSwim';
+import {nativeVehicleAppearance} from '../vehicle/nativeVehicleAppearance';
+import {achieveHeadingStep} from './nativeScriptedPedTasks';
+import {attachedDiveDirection} from '../ped/nativeAttachedDive';
 import {searchlightCone,type SearchlightEntity} from '../engine/ScmSearchlights';
+import {NativeScriptShadowQueue,scriptShadow} from '../render/nativeScriptShadow';
+import {NativeParkingNodeSearch} from './nativeParkingNodes';
+import {closestMapAttractor} from './nativeMapAttractor';
+import type {WorldAttractor} from './nativeScene';
+import {closestStealableObject} from './nativeClosestStealableObject';
 import {CONVERSATION_LINE_MS} from '../engine/ScmConversations';
 import {SPECIAL_MODELS_RESOURCE_ID,SPECIAL_PED_MODELS,CUTSCENE_LOADING} from '../engine/ScmCutscene';
 import {LAW_ENFORCEMENT_MODELS} from './nativeWanted';
@@ -11,12 +20,16 @@ import {ScmCameraFade} from '../engine/ScmCameraFade';
 import {speechLengthMs,MISSION_AUDIO_COUNT,scriptBankOfSample,SCRIPT_BANK_NULL} from '../engine/ScmMissionAudio';
 import type {BeatTrackStream,TrackAudio} from '../engine/ScmCutsceneTrack';
 import {requireAsset} from '../assets/binary';
-import {gxtText} from '../assets/gxt';
+import {gxtText,gxtControlKeyText,insertNumbers} from '../assets/gxt';
+import {nativeScriptTextWidth} from '../ui/nativeScriptTextWidth';
+import {pedCanTargetPoint} from '../ped/nativePedScanner';
+import {nativeObjectPickupPlan,nativeObjectPickupLift} from './nativeObjectPickup';
+import {nativeGreetingTargets,nativeGreetingClips,nativeGreetingPostlude} from './nativePartnerGreet';
 import {deadPedPickupCoors} from '../ped/nativeDeadPedPickup';
 import {resetGangWeapons,setGangWeapons} from './nativeGangWeapons';
 import {VEHICLE_CLASSES} from '../assets/pedGroups';
 import {ScmEntityPending,UnsupportedScmCommand,type ScmScriptedTask,type ScmThread,type ScmWorldCommands} from '../engine/ScmThread';
-import {BRAIN_OBJECT,BRAIN_RANDOM_PED,brainChancePasses} from '../engine/ScmScriptBrains';
+import {BRAIN_OBJECT,BRAIN_RANDOM_PED,BRAIN_ATTRACTOR,brainChancePasses} from '../engine/ScmScriptBrains';
 import {GARAGE_DOOR_REACH,garageCentre,garageDoorHeight,garageDoorPose,type ScmGarage} from '../engine/ScmGarages';
 import {globalSoundLevel,type SoundQuietEvent} from '../ped/nativeSoundEvents';
 import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
@@ -59,6 +72,7 @@ import {PlayerScriptTasks} from './playerScriptTasks';
 import {ScmRopes} from './ScmRopes';
 import {SAM_SITE_DUMMY_DISTANCE,SAM_SITE_MODELS,samSiteStep} from './nativeSamSite';
 import {NativeAngledRect} from '../engine/nativeAngledRect';
+import {NativeRemoteControl} from './nativeRemoteControl';
 import {ROPE_HEIGHT_OBJECT} from './nativeRope';
 import {BUTTON} from '../engine/ScmPads';
 import {CRANE_NONE} from '../engine/ScmPlayerInfo';
@@ -97,6 +111,14 @@ export interface ScmCarComponents {
  readonly damageState:{readonly doors:readonly number[]};petrolTankIsWeakPoint:boolean;
 }
 export interface ScmMissionWorld {
+ /** CGameLogic::ResetStuffUponResurrection at the current player origin, without the death/arrest penalty. */
+ resetPlayerUponResurrection?():void;
+ /** STATUS_PLAYER_REMOTE control target; this does not seat or move CJ. undefined hands input back. */
+ controlRemoteVehicle?(vehicle:unknown|undefined):void;
+ /** Recheck CRemote's ground placement once the target's streamed collision is available. */
+ groundRemoteVehicle?(vehicle:unknown,from:number):void;
+ /** BlowUpCar with the player as culprit for a remote detonation. */
+ explodeRemoteVehicle?(vehicle:unknown):void;
  /** CPhysical::physicalFlags.bSubmergedInWater of a vehicle: cBuoyancy found it in the water. */
  scriptVehicleInWater?(car:unknown):boolean;
  /** CWaterLevel::GetWaterLevel (with the swell) or GetWaterLevelNoWaves at a native point; nothing off the water. */
@@ -148,7 +170,7 @@ export interface ScmMissionWorld {
  /** Whether any map object of the model within `radius` (inclusive) has been smashed. */
  worldObjectOfTypeSmashedWithin?(point:{x:number;y:number;z:number},radius:number,model:number|string):boolean;
  /** bIsVisible or bUsesCollision on the map object with this placement key, kept while it streams in and out. */
- setWorldObjectFlag?(key:string,flag:'visible'|'collision',state:boolean):void;
+ setWorldObjectFlag?(key:string,flag:'visible'|'collision'|'scorched'|'drawLast',state:boolean):void;
  /** IS_CAR_IN_AIR_PROPER for a script vehicle: no wheel on the ground and nothing touched. */
  scriptVehicleInAirProper?(car:unknown):boolean;
  /** CTaskSimpleCarSetPedInAsPassenger for the player, SA's seat numbering (-1 the first free); false when he cannot. */
@@ -175,6 +197,9 @@ export interface ScmMissionWorld {
  scriptTrainClockwise?(train:unknown):boolean;
  /** IsNextStationAllowed's station (TRAIN_STATIONS index) for a script's train, undefined while its tracks load. */
  scriptTrainNextStation?(train:unknown):number|undefined;
+ skipScriptTrainToAllowedStation?(train:unknown,allowed:(station:number)=>boolean):import('./nativeTrain').TrainStationSkip|null|undefined;
+ /** CGameLogic::PassTime, including clock/day and pickup timers. */
+ passTime?(minutes:number):void;
  setScriptTrainPosition?(train:unknown,position:{x:number;y:number;z:number}):void;
  removeScriptMissionTrain?(train:unknown):void;
  releaseScriptMissionTrain?(train:unknown):void;
@@ -244,7 +269,7 @@ export interface ScmMissionWorld {
   /** The vehicle it is in, as eVehicleAppearance and whether that vehicle is a train. */
   vehicle:{appearance:number;train:boolean;model?:number;inAirProper?:()=>boolean;
    /** He sits in one of its passenger seats, not at the wheel. */
-   passenger?:boolean}|undefined;
+   passenger?:boolean;passengerSeat?:number}|undefined;
   stopped:boolean;health:number;dead:boolean;
   /** CPlaceable::GetHeading in degrees, as the script reads a ped's. */
   heading?:number;
@@ -329,6 +354,8 @@ export interface ScmMissionWorld {
  /** Fx_c::AddBlood (native axes). */
  addBlood?(position:{x:number;y:number;z:number},direction:{x:number;y:number;z:number},amount:number):void;
  /** A model's EFFECT_TRIGGER_POINT of that index, in the model's space. */
+ mapAttractorExists?(key:string):boolean;
+ mapAttractorsNear?(x:number,y:number,z:number,radius:number):WorldAttractor[];
  modelTriggerPoint?(model:string,index:number):[number,number,number]|undefined;
  /** CWeaponInfo::GetWeaponInfo(type): m_nSlot and m_nModelId1, or nothing before weapon.dat is in. */
  weaponTypeInfo?(weaponType:number):{slot:number;model:number}|undefined;
@@ -383,6 +410,12 @@ export interface ScmMissionWorld {
  scriptPedSpeed(ped:unknown):number;
  /** GET_CHAR_VELOCITY: a script ped's m_vecMoveSpeed in native axes, units a second (its car's when it rides). */
  scriptPedVelocity?(ped:unknown):{x:number;y:number;z:number};
+ /** CPedStats heading change rate while attached, in degrees per native frame. */
+ scriptPedHeadingRate?(ped:unknown):number;
+ /** The vehicle model's native COL bounds. */
+ scriptVehicleBounds?(car:unknown):{min:V3;max:V3}|undefined;
+ /** Replace the selected loaded CBuilding's visual model and collision, preserving its IPL identity. */
+ swapWorldBuildingModel?(point:V3,radius:number,from:number|string,to:number|string):void;
  scriptPedStanding(ped:unknown):boolean;
  scriptPedSubmerged(ped:unknown):boolean;
  /** CAutomobile::NitrousControl(count) on a car: nitro fitted with that many boosts. */
@@ -414,7 +447,7 @@ export interface ScmMissionWorld {
  playerSequenceProgress?():number;
  clearScriptPedTasks(ped:unknown):void;
  /** The script's tasks on the player's own ped (PlayerScriptTasks), and whether one still runs. */
- givePlayerOrders?(orders:readonly ScriptedPedOrder[],repeat:boolean,sequence?:boolean,start?:number):void;
+ givePlayerOrders?(orders:readonly ScriptedPedOrder[],repeat:boolean,sequence?:boolean,start?:number):void|boolean;
  clearPlayerTasks?():void;
  playerHasScriptTask?():boolean;
  /** CWorld::ClearExcitingStuffFromArea round a point in the script's own coordinates. */
@@ -426,6 +459,7 @@ export interface ScmMissionWorld {
  /** Whether nothing solid stands between two points in the script's own coordinates. */
  lineOfSightClear(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},
   flags?:{buildings:boolean;vehicles:boolean;peds:boolean;objects:boolean}):boolean;
+ scriptPedDeadCandidates?(ped:unknown|undefined):readonly {position:{x:number;y:number;z:number};ducking:boolean}[];
  /** CStreaming's random vehicle model in memory, with the class it belongs to. */
  randomVehicleInMemory():{model:number;vehicleClass:number}|undefined;
  /** CPickups::TestForPickupsInBubble round a native point. */
@@ -509,6 +543,13 @@ export interface ScmMissionWorld {
  scriptPedDucking?(ped:unknown):boolean;
  /** The player climbs (CTaskSimpleClimb), and holds the horn while driving. */
  playerClimbing?():boolean;
+ /** CPed::bStuckUnderCar, set by the get-up task; distinct from the collision-push stuck flag. */
+ playerStuckUnderCar?():boolean;
+ scriptPedStuckUnderCar?(ped:unknown):boolean;
+ /** ADD_SMOKE_PARTICLE into the shared native static smoke system. */
+ addScriptSmokeParticle?(position:readonly [number,number,number],velocity:readonly [number,number,number],r:number,g:number,b:number,a:number,size:number,life:number):void;
+ /** CAutoPilot::m_ObstructingEntity when it is a still-live vehicle. */
+ scriptVehicleBlockingCar?(car:unknown):{entity:unknown;model:number}|undefined;
  playerPressingHorn?():boolean;
  /** The world's weekday (Simulation.weekDay), which the script clock follows. */
  setWorldWeekDay?(day:number):void;
@@ -516,10 +557,15 @@ export interface ScmMissionWorld {
  populationZoneType?():number;
  /** Whether a script object's collision moved from `from` to `to` (native) would overlap a body that is not fixed. */
  scriptObjectBlockedAt?(handle:number,from:{x:number;y:number;z:number},to:{x:number;y:number;z:number}):boolean;
+ /** CPhysical::TestCollision(false), or undefined while the object's COL is loading. */
+ scriptObjectIntersectingWorld?(handle:number):boolean|undefined;
+ /** CShadows::RemoveOilInArea's normalized bounds (x min/max, then y min/max). */
+ removeScriptOilPuddles?(minX:number,maxX:number,minY:number,maxY:number):void;
  /** Streams an animation block (an .ifp of the archive) in ahead of its first clip. */
  preloadAnimationBlock?(block:string):void;
  /** CTaskSimpleHoldEntity's partial clip on the player (a CARRY clip name), or none. */
  setPlayerCarryPose?(clip:string|undefined):void;
+ setScriptPedCarryPose?(ped:unknown,clip:string|undefined):void;
  /** Any ped of the pool (the player too) other than the one named within the radius of a native point. */
  anyPedNear?(at:{x:number;y:number;z:number},radius:number,except:unknown,exceptPlayer:boolean):boolean;
  /** GET_CAR_COLOURS and GET_EXTRA_CAR_COLOURS: the four paint slots' palette entries (CVehicle::m_nPrimaryColor to
@@ -609,6 +655,10 @@ export interface ScmMissionWorld {
  /** C3dMarkers::User3dMarkerSet (an eHudColours colour) and User3dMarkerDelete. */
  createScriptUser3dMarker?(x:number,y:number,z:number,colour:number):number;
  removeScriptUser3dMarker?(index:number):void;
+ /** CBirds::CreateNumberOfBirds in native coordinates, using the shared ambient bird pool, without obstacle checks. */
+ createScriptBirds?(from:readonly [number,number,number],to:readonly [number,number,number],count:number,biome:number):void;
+ /** CVisibilityPlugins::SetClumpAlpha, a raw signed integer; UpdateClumpAlpha subsequently raises it. */
+ setScriptVehicleClumpAlpha?(vehicle:unknown,alpha:number):void;
  /** Whether a ped swims (CTaskSimpleSwim): the player's own, and a script ped's. */
  playerSwimming?():boolean;
  /** CTaskSimpleSwim::m_nSwimState of the player's swim (eSwimState, 0 treading to 5 back to the surface). */
@@ -683,6 +733,12 @@ export interface ScmMissionWorld {
  takeScriptPedPhotographed?(ped:unknown):boolean;
  /** CPhysical::m_vecMoveSpeed in units a second (× 50), script axes. */
  scriptVehicleVelocity?(car:unknown):{x:number;y:number;z:number};
+ /** CAutomobile::UpdateMovingCollision and GetMovingCollisionOffset. */
+ controlScriptVehicleMovingPart?(car:unknown,angle:number):void;
+ scriptVehicleMovingComponentOffset?(car:unknown):number;
+ scriptVehicleDoorAngle?(car:unknown,door:number):number;
+ fireScriptHunterGun?(car:unknown,matrix:import('./nativeHunterGun').HunterGunMatrix,nowMs:number,timeStep:number):void;
+ setScriptVehicleQuaternion?(car:unknown,q:{x:number;y:number;z:number;w:number}):void;
  scriptVehicleMatrix(car:unknown):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  setScriptVehicleFrozen(car:unknown,frozen:boolean):void;
  /** ANCHOR_BOAT: false for a vehicle that is not a boat. */
@@ -995,7 +1051,11 @@ type RunnerStep=
  |{kind:'board';vehicle:number;then:ScmScriptedTask}
  |{kind:'slowing';then:ScmScriptedTask}
  /** A clip played in the seat, which the host says when it is over. */
- |{kind:'seatClip'};
+ |{kind:'seatClip'}
+ |{kind:'attachedDive';direction:V3;time:number}
+ |{kind:'objectPickupBounds';object:number}
+ |{kind:'objectPickup';object:number;stage:'approach'|'turn'|'lift';plan:ReturnType<typeof nativeObjectPickupPlan>;elapsed:number;lift?:ReturnType<typeof nativeObjectPickupLift>;attached:boolean;collision:boolean};
+type PartnerGreeting={peds:readonly [number,number];bias:number;style:number;stage:'initial'|'approach'|'turn'|'align'|'greet'|'post';elapsed:number;targets?:NonNullable<ReturnType<typeof nativeGreetingTargets>>;clips?:ReturnType<typeof nativeGreetingClips>;post?:readonly [ScriptedPedOrder[],ScriptedPedOrder[]];next:[number,number]};
 /** TASK_EVERYONE_LEAVE_CAR's CTaskComplexLeaveAnyCar delay for a seat (iOS 0x1001ef31c): none for the driver, and for
  * passenger seat i 250 + 500 i ms and another (rand() & 0xffff) / 65536 of 500. */
 export function everyoneLeaveCarDelay(seat:number|'driver'|undefined,rand16:()=>number){
@@ -1177,6 +1237,24 @@ export class ScmMission {
    createPlayer:(_playerId,x,y,z)=>{this.playerStart={x,y,z};this.world.playerCreatedAt(x,y,z);},
    getPlayerChar:()=>PLAYER_PED_HANDLE,
    getPlayerGroup:()=>PLAYER_GROUP_HANDLE,
+   // CRemote and CPlayerInfo's iOS paths (nativeRemoteControl.ts); control and occupancy are independent.
+   giveRemoteControlledModelToPlayer:(_player,x,y,z,angle,model)=>{
+    this.host('controlRemoteVehicle','GIVE_REMOTE_CONTROLLED_MODEL_TO_PLAYER');
+    if(z<=-100)z=this.findGroundZForCoord(x,y);
+    const ground=this.world.groundLevel(x,y,z+2)??0;
+    const handle=this.vehicles.create(model,{x,y,z:ground},angle);
+    void this.vehicles.whenSettled(handle).then(car=>{if(car)this.world.groundRemoteVehicle?.(car,z+2);});
+    this.remote.give(handle);this.activateRemote(handle,1);
+   },
+   takeRemoteControlOfCar:(_player,handle)=>{
+    this.host('controlRemoteVehicle','TAKE_REMOTE_CONTROL_OF_CAR');this.liveVehicle(handle);
+    const {switchType}=this.remote.take(handle);this.activateRemote(handle,switchType);
+   },
+   getRemoteControlledCar:()=>this.remote.vehicle??-1,
+   isPlayerInRemoteMode:()=>this.remote.inRemoteMode,
+   setEnableRcDetonate:enabled=>{this.remote.setDetonateEnabled(enabled);},
+   setEnableRcDetonateOnContact:enabled=>{this.remote.setContactDetonateEnabled(enabled);},
+   removeRCBuggy:()=>{this.remote.remove(this.clockMs,false);},
    // SET_ANIM_GROUP_FOR_CHAR on a ped the script made; the player's own motion group follows his fat and muscle.
    setPedAnimGroup:(handle,group)=>{
     if(handle===PLAYER_PED_HANDLE)throw new UnsupportedScmCommand(-1,0,'SET_ANIM_GROUP_FOR_CHAR','the player');
@@ -1387,7 +1465,7 @@ export class ScmMission {
    clearPedTasksImmediately:handle=>{this.clearTasks(handle,'CLEAR_CHAR_TASKS_IMMEDIATELY');},
    // CPedScriptedTaskRecord::GetStatus(ped, opcode): the record's status, or −1 without one, which the command
    // reports as 7 (FINISHED_TASK), the value the missions compare against.
-   scriptTaskStatus:(handle,opcode)=>{const record=this.taskRecords.get(handle);return record&&(opcode===-1||record.opcode===opcode)?record.status:FINISHED_TASK;},
+   scriptTaskStatus:(handle,opcode)=>{if(opcode===0x8a0&&this.mapAttractorUses.has(handle))return TASK_TASK_ASSOCIATED;const record=this.taskRecords.get(handle);return record&&(opcode===-1||record.opcode===opcode)?record.status:FINISHED_TASK;},
    freezePedPosition:(handle,frozen)=>{if(handle===PLAYER_PED_HANDLE)this.host('setPlayerFrozen','FREEZE_CHAR_POSITION')(frozen);else this.world.setScriptPedFrozen(this.livePed(handle),frozen);},
    pedIsInAir:handle=>handle===PLAYER_PED_HANDLE?this.host('playerInAir','IS_CHAR_IN_AIR')():this.world.scriptPedInAir(this.livePed(handle)),
    // m_bIsStaticWaitingForCollision: a script ped made, or frozen by FREEZE_CHAR_POSITION_AND_DONT_LOAD_COLLISION,
@@ -1485,6 +1563,17 @@ export class ScmMission {
    pedIsDucking:handle=>handle===PLAYER_PED_HANDLE?this.host('playerDucking','IS_CHAR_DUCKING')():!!this.world.scriptPedDucking?.(this.livePed(handle)),
    // IsPlayerClimbing (PlayerCommands.cpp:90): a CTaskSimpleClimb in the player's intelligence.
    isPlayerClimbing:()=>this.host('playerClimbing','IS_PLAYER_CLIMBING')(),
+   // iOS 0x100202678: CPed flags at +0x58c, bit 35. Read the live get-up task's flag without a new contact test.
+   isCharStuckUnderCar:handle=>handle===PLAYER_PED_HANDLE?this.host('playerStuckUnderCar','IS_CHAR_STUCK_UNDER_CAR')()
+    :this.host('scriptPedStuckUnderCar','IS_CHAR_STUCK_UNDER_CAR')(this.livePed(handle)),
+   // iOS 0x100207f54 / 0x100207a40: compare the player's last building model, or clear it to -1.
+   // The command handler has already resolved negative used-object entries to model names.
+   isLastBuildingModelShotByPlayer:(player,model)=>{
+    requireAsset(player===0||player===1,'Building-shot query requires a player slot.');
+    const id=typeof model==='number'?model:this.host('modelIndex','IS_LAST_BUILDING_MODEL_SHOT_BY_PLAYER')(model);
+    return id>=0&&this.runtime.game.playerInfo.lastBuildingModelsShot[player]===id;
+   },
+   clearLastBuildingModelShotByPlayer:player=>{requireAsset(player===0||player===1,'Building-shot clear requires a player slot.');this.runtime.game.playerInfo.lastBuildingModelsShot[player]=-1;},
    // IsPlayerPressingHorn (PlayerCommands.cpp:172): PEDSTATE_DRIVING and CPad::GetHorn.
    isPlayerPressingHorn:()=>this.host('playerPressingHorn','IS_PLAYER_PRESSING_HORN')(),
    // GetCurrentPopulationZoneType (ZoneCommands.cpp:87): CPopCycle::m_nCurrentZoneType.
@@ -1501,6 +1590,19 @@ export class ScmMission {
    removeGroup:group=>{this.groups.get(group)?.flush();if(group!==PLAYER_GROUP_HANDLE)this.groups.delete(group);},
    setGroupLeader:(group,handle)=>{this.group(group).setLeader(handle);},
    setGroupMember:(group,handle)=>{this.group(group).addFollower(handle);},
+   // iOS 0x1001fd628 / 0x1001feebc: store the resolved sequence slot in m_TaskSeqId. No task is issued here;
+   // ComputeScriptCommandTasks (0x10034bd38) migrates existing task pairs without reading that field.
+   setGroupSequence:(group,sequence)=>{const g=this.groups.get(group);if(g)g.scriptSequence=this.runtime.game.sequences.index(sequence);},
+   // AUTHORED integration: shared player restoration; native reference invalidation, population startup bursts,
+   // motion/drunk blur and unloaded-shop removal retain their existing engine limits. iOS keeps the weapons.
+   resetStuffUponResurrection:()=>{
+    const game=this.runtime.game;game.messages.clearMessages(false);
+    this.host('resetPlayerUponResurrection','RESET_STUFF_UPON_RESURRECTION')();
+    this.playerControl=true;game.pads.setPlayerSafe(0,false);game.pads.startShake(0,0,0,0,this.clockMs);
+    game.playerInfo.drunkenness=0;game.playerInfo.fadeDrunkenness=0;game.playerInfo.canBeDamaged=true;game.stats.set(176,0);
+    game.camera.camShakeForce=0;game.camera.restoreWithJumpCut(this.world.playerCameraState());
+    this.world.setPlayerControl(true);
+   },
    setDarknessEffect:(enable,alpha)=>{this.host('setDarknessFilter','SET_DARKNESS_EFFECT')(enable,alpha);},
    setHeatHazeEffect:enable=>{this.host('setHeatHazeFX','SET_HEATHAZE_EFFECT')(enable);},
    setGroupFollowStatus:(group,state)=>{this.group(group).membersEnterLeadersVehicle=state;},
@@ -1608,7 +1710,9 @@ export class ScmMission {
    detachPedFromCar:handle=>{
     // DettachPedFromEntity of a ped on an object: it stands again where it was.
     if(this.pedsOnObjects.delete(handle)){if(this.peds.exists(handle))this.world.setScriptPedFrozen(this.livePed(handle),false);return;}
-    if(handle===PLAYER_PED_HANDLE){this.world.detachPlayerFromVehicle?.();return;}this.peds.detachFromCar(handle,this.peds.positionOf(handle));},
+    if(handle===PLAYER_PED_HANDLE){this.world.detachPlayerFromVehicle?.();return;}
+    if(!this.peds.rideOf(handle)?.offset)return;const origin=this.peds.positionOf(handle),heading=this.peds.headingOf(handle);
+    this.peds.detachFromCar(handle,{...origin,z:origin.z-PED_ORIGIN_HEIGHT},ped=>this.world.setScriptPedHeading(ped,heading));},
    // CPed::m_pAttachedTo is a vehicle: ATTACH_CHAR_TO_CAR's hold, not a seat. The reversed handler tests the ped
    // itself for being a vehicle, which never holds; its sibling STORE_CAR_CHAR_IS_ATTACHED_TO_NO_SAVE reads
    // m_pAttachedTo, which is what LOWR and SWEET6 ask about before they detach.
@@ -1635,6 +1739,12 @@ export class ScmMission {
    // buildings and dummies and the objects), the nearest of them in 3D from twice the radius; with the flag clear it
    // becomes the ped's m_pEntityIgnoredCollision, with it set the ped collides with everything again. Nothing changes
    // when no such object is near. (A map object is looked for within the radius in 3D. The player's is not kept.)
+   getStringWidth:key=>{/* AUTHORED: native font metrics and script style; browser glyph drawing, control icons and language coverage remain partial. */return this.scriptTextWidth(gxtText(key,''),'GET_STRING_WIDTH');},
+   getStringWidthWithNumber:(key,number)=>{/* AUTHORED: native font metrics and script style; browser glyph drawing, control icons and language coverage remain partial. */return this.scriptTextWidth(insertNumbers(gxtText(key,''),number),'GET_STRING_WIDTH_WITH_NUMBER');},
+   swapNearestBuildingModel:(x,y,z,radius,from,to)=>{/* AUTHORED: loaded placements replace both geometry and COL; native sector order, streaming and save/undo remain partial. */
+    if(z<=-100)z=this.findGroundZForCoord(x,y);
+    this.host('swapWorldBuildingModel','SWAP_NEAREST_BUILDING_MODEL')({x,y,z},radius,from,to);
+   },
    setCharUsesCollisionClosestObjectOfType:(x,y,z,radius,model,uses,handle)=>{
     if(z<=-100)z=this.findGroundZForCoord(x,y);
     let best:{distance:number;target:{object:number}|{world:string}}|undefined;
@@ -1664,11 +1774,11 @@ export class ScmMission {
    // IS_CHAR_TALKING (unreversed; CPed::GetPedTalking): the browser plays no speech lines for a script's peds, the
    // speech banks not being published, so none of them is ever mid-line.
    pedIsTalking:()=>false,
-   // IS_CAR_PASSENGER_SEAT_FREE: no script ped sits in that seat of the script's car.
-   vehiclePassengerSeatIsFree:(handle,seat)=>!this.peds.seatTaken(handle,seat),
+   // IS_CAR_PASSENGER_SEAT_FREE: neither the player nor a script ped occupies that seat.
+   vehiclePassengerSeatIsFree:(handle,seat)=>!this.playerPassengerOfVehicle(handle,seat)&&!this.peds.seatTaken(handle,seat),
    // CVehicle::m_apPassengers[seat] (GET_CHAR_IN_CAR_PASSENGER_SEAT, reversed): the ped there. The original reads an
    // empty seat's null pointer; the scripts ask IS_CAR_PASSENGER_SEAT_FREE first, and an empty seat reads -1 here.
-   pedInPassengerSeat:(handle,seat)=>this.peds.occupantOf(handle,seat)??-1,
+   pedInPassengerSeat:(handle,seat)=>this.playerPassengerOfVehicle(handle,seat)?PLAYER_PED_HANDLE:this.peds.occupantOf(handle,seat)??-1,
    // CWorld::GetIsLineOfSightClear(from, to, buildings, vehicles, peds, objects, dummies): dummies and the see-through
    // flag have no bodies to test here.
    lineOfSightIsClear:(from,to,flags)=>this.world.lineOfSightClear(from,to,flags),
@@ -1699,6 +1809,8 @@ export class ScmMission {
    convertMetresToFeet:metres=>Math.fround(metres*3.28),
    convertMetresToFeetInt:metres=>Math.trunc(metres*3.28),
    setVehicleOnlyDamagedByPlayer:(handle,state)=>{this.world.setScriptVehicleOnlyDamagedByPlayer(this.liveVehicle(handle),state);},
+   // AUTHORED: the native vehicle flag gates the existing touch picker; full native lock-on scanning/priorities remain unported.
+   setVehicleCanBeTargetted:(handle,state)=>{(this.liveVehicle(handle) as {pedTargetable?:boolean}).pedTargetable=state;},
    projectileIsInArea:(min,max)=>this.world.projectilesInBox(min,max,false),
    vehicleCanBeTargettedByHomingMissile:(handle,state)=>{this.world.setScriptVehicleHeatSeekTargetable(this.liveVehicle(handle),state);},
    changeVehicleColour:(handle,colour1,colour2)=>{this.world.recolourScriptVehicle(this.liveVehicle(handle),colour1,colour2);},
@@ -1757,6 +1869,14 @@ export class ScmMission {
    // HAS_OBJECT_COLLIDED_WITH_ANYTHING never holds.
    setObjectRecordsCollisions:(handle,state)=>{this.runtime.game.objects.at(handle).recordsCollisions=state;},
    objectHasCollidedWithAnything:handle=>!!this.runtime.game.objects.at(handle).recordsCollisions&&this.host('scriptObjectTouchingAnything','HAS_OBJECT_COLLIDED_WITH_ANYTHING')(handle),
+   // iOS 0x100205a94: virtual TestCollision(false), not the object's past collision records.
+   isObjectIntersectingWorld:handle=>{
+    this.runtime.game.objects.at(handle);
+    const hit=this.host('scriptObjectIntersectingWorld','IS_OBJECT_INTERSECTING_WORLD')(handle);
+    if(hit===undefined)throw new ScmEntityPending(`object ${handle}`);return hit;
+   },
+   // iOS 0x1001fb904 normalizes the two corners before CShadows::RemoveOilInArea.
+   removeOilPuddlesInArea:(x1,y1,x2,y2)=>{this.host('removeScriptOilPuddles','REMOVE_OIL_PUDDLES_IN_AREA')(Math.min(x1,x2),Math.max(x1,x2),Math.min(y1,y2),Math.max(y1,y2));},
    // PLAY_OBJECT_ANIM: the association goes on at once, and its length follows once the host has read the clip from
    // the block (which the script has loaded before it plays).
    playObjectAnim:(handle,name,block,blendDelta,lockF,loop)=>{
@@ -1776,6 +1896,18 @@ export class ScmMission {
    objectBlockedAt:(handle,position)=>{const object=this.runtime.game.objects.at(handle);return object.usesCollision&&!!this.world.scriptObjectBlockedAt?.(handle,object.position,position);},
    // The carry clips (carry.ifp) are streamed in with the first stealable object, as the hold task needs them at once.
    setObjectAsStealable:(handle,state)=>{this.runtime.game.objects.at(handle).stealable=state;if(state)this.world.preloadAnimationBlock?.('CARRY');},
+   // iOS 0x1001eed70: CPhysical flag bit 29; CObject::SetupLighting selects grey ambient .18 with no normal lights.
+   setObjectRenderScorched:(handle,state)=>{const object=this.runtime.game.objects.at(handle);object.renderScorched=state;if(object.worldPlacement)this.world.setWorldObjectFlag?.(object.worldPlacement,'scorched',state);},
+   // AUTHORED Rapier hinge integration over the inspected native door state and closing spring.
+   lockDoor:(handle,state)=>{this.runtime.game.objects.lockDoor(handle,state);},
+   // AUTHORED Rapier integration of the inspected native pool-ball cushion/pocket path.
+   setPoolTableCoords:(x1,y1,z1,x2,y2,z2)=>{this.runtime.game.objects.setPoolTableCoords(x1,y1,z1,x2,y2,z2);},
+   // iOS 0x1001e0970 writes CEntity bit 14. AUTHORED render integration: Three's later pass follows the native
+   // alpha policy, with the existing per-mesh renderer/list-capacity limits rather than a shared entity list.
+   setObjectDrawLast:(handle,state)=>{const object=this.runtime.game.objects.at(handle);object.drawLast=state;if(object.worldPlacement)this.world.setWorldObjectFlag?.(object.worldPlacement,'drawLast',state);},
+   // AUTHORED integration: uses the live script/adopted object table in insertion order. The native search's
+   // repeat-sector lists (including unadopted map CObjects) and their 16-slot ordering are not yet reproduced.
+   getClosestStealableObject:(x,y,z,radius)=>closestStealableObject(this.runtime.game.objects.all,{x,y,z},radius),
    // CEventGlobalGroup::GetSoundLevel (reversed) over the last frame's quiet sounds: every source's for -1, else the
    // ped's own (only CJ's footsteps are reported yet).
    // GET_CHAR_HIGHEST_PRIORITY_EVENT (iOS 0x1001fb880): the event type the ped's intelligence holds at +0x17d.
@@ -1865,9 +1997,16 @@ export class ScmMission {
    attachObjectToVehicle:(object,vehicle,offset,rotation)=>{this.runtime.game.objects.attach(object,'vehicle',vehicle,offset,rotation);},
    attachObjectToChar:(object,ped,x,y,z,rx,ry,rz)=>{this.runtime.game.objects.attach(object,'ped',ped,{x,y,z},{x:rx,y:ry,z:rz});},
    attachObjectToObject:(object,other,offset,rotation)=>{this.runtime.game.objects.attach(object,'object',other,offset,rotation);},
-   // The push DETACH_OBJECT gives the object needs physics this browser does not run for a script's objects,
-   // so the object is let go where it hangs and does not fly.
-   detachObject:handle=>{this.runtime.game.objects.detach(handle);},
+   detachObject:(handle,x,y,speed,turn)=>{
+    const objects=this.runtime.game.objects,object=objects.at(handle),parent=object.attachedTo;if(!parent)return;
+    const frame=parent.kind==='object'?(objects.exists(parent.handle)?objects.matrix(parent.handle):undefined):this.attachmentFrame(parent);
+    if(!frame){objects.detach(handle);return;}
+    let velocity:{x:number;y:number;z:number};
+    if(parent.kind==='object')velocity=objects.at(parent.handle).velocity;
+    else if(parent.kind==='ped')velocity=this.runtime.world!.pedVelocity!(parent.handle);
+    else{const v=this.host('scriptVehicleVelocity','DETACH_OBJECT')(this.liveVehicle(parent.handle));velocity={x:v.x/50,y:v.y/50,z:v.z/50};}
+    objects.detach(handle,{basis:frame,velocity,x,y,speed,turn});
+   },
    objectIsAttached:handle=>this.runtime.game.objects.isAttached(handle),
    // Fx_c's systems, by the handle the script holds them with.
    createFxSystem:(name,x,y,z,ignoreBoundingChecks)=>this.makeFx(name,{x,y,z},ignoreBoundingChecks),
@@ -1926,7 +2065,7 @@ export class ScmMission {
    },
    vehicleMaximumPassengers:handle=>this.host('scriptVehicleMaximumPassengers','GET_MAXIMUM_NUMBER_OF_PASSENGERS')(this.liveVehicle(handle)),
    // CVehicle::m_nNumPassengers: the script's peds in the car's passenger seats.
-   vehiclePassengerCount:handle=>this.peds.passengersOf(handle),
+   vehiclePassengerCount:handle=>this.peds.passengersOf(handle)+(this.playerPassengerOfVehicle(handle)?1:0),
    // The script's 0 to 3 are eCarWheel (front left, rear left, front right, rear right), which BurstTyre passes through.
    // The CAutomobile component commands: CAutomobile::PopDoor, PopPanel, PopBoot, FixDoor, FixPanel, FixTyre, and
    // the damage and state questions. A car that is not a CAutomobile gives no answer and takes no change.
@@ -1942,7 +2081,7 @@ export class ScmMission {
    // vehicleFlags.bIsDamaged: only an automobile shows damaged components here.
    vehicleIsVisiblyDamaged:handle=>this.world.scriptVehicleVisiblyDamaged?.(this.liveVehicle(handle))??false,
    applyForceToVehicle:(handle,force,offset)=>{
-    if(!this.host('applyScriptVehicleForce','APPLY_FORCE_TO_CAR')(this.liveVehicle(handle),force,offset))throw new UnsupportedScmCommand(-1,0,'APPLY_FORCE_TO_CAR','a bike, boat or aircraft');
+    if(!this.host('applyScriptVehicleForce','APPLY_FORCE_TO_CAR')(this.liveVehicle(handle),force,offset))throw new UnsupportedScmCommand(-1,0,'APPLY_FORCE_TO_CAR','a vehicle without physical force support');
    },
    setVehicleWatertight:(handle,state)=>{this.host('setScriptVehicleWatertight','SET_CAR_WATERTIGHT')(this.liveVehicle(handle),state);},
    // GET_MODEL_DIMENSIONS: the model's CColModel bounding box. A vehicle's is read from its collision (the thread waits
@@ -1960,7 +2099,7 @@ export class ScmMission {
     this.runtime.game.objects.at(object);
     const done=this.host('sortOutScriptObjectCollisionWithCar','SORT_OUT_OBJECT_COLLISION_WITH_CAR')(object,this.liveVehicle(vehicle));
     if(done===undefined)throw new ScmEntityPending(`object ${object}`);
-    if(!done)throw new UnsupportedScmCommand(-1,0,'SORT_OUT_OBJECT_COLLISION_WITH_CAR','a bike, boat or aircraft');
+    if(!done)throw new UnsupportedScmCommand(-1,0,'SORT_OUT_OBJECT_COLLISION_WITH_CAR','a vehicle without collision geometry');
    },
    // IS_CHAR_GETTING_IN_TO_A_CAR: one of the entering tasks is active (CharacterCommands' handler).
    pedIsGettingIntoCar:handle=>this.host('pedEnteringCar','IS_CHAR_GETTING_IN_TO_A_CAR')(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle)),
@@ -1977,8 +2116,18 @@ export class ScmMission {
    // RegisterCorona with the thread's id, full intensity, the script's colour, size, type and flare, and reflection.
    drawCorona:(x,y,z,size,coronaType,flareType,r,g,b,id)=>{
     if(z<=-100)z=this.findGroundZForCoord(x,y);
-    this.coronaQueue.push({id,position:[x,y,z],size,color:[r&255,g&255,b&255],coronaType,flareType});
+    this.coronaQueue.push({id,position:[x,y,z],size,color:[r&255,g&255,b&255],coronaType:coronaType&255,flareType:flareType&255});
    },
+   drawWeaponshopCorona:(x,y,z,size,coronaType,flareType,r,g,b,id)=>{
+    if(z<=-100)z=this.findGroundZForCoord(x,y);
+    this.coronaQueue.push({id,position:[x,y,z],size,color:[r&255,g&255,b&255],coronaType:coronaType&255,flareType:flareType&255,range:150,pullTowardsCamera:Math.fround(.2)});
+   },
+   // AUTHORED capacity integration: scripts share 48 slots with one another; ped/car shadows still use separate render pools.
+   drawShadow:(type,x,y,z,angle,length,intensity,r,g,b)=>{const shadow=scriptShadow(type,x,y,z,angle,length,intensity,r,g,b);if(shadow)this.scriptShadows.store(shadow);},
+   addSmokeParticle:(x,y,z,vx,vy,vz,r,g,b,a,size,life)=>{this.host('addScriptSmokeParticle','ADD_SMOKE_PARTICLE')([x,y,z],[vx,vy,vz],r,g,b,a,size,life);},
+   setGunshotSenseRangeForRiot2:range=>{this.runtime.game.gunshotSenseRangeForRiot2=Math.fround(range);},
+   getCarBlockingCar:handle=>{const blocker=this.host('scriptVehicleBlockingCar','GET_CAR_BLOCKING_CAR')(this.liveVehicle(handle));return blocker?this.vehicles.handleOf(blocker.entity)??this.vehicles.handleFor(blocker.entity,blocker.model):-1;},
+   getParkingNodeInArea:(x1,y1,z1,x2,y2,z2)=>this.parkingNodes.find(this.world.carPathAreas?.(),x1,y1,z1,x2,y2,z2),
    // DRAW_LIGHT_WITH_RANGE (iOS 0x10020531c): CPointLights::AddLight for this frame, a point light (type 0) of the
    // range, the colour over 255, casting extra shadows, on no entity.
    drawLightWithRange:(x,y,z,r,g,b,range)=>{this.lightQueue.push({position:[x,y,z],radius:range,color:[r/255,g/255,b/255]});},
@@ -2044,6 +2193,14 @@ export class ScmMission {
     const [x,y,z]=TRAIN_STATIONS[station];
     return this.host('cityAt','IS_NEXT_STATION_ALLOWED')(x,y,z)<=this.runtime.game.stats.get(STAT_CITY_UNLOCKED)+1;
    },
+   skipTrainToNextStation:handle=>{
+    const skip=this.host('skipScriptTrainToAllowedStation','SKIP_TO_NEXT_ALLOWED_STATION'),pass=this.host('passTime','SKIP_TO_NEXT_ALLOWED_STATION'),city=this.host('cityAt','SKIP_TO_NEXT_ALLOWED_STATION');
+    const limit=this.runtime.game.stats.get(STAT_CITY_UNLOCKED)+1;
+    const plan=skip(this.liveVehicle(handle),station=>{const [x,y,z]=TRAIN_STATIONS[station];return city(x,y,z)<=limit;});
+    if(plan===undefined)throw new ScmEntityPending('train tracks');
+    if(plan===null)throw new UnsupportedScmCommand(-1,0,'SKIP_TO_NEXT_ALLOWED_STATION','a non-train or no allowed station');
+    this.world.loadScene(...TRAIN_STATIONS[plan.station]);pass(plan.minutes);
+   },
    setMissionTrainCoordinates:(handle,x,y,z)=>{this.host('setScriptTrainPosition','SET_MISSION_TRAIN_COORDINATES')(this.liveVehicle(handle),{x,y,z});},
    deleteMissionTrain:handle=>{this.host('removeScriptMissionTrain','DELETE_MISSION_TRAIN')(this.liveVehicle(handle));},
    markMissionTrainAsNoLongerNeeded:handle=>{this.host('releaseScriptMissionTrain','MARK_MISSION_TRAIN_AS_NO_LONGER_NEEDED')(this.liveVehicle(handle));},
@@ -2062,6 +2219,8 @@ export class ScmMission {
    setVehicleCollision:(handle,state)=>{this.host('setScriptVehicleUsesCollision','SET_CAR_COLLISION')(this.liveVehicle(handle),state);},
    createUser3dMarker:(x,y,z,colour)=>this.host('createScriptUser3dMarker','CREATE_USER_3D_MARKER')(x,y,z,colour),
    removeUser3dMarker:index=>{this.host('removeScriptUser3dMarker','REMOVE_USER_3D_MARKER')(index);},
+   createBirds:(x,y,z,tx,ty,tz,count,biome)=>{this.host('createScriptBirds','CREATE_BIRDS')([x,y,z],[tx,ty,tz],count,biome);},
+   setVehicleToFadeIn:(handle,alpha)=>{this.host('setScriptVehicleClumpAlpha','SET_VEHICLE_TO_FADE_IN')(this.liveVehicle(handle),alpha);},
    pedIsSwimming:handle=>handle===PLAYER_PED_HANDLE?this.host('playerSwimming','IS_CHAR_SWIMMING')()
     :this.host('scriptPedSwimming','IS_CHAR_SWIMMING')(this.livePed(handle)),
    // GET_CHAR_SWIM_STATE (iOS 0x100203408): the ped's CTaskSimpleSwim m_nSwimState, read with no check that he swims
@@ -2235,23 +2394,36 @@ export class ScmMission {
    setPedStayInSamePlace:(handle,stay)=>{
     this.world.giveScriptPedOrder(this.livePed(handle),stay?{kind:'standStill',seconds:Number.POSITIVE_INFINITY}:{kind:'wander'});
    },
+   // iOS 0x1001e569c: fresh minigun at the Hunter offset, advanced by a frame's move speed; per-vehicle 150 ms gate.
+   fireHunterGun:handle=>{this.host('fireScriptHunterGun','FIRE_HUNTER_GUN')(this.liveVehicle(handle),this.vehicleMatrixOf(handle),this.clockMs,Math.fround(this.runtime.currentThread?.timeStep??this.frameMs/20));},
+   // iOS 0x1002028e8 reads CDoor::m_angle directly, choosing the swinging chassis for index >= 6.
+   getDoorAngleRatio:(handle,door)=>this.host('scriptVehicleDoorAngle','GET_DOOR_ANGLE_RATIO')(this.liveVehicle(handle),door),
+   // AUTHORED integration: native raw basis is available to same-frame queries; Rapier uses the reorthogonalized
+   // rigid pose before the next physical pass rather than carrying a non-rigid physical matrix through ApplySpeed.
+   setVehicleQuaternion:(handle,x,y,z,w)=>{this.host('setScriptVehicleQuaternion','SET_VEHICLE_QUATERNION')(this.liveVehicle(handle),{x,y,z,w});},
+   // AUTHORED coverage: native angle/COL and component drawing; moving-contact forces and the shared special-COL pool remain incomplete.
+   controlMovableVehiclePart:(handle,angle)=>{this.host('controlScriptVehicleMovingPart','CONTROL_MOVABLE_VEHICLE_PART')(this.liveVehicle(handle),angle);},
+   // AUTHORED coverage: native offsets for supported cars and Andromada; the full native vehicle family remains incomplete.
+   getCarMovingComponentOffset:handle=>this.host('scriptVehicleMovingComponentOffset','GET_CAR_MOVING_COMPONENT_OFFSET')(this.liveVehicle(handle)),
    vehicleMatrix:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle):this.world.scriptVehicleMatrix(this.liveVehicle(handle)),
    anchorBoat:(handle,state)=>{this.host('setScriptBoatAnchored','ANCHOR_BOAT')(this.liveVehicle(handle),state);},
-   freezeVehiclePosition:(handle,frozen)=>{this.world.setScriptVehicleFrozen(this.liveVehicle(handle),frozen);},
-   // bIsFrozen and bInfiniteMass as FREEZE_CAR_POSITION sets them; the collision it waits for is the browser's to stream.
-   freezeVehiclePositionAndDontLoadCollision:(handle,frozen)=>{this.world.setScriptVehicleFrozen(this.liveVehicle(handle),frozen);},
+   freezeVehiclePosition:(handle,frozen)=>{/* AUTHORED: Rapier holds motion with collision; full native physical flags and streaming remain partial. */this.world.setScriptVehicleFrozen(this.liveVehicle(handle),frozen);},
+   // 0574's separate physical/collision-loading flags are not fully modelled by the shared browser motion hold.
+   freezeVehiclePositionAndDontLoadCollision:(handle,frozen)=>{/* AUTHORED: shared motion hold; the separate native collision-loading flag remains incomplete. */this.world.setScriptVehicleFrozen(this.liveVehicle(handle),frozen);},
    explosionInArea:(type,min,max)=>this.host('explosionInArea','IS_EXPLOSION_IN_AREA')(type,min,max),
    setUpsideDownVehicleNotDamaged:(handle,state)=>{this.world.setScriptVehicleUpsideDownNotDamaged?.(this.liveVehicle(handle),state);},
    setVehicleForwardSpeed:(handle,forwardSpeed)=>{this.world.setScriptVehicleForwardSpeed(this.liveVehicle(handle),forwardSpeed);},
    // CWorld::FindGroundZForCoord looks straight down from a thousand above and answers twenty where the world
    // has no ground under the point.
    groundZForCoord:(x,y)=>this.findGroundZForCoord(x,y),
-   // A ped a script made never rides in the browser yet, so it is always on foot and never sitting in a car.
+   // CPed's live vehicle reference distinguishes an occupant from a ped on foot.
    pedIsOnFoot:handle=>handle===PLAYER_PED_HANDLE?!this.world.playerPed().vehicle:this.peds.exists(handle)&&this.peds.rideOf(handle)===undefined,
    pedIsSittingInAnyCar:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().sittingInCar:this.peds.rideOf(handle)!==undefined,
-   // eVehicleAppearance. The browser builds a car for every vehicle a script makes, so one of those is an
-   // automobile; the player's own is whatever he is riding.
-   vehicleAppearance:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(handle).appearance:(this.liveVehicle(handle),VEHICLE_APPEARANCE_AUTOMOBILE),
+   // CVehicle::GetVehicleAppearance reads handling flags for every vehicle family, including adopted player vehicles.
+   vehicleAppearance:handle=>{
+    if(handle===PLAYER_VEHICLE_HANDLE)return this.playerVehicle(handle).appearance;
+    const car=this.liveVehicle(handle);return nativeVehicleAppearance(this.world.scriptVehicleModelFlags?.(car)??0);
+   },
    vehicleIsTrain:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(handle).train:!!this.world.scriptVehicleIsTrain?.(this.liveVehicle(handle)),
    playerMissionGates:()=>this.world.playerMissionGates(),
    pedIsStopped:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().stopped:this.world.scriptPedStanding(this.livePed(handle)),
@@ -2293,6 +2465,13 @@ export class ScmMission {
     const heading=this.peds.headingOf(handle)*Math.PI/180,frame=headingFrame(heading);
     if(!pedSightAngleAndRange({x:from.x,y:from.y},{x:frame.forward.x,y:frame.forward.y},{x:to.x,y:to.y}))return false;
     return this.world.lineOfSightClear(from,{x:to.x,y:to.y,z:to.z+PED_SIGHT_TARGET_RAISE});
+   },
+   pedCanSeeDeadPed:handle=>{ // AUTHORED: cached on-foot scanner; complete native task states, occupants and camera-ignore flags remain partial.
+    const player=handle===PLAYER_PED_HANDLE,ped=player?undefined:this.livePed(handle),from=player?this.world.playerPed().position:this.peds.positionOf(handle),heading=(player?this.world.playerPed().heading??0:this.peds.headingOf(handle))*Math.PI/180,forward=headingFrame(heading).forward;
+    for(const candidate of this.host('scriptPedDeadCandidates','CAN_CHAR_SEE_DEAD_CHAR')(ped)){
+     const to={...candidate.position,z:candidate.position.z+(candidate.ducking?-.25:.75)};
+     if(pedCanTargetPoint(from,forward,to)&&this.world.lineOfSightClear({...from,z:from.z+.75},to,{buildings:true,vehicles:false,peds:false,objects:true}))return true;
+    }return false;
    },
    // CRadar's blip carries the entry-exit nearest the point the command names, by the manager's own lookup.
    setBlipEntryExit:(blip,x,y,radius)=>{
@@ -2434,8 +2613,22 @@ export class ScmMission {
    // there and the sequence the user performs. AUTHORED: the user walks straight to the point, turns to the heading and
    // runs the sequence, which stands in for CTaskComplexUseAttractor's queueing.
    addAttractor:(x,y,z,angle,_arc,sequence)=>{const handle=++this.attractorSerial;this.scriptAttractors.set(handle,{x,y,z,heading:angle,sequence});return handle;},
-   clearAttractor:handle=>{this.scriptAttractors.delete(handle);},
+   clearAttractor:handle=>{this.scriptAttractors.delete(handle);this.scriptAttractorUsers.delete(handle);},
+   // AUTHORED: live map reservations, direct approach and registered script-brain handoff; full queue/task graph remains partial.
+   useClosestMapAttractor:(ped,radius,model,x,y,z,name)=>this.useClosestMapAttractor(ped,radius,model,{x,y,z},name),
+   closestMapAttractorUser:(x,y,z,radius,model,name)=>{const effect=this.findMapAttractor({x,y,z},radius,model,name);if(!effect)return -1;for(const [ped,use]of this.mapAttractorUses)if(use.effect.key===effect.key&&use.arrived)return ped;return -1;},
+   pedUsesMapAttractor:ped=>this.mapAttractorUses.has(ped),
    taskUseAttractor:(char,attractor)=>{this.useAttractor(char,attractor,true,TASK_USE_ATTRACTOR_COMMAND);},
+   // AUTHORED integration: the existing scripted-attractor sequences expose their first registered user's arrival.
+   // Native 0x1001eece8 / GetPedUsingEffect reads the arrived queue head, not proximity; general queueing is partial.
+   pedIsAtScriptedAttractor:(ped,attractor)=>{
+    if(!this.scriptAttractors.has(attractor))return false;
+    const user=this.scriptAttractorUser(attractor),progress=user?(user.ped===PLAYER_PED_HANDLE?this.world.playerSequenceProgress?.():this.world.scriptPedSequenceProgress?.(this.peds.entity(user.ped)))??-1:-1;
+    const head=user&&progress>=user.arrivedStep?user.ped:undefined;
+    if(ped===-1)return head!==undefined;
+    // iOS 0x1001f082c compares a null pointer for a stale/invalid ped; an empty valid attractor then compares equal.
+    return (ped===PLAYER_PED_HANDLE||this.peds.exists(ped)?ped:undefined)===head;
+   },
    // CEntity::FindTriggerPointCoors (0x533380): the model's trigger point of that index under the object's matrix,
    // or the origin when it has none. The matrix here is the object's heading about the vertical.
    getLevelDesignCoordsForObject:(handle,nth)=>{
@@ -2519,6 +2712,15 @@ export class ScmMission {
     this.awaitTaskVehicles([task]);
     // CTaskSimpleHoldEntity on the ped's partial-anim slot: it holds the object from here, and its other tasks go on.
     if(task.kind==='pickUpObject'){this.pickUpObject(handle,task);return;}
+    if(task.kind==='complexPickUpObject'){
+     if(handle===PLAYER_PED_HANDLE)throw new UnsupportedScmCommand(-1,opcode,'PLAYER_COMPLEX_PICKUP_NOT_PORTED');
+     this.livePed(handle);this.runSequence(handle,[task],false,opcode,false);return;
+    }
+    if(task.kind==='diveFromAttachmentAndGetUp'){
+     if(handle===PLAYER_PED_HANDLE)throw new UnsupportedScmCommand(-1,opcode,'A_PLAYER_ATTACHMENT_DIVE_NOT_PORTED');
+     if(this.pedsOnObjects.has(handle))throw new UnsupportedScmCommand(-1,opcode,'AN_OBJECT_ATTACHMENT_DIVE_NOT_PORTED');
+     this.livePed(handle);this.runSequence(handle,[task],false,opcode,false);return;
+    }
     // TASK_EVERYONE_LEAVE_CAR (iOS 0x1001ef31c) names a car: the driver takes CTaskComplexLeaveAnyCar(0, sensible) and
     // the passenger in seat i the same after 250 + 500 i ms and a rand()'s low 16 bits of another 500, so they climb out
     // one after another. The player leaves with no delay (as the driver; a passenger player's seat is not known here).
@@ -2554,7 +2756,7 @@ export class ScmMission {
     if(task.kind==='driveBy'){
      if(handle===PLAYER_PED_HANDLE)return;
      const target=task.targetVehicle>=0?{kind:'vehicle' as const,handle:task.targetVehicle}:task.targetPed>=0?{kind:'ped' as const,handle:task.targetPed}:{kind:'point' as const,x:task.x,y:task.y,z:task.z};
-     this.runners.delete(handle);this.world.setScriptPedDriveBy?.(this.livePed(handle),target,task.radius,task.fireRate,task.rightHandCarSeat);return;
+     this.dropRunner(handle);this.world.setScriptPedDriveBy?.(this.livePed(handle),target,task.radius,task.fireRate,task.rightHandCarSeat);return;
     }
     // A new primary task replaces whatever sequence the ped was running from here.
     if(handle!==PLAYER_PED_HANDLE&&task.kind!=='useMobilePhone')this.dropRunner(handle);
@@ -2604,7 +2806,7 @@ export class ScmMission {
     const world=this.taskWorld(handle);
     const orders:ScriptedPedOrder[]=[],orderSteps:{outer:number;inner:number}[]=[];let standIns=false,orderStart=start;
     // The car tasks and the seat shuffle run in the task-at-a-time runner.
-    const runnerTask=(task:ScmScriptedTask)=>CAR_TASKS.has(task.kind)||task.kind==='shuffleToNextCarSeat';
+    const runnerTask=(task:ScmScriptedTask)=>CAR_TASKS.has(task.kind)||task.kind==='shuffleToNextCarSeat'||task.kind==='diveFromAttachmentAndGetUp'||task.kind==='complexPickUpObject';
     const carTasks=handle!==PLAYER_PED_HANDLE&&tasks.some(runnerTask);
     tasks.forEach((task,index)=>{
      if(carTasks&&runnerTask(task))return;
@@ -2623,6 +2825,9 @@ export class ScmMission {
     if(carTasks||ride&&!ride.offset){this.livePed(handle);this.runSequence(handle,tasks,repeat,opcode,true,start);return;}
     this.world.giveScriptPedSequence(this.livePed(handle),orders,repeat,start);
     this.recordTask(handle,opcode,false);
+   },
+   taskGreetPartner:(first,second,bias,style)=>{ // AUTHORED: paired on-foot NPC stages; native task graph, alignment and hand signals remain partial.
+    this.startGreeting(first,second,bias,style);
    },
    // GET_SEQUENCE_PROGRESS (unreversed): CTaskComplexSequence::m_CurrentTaskIndex of the ped's running sequence, -1 with none.
    pedSequenceProgress:handle=>this.sequenceStep(handle).outer,
@@ -2718,6 +2923,8 @@ export class ScmMission {
    setPedCanBeKnockedOffBike:(handle,stayOnBike)=>{if(handle===PLAYER_PED_HANDLE)this.runtime.game.playerInfo.stayOnBike=stayOnBike;else this.world.setScriptPedFlag(this.livePed(handle),'stayOnBike',stayOnBike);},
    // SET_HELI_BLADES_FULL_SPEED (iOS 0x1001faec4): a helicopter's m_fHeliRotorSpeed to 0.22 at once.
    setHeliBladesFullSpeed:handle=>{const heli=this.liveVehicle(handle) as {helicopter?:boolean;rotorSpeed?:number};if(heli.helicopter)heli.rotorSpeed=.22;},
+   // iOS 0x1001e33a8: the vehicle flag, read by FlyingControl's thrust and stick branches.
+   setHeliStabiliser:(handle,state)=>{(this.liveVehicle(handle) as {heliMinimumTilt:boolean}).heliMinimumTilt=state;},
    // BOAT_GOTO_COORDS (iOS 0x1001d5f30), BOAT_STOP (0x1001d5f80) and SET_BOAT_CRUISE_SPEED (0x1001d6064) on a boat's
    // autopilot (nativeBoatAI.ts); anything else is left alone.
    boatGotoCoords:(handle,x,y,z)=>{(this.liveVehicle(handle) as {tellBoatToGoToCoors?:(x:number,y:number,z:number)=>void}).tellBoatToGoToCoors?.(x,y,z);},
@@ -3378,6 +3585,16 @@ export class ScmMission {
  }
  /** Peds CREATE_CHAR_AT_ATTRACTOR made that have not yet been set at their attractor. */
  private readonly attractorArrivals=new Map<number,{attractor:number;opcode:number}>();
+ /** CPedScriptedAttractor has one arrived slot. Record identity drops ownership when another task replaces it. */
+ private readonly scriptAttractorUsers=new Map<number,{ped:number;arrivedStep:number;record:object}>();
+ private scriptAttractorUser(attractor:number){
+  const user=this.scriptAttractorUsers.get(attractor);if(!user)return undefined;
+  const ped=user.ped===PLAYER_PED_HANDLE?undefined:this.peds.entity(user.ped);
+  const alive=user.ped===PLAYER_PED_HANDLE?this.world.playerPed().health>0:this.peds.exists(user.ped)&&!this.peds.isDead(user.ped);
+  const running=user.ped===PLAYER_PED_HANDLE?this.world.playerHasScriptTask?.():ped!==undefined&&this.world.scriptPedHasOrder?.(ped);
+  if(this.taskRecords.get(user.ped)!==user.record||!alive||running===false){this.scriptAttractorUsers.delete(attractor);return undefined;}
+  return user;
+ }
  private settleAttractorArrivals(){
   for(const [ped,use] of this.attractorArrivals){
    if(!this.peds.exists(ped)){this.attractorArrivals.delete(ped);continue;}
@@ -3387,12 +3604,49 @@ export class ScmMission {
    this.attractorArrivals.delete(ped);
   }
  }
+ /** A native trigger-script effect registered by TASK_USE_CLOSEST_MAP_ATTRACTOR. */
+ private readonly mapAttractorUses=new Map<number,{effect:WorldAttractor;record:object;arrived:boolean;brain?:ScmThread}>();
+ private findMapAttractor(point:{x:number;y:number;z:number},radius:number,model:number|string,name:string,ped?:number){
+  const effects=this.world.mapAttractorsNear?.(point.x,point.y,point.z,radius)??[];
+  return closestMapAttractor(effects,point,model,name,ped===undefined?undefined:this.mapAttractorUses.get(ped)?.effect.key,effect=>ped===undefined||![...this.mapAttractorUses.values()].some(use=>use.effect.key===effect.key));
+ }
+ private useClosestMapAttractor(ped:number,radius:number,model:number|string,point:{x:number;y:number;z:number},name:string){
+  // The original seven sites name live peds. Deferred sequence construction has a separate native task lifetime.
+  if(ped===-1)throw new UnsupportedScmCommand(-1,0x8a0,'TASK_USE_CLOSEST_MAP_ATTRACTOR','deferred sequence effect lifetime');
+  const centre=ped===PLAYER_PED_HANDLE?this.world.playerPed().position:this.peds.positionOf(ped),effect=this.findMapAttractor(centre,radius,model,name,ped);
+  if(!effect)return false;
+  const [x,y,z]=effect.position,heading=Math.atan2(-effect.useDir[0],effect.useDir[1])*180/Math.PI,orders:ScriptedPedOrder[]=[{kind:'goToPoint',x,y,z,moveState:4,radius:.125,moveStateRadius:2,seconds:Infinity},{kind:'achieveHeading',degrees:heading}];
+  if(ped===PLAYER_PED_HANDLE)this.givePlayer(orders,false,0x8a0,true);else{this.world.giveScriptPedSequence(this.livePed(ped),orders,false,0);this.recordTask(ped,0x8a0,false);}
+  this.mapAttractorUses.set(ped,{effect,record:this.taskRecords.get(ped)!,arrived:false});return true;
+ }
+ private processMapAttractors(){
+  for(const [ped,use]of this.mapAttractorUses){
+   const alive=ped===PLAYER_PED_HANDLE?this.world.playerPed().health>0:this.peds.exists(ped)&&this.peds.healthOf(ped)>0;
+   if(!alive||use.brain?.terminated||!use.arrived&&this.taskRecords.get(ped)!==use.record){this.mapAttractorUses.delete(ped);continue;}
+   if(this.world.mapAttractorExists&&!this.world.mapAttractorExists(use.effect.key)){this.clearTasks(ped,'MAP_ATTRACTOR_REMOVED');continue;}
+   if(!use.arrived){if(this.flatSequenceProgress(ped)!==-1)continue;use.arrived=true;}
+   if(use.brain)continue;
+   const game=this.runtime.game,brain=game.scriptBrains.brains.find(b=>b.typeOfBrain===BRAIN_ATTRACTOR&&b.name?.toLowerCase()===use.effect.scriptName.toLowerCase());
+   if(!brain){this.mapAttractorUses.delete(ped);continue;}
+   // A previous attractor brain can issue the handoff before terminating itself later in this script pass.
+   if(this.runtime.active.some(s=>s.thread.isExternal&&[0,2,3,5].includes(s.thread.externalType)&&s.thread.locals.getInt32(0,true)===ped))continue;
+   const index=game.streamedScripts.properIndexFromScriptIndex(brain.streamedScriptIndex);if(index<0){this.mapAttractorUses.delete(ped);continue;}
+   this.adapterRef.requestStreamedScript?.(index);use.brain=this.runtime.startNewStreamedScript(index,[ped,0],2)?.thread;
+  }
+ }
+ /** Live map registrations for diagnostics, with arrival and brain state. */
+ mapAttractorsSnapshot(){return [...this.mapAttractorUses].map(([ped,use])=>({ped,key:use.effect.key,name:use.effect.scriptName,arrived:use.arrived,brain:use.brain?.name??null}));}
  private useAttractor(ped:number,attractor:number,walk:boolean,opcode:number){
   const point=this.scriptAttractors.get(attractor);if(!point)return;
   const found=this.runtime.game.sequences.sequenceFor(point.sequence);
   const tasks:ScmScriptedTask[]=[...(walk?[{kind:'goStraightToCoord' as const,x:point.x,y:point.y,z:point.z,speed:4,time:-1}]:[]),
    {kind:'achieveHeading',heading:point.heading},...(found?.sequence.tasks??[])];
-  this.adapterRef.givePedSequence!(ped,tasks,false,opcode,undefined);
+  const previous=this.taskRecords.get(ped);this.adapterRef.givePedSequence!(ped,tasks,false,opcode,undefined);
+  const record=this.taskRecords.get(ped);
+  if(record&&record!==previous){
+   for(const [handle,user] of this.scriptAttractorUsers)if(user.ped===ped)this.scriptAttractorUsers.delete(handle);
+   if(!this.scriptAttractorUser(attractor))this.scriptAttractorUsers.set(attractor,{ped,arrivedStep:walk?2:1,record});
+  }
  }
  /** script.img's files by name (lower case, no extension). */
  private readonly streamedFiles=new Map<string,Uint8Array>();
@@ -3486,10 +3740,17 @@ export class ScmMission {
   * which puts the car's mission, style and cruise speed back as they were before it (a script car's are none), so
   * the car stops rather than driving on for a ped doing something else. */
  private dropRunner(handle:number){
+  this.stopGreeting(handle);
   if(this.drivingTasks.delete(handle))this.stopDriving(handle);
   const r=this.runners.get(handle);if(!r)return;
   this.runners.delete(handle);
+  if(r.step?.kind==='objectPickup'){
+   const step=r.step,objects=this.runtime.game.objects;
+   if(step.attached&&this.heldObjectOf(handle)?.handle===step.object)this.dropHeldObject(handle,true);
+   else if(objects.exists(step.object))objects.at(step.object).usesCollision=step.collision;
+  }
   if(r.step?.kind==='held'&&CAR_TASKS.has(r.tasks[r.progress]?.kind))this.stopDriving(handle);
+  if(r.step?.kind==='attachedDive'){const ped=this.peds.entity(handle);if(ped!==undefined)this.world.clearScriptRiderClip?.(ped);}
  }
  /** Peds whose primary task is a driving task begun at the wheel without a runner, until its record goes. */
  private readonly drivingTasks=new Set<number>();
@@ -3533,6 +3794,32 @@ export class ScmMission {
   if(entity===undefined)return {kind:'settle',then:task};
   const ride=this.peds.rideOf(handle),riding=!!ride&&!ride.offset;
   switch(task.kind){
+   case 'complexPickUpObject':{
+    if(ride)throw new UnsupportedScmCommand(-1,opcode,'VEHICLE_OCCUPANT_COMPLEX_PICKUP_NOT_PORTED');
+    this.host('scriptPedAnimTotalTime','TASK_COMPLEX_PICKUP_OBJECT');this.host('scriptPedHasOrder','TASK_COMPLEX_PICKUP_OBJECT');this.host('setScriptPedCarryPose','TASK_COMPLEX_PICKUP_OBJECT');
+    const objects=this.runtime.game.objects;if(!objects.exists(task.object))return undefined;
+    const object=objects.at(task.object),bounds=this.host('objectModelBounds','TASK_COMPLEX_PICKUP_OBJECT')(object.model);
+    if(bounds===undefined){this.world.giveScriptPedOrder(entity,{kind:'standStill',seconds:Infinity});return {kind:'objectPickupBounds',object:task.object};}
+    if(!bounds)throw new UnsupportedScmCommand(-1,opcode,'COMPLEX_PICKUP_WITHOUT_COL_BOUNDS');
+    const plan=nativeObjectPickupPlan(this.peds.positionOf(handle),object,bounds);
+    object.heading=plan.heading;object.matrix=plan.axes;object.velocity={x:0,y:0,z:0};object.turnSpeed={x:0,y:0,z:0};object.isStatic=true;
+    this.world.giveScriptPedOrder(entity,{kind:'goToPoint',...plan.approach,moveState:4,radius:plan.radius,moveStateRadius:0,seconds:5});
+    return {kind:'objectPickup',object:task.object,plan,stage:'approach',elapsed:0,attached:false,collision:object.usesCollision};
+   }
+   case 'diveFromAttachmentAndGetUp':{
+    if(this.pedsOnObjects.has(handle))throw new UnsupportedScmCommand(-1,opcode,'AN_OBJECT_ATTACHMENT_DIVE_NOT_PORTED');
+    if(ride?.offset){
+     const car=this.liveVehicle(ride.vehicle),matrix=this.world.scriptVehicleMatrix(car),bounds=this.host('scriptVehicleBounds','TASK_DIVE_FROM_ATTACHMENT_AND_GET_UP')(car),velocity=this.world.scriptVehicleVelocity?.(car)??{x:0,y:0,z:0};
+     if(!bounds)throw new UnsupportedScmCommand(-1,opcode,'AN_ATTACHMENT_WITHOUT_COLLISION_BOUNDS');
+     const direction=attachedDiveDirection(this.world.scriptPedPosition(entity),{...matrix,bounds,moveSpeed:{x:velocity.x/50,y:velocity.y/50,z:velocity.z/50}});
+     // AchieveHeading sets the idle move animation while the ped is still attached.
+     this.world.playScriptRiderClip?.(entity,{file:'PED',name:'IDLE_STANCE',loop:true,hold:false,seconds:Infinity});
+     return {kind:'attachedDive',direction,time:task.time};
+    }
+    if(ride)throw new UnsupportedScmCommand(-1,opcode,'A_SEATED_ATTACHMENT_DIVE_NOT_PORTED');
+    const h=(this.peds.headingOf(handle)??0)*Math.PI/180;
+    return this.dispatch(handle,{kind:'diveAndGetUp',x:-Math.sin(h),y:Math.cos(h),time:task.time},opcode);
+   }
    case 'leaveCar':case 'leaveCarImmediately':case 'leaveAnyCar':{
     const vehicle=task.kind==='leaveAnyCar'?undefined:task.vehicle;
     if(!riding||vehicle!==undefined&&vehicle!==ride.vehicle)return undefined;
@@ -3588,16 +3875,59 @@ export class ScmMission {
   // his car with no mission, its brakes on), so its sequence goes no further.
   for(const handle of this.drivingTasks)if(this.peds.exists(handle)&&this.peds.isDead(handle))this.dropRunner(handle);
   for(const [handle,r] of this.runners){
-   if(!this.peds.exists(handle)){this.runners.delete(handle);continue;}
+   if(!this.peds.exists(handle)){this.dropRunner(handle);continue;}
    if(this.peds.isDead(handle)){this.dropRunner(handle);continue;}
    try{
     const step=r.step,entity=this.peds.entity(handle);
     if(!step){this.advanceRunner(handle);continue;}
     switch(step.kind){
+     case 'objectPickupBounds':r.step=this.dispatch(handle,{kind:'complexPickUpObject',object:step.object},r.opcode);if(!r.step)this.advanceRunner(handle);break;
+     case 'objectPickup':{
+      const objects=this.runtime.game.objects;if(entity===undefined||!objects.exists(step.object)){this.dropRunner(handle);if(entity!==undefined)this.world.clearScriptPedTasks(entity);break;}
+      const object=objects.at(step.object);step.elapsed+=dt;
+      if(step.stage==='approach'){
+       if(step.elapsed>5){this.world.clearScriptPedTasks(entity);this.advanceRunner(handle);break;}
+       if(this.world.scriptPedHasOrder?.(entity))break;
+       const p=this.peds.positionOf(handle),dx=object.position.x-p.x,dy=object.position.y-p.y;
+       this.world.giveScriptPedOrder(entity,{kind:'achieveHeading',degrees:Math.atan2(-dx,dy)*180/Math.PI});step.stage='turn';
+      }else if(step.stage==='turn'){
+       if(this.world.scriptPedHasOrder?.(entity))break;
+       const lift=nativeObjectPickupLift(this.peds.positionOf(handle).z,Math.fround(object.position.z+step.plan.minZ));step.lift=lift;step.elapsed=0;step.stage='lift';object.usesCollision=false;
+       // Hold the final association frame so the runner observes real completion, including script speed/time edits.
+       this.world.giveScriptPedOrder(entity,{kind:'playAnim',file:'CARRY',name:lift.clip,loop:false,keepLastFrame:true,seconds:Infinity});
+      }else{
+       const lift=step.lift!,progress=this.world.scriptPedAnimProgress(entity,lift.clip),duration=this.world.scriptPedAnimTotalTime?.(entity,lift.clip);
+       // The script-facing total-time host reports milliseconds; native pickup thresholds are seconds.
+       if(progress!==undefined&&duration!==undefined&&progress*duration/1000>=lift.attachAt&&!step.attached){
+        this.pickUpObject(handle,{kind:'pickUpObject',object:step.object,offset:step.plan.offset,bone:6,orientation:1,animationName:'',animationFile:'',time:0});step.attached=true;
+       }
+       if(progress!==undefined&&progress>=1&&step.attached){
+        this.world.clearScriptPedTasks(entity);this.complexCarriers.set(handle,step.object);this.host('setScriptPedCarryPose','TASK_COMPLEX_PICKUP_OBJECT')(entity,'CRRY_PRTIAL');this.advanceRunner(handle);
+       }else if(progress===undefined&&(!this.world.scriptPedHasOrder?.(entity)||step.elapsed>8)){
+        this.dropRunner(handle);this.world.clearScriptPedTasks(entity);
+       }
+      }break;
+     }
      case 'wait':{
       step.remaining-=dt;if(step.remaining>0)break;
       // A wait ahead of a task (a leave-car delay) goes on to it; else the task is over.
       const next=step.then&&this.dispatch(handle,step.then,r.opcode);if(next)r.step=next;else this.advanceRunner(handle);
+      break;
+     }
+     case 'attachedDive':{
+      if(entity===undefined)break;
+      const ride=this.peds.rideOf(handle),desired=Math.atan2(step.direction.x,-step.direction.y),current=this.peds.headingOf(handle)*Math.PI/180+Math.PI;
+      if(ride?.offset){
+       const turned=achieveHeadingStep(current,desired,this.world.scriptPedHeadingRate?.(entity)??7.5,dt,2);
+       this.peds.setHeading(handle,(turned.heading-Math.PI)*180/Math.PI);
+       if(!turned.done)break;
+       const origin=this.world.scriptPedPosition(entity),heading=(turned.heading-Math.PI)*180/Math.PI;
+       // DettachPedFromEntity runs after AchieveHeading. The rebuilt walker is placed by its feet.
+       this.peds.detachFromCar(handle,{...origin,z:origin.z-PED_ORIGIN_HEIGHT},ped=>this.world.setScriptPedHeading(ped,heading));
+       r.step={kind:'settle',then:{kind:'diveAndGetUp',x:step.direction.x,y:step.direction.y,time:step.time}};
+      }else{
+       const next=this.dispatch(handle,{kind:'diveAndGetUp',x:step.direction.x,y:step.direction.y,time:step.time},r.opcode);if(next)r.step=next;else this.advanceRunner(handle);
+      }
       break;
      }
      case 'seatClip':if(entity===undefined||!this.peds.rideOf(handle)||this.world.scriptRiderClipDone?.(entity)!==false)this.advanceRunner(handle);break;
@@ -3628,8 +3958,60 @@ export class ScmMission {
     }
    }catch(error){
     if(!(error instanceof UnsupportedScmCommand))throw error;
-    this.runners.delete(handle);
+    this.dropRunner(handle);
     this.gaveUp.push({thread:'(sequence)',command:error.command,offset:error.offset,detail:error.message});
+   }
+  }
+ }
+ private readonly greetings=new Map<number,PartnerGreeting>();
+ private stopGreeting(handle:number){
+  const pair=this.greetings.get(handle);if(!pair)return;
+  for(const ped of pair.peds)if(this.greetings.get(ped)===pair){
+   this.greetings.delete(ped);const entity=this.peds.entity(ped);if(entity!==undefined)this.world.clearScriptPedTasks(entity);
+   if(this.taskRecords.get(ped)?.opcode===0x823)this.taskRecords.delete(ped);
+  }
+ }
+ private startGreeting(first:number,second:number,bias:number,style:number){
+  if(first===PLAYER_PED_HANDLE||second===PLAYER_PED_HANDLE)throw new UnsupportedScmCommand(-1,0x823,'PLAYER_PARTNER_GREETING_NOT_PORTED');
+  if(first===second)throw new UnsupportedScmCommand(-1,0x823,'SELF_PARTNER_GREETING_NOT_PORTED');
+  const peds=[first,second] as const,entities=peds.map(ped=>this.livePed(ped));
+  if(peds.some(ped=>!!this.peds.rideOf(ped)))throw new UnsupportedScmCommand(-1,0x823,'VEHICLE_OCCUPANT_PARTNER_GREETING_NOT_PORTED');
+  this.host('scriptPedHasOrder','TASK_GREET_PARTNER');
+  for(const ped of peds)this.clearTasks(ped,'TASK_GREET_PARTNER');
+  const pair:PartnerGreeting={peds,bias,style,stage:'initial',elapsed:0,next:[0,0]};
+  peds.forEach((ped,index)=>{this.greetings.set(ped,pair);this.world.giveScriptPedOrder(entities[index],{kind:'standStill',seconds:.05});this.recordTask(ped,0x823,false);});
+ }
+ private processGreetings(dt:number){
+  for(const pair of new Set(this.greetings.values())){
+   if(pair.peds.some(ped=>!this.peds.exists(ped)||this.peds.isDead(ped)||!!this.peds.rideOf(ped))){this.stopGreeting(pair.peds[0]);continue;}
+   const entities=pair.peds.map(ped=>this.peds.entity(ped));if(entities.some(e=>e===undefined))continue;
+   const busy=()=>entities.map(e=>!!this.world.scriptPedHasOrder?.(e));pair.elapsed+=dt;
+   const order=(index:number,task:ScriptedPedOrder)=>this.world.giveScriptPedOrder(entities[index],task);
+   if(pair.stage==='initial'){
+    if(busy().some(Boolean))continue;
+    pair.targets=nativeGreetingTargets(this.peds.positionOf(pair.peds[0]),this.peds.positionOf(pair.peds[1]),pair.bias);
+    if(!pair.targets){this.stopGreeting(pair.peds[0]);continue;}
+    pair.targets.forEach((target,index)=>order(index,{kind:'goToPoint',...target,moveState:4,radius:Math.fround(.1),moveStateRadius:0,seconds:Infinity}));pair.elapsed=0;pair.stage='approach';
+   }else if(pair.stage==='approach'){
+    // Native aborts on the 151st go-to AI call; this browser runs its pedestrian AI at thirty Hz.
+    if(pair.elapsed>=151/30){this.stopGreeting(pair.peds[0]);continue;}
+    if(busy().some(Boolean))continue;
+    const positions=pair.peds.map(ped=>this.peds.positionOf(ped));positions.forEach((from,index)=>{const to=positions[1-index];order(index,{kind:'achieveHeading',degrees:Math.atan2(-(to.x-from.x),to.y-from.y)*180/Math.PI});});pair.stage='turn';
+   }else if(pair.stage==='turn'){
+    if(busy().some(Boolean))continue;
+    pair.targets!.forEach((target,index)=>{const other=pair.targets![1-index];order(index,{kind:'slideToCoord',...target,degrees:Math.atan2(-(other.x-target.x),other.y-target.y)*180/Math.PI,speed:.1});});pair.stage='align';
+   }else if(pair.stage==='align'){
+    if(busy().some(Boolean))continue;
+    pair.clips=nativeGreetingClips(pair.style);pair.post=[nativeGreetingPostlude(true,()=>this.randomSample16()),nativeGreetingPostlude(false,()=>this.randomSample16())];
+    if(pair.clips){pair.clips.forEach((name,index)=>order(index,{kind:'playAnim',file:'GANGS',name,loop:false,keepLastFrame:true,seconds:Infinity}));pair.stage='greet';}
+    else pair.stage='post';
+   }else if(pair.stage==='greet'){
+    const progress=pair.clips!.map((clip,index)=>this.world.scriptPedAnimProgress(entities[index],clip));
+    if(progress.every(p=>p!==undefined&&p>=1)){entities.forEach(e=>this.world.clearScriptPedTasks(e));pair.stage='post';}
+    else if(progress.some((p,index)=>p===undefined&&!this.world.scriptPedHasOrder?.(entities[index])))this.stopGreeting(pair.peds[0]);
+   }else{
+    const occupied=busy();for(let index=0;index<2;index++){if(occupied[index])continue;const next=pair.post![index][pair.next[index]];if(next){pair.next[index]++;order(index,next);}}
+    if(pair.next.every((next,index)=>next>=pair.post![index].length)&&busy().every(b=>!b))this.stopGreeting(pair.peds[0]);
    }
   }
  }
@@ -3649,12 +4031,13 @@ export class ScmMission {
  private givePlayer(orders:readonly ScriptedPedOrder[],repeat:boolean,opcode:number,sequence=false,start=0){
   const other=orders.find(order=>!PlayerScriptTasks.runs(order));
   if(other)throw new UnsupportedScmCommand(-1,opcode,'A_PLAYER_TASK_THE_BROWSER_DOES_NOT_RUN',other.kind);
-  this.host('givePlayerOrders','A_PLAYER_TASK')(orders,repeat,sequence,start);
+  if(this.host('givePlayerOrders','A_PLAYER_TASK')(orders,repeat,sequence,start)===false)return;
   this.recordTask(PLAYER_PED_HANDLE,opcode,false);
  }
  private clearTasks(handle:number,command:string){
+  this.mapAttractorUses.delete(handle);
   if(handle===PLAYER_PED_HANDLE)this.host('clearPlayerTasks',command)();
-  else{this.runners.delete(handle);this.stopDriving(handle);const ped=this.livePed(handle);this.world.clearScriptPedDriveBy?.(ped);this.world.clearScriptRiderClip?.(ped);this.world.clearScriptPedTasks(ped);}
+  else{this.dropRunner(handle);this.stopDriving(handle);const ped=this.livePed(handle);this.world.clearScriptPedDriveBy?.(ped);this.world.clearScriptRiderClip?.(ped);this.world.clearScriptPedTasks(ped);}
   this.taskRecords.delete(handle);
  }
  /** CRunningScript::SetCharCoordinates on the player: CWorld::PutToGroundIfTooLow first (a z at or below
@@ -3669,6 +4052,7 @@ export class ScmMission {
   return {kind:'ped',entity:this.livePed(handle)};
  }
  /** CWorld::FindGroundZForCoord: straight down from z = 1000, and 20 where the world has no ground under the point. */
+ private scriptTextWidth(text:string,command:string){try{return nativeScriptTextWidth(gxtControlKeyText(text),this.runtime.game.introText.pending);}catch(error){throw new UnsupportedScmCommand(-1,command==='GET_STRING_WIDTH'?0x9fd:0xa08,command,String(error));}}
  private findGroundZForCoord(x:number,y:number){return this.world.groundLevel(x,y,1000)??20;}
  private teleportPlayer(x:number,y:number,z:number,command:string){
   // CWorld::PutToGroundIfTooLow.
@@ -3697,6 +4081,10 @@ export class ScmMission {
   * the player took gets one the first time a script asks (STORE_CAR_CHAR_IS_IN_NO_SAVE, GET_CAR_CHAR_IS_USING), and
   * keeps naming that car after he leaves it: the script can then seat its peds in it, warp it, or ask after it.
   * PLAYER_VEHICLE_HANDLE is left for a vehicle the host cannot hand over or whose model it does not know. */
+ private playerPassengerOfVehicle(handle:number,seat?:number){
+  const ride=this.world.playerPed?.()?.vehicle;
+  return !!ride?.passenger&&(seat===undefined||ride.passengerSeat===seat)&&this.playerCarHandle()===handle;
+ }
  private playerCarHandle(){
   const vehicle=this.world.playerPed().vehicle;if(!vehicle)return undefined;
   const entity=this.world.playerVehicleEntity?.();if(entity===undefined)return PLAYER_VEHICLE_HANDLE;
@@ -3727,6 +4115,7 @@ export class ScmMission {
  /** Where the peds a task names stand: the ped itself, a script ped, or the player (whose handle is no pool ped). */
  private taskWorld(handle:number){
   return {
+   isPlayer:handle===PLAYER_PED_HANDLE,
    self:()=>handle===PLAYER_PED_HANDLE?{...this.world.playerPed().position}:this.peds.positionOf(handle),
    ped:(other:number)=>other===PLAYER_PED_HANDLE?{...this.world.playerPed().position}:this.peds.exists(other)?this.peds.positionOf(other):undefined,
    decisionMaker:(dm:number)=>this.runtime.game.decisionMakers.actualIndex(dm),
@@ -3765,8 +4154,11 @@ export class ScmMission {
   best?.apply();
  }
  /** DRAW_CORONA's registrations since the host last took them: the host registers each with CCoronas that frame. */
- private coronaQueue:{id:number;position:[number,number,number];size:number;color:[number,number,number];coronaType:number;flareType:number}[]=[];
+ private coronaQueue:{id:number;position:[number,number,number];size:number;color:[number,number,number];coronaType:number;flareType:number;range?:number;pullTowardsCamera?:number}[]=[];
  takeScriptCoronas(){const out=this.coronaQueue;this.coronaQueue=[];return out;}
+ private scriptShadows=new NativeScriptShadowQueue();
+ private parkingNodes=new NativeParkingNodeSearch();
+ takeScriptShadows(){return this.scriptShadows.take();}
  /** The point lights DRAW_LIGHT_WITH_RANGE asked for since the last frame took them. */
  private lightQueue:{position:[number,number,number];radius:number;color:[number,number,number]}[]=[];
  takeScriptLights(){const out=this.lightQueue;this.lightQueue=[];return out;}
@@ -3869,7 +4261,7 @@ export class ScmMission {
  }
  private ridingIn(handle:number){
   const ride=this.peds.rideOf(handle);
-  return ride&&this.vehicles.exists(ride.vehicle)?this.vehicles.positionOf(ride.vehicle):undefined;
+  return ride&&this.vehicles.exists(ride.vehicle)?ride.offset?this.peds.positionOf(handle):this.vehicles.positionOf(ride.vehicle):undefined;
  }
  /** The group a command names, made on demand so a script that sets a group it never created still works the
   * way CPedGroups' own array does, where every slot is a group already. */
@@ -3927,6 +4319,10 @@ export class ScmMission {
    release:winch||crane!==CRANE_NONE?pads.state(0,BUTTON.circle):0,winch:winch?pads.state(0,BUTTON.rightStickY):0});
  }
  private followAttachments(){
+  for(const [ped,object] of this.complexCarriers){
+   if(this.peds.exists(ped)&&!this.peds.isDead(ped)&&this.heldObjectOf(ped)?.handle===object)continue;
+   const entity=this.peds.entity(ped);this.dropHeldObject(ped,true);this.complexCarriers.delete(ped);if(entity!==undefined)this.world.setScriptPedCarryPose?.(entity,undefined);
+  }
   for(const object of this.runtime.game.objects.all){
    const attached=object.attachedTo;if(!attached)continue;
    const frame=this.attachmentFrame(attached);if(!frame)continue;
@@ -3950,6 +4346,10 @@ export class ScmMission {
  /** Where the thing an object hangs from is, and which way its own axes point. */
  private attachmentFrame(attached:{kind:'vehicle'|'ped'|'object';handle:number}){
   if(attached.kind==='vehicle'){
+   if(attached.handle===PLAYER_VEHICLE_HANDLE){
+    const car=this.world.playerVehicleEntity?.();if(!car)return undefined;
+    const matrix=this.world.scriptVehicleMatrix(car);return{...matrix,heading:Math.atan2(-matrix.forward.x,matrix.forward.y)};
+   }
    if(!this.vehicles.exists(attached.handle))return undefined;
    const car=this.vehicles.entity(attached.handle);if(!car)return undefined;
    const matrix=this.world.scriptVehicleMatrix(car);
@@ -4137,6 +4537,7 @@ export class ScmMission {
   return true;
  }
  private heldObjectOf(handle:number,second=false){return this.runtime.game.objects.all.find(object=>object.heldBy?.ped===handle&&!!object.heldBy.second===second);}
+ private readonly complexCarriers=new Map<number,number>();
  private pedHeadingRadians(handle:number){
   const degrees=handle===PLAYER_PED_HANDLE?this.world.playerPed().heading??0:this.peds.headingOf(handle);
   return degrees*Math.PI/180;
@@ -4159,6 +4560,7 @@ export class ScmMission {
  }
  private dropHeldObject(handle:number,quietly:boolean,second=false){
   const object=this.heldObjectOf(handle,second);if(!object)return;
+  if(this.complexCarriers.get(handle)===object.handle){this.complexCarriers.delete(handle);const entity=this.peds.entity(handle);if(entity!==undefined)this.world.setScriptPedCarryPose?.(entity,undefined);}
   object.heldBy=undefined;object.usesCollision=true;
   if(!quietly){object.isStatic=true;return;}
   const at=handle===PLAYER_PED_HANDLE?this.world.playerPed().position:this.peds.exists(handle)?this.peds.positionOf(handle):object.position;
@@ -4199,7 +4601,7 @@ export class ScmMission {
   if(handle===PLAYER_PED_HANDLE){
    this.clearTasks(handle,command);
    if(!this.host('warpPlayerIntoCarAsPassenger',command)(this.liveVehicle(vehicle),seat))
-    throw new UnsupportedScmCommand(-1,0,command,'a player already in a vehicle, or a vehicle other than a car');
+    throw new UnsupportedScmCommand(-1,0,command,'a player already riding, or a vehicle without a supported passenger seat');
    return;
   }
   this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,seat);
@@ -4566,6 +4968,48 @@ export class ScmMission {
  }
  /** The game clock the script last ran at. */
  private clockMs=0;
+ readonly remote=new NativeRemoteControl();
+ private remoteGeneration=0;
+ /** CRemote's registered target pointer is represented by a script handle while its model loads. */
+ private activateRemote(handle:number,switchType:number){
+  const generation=++this.remoteGeneration;
+  this.world.controlRemoteVehicle?.(undefined);
+  this.runtime.game.camera.takeControl({kind:'vehicle',handle},18,switchType,1);
+  void this.vehicles.whenSettled(handle).then(car=>{
+   if(generation!==this.remoteGeneration||this.remote.vehicle!==handle)return;
+   if(!car||!this.vehicles.exists(handle)){
+    this.remote.deleted(handle);this.world.controlRemoteVehicle?.(undefined);
+    this.runtime.game.camera.restoreWithJumpCut(this.world.playerCameraState());return;
+   }
+   this.world.controlRemoteVehicle?.(car);
+  });
+ }
+ /** CPlayerInfo::Process's hand-back after CTheScripts::Process: the query remains true while it fades. */
+ private processRemote(nowMs:number,previousMs:number){
+  const held=this.remote.vehicle;
+  if(held!==undefined&&!this.remote.afterExplosion){
+   const car=this.vehicles.entity(held);
+   if(car&&(this.world.scriptVehicleHealth(car)<=0||(this.world.playerState?.()??'playing')!=='playing'))this.remote.remove(nowMs,false);
+  }
+  if(held!==undefined&&this.vehicles.settledFor(held)&&!this.vehicles.exists(held)){
+   this.remote.deleted(held);this.world.controlRemoteVehicle?.(undefined);
+   if(!this.remote.afterExplosion)this.runtime.game.camera.restoreWithJumpCut(this.world.playerCameraState());
+  }
+  const playing=(this.world.playerState?.()??'playing')==='playing';
+  const action=this.remote.process(nowMs,previousMs,playing);
+  if(action.fadeOut)this.runtime.world?.fade?.(1000,0,nowMs);
+  if(action.removeVehicle!==undefined){
+   this.remoteGeneration++;this.world.controlRemoteVehicle?.(undefined);this.vehicles.delete(action.removeVehicle);
+  }
+  if(action.restore){this.runtime.game.camera.restoreWithJumpCut(this.world.playerCameraState());this.runtime.world?.fade?.(1000,1,nowMs);}
+ }
+ /** CAutomobile::ProcessAI's remote car-gun press or RC Bandit wheel/submersion contact. */
+ detonateRemote(contact=false){
+  if(this.remote.vehicle===undefined||this.remote.afterExplosion||(contact?this.remote.contactDetonateDisabled:this.remote.detonateDisabled))return false;
+  const car=this.vehicles.entity(this.remote.vehicle);if(!car||this.world.scriptVehicleHealth(car)<=0)return false;
+  const explode=this.host('explodeRemoteVehicle','RC_DETONATE');
+  this.remote.remove(this.clockMs,true);explode(car);return true;
+ }
  /** The areas the last script pass asked HighlightImportantArea for, by marker id. */
  private readonly highlights=new Map<number,{id:number;x:number;y:number;z?:number;halfX:number;
   /** DRAW_SPHERE's marker: one cylinder as DrawScriptSpheres places them, not the highlight's three. */
@@ -4592,7 +5036,7 @@ export class ScmMission {
   }
  }
  step(nowMs:number,timeStepMs:number){
-  this.clockMs=nowMs;if(timeStepMs>0)this.frameMs=timeStepMs;
+  const previousMs=this.clockMs;this.clockMs=nowMs;if(timeStepMs>0)this.frameMs=timeStepMs;
   if(this.stopped)return;
   if(this.pedsOnObjects.size)this.positionPedsOnObjects();
   this.highlights.clear();
@@ -4601,9 +5045,11 @@ export class ScmMission {
   // CPad::Update for pad 0 before the scripts run: a PRINT of WUZ1_DA or GAR2_10 (iOS) clears DisablePlayerControls,
   // the script's player-safe bit with it; the CPlayerInfo half of MakePlayerSafe is left as it was.
   {const pads=this.runtime.game.pads;if(pads.releaseControls[0]){pads.releaseControls[0]=false;pads.setPlayerSafe(0,false);this.playerControl=true;}}
-  try{this.serviceCutscene();this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.world.clearScriptPedEvents?.();if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();if(this.swatRopeRiders.size)this.settleSwatRopeRiders();this.processObjectBrains(nowMs);this.processSamSites(nowMs,timeStepMs);this.processPedBrains(nowMs);this.processGarageDoors(nowMs);this.liftCreatedObjects();this.updateConversations(nowMs);this.settlePutDown();if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.runtime.game.objects.advanceFades(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
+  try{this.serviceCutscene();this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.world.clearScriptPedEvents?.();if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();if(this.mapAttractorUses.size)this.processMapAttractors();if(this.swatRopeRiders.size)this.settleSwatRopeRiders();this.processObjectBrains(nowMs);this.processSamSites(nowMs,timeStepMs);this.processPedBrains(nowMs);this.processGarageDoors(nowMs);this.liftCreatedObjects();this.updateConversations(nowMs);this.settlePutDown();if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.runtime.game.objects.advanceFades(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
+   this.processRemote(nowMs,previousMs);
    this.processRunners(timeStepMs/1000);
+   this.processGreetings(timeStepMs/1000);
    this.drownRiders(timeStepMs);
    this.processTaskRecords();
    const game=this.runtime.game;game.onscreenTimer.process(this.globals,timeStepMs,game.widescreenOn,()=>this.world.frontendAudioEvent?.(33));
@@ -4638,7 +5084,10 @@ export class ScmMission {
   * task never finishes, so it keeps its record until it is replaced or cleared. */
  private readonly taskRecords=new Map<number,{opcode:number;status:number;wander:boolean}>();
  /** CPedScriptedTaskRecordData::Set through a CEventScriptCommand: EVENT_ASSOCIATED until the next Process. */
- private recordTask(handle:number,opcode:number,wander:boolean){this.taskRecords.set(handle,{opcode,status:TASK_EVENT_ASSOCIATED,wander});}
+ private recordTask(handle:number,opcode:number,wander:boolean){
+  const use=this.mapAttractorUses.get(handle);
+  if(use?.arrived&&use.brain&&this.runtime.currentThread!==use.brain)this.mapAttractorUses.delete(handle);
+  this.taskRecords.set(handle,{opcode,status:TASK_EVENT_ASSOCIATED,wander});}
  /** CPedScriptedTaskRecord::Process (0x6085E0): a record whose ped is gone, or whose task the ped no longer holds, is
   * flushed; one still held is TASK_ASSOCIATED. */
  private processTaskRecords(){
@@ -4648,7 +5097,7 @@ export class ScmMission {
     continue;
    }
    if(!this.peds.exists(handle)){this.taskRecords.delete(handle);this.drivingTasks.delete(handle);continue;}
-   if(record.wander||this.runners.has(handle)){record.status=TASK_TASK_ASSOCIATED;continue;}
+   if(record.wander||this.runners.has(handle)||this.greetings.has(handle)){record.status=TASK_TASK_ASSOCIATED;continue;}
    // A ped still being made (its handle given, its body pending) keeps the order it will be given.
    const ped=this.peds.entity(handle);
    if(this.world.scriptPedHasOrder&&ped!==undefined&&!this.world.scriptPedHasOrder(ped)){this.taskRecords.delete(handle);this.drivingTasks.delete(handle);continue;}

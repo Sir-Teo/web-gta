@@ -25,6 +25,11 @@ export class NativeFxEffects {
   this.statics=Object.fromEntries(STATIC_SYSTEMS.map(name=>[name,fx.create(name,[0,0,0],undefined,true)])) as NativeFxEffects['statics'];
  }
  private random(min:number,max:number){return min+(max-min)*this.fx.world.random();}
+ /** ADD_SMOKE_PARTICLE (iOS 0x1002019a4): Fx_c::m_SmokeHuge, raw RGBA/size/life and rotation multiplier 1. */
+ scriptSmoke(position:FxVec,velocity:FxVec,r:number,g:number,b:number,a:number,size:number,life:number){
+  const f=Math.fround;
+  this.statics.prt_smoke_huge?.addParticle(position.map(f) as FxVec,velocity.map(f) as FxVec,0,fxPrtMult(f(r),f(g),f(b),f(a),f(size),1,f(life)),-1,f(1.2),f(.6),false);
+ }
  private withinCamera(position:FxVec,rangeSquared:number){const c=this.camera();return (c[0]-position[0])**2+(c[1]-position[1])**2+(c[2]-position[2])**2<=rangeSquared;}
  /** CExplosion::AddExplosion FX (CreateAndPlayFxWithSound). Returns the system name played. */
  explosion(type:number,position:FxVec){
@@ -55,8 +60,8 @@ export class NativeFxEffects {
   system.copyParentMatrix();system.play();system.setMustCreatePrts(true);system.setConstTime(true,1);return system;
  }
  /** CWeapon::AddGunshell: within 10 m of the camera; shotgun shells are red. */
- gunshell(position:FxVec,direction:[number,number],size:number,shotgun=false){
-  if(!this.withinCamera(position,100))return;
+ gunshell(position:FxVec,direction:[number,number],size:number,shotgun=false,creatorPosition:FxVec=position){
+  if(!this.withinCamera(creatorPosition,100))return;
   this.statics.prt_gunshell?.addParticle(position,[direction[0],direction[1],this.random(.4,1.6)],0,shotgun?fxPrtMult(.6,.1,.1,1,size,1,1):fxPrtMult(.5,.5,.5,1,size,1,1));
  }
  /** Fx_c::TriggerGunshot (reconstructed): muzzle flash and smoke along the shot. */

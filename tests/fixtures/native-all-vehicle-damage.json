@@ -1,0 +1,1116 @@
+{
+  "executableSha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "handler": "0x1001e0f7c",
+  "toggleFunction": "0x100276910",
+  "extinguishSelection": "0x10027652c",
+  "cases": [
+    {
+      "input": {
+        "name": "all-families",
+        "player": [
+          0,
+          0,
+          0
+        ],
+        "positions": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            2,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            0
+          ],
+          [
+            8,
+            0,
+            0
+          ],
+          [
+            10,
+            0,
+            0
+          ]
+        ],
+        "valid": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "argument": 0
+      },
+      "before": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a505a5a5"
+      ],
+      "after": [
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a505a5a5",
+        "0xa5a5a5a5a505a5a5"
+      ],
+      "extinguished": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "input": {
+        "name": "all-families",
+        "player": [
+          0,
+          0,
+          0
+        ],
+        "positions": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            2,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            0
+          ],
+          [
+            8,
+            0,
+            0
+          ],
+          [
+            10,
+            0,
+            0
+          ]
+        ],
+        "valid": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "argument": 1
+      },
+      "before": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a505a5a5"
+      ],
+      "after": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a525a5a5"
+      ],
+      "extinguished": []
+    },
+    {
+      "input": {
+        "name": "all-families",
+        "player": [
+          0,
+          0,
+          0
+        ],
+        "positions": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            2,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            0
+          ],
+          [
+            8,
+            0,
+            0
+          ],
+          [
+            10,
+            0,
+            0
+          ]
+        ],
+        "valid": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "argument": -1
+      },
+      "before": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a505a5a5"
+      ],
+      "after": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a525a5a5"
+      ],
+      "extinguished": []
+    },
+    {
+      "input": {
+        "name": "all-families",
+        "player": [
+          0,
+          0,
+          0
+        ],
+        "positions": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            2,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            0
+          ],
+          [
+            8,
+            0,
+            0
+          ],
+          [
+            10,
+            0,
+            0
+          ]
+        ],
+        "valid": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "argument": 2
+      },
+      "before": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a505a5a5"
+      ],
+      "after": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a525a5a5"
+      ],
+      "extinguished": []
+    },
+    {
+      "input": {
+        "name": "invalid-slots",
+        "player": [
+          0,
+          0,
+          0
+        ],
+        "positions": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            2,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            0
+          ],
+          [
+            8,
+            0,
+            0
+          ],
+          [
+            10,
+            0,
+            0
+          ]
+        ],
+        "valid": [
+          true,
+          false,
+          true,
+          false,
+          true,
+          false
+        ],
+        "argument": 0
+      },
+      "before": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a505a5a5"
+      ],
+      "after": [
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a505a5a5",
+        "0xa5a5a5a5a505a5a5"
+      ],
+      "extinguished": [
+        0,
+        2,
+        4
+      ]
+    },
+    {
+      "input": {
+        "name": "invalid-slots",
+        "player": [
+          0,
+          0,
+          0
+        ],
+        "positions": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            2,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            0
+          ],
+          [
+            8,
+            0,
+            0
+          ],
+          [
+            10,
+            0,
+            0
+          ]
+        ],
+        "valid": [
+          true,
+          false,
+          true,
+          false,
+          true,
+          false
+        ],
+        "argument": 1
+      },
+      "before": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a505a5a5"
+      ],
+      "after": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a505a5a5"
+      ],
+      "extinguished": []
+    },
+    {
+      "input": {
+        "name": "invalid-slots",
+        "player": [
+          0,
+          0,
+          0
+        ],
+        "positions": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            2,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            0
+          ],
+          [
+            8,
+            0,
+            0
+          ],
+          [
+            10,
+            0,
+            0
+          ]
+        ],
+        "valid": [
+          true,
+          false,
+          true,
+          false,
+          true,
+          false
+        ],
+        "argument": -1
+      },
+      "before": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a505a5a5"
+      ],
+      "after": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a505a5a5"
+      ],
+      "extinguished": []
+    },
+    {
+      "input": {
+        "name": "invalid-slots",
+        "player": [
+          0,
+          0,
+          0
+        ],
+        "positions": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            2,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            0
+          ],
+          [
+            8,
+            0,
+            0
+          ],
+          [
+            10,
+            0,
+            0
+          ]
+        ],
+        "valid": [
+          true,
+          false,
+          true,
+          false,
+          true,
+          false
+        ],
+        "argument": 2
+      },
+      "before": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a505a5a5"
+      ],
+      "after": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a505a5a5"
+      ],
+      "extinguished": []
+    },
+    {
+      "input": {
+        "name": "radius-boundary",
+        "player": [
+          0,
+          0,
+          0
+        ],
+        "positions": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            3999.99,
+            0,
+            0
+          ],
+          [
+            4000,
+            0,
+            0
+          ],
+          [
+            4000.00001,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            4000
+          ],
+          [
+            0,
+            0,
+            3999.99
+          ]
+        ],
+        "valid": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "argument": 0
+      },
+      "before": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a505a5a5"
+      ],
+      "after": [
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a505a5a5",
+        "0xa5a5a5a5a505a5a5"
+      ],
+      "extinguished": [
+        0,
+        1,
+        5
+      ]
+    },
+    {
+      "input": {
+        "name": "radius-boundary",
+        "player": [
+          0,
+          0,
+          0
+        ],
+        "positions": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            3999.99,
+            0,
+            0
+          ],
+          [
+            4000,
+            0,
+            0
+          ],
+          [
+            4000.00001,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            4000
+          ],
+          [
+            0,
+            0,
+            3999.99
+          ]
+        ],
+        "valid": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "argument": 1
+      },
+      "before": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a505a5a5"
+      ],
+      "after": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a525a5a5"
+      ],
+      "extinguished": []
+    },
+    {
+      "input": {
+        "name": "radius-boundary",
+        "player": [
+          0,
+          0,
+          0
+        ],
+        "positions": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            3999.99,
+            0,
+            0
+          ],
+          [
+            4000,
+            0,
+            0
+          ],
+          [
+            4000.00001,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            4000
+          ],
+          [
+            0,
+            0,
+            3999.99
+          ]
+        ],
+        "valid": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "argument": -1
+      },
+      "before": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a505a5a5"
+      ],
+      "after": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a525a5a5"
+      ],
+      "extinguished": []
+    },
+    {
+      "input": {
+        "name": "radius-boundary",
+        "player": [
+          0,
+          0,
+          0
+        ],
+        "positions": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            3999.99,
+            0,
+            0
+          ],
+          [
+            4000,
+            0,
+            0
+          ],
+          [
+            4000.00001,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            4000
+          ],
+          [
+            0,
+            0,
+            3999.99
+          ]
+        ],
+        "valid": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "argument": 2
+      },
+      "before": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a505a5a5"
+      ],
+      "after": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a525a5a5",
+        "0xa5a5a5a5a525a5a5"
+      ],
+      "extinguished": []
+    },
+    {
+      "input": {
+        "name": "float-rounded-boundary",
+        "player": [
+          10000.001,
+          20000.001,
+          30.001
+        ],
+        "positions": [
+          [
+            14000.00001,
+            20000.001,
+            30.001
+          ],
+          [
+            13999.99999,
+            20000.001,
+            30.001
+          ],
+          [
+            10000.001,
+            20000.001,
+            4030.00001
+          ],
+          [
+            10000.001,
+            20000.001,
+            4029.99999
+          ]
+        ],
+        "valid": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "argument": 0
+      },
+      "before": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5"
+      ],
+      "after": [
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5c5a5a5",
+        "0xa5a5a5a5a5c5a5a5"
+      ],
+      "extinguished": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "input": {
+        "name": "float-rounded-boundary",
+        "player": [
+          10000.001,
+          20000.001,
+          30.001
+        ],
+        "positions": [
+          [
+            14000.00001,
+            20000.001,
+            30.001
+          ],
+          [
+            13999.99999,
+            20000.001,
+            30.001
+          ],
+          [
+            10000.001,
+            20000.001,
+            4030.00001
+          ],
+          [
+            10000.001,
+            20000.001,
+            4029.99999
+          ]
+        ],
+        "valid": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "argument": 1
+      },
+      "before": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5"
+      ],
+      "after": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5e5a5a5"
+      ],
+      "extinguished": []
+    },
+    {
+      "input": {
+        "name": "float-rounded-boundary",
+        "player": [
+          10000.001,
+          20000.001,
+          30.001
+        ],
+        "positions": [
+          [
+            14000.00001,
+            20000.001,
+            30.001
+          ],
+          [
+            13999.99999,
+            20000.001,
+            30.001
+          ],
+          [
+            10000.001,
+            20000.001,
+            4030.00001
+          ],
+          [
+            10000.001,
+            20000.001,
+            4029.99999
+          ]
+        ],
+        "valid": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "argument": -1
+      },
+      "before": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5"
+      ],
+      "after": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5e5a5a5"
+      ],
+      "extinguished": []
+    },
+    {
+      "input": {
+        "name": "float-rounded-boundary",
+        "player": [
+          10000.001,
+          20000.001,
+          30.001
+        ],
+        "positions": [
+          [
+            14000.00001,
+            20000.001,
+            30.001
+          ],
+          [
+            13999.99999,
+            20000.001,
+            30.001
+          ],
+          [
+            10000.001,
+            20000.001,
+            4030.00001
+          ],
+          [
+            10000.001,
+            20000.001,
+            4029.99999
+          ]
+        ],
+        "valid": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "argument": 2
+      },
+      "before": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a585a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5c5a5a5"
+      ],
+      "after": [
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a5a5a5a5",
+        "0xa5a5a5a5a5e5a5a5",
+        "0xa5a5a5a5a5e5a5a5"
+      ],
+      "extinguished": []
+    },
+    {
+      "input": {
+        "name": "empty",
+        "player": [
+          0,
+          0,
+          0
+        ],
+        "positions": [],
+        "valid": [],
+        "argument": 0
+      },
+      "before": [],
+      "after": [],
+      "extinguished": []
+    },
+    {
+      "input": {
+        "name": "empty",
+        "player": [
+          0,
+          0,
+          0
+        ],
+        "positions": [],
+        "valid": [],
+        "argument": 1
+      },
+      "before": [],
+      "after": [],
+      "extinguished": []
+    },
+    {
+      "input": {
+        "name": "empty",
+        "player": [
+          0,
+          0,
+          0
+        ],
+        "positions": [],
+        "valid": [],
+        "argument": -1
+      },
+      "before": [],
+      "after": [],
+      "extinguished": []
+    },
+    {
+      "input": {
+        "name": "empty",
+        "player": [
+          0,
+          0,
+          0
+        ],
+        "positions": [],
+        "valid": [],
+        "argument": 2
+      },
+      "before": [],
+      "after": [],
+      "extinguished": []
+    }
+  ]
+}

@@ -20,7 +20,10 @@ test('gang turf sends the dominant gang\'s resident car into traffic with gang d
    const gangPicks=picks.filter((p:any)=>p.gang===1);
    const models=new Set(gangPicks.map((p:any)=>p.modelId));
    const resident=fleet.gangCarModel(1);
-   return {share,gangCount:gangPicks.length,models:[...models],groveCars,resident,otherGang:picks.some((p:any)=>p.gang!==undefined&&p.gang!==1),snapshot:fleet.snapshot().gangCars};
+   fleet.forceRandomCarModel=()=>459;const forcedPicks=Array.from({length:400},()=>fleet.trafficPick());
+   const forcedCivilians=[...new Set(forcedPicks.filter((p:any)=>p.gang===undefined).map((p:any)=>p.modelId))];
+   const forcedGangs=[...new Set(forcedPicks.filter((p:any)=>p.gang===1).map((p:any)=>p.modelId))];
+   return {forcedCivilians,forcedGangs,share,gangCount:gangPicks.length,models:[...models],groveCars,resident,otherGang:picks.some((p:any)=>p.gang!==undefined&&p.gang!==1),snapshot:fleet.snapshot().gangCars};
   }finally{fleet.dispose();sim.dispose();}
  });
  expect(result.share).toBeGreaterThan(0);
@@ -32,4 +35,5 @@ test('gang turf sends the dominant gang\'s resident car into traffic with gang d
  expect(result.groveCars).toContain(result.models[0]);
  expect(result.resident).toBe(result.models[0]);
  expect(result.snapshot).toEqual([[1,result.models[0]]]);
+ expect(result.forcedCivilians).toEqual([459]);expect(result.forcedGangs).toEqual([result.resident]);
 });

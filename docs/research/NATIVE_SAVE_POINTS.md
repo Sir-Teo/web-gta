@@ -17,11 +17,12 @@ The PICKUPSAVE discs from the original script now save the game (`src/assets/scm
 ## Gaps
 
 - Only the Verdant Meadows disc (slot 2) is outside an interior; the other twelve sit in safehouse interiors. Interiors are now published (`gta_int.img` under `public/play/world/int/`, listed in the world manifest's `archives`) and entered through the entry-exit doors (`src/world/nativeEntryExits.ts`), but saving at the interior discs has not been verified.
-- Walking to that disc in game puts the player at height 15.56 where the disc sits at 9.51, so its 1-unit reach is never entered: the streamed airstrip ground there is about six units above the script's disc. Whether the original places it under a hangar floor that the browser does not stream is unresolved, so the flow is verified through the pickup system rather than in the running world.
-- There is no save menu, slot picker or "Game saved" front end: walking in saves at once. `CStats` safehouse visits, gang wars, ropes and `TidyUpMemory` have nothing to act on here.
+- The Verdant disc remains below the streamed ground. The October 22 support probe loads 54 models/83 placements with no missing COL: `ne_bit_08` is at Z=15.53686, with `des_byoffice` surfaces above it, and no floor is found below Z=15 at the disc or respawn point. The original INITIAL values remain Z=9.5077/9.0077; native CREATE_PICKUP preserves that disc height, then compresses it to 9.5. The reason for this script/world discrepancy remains unresolved. Pickup-system save checks do not establish a reachable disc there.
+- Native ACTIVATE_SAVE_MENU/HAS_SAVE_GAME_FINISHED remain unimplemented. The direct disc flow saves browser progress and shows a HUD confirmation; it does not provide the native menu or complete world/script persistence. `CStats` safehouse visits, gang wars, ropes and `TidyUpMemory` remain outside this flow.
 
 ## Verification
 
 - `tests/save-points.test.ts`: the thirteen new-game discs, their respawn spots and headings (Verdant Meadows the only exterior one), and the save effects including the 200 health cap and the six-hour clock roll.
-- `tests/verdant-save-disc.test.ts`: the Verdant disc collects at its script height on foot but not from the streamed strip ~6 m above; `PICKUP_REACH` stays native, so the fix is terrain streaming around the disc, not a larger reach.
+- `tests/verdant-save-disc.test.ts`: the Verdant disc collects at its script height on foot but not from the streamed strip ~6 m above. `PICKUP_REACH` stays native; the script/world height discrepancy still needs an explanation before a placement or terrain correction is justified.
 - `tests/browser/pickups.spec.ts`: a save disc reports the save on foot but not from a car, stays active for a repeat save, and its effects match.
+- `node scripts/research/verdant-save-support.mjs` probes the packaged world offline and writes `artifacts/verdant-save-support.json`. Native [pickup position captures](PICKUP_POSITION_STORAGE.md) establish storage without moving the disc to another floor.

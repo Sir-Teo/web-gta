@@ -579,6 +579,7 @@ export class WorldPolice {
    const car=u.car;u.seconds+=dt;
    if(car.wrecked){car.autopilot=undefined;continue;}
    if(car.occupied){car.autopilot=undefined;this.stepLeaving(u,dt);continue;}
+   car.obstructingEntity=undefined;
    // The player dragged the driver out (CreateDragPedOutSubTask): his seat is empty from then on.
    if(car.driverOut&&(u.seats[0]||u.deadSeats[0])&&!u.leaving.some(l=>l.seat===0)){u.seats[0]=false;u.deadSeats[0]=false;}
    this.stepLeaving(u,dt);
@@ -778,8 +779,8 @@ export class WorldPolice {
   * any vehicle ahead allows, as WorldTraffic works it out for random traffic (the patrol car's m_SpeedMult is taken
   * as 1). */
  private cruiseTrafficSpeed(car:WorldCar,cruise:number){
-  const others=[...this.fleet.cars].filter(o=>o!==car&&!o.disposed).map(o=>o.dangerView());
-  return slowCarDownForCars(car.dangerView(),others,cruise,cruise).speed;
+  const others=[...this.fleet.cars].filter(o=>o!==car&&!o.disposed).map(o=>({...o.dangerView(),vehicle:o}));
+  return slowCarDownForCars(car.dangerView(),others,cruise,cruise,(other,_proximity,speed)=>{car.obstructingEntity=other.vehicle;return speed;}).speed;
  }
  /** The cop at the wheel of a unit's car (every seat holds the unit's model; the driver's gun is the shotgun when he
   * was handed it), for the ped the player drags out or who leaves it. */

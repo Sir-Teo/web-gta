@@ -32,13 +32,14 @@ const op=scmOpcode;
 
 describe('where two lines cross',()=>{
  test('two crossing lines give their meeting point',()=>{
-  const {readFloat}=run({},undefined,instruction(op('GET_2D_LINES_INTERSECT_POINT'),
+  const {readFloat,thread}=run({},undefined,instruction(op('GET_2D_LINES_INTERSECT_POINT'),
    [float(0),float(0),float(10),float(10),float(0),float(10),float(10),float(0),gvar(40),gvar(44)]));
   expect(readFloat(40)).toBeCloseTo(5,4);
   expect(readFloat(44)).toBeCloseTo(5,4);
+  expect(thread.condition).toBe(true);
  });
 
- test('parallel lines leave the point where it was rather than dividing by nothing',()=>{
+ test('parallel lines report false and overwrite both point outputs with the captured native sentinel',()=>{
   const space=new Uint8Array(4096);
   const view=new DataView(space.buffer);
   view.setFloat32(40,123,true);view.setFloat32(44,456,true);
@@ -47,8 +48,9 @@ describe('where two lines cross',()=>{
   const host:ScmThreadHost={startScript(){},game:new ScmGameState(),world:{fade(){}} as ScmWorldCommands};
   const thread=new ScmThread(space,CODE,0,undefined,host);
   try{thread.run(0,4);}catch(error){if(!String(error).includes('watchdog'))throw error;}
-  expect(view.getFloat32(40,true)).toBeCloseTo(123,3);
-  expect(view.getFloat32(44,true)).toBeCloseTo(456,3);
+  expect(view.getFloat32(40,true)).toBe(-1000000);
+  expect(view.getFloat32(44,true)).toBe(-1000000);
+  expect(thread.condition).toBe(false);
  });
 });
 

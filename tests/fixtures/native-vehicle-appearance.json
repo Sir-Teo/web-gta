@@ -1,0 +1,134 @@
+{
+  "executableSha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "function": "0x100476ec0",
+  "cases": [
+    {
+      "flags": 0,
+      "appearance": 1
+    },
+    {
+      "flags": 16777216,
+      "appearance": 2
+    },
+    {
+      "flags": 33554432,
+      "appearance": 3
+    },
+    {
+      "flags": 50331648,
+      "appearance": 0
+    },
+    {
+      "flags": 67108864,
+      "appearance": 5
+    },
+    {
+      "flags": 83886080,
+      "appearance": 0
+    },
+    {
+      "flags": 100663296,
+      "appearance": 0
+    },
+    {
+      "flags": 117440512,
+      "appearance": 0
+    },
+    {
+      "flags": 134217728,
+      "appearance": 4
+    },
+    {
+      "flags": 150994944,
+      "appearance": 0
+    },
+    {
+      "flags": 167772160,
+      "appearance": 0
+    },
+    {
+      "flags": 184549376,
+      "appearance": 0
+    },
+    {
+      "flags": 201326592,
+      "appearance": 0
+    },
+    {
+      "flags": 218103808,
+      "appearance": 0
+    },
+    {
+      "flags": 234881024,
+      "appearance": 0
+    },
+    {
+      "flags": 251658240,
+      "appearance": 0
+    },
+    {
+      "flags": 2700133333,
+      "appearance": 1
+    },
+    {
+      "flags": 2716910549,
+      "appearance": 2
+    },
+    {
+      "flags": 2733687765,
+      "appearance": 3
+    },
+    {
+      "flags": 2750464981,
+      "appearance": 0
+    },
+    {
+      "flags": 2767242197,
+      "appearance": 5
+    },
+    {
+      "flags": 2784019413,
+      "appearance": 0
+    },
+    {
+      "flags": 2800796629,
+      "appearance": 0
+    },
+    {
+      "flags": 2817573845,
+      "appearance": 0
+    },
+    {
+      "flags": 2834351061,
+      "appearance": 4
+    },
+    {
+      "flags": 2851128277,
+      "appearance": 0
+    },
+    {
+      "flags": 2867905493,
+      "appearance": 0
+    },
+    {
+      "flags": 2884682709,
+      "appearance": 0
+    },
+    {
+      "flags": 2901459925,
+      "appearance": 0
+    },
+    {
+      "flags": 2918237141,
+      "appearance": 0
+    },
+    {
+      "flags": 2935014357,
+      "appearance": 0
+    },
+    {
+      "flags": 2951791573,
+      "appearance": 0
+    }
+  ]
+}

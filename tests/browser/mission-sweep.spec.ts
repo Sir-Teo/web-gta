@@ -2,6 +2,7 @@ import {test,expect} from '@playwright/test';
 import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {endStoryMission} from './freeRoam';
 import {missionBotTick} from './missionBot';
+import {sweepLiteralDestination,sweepEntranceForDestination} from './missionSweepTargets';
 /* Stage 2 of the porting pipeline (scripts/port/pipeline.mjs): launch missions headless, one after another, and
  * record how far each gets and why it stops. Skipped unless SWEEP is set:
  *
@@ -52,6 +53,8 @@ test('mission sweep',async({page})=>{
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
  await endStoryMission(page);
+ // These source-owned helpers run inside the browser like missionBotTick below.
+ await page.evaluate(`window.__sweepLiteralDestination=${sweepLiteralDestination.toString()};window.__sweepEntranceForDestination=${sweepEntranceForDestination.toString()};`);
  // The script, decoded in the page with the game's own decoder, for the autopilot's look at what a thread waits on.
  await page.evaluate(async()=>{
   const decoder='/src/assets/scm.ts',{readScmHeader,decodeScmInstructions}=await import(/* @vite-ignore */ decoder);
@@ -84,7 +87,7 @@ test('mission sweep',async({page})=>{
    r.loadAndLaunchMission(id);return {threads:r.active.length};
   },[id,stats] as const);
   const timeline:{at:number;offset:number;decision:string}[]=[];
-  let last:any,previous:any,teleports=0,samples=0,maxOffset=0,ended=false,lastAction='';const waits=new Map<string,number>();
+  let last:any,previous:any,teleports=0,samples=0,maxOffset=0,ended=false,lastAction='',rpgAimHeld=false;const waits=new Map<string,number>();
   const deadline=Date.now()+seconds*1000;
   while(Date.now()<deadline){
    await page.waitForTimeout(500);
@@ -112,7 +115,7 @@ test('mission sweep',async({page})=>{
     // the loop's own exit test and the triggers inside it look alike from here.
     // Only a test whose point is written into it: one asking about a point in variables (SWEET4's 54@ 55@ 56@) has
     // only its radii as numbers, and those were taken for the point (CJ's car set down at (8, 8)).
-    const near=block.instructions.filter((x:any)=>Math.abs(x.offset-fileOffset)<900&&/^(LOCATE_(CHAR|PLAYER)_|IS_CHAR_IN_AREA|IS_PLAYER_IN_AREA)/.test(x.name)&&x.parameters[1]?.type===6&&x.parameters[2]?.type===6);
+    const near=block.instructions.filter((x:any)=>Math.abs(x.offset-fileOffset)<900&&/^(LOCATE_(STOPPED_)?(CHAR|PLAYER)_|IS_CHAR_IN_AREA|IS_PLAYER_IN_AREA)/.test(x.name)&&(window as any).__sweepLiteralDestination(x));
     near.sort((a:any,b:any)=>(a.offset<fileOffset?1:0)-(b.offset<fileOffset?1:0)||Math.abs(a.offset-fileOffset)-Math.abs(b.offset-fileOffset));
     const state=sweep.pilot??={offset:-1,since:performance.now(),turn:0,lastKey:'',lastAt:0},now=performance.now();
     if(Math.abs(state.offset-offset)>40){state.offset=offset;state.since=now;state.turn=0;}
@@ -124,18 +127,18 @@ test('mission sweep',async({page})=>{
     // (a tick between a cutscene clearing the blips and the next objective adding them sent CJ ahead of his homies).
     if(botAction||!bot)state.botIdleSince=now;
     const ahead=botAction||bot&&now-(state.botIdleSince??now)<60000?undefined:near.length?near[state.turn%near.length]:undefined;
+    const mayMove=m.playerControl&&!r.game.cutscene.running&&!g.entryExits()?.active;
     // A loop that waits for CJ in a car or on a bike the script named (the BMX, Sweet's Greenwood) puts him in it.
     // Not while the bot is playing: it gets into what the blips ask, and a check nearby may only be a fail test.
     const ride=block.instructions.find((x:any)=>x.offset>=fileOffset-40&&x.offset<fileOffset+200&&/^IS_CHAR_(SITTING_)?IN_CAR$/.test(x.name));
     // Never with the bot: in a cut it does nothing, and SMOKE3's cut at Unity Station takes CJ out of the car its main loop
     // asks about, and he was put straight back in.
-    if(ride&&!bot&&!((r.world.pedVehicle(1)??0)>0)){
+    if(ride&&!bot&&mayMove&&!((r.world.pedVehicle(1)??0)>0)){
      try{if(t.readInt(ride.parameters[0])===1){const car=t.readInt(ride.parameters[1]);if(m.vehicles.exists(car)&&now-state.lastAt>8000){r.world.warpPedIntoCar(1,car);state.lastAt=now;moved=true;}}}catch{}
     }
-    if(ahead){
-     const floats=ahead.parameters.filter((p:any)=>p.type===6).map((p:any)=>p.value);
-     const area=/IN_AREA/.test(ahead.name),[x,y]=area?[(floats[0]+floats[2])/2,(floats[1]+floats[3])/2]:[floats[0],floats[1]];
-     const z=/3D/.test(ahead.name)&&floats.length>=3?(area?(floats[2]+floats[5])/2:floats[2]):undefined;
+    if(ahead&&mayMove){
+     const destination=(window as any).__sweepLiteralDestination(ahead),manager=g.entryExits(),door=playerOnly&&manager?(window as any).__sweepEntranceForDestination(destination,g.state().lighting.area,manager.pool):undefined;
+     const {x,y,z}=door??destination;
      // Every char the same condition group tests goes there: those sent to this point, and those a char-to-char
      // locate wants beside CJ. A char test names its ped through a variable the thread reads.
      const group=block.instructions.filter((x:any)=>x.offset>=ahead.offset-80&&x.offset<ahead.offset+160&&/^LOCATE_CHAR_/.test(x.name));
@@ -155,7 +158,7 @@ test('mission sweep',async({page})=>{
       for(const handle of handles){
        try{
         const p=r.world.pedPosition(handle),hx=x+k*3,hz=z??r.world.groundZFor3DCoord?.(hx,y,1000)??p.z;k++;
-        if(Math.hypot(p.x-hx,p.y-y)<=2)continue;
+        if(Math.hypot(p.x-hx,p.y-y,z===undefined?0:p.z-hz)<=2)continue;
         const vehicle=r.world.pedVehicle(handle);
         if(vehicle!==undefined&&vehicle>0)r.world.setVehicleCoordinates(vehicle,hx,y,hz);else r.world.setPedCoordinates(handle,hx,y,hz);
         moved=true;
@@ -218,6 +221,12 @@ test('mission sweep',async({page})=>{
    // The enter-car key for a car the bot has walked up to.
    if((s.bot as {action?:string}|null)?.action==='press enter car'){await page.keyboard.down('KeyF');await page.waitForTimeout(150);await page.keyboard.up('KeyF');}
    if((s.bot as {action?:string}|null)?.action==='press collect'){await page.keyboard.down('Tab');await page.waitForTimeout(150);await page.keyboard.up('Tab');}
+   // Rocket launchers require their first-person aim mode; the fire helper does not bypass that native gate.
+   const aimingRpg=!!(s.bot as {aimRpg?:boolean}|null)?.aimRpg;
+   if(aimingRpg!==rpgAimHeld){
+    if(aimingRpg){await page.locator('canvas').first().hover();await page.mouse.down({button:'right'});}else await page.mouse.up({button:'right'});
+    rpgAimHeld=aimingRpg;
+   }
    // The bot's decisions as they change, and a progress line every twenty samples.
    const decision=s.bot?JSON.stringify(s.bot):null;if(decision&&decision!==timeline.at(-1)?.decision)timeline.push({at:samples,offset:s.offset??-1,decision});
    for(const h of s.hurt??[])console.log(`sweep ${id} sample ${samples} HURT ${h}`);
@@ -231,6 +240,7 @@ test('mission sweep',async({page})=>{
    maxOffset=Math.max(maxOffset,s.offset??0);if(s.name)waits.set(s.name,(waits.get(s.name)??0)+1);
    if(s.gaveUp.length)break;
   }
+  if(rpgAimHeld)await page.mouse.up({button:'right'});
   const size=await page.evaluate(id=>{const b=(window as any).__sweep.missions[id];return b.end-b.start;},id);
   const name=await page.evaluate(id=>{const b=(window as any).__sweep.missions[id];const i=b.instructions.find((x:any)=>x.name==='SCRIPT_NAME');return i?.parameters[0]?.value??String(id);},id);
   // The commands the game skipped in this mission (no world member yet), with how often.

@@ -34,3 +34,24 @@ test('a mission train runs along its track at its cruise speed',async({page})=>{
  expect(await page.evaluate(h=>(window as any).__game.missionForProfiling().vehicles.exists(h),train)).toBe(false);
  expect(errors).toEqual([]);
 });
+
+test('station skip follows a caboose to its engine, bypasses locked cities and advances the clock',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});await endStoryMission(page);
+ const train=await page.evaluate(()=>{const m=(window as any).__game.missionForProfiling();m.runtime.game.stats.set(181,0);return m.runtime.world.createMissionTrain(10,-1944.1,139.877,24.7148,true);});
+ await page.waitForFunction(h=>!!(window as any).__game.missionForProfiling().vehicles.entity(h),train,{timeout:60000});
+ const result=await page.evaluate(h=>{
+  const g=(window as any).__game,m=g.missionForProfiling(),w=m.runtime.world,v=m.vehicles.entity(h),fleet=g.fleet(),caboose=w.getTrainCaboose(h);
+  const locked=!w.isNextStationAllowed(h),distance=fleet.stationDist[2],old=v.carriage.position.slice(),before=g.sim.timeMinutes;
+  const expectedMinutes=Math.trunc(23+Math.hypot(Math.fround(1725.12)-old[0],Math.fround(-1953.81)-old[1])/20),cj={...g.sim.player.position};
+  w.skipTrainToNextStation(caboose);
+  return {locked,caboose,railDistance:v.carriage.railDistance,speed:v.carriage.speed,expectedDistance:Math.fround(distance-20),minutes:(g.sim.timeMinutes-before+1440)%1440,expectedMinutes,cj};
+ },train);
+ expect(result.locked).toBe(true);expect(result.caboose).toBeGreaterThan(0);
+ expect(result.railDistance).toBe(result.expectedDistance);expect(result.speed).toBe(Math.fround(.1));expect(result.minutes).toBeCloseTo(result.expectedMinutes,6);
+ await expect.poll(()=>page.evaluate(h=>{const p=(window as any).__game.missionForProfiling().vehicles.positionOf(h);return Math.hypot(p.x-1725.12,p.y+1953.81);},train),{timeout:15000}).toBeLessThan(50);
+ const end=await page.evaluate(({h,caboose})=>{const g=(window as any).__game,m=g.missionForProfiling(),a=m.vehicles.positionOf(h),b=m.vehicles.positionOf(caboose);return {gap:Math.hypot(a.x-b.x,a.y-b.y),cj:g.sim.player.position};},{h:train,caboose:result.caboose});
+ expect(end.gap).toBeGreaterThan(10);expect(end.gap).toBeLessThan(25);
+ expect(Math.hypot(end.cj.x-result.cj.x,end.cj.y-result.cj.y,end.cj.z-result.cj.z)).toBeLessThan(.1);expect(errors).toEqual([]);
+});

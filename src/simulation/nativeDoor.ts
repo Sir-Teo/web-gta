@@ -30,7 +30,7 @@ export class NativeDoor {
  get fullyOpen(){return Math.abs(this.openAngle)-.5<=Math.abs(this.angle);}
  /** Door direction at the current angle. The pinned gta-reversed transcription negates the first rotated
   * component, which mirrors side doors inward and makes bonnets fall open; this is the plain rotation. */
- private direction():Vec{
+ protected direction():Vec{
   const dir:Vec=[0,0,0],d=this.dirn&0x0f;if(d<3)dir[d]=1;else dir[d-3]=-1;
   const sin=Math.sin(this.angle),cos=Math.cos(this.angle),a=(this.axis+1)%3,b=(this.axis+2)%3,newA=cos*dir[a]-sin*dir[b],newB=sin*dir[a]+cos*dir[b];dir[a]=newA;dir[b]=newB;return dir;
  }

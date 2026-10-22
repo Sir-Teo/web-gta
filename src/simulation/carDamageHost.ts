@@ -1,3 +1,21 @@
+import {physicalCanBeDamaged,type PhysicalProofs} from '../combat/nativePhysicalProofs';
+export type VehicleDamager={player?:true;ped?:unknown;car?:unknown};
+export interface VehicleDamageState {health:number;occupied:boolean;canBeDamaged?:boolean;onlyDamagedByPlayer?:boolean;proofs?:PhysicalProofs;lastWeaponDamage?:number;lastDamagedBy?:VehicleDamager}
+/** CVehicle::CanVehicleBeDamaged (iOS 0x1004780a8). An undefined attribution is an unknown host source;
+ * false identifies a source other than the player or their vehicle. The optional attached-player gate is used
+ * when the caller knows the player fired while attached to this vehicle. */
+export function vehicleRefusesWeaponDamage(vehicle:VehicleDamageState,weapon:number,byPlayer?:boolean,attachedPlayer=false){
+ return vehicle.canBeDamaged===false||!!vehicle.onlyDamagedByPlayer&&!vehicle.occupied&&byPlayer===false||
+  attachedPlayer||!physicalCanBeDamaged(vehicle.proofs,weapon)||vehicle.occupied&&Math.fround(vehicle.health)<250&&firesExplodesOrShoots(weapon);
+}
+/** InflictDamage stores a weapon while health remains. A null native attacker preserves the old reference
+ * (iOS 0x100478548–0x100478564); a known non-player attacker replaces it even when the host has no entity identity. */
+export function recordVehicleDamage(vehicle:VehicleDamageState,weapon:number,byPlayer?:boolean,by?:VehicleDamager){
+ if(vehicle.health<=0)return;
+ vehicle.lastWeaponDamage=weapon;
+ if(by!==undefined)vehicle.lastDamagedBy=by;
+ else if(byPlayer!==undefined)vehicle.lastDamagedBy=byPlayer?{player:true}:undefined;
+}
 /** What CVehicle::InflictDamage asks of the game beyond the car:
  * - whether CStats::GetPercentageProgress has reached 100, which takes the player's own car's share of the damage
  *   from 0.95 to 0.42;

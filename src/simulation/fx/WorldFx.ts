@@ -40,7 +40,7 @@ export interface WeaponFxHost {
  readonly ready:boolean;
  isShootThrough?(hit:Pick<RAPIER.RayColliderIntersection,'collider'|'featureType'|'featureId'>):boolean;
  explosion(type:number,position:Vec3):void;
- gunshot(origin:Vec3,direction:Vec3,weapon:number,flash:boolean):void;
+ gunshot(origin:Vec3,direction:Vec3,weapon:number,flash:boolean,options?:{shell:{direction:[number,number];size:number;creator:{position:Vec3;center:Vec3;radius:number}}}):void;
  bulletHit(hit:FxHit,amount:number):void;
  areaEffect(weapon:number,origin:Vec3,direction:Vec3):void;
 }
@@ -117,15 +117,21 @@ export class WorldFx implements WeaponFxHost {
  };
  /** CFire::ExtinguishWithWater's steam over a fire being hosed. */
  fireSteam(position:FxVec,rise:number){this.effects?.statics.prt_smokeII_3_expand?.addParticle(position,[0,0,rise],0,fxPrtMult(1,1,1,.6,.75,0,.4));}
+ /** Script coordinates and velocity already use the native axes. */
+ scriptSmoke(position:FxVec,velocity:FxVec,r:number,g:number,b:number,a:number,size:number,life:number){this.effects?.scriptSmoke(position,velocity,r,g,b,a,size,life);}
  /** The particles BreakObject_c::DoCollisionResponse adds when a piece lands. */
  readonly breakFx={
   smoke:(position:FxVec,velocity:FxVec)=>{this.effects?.statics.prt_smokeII_3_expand?.addParticle(position,velocity,0,fxPrtMult(1,1,1,.1,.3,0,.15));},
   sparks:(position:FxVec,amount:number)=>{this.effects?.sparks(position,[0,0,1],2,amount,[0,0,0],SPARK.spark,.4,1);},
  };
- gunshot(origin:Vec3,direction:Vec3,weapon:number,flash:boolean){
+ gunshot(origin:Vec3,direction:Vec3,weapon:number,flash:boolean,options?:Parameters<WeaponFxHost['gunshot']>[4]){
   const effects=this.effects;if(!effects)return;const d=toNative(direction);
   effects.gunshot(toNative(origin),d,flash);
   // CWeapon::AddGunshell: the casing leaves to the right of the shot.
+  if(options?.shell){
+   const shell=options.shell,c=shell.creator;this.camera.updateMatrixWorld();this.projection.multiplyMatrices(this.camera.projectionMatrix,this.camera.matrixWorldInverse);this.frustum.setFromProjectionMatrix(this.projection);this.sphere.center.set(c.center.x,c.center.y,c.center.z);this.sphere.radius=c.radius;
+   if(this.frustum.intersectsSphere(this.sphere))effects.gunshell(toNative(origin),shell.direction,shell.size,false,toNative(c.position));return;
+  }
   const side=Math.hypot(d[0],d[1])>1e-4?[d[1]/Math.hypot(d[0],d[1]),-d[0]/Math.hypot(d[0],d[1])]:[1,0];
   if(weapon>=22&&weapon<=34||weapon===38)effects.gunshell(toNative(origin),[side[0]*.6,side[1]*.6],weapon===38?.5:.1,weapon>=25&&weapon<=27);
  }

@@ -22,7 +22,7 @@ describe('CTaskComplexPolicePursuit::SetWeapon',()=>{
 
 describe('CTaskComplexArrestPed on foot',()=>{
  const at=(x:number,y:number,z:number)=>({x,y,z});
- it('arrests only a falling suspect within 3 units and 2 vertically',()=>{
+ it('arrests only a falling suspect within 3 units horizontally and 2 vertically',()=>{
   expect(copCanArrest({cop:at(0,0,0),suspect:at(2.9,0,0),suspectFalling:true,up:'y'})).toBe(true);
   expect(copCanArrest({cop:at(0,0,0),suspect:at(2.9,0,0),suspectFalling:false,up:'y'})).toBe(false);
   expect(copCanArrest({cop:at(0,0,0),suspect:at(3.1,0,0),suspectFalling:true,up:'y'})).toBe(false);

@@ -16,3 +16,9 @@ test('CCamera::TakeControl puts the camera on an entity, yields to a cutscene, a
  camera.takeControl({kind:'ped',handle:4},MODE_FIXED,2,2);
  camera.restore({inVehicle:false,enteringCar:false,exitingCar:false} as never);expect(camera.targetEntity).toBeUndefined();expect(camera.lookingAtPlayer).toBe(true);
 });
+
+test('camera restores use the native switch enum, interpolation 1 and jump cut 2',()=>{
+ const c=new ScmCamera(),state={inVehicle:false,enteringCar:false,exitingCar:false};
+ c.restoreWithJumpCut(state);expect(c.typeOfSwitch).toBe(2);
+ c.restore(state);expect(c.typeOfSwitch).toBe(1);
+});

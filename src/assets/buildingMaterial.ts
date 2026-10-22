@@ -2,6 +2,7 @@ import {nativeRasterOutput} from './nativeRasterOutput';
 import { MeshBasicMaterial, Vector3 } from 'three';
 import { buildingAlpha } from './buildingAlpha';
 import { nativeBuildingEnvMap, type NativeEnvSource } from './nativeEnvMap';
+import {nativeScorchedUniform} from './nativeScorched';
 
 export { BUILDING_PIPELINE, BUILDING_DN_PIPELINE, isBuildingPipeline, isBuildingAtomic, isDayNightAtomic } from './buildingPipelines';
 /** `night` is the scene's CCustomBuildingDNPipeline::m_fDNBalanceParam; each day/night geometry blends by its own
@@ -20,12 +21,13 @@ export function buildingMaterial(source: MeshBasicMaterial, ambientCoefficient: 
   material.vertexColors = false;
   material.transparent = source.opacity < 1 || !!source.userData.nativeTextureAlpha || vertexAlpha;
   material.depthWrite = !material.transparent;
-  material.onBeforeCompile = shader => {
+  material.onBeforeCompile = function(shader) {
+    shader.uniforms.nativeRenderScorched=nativeScorchedUniform(this);
     shader.uniforms.buildingNight = dnBalance; shader.uniforms.buildingAmbient = state.ambient;
     shader.uniforms.buildingSurfaceAmbient = { value: ambientCoefficient };
     shader.uniforms.buildingColorScale = { value: source.map ? 255/128 : 1 };
     shader.vertexShader = `attribute vec4 nativeDay; attribute vec4 nativeNight;
-      uniform float buildingNight; uniform vec3 buildingAmbient;
+      uniform bool nativeRenderScorched; uniform float buildingNight; uniform vec3 buildingAmbient;
       uniform float buildingSurfaceAmbient; uniform float buildingColorScale;
       uniform vec3 diffuse; uniform float opacity; varying vec4 buildingColor;\n` + shader.vertexShader;
     shader.vertexShader = shader.vertexShader.replace('#include <color_vertex>', `
@@ -33,13 +35,13 @@ export function buildingMaterial(source: MeshBasicMaterial, ambientCoefficient: 
       // to a byte (the 0.0005 absorbs float rounding, so an unchanged byte stays itself mid-blend).
       vec4 palette = ${dayNight ? 'floor(nativeDay * 255.0 + (nativeNight - nativeDay) * 255.0 * clamp(buildingNight, 0.0, 1.0) + 0.0005) / 255.0' : 'nativeDay'};
       buildingColor = palette * vec4(diffuse, opacity) / buildingColorScale;
-      buildingColor.rgb += buildingAmbient * buildingSurfaceAmbient;
+      buildingColor.rgb += (nativeRenderScorched ? vec3(0.18) : buildingAmbient) * buildingSurfaceAmbient;
     `);
     shader.fragmentShader = 'varying vec4 buildingColor; uniform float buildingColorScale;\n' + shader.fragmentShader;
     shader.fragmentShader = shader.fragmentShader.replace('vec4 diffuseColor = vec4( diffuse, opacity );', 'vec4 diffuseColor = vec4(1.0);')
       .replace('#include <color_fragment>', 'diffuseColor *= buildingColor * buildingColorScale;');
   };
-  material.customProgramCacheKey = () => `native-building-base-v2-${dayNight ? 'dn' : 'single'}`;
+  material.customProgramCacheKey = () => `native-building-base-v3-${dayNight ? 'dn' : 'single'}`;
   nativeRasterOutput(material);
   // The source's env texture reflects the building pipeline's way (the casino roofs' carfx1).
   if (env) nativeBuildingEnvMap(material, env);

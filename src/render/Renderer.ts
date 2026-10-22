@@ -283,6 +283,7 @@ export class GameRenderer {
     mark=clock();this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt,coronaLookMask(this.glance),this.sourceFov,!paused);lap('lighting');
     const contact = this.contactLighting !== undefined && this.lighting.nativeWorldAmbient ? nativeContactLightMultiplier(this.lighting.nativeWorldAmbient,nativeContactBrightness(this.contactLighting!,nativeDayNightBalance(this.sim.timeMinutes))) : 1;
     this.nativeCharacter?.setAmbient(this.lighting.nativeObjectAmbient,this.lighting.sunLightMultiplier*contact,contact);
+    this.nativeCharacter?.setScorched(this.sim.playerRenderScorched);
     this.beforeRender?.(this.camera);lap('beforeRender');
     this.nativeShadow.update(this.renderer,this.nativeCharacter,this.shadowReceivers,this.camera.position,this.sim.timeMinutes,this.lighting.nativeShadowStrength,paused,this.playerShadowAllowed);lap('shadow');
     this.programWarmer.beforeRender(performance.now());

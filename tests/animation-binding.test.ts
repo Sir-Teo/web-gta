@@ -33,6 +33,13 @@ test('binding failure is atomic and name fallback never overrides a missing expl
   bad.tracks[1].boneId = 10; expect(() => bindAnimation(data, object.root, bad)).toThrow('distinct');
   object.dispose();
 });
+
+test('binding a new character clip excludes attached model frames and their skinned bounds',()=>{
+ const data=model(),character=modelObject(data),attachment=modelObject(data),ownMesh=mesh(character.root),attachedMesh=mesh(attachment.root),attachedFrame=attachment.root.getObjectByName('Root')!,rest=attachedFrame.matrix.clone();
+ character.root.getObjectByName('Tip')!.add(attachment.root);const culled=attachedMesh.frustumCulled,sphere=attachedMesh.boundingSphere,binding=bindAnimation(data,character.root,clip());
+ expect(binding.trackCount).toBe(2);binding.sample(1,false);expect(attachedFrame.matrix).toEqual(rest);expect(attachedMesh.frustumCulled).toBe(culled);expect(attachedMesh.boundingSphere).toBe(sphere);expect(ownMesh.boundingSphere?.radius).toBe(Infinity);
+ binding.restore();expect(attachedFrame.matrix).toEqual(rest);attachment.dispose();character.dispose();
+});
 test('clip sampling is frame-rate independent and looping restores the initial clip phase', () => {
   const data = model(), a = modelObject(data), b = modelObject(data), ac = bindAnimation(data, a.root, clip()), bc = bindAnimation(data, b.root, clip());
   for (let i = 0; i <= 60; i++) ac.sample(i / 60);

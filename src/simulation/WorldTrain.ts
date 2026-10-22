@@ -1,3 +1,5 @@
+import {NativeClumpAlpha} from './nativeClumpAlpha';
+import {bindClumpAlpha} from '../render/nativeClumpAlpha';
 import {bindNativeCarPaint,type NativeCarColors} from '../render/nativeCarPaint';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Group,type Scene} from 'three';
@@ -23,6 +25,10 @@ export function trainCarriageModel(asset:Asset):TrainCarriageModel{
 }
 
 export class WorldTrain {
+ private readonly alphaBinding=bindClumpAlpha(()=>this.visual?.materialBindings??[]);
+ private readonly clumpAlpha=new NativeClumpAlpha(this.alphaBinding);
+ get alpha(){return this.clumpAlpha.value;}
+ setClumpAlpha(value:number){this.clumpAlpha.set(value);}
  readonly root=new Group();readonly modelId:number;readonly body:RAPIER.RigidBody;
  readonly reflection=new NativeCarReflection();
  private readonly physical:ReturnType<typeof installNativeVehicleBody>;
@@ -31,12 +37,13 @@ export class WorldTrain {
  /** What main's script-vehicle host reads of any vehicle: the body under `car`, the heading as WorldCar's (the body's
   * yaw turned half round), health and the burning and wrecked flags, which nothing here changes. */
  readonly car:{body:RAPIER.RigidBody};
- health=1000;wrecked=false;onFire=false;missionCar=true;
+ health=1000;wrecked=false;onFire=false;missionCar=true;canBeDamaged=true;
  /** No one rides the clone's trains: the strike rules read the striker as driverless. */
  readonly occupied=false;readonly train=true;
  private nativeBodyCache?:{mass:number;turnMass:number;boundsMin:{x:number;y:number;z:number};boundsMax:{x:number;y:number;z:number}};
  /** Handling mass and turn mass with the collision model's bounds (native units), as WorldCar gives the strike rules. */
  get nativeBody(){if(!this.nativeBodyCache){const b=this.asset.collision!.bounds,h=this.asset.handling.values;this.nativeBodyCache={mass:h.mass,turnMass:h.turnMass,boundsMin:{x:b.min[0],y:b.min[1],z:b.min[2]},boundsMax:{x:b.max[0],y:b.max[1],z:b.max[2]}};}return this.nativeBodyCache;}
+ get modelFlags(){return this.asset.handling.values.modelFlags??0;}
  get boundRadius(){const b=this.asset.collision!.bounds;return Math.hypot(Math.max(-b.min[0],b.max[0]),Math.max(-b.min[1],b.max[1]),Math.max(-b.min[2],b.max[2]));}
  heading(){const q=this.body.rotation();return Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));}
  /** `colors`: CVehicleModelInfo::ChooseVehicleColour's paint for the carriage's colour-coded materials (the engine's

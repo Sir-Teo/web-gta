@@ -64,7 +64,9 @@ test('an object the script makes is drawn where the script puts it',async({page}
   // Two units above the car's own origin, and nothing to either side.
   mission.runtime.game.objects.attach(object.handle,'vehicle',car,{x:0,y:0,z:2},{x:0,y:0,z:0});
   await new Promise(r=>setTimeout(r,600));
+  mission.refreshAttachments();
   const at=mission.vehicles.positionOf(car),on=mission.runtime.game.objects.at(object.handle).position;
+  const frame=mission.runtime.world.vehicleMatrix(car),expected={x:frame.position.x+2*frame.up.x,y:frame.position.y+2*frame.up.y,z:frame.position.z+2*frame.up.z};
   const before={...on};
   mission.vehicles.setPosition(car,{x:at.x+15,y:at.y,z:at.z});
   await new Promise(r=>setTimeout(r,600));
@@ -75,11 +77,11 @@ test('an object the script makes is drawn where the script puts it',async({page}
   await new Promise(r=>setTimeout(r,600));
   const afterDetach=mission.runtime.game.objects.at(object.handle).position;
   mission.runtime.game.objects.remove(object.handle);mission.vehicles.delete(car);
-  return {built:true,liftedAbove:before.z-at.z,followed:moved.x-before.x,stayed:afterDetach.x-moved.x};
+  return {built:true,offsetError:Math.hypot(before.x-expected.x,before.y-expected.y,before.z-expected.z),followed:moved.x-before.x,stayed:afterDetach.x-moved.x};
  });
  expect(hung.built).toBe(true);
- // The offset is in the car's own axes, so two up puts it two above the car.
- expect(hung.liftedAbove).toBeCloseTo(2,1);
+ // A tilted car carries its local up axis with it; compare the full transformed offset in one physics pose.
+ expect(hung.offsetError).toBeLessThan(.001);
  // The car moved fifteen east and the object went with it; once let go it stopped following.
  expect(hung.followed).toBeGreaterThan(10);
  expect(Math.abs(hung.stayed!)).toBeLessThan(.001);

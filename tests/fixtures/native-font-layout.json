@@ -1,0 +1,476 @@
+{
+  "source": "Pinned iOS ProcessCurrentString 0x10037d320; executable SHA-256 9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "method": "Unicorn 2.1.4 executes native ProcessCurrentString and GetNextSpace. Width calls use hash-verified PC Gothic fonts.dat ASCII metrics; RenderString is intercepted to capture spans/positions/space expansion. Font scale=(1,1), origin=(100,40), initialized right-wrap=0. Stack-guard indirection points to scratch storage. This is a layout fixture, not a retail screenshot or complete font emulation. Reproduce with scripts/research/native-font-layout.py.",
+  "cases": [
+    {
+      "input": "A A A",
+      "justify": false,
+      "centre": false,
+      "right": false,
+      "wrap": 185,
+      "rows": [
+        {
+          "text": "A A ",
+          "x": 100.0,
+          "y": 40.0,
+          "extra": 0.0
+        },
+        {
+          "text": "A",
+          "x": 100.0,
+          "y": 58.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 2
+    },
+    {
+      "input": "A A A",
+      "justify": true,
+      "centre": false,
+      "right": false,
+      "wrap": 185,
+      "rows": [
+        {
+          "text": "A A ",
+          "x": 100.0,
+          "y": 40.0,
+          "extra": 11.0
+        },
+        {
+          "text": "A",
+          "x": 100.0,
+          "y": 58.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 2
+    },
+    {
+      "input": "A A A A",
+      "justify": true,
+      "centre": false,
+      "right": false,
+      "wrap": 211,
+      "rows": [
+        {
+          "text": "A A A ",
+          "x": 100.0,
+          "y": 40.0,
+          "extra": 0.0
+        },
+        {
+          "text": "A",
+          "x": 100.0,
+          "y": 58.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 2
+    },
+    {
+      "input": "  A A",
+      "justify": false,
+      "centre": false,
+      "right": false,
+      "wrap": 211,
+      "rows": [
+        {
+          "text": "  A A",
+          "x": 100.0,
+          "y": 40.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 1
+    },
+    {
+      "input": "A  A A",
+      "justify": true,
+      "centre": false,
+      "right": false,
+      "wrap": 185,
+      "rows": [
+        {
+          "text": "A  A ",
+          "x": 100.0,
+          "y": 40.0,
+          "extra": -0.5
+        },
+        {
+          "text": "A",
+          "x": 100.0,
+          "y": 58.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 2
+    },
+    {
+      "input": "A A A",
+      "justify": false,
+      "centre": true,
+      "right": false,
+      "wrap": 85,
+      "rows": [
+        {
+          "text": "A A ",
+          "x": 63.0,
+          "y": 40.0,
+          "extra": 0.0
+        },
+        {
+          "text": "A",
+          "x": 87.5,
+          "y": 58.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 2
+    },
+    {
+      "input": "A A A",
+      "justify": true,
+      "centre": true,
+      "right": false,
+      "wrap": 85,
+      "rows": [
+        {
+          "text": "A A ",
+          "x": 63.0,
+          "y": 40.0,
+          "extra": 0.0
+        },
+        {
+          "text": "A",
+          "x": 87.5,
+          "y": 58.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 2
+    },
+    {
+      "input": "A A A",
+      "justify": false,
+      "centre": false,
+      "right": true,
+      "wrap": 85,
+      "rows": [
+        {
+          "text": "A A A",
+          "x": 1.0,
+          "y": 40.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 1
+    },
+    {
+      "input": "A A A",
+      "justify": true,
+      "centre": false,
+      "right": true,
+      "wrap": 85,
+      "rows": [
+        {
+          "text": "A A A",
+          "x": 1.0,
+          "y": 40.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 1
+    },
+    {
+      "input": "A  A A",
+      "justify": false,
+      "centre": true,
+      "right": false,
+      "wrap": 85,
+      "rows": [
+        {
+          "text": "A  A ",
+          "x": 57.0,
+          "y": 40.0,
+          "extra": 0.0
+        },
+        {
+          "text": "A",
+          "x": 87.5,
+          "y": 58.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 2
+    },
+    {
+      "input": "AAAAA",
+      "justify": true,
+      "centre": false,
+      "right": false,
+      "wrap": 185,
+      "rows": [
+        {
+          "text": "AAAAA",
+          "x": 100.0,
+          "y": 40.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 1
+    },
+    {
+      "input": "A  A",
+      "justify": false,
+      "centre": false,
+      "right": false,
+      "wrap": 173,
+      "rows": [
+        {
+          "text": "A  ",
+          "x": 100.0,
+          "y": 40.0,
+          "extra": 0.0
+        },
+        {
+          "text": "A",
+          "x": 100.0,
+          "y": 58.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 2
+    },
+    {
+      "input": "A ",
+      "justify": false,
+      "centre": false,
+      "right": false,
+      "wrap": 185,
+      "rows": [],
+      "count": 0
+    },
+    {
+      "input": "A  ",
+      "justify": false,
+      "centre": false,
+      "right": false,
+      "wrap": 185,
+      "rows": [],
+      "count": 0
+    },
+    {
+      "input": "   ",
+      "justify": false,
+      "centre": false,
+      "right": false,
+      "wrap": 185,
+      "rows": [],
+      "count": 0
+    },
+    {
+      "input": "  A  ",
+      "justify": false,
+      "centre": false,
+      "right": false,
+      "wrap": 185,
+      "rows": [],
+      "count": 0
+    },
+    {
+      "input": "A A A A",
+      "justify": false,
+      "centre": false,
+      "right": true,
+      "wrap": 85,
+      "rows": [
+        {
+          "text": "A A A ",
+          "x": 1.0,
+          "y": 40.0,
+          "extra": 0.0
+        },
+        {
+          "text": "A",
+          "x": 75.0,
+          "y": 58.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 2
+    },
+    {
+      "input": "A A A A",
+      "justify": true,
+      "centre": false,
+      "right": true,
+      "wrap": 85,
+      "rows": [
+        {
+          "text": "A A A ",
+          "x": 1.0,
+          "y": 40.0,
+          "extra": -13.0
+        },
+        {
+          "text": "A",
+          "x": 75.0,
+          "y": 58.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 2
+    },
+    {
+      "input": "A A .A",
+      "justify": false,
+      "centre": false,
+      "right": false,
+      "wrap": 185,
+      "rows": [
+        {
+          "text": "A A .A",
+          "x": 100.0,
+          "y": 40.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 1
+    },
+    {
+      "input": "A A !A",
+      "justify": false,
+      "centre": false,
+      "right": false,
+      "wrap": 185,
+      "rows": [
+        {
+          "text": "A A !A",
+          "x": 100.0,
+          "y": 40.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 1
+    },
+    {
+      "input": "A A $A",
+      "justify": false,
+      "centre": false,
+      "right": false,
+      "wrap": 185,
+      "rows": [
+        {
+          "text": "A A $A",
+          "x": 100.0,
+          "y": 40.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 1
+    },
+    {
+      "input": "A A ,A",
+      "justify": false,
+      "centre": false,
+      "right": false,
+      "wrap": 185,
+      "rows": [
+        {
+          "text": "A A ,A",
+          "x": 100.0,
+          "y": 40.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 1
+    },
+    {
+      "input": "A A /A",
+      "justify": false,
+      "centre": false,
+      "right": false,
+      "wrap": 185,
+      "rows": [
+        {
+          "text": "A A /A",
+          "x": 100.0,
+          "y": 40.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 1
+    },
+    {
+      "input": "A A :A",
+      "justify": false,
+      "centre": false,
+      "right": false,
+      "wrap": 185,
+      "rows": [
+        {
+          "text": "A A :A",
+          "x": 100.0,
+          "y": 40.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 1
+    },
+    {
+      "input": "A A ?A",
+      "justify": false,
+      "centre": false,
+      "right": false,
+      "wrap": 185,
+      "rows": [
+        {
+          "text": "A A ?A",
+          "x": 100.0,
+          "y": 40.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 1
+    },
+    {
+      "input": "A A \\A",
+      "justify": false,
+      "centre": false,
+      "right": false,
+      "wrap": 185,
+      "rows": [
+        {
+          "text": "A A \\A",
+          "x": 100.0,
+          "y": 40.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 1
+    },
+    {
+      "input": "A A )A",
+      "justify": false,
+      "centre": false,
+      "right": false,
+      "wrap": 185,
+      "rows": [
+        {
+          "text": "A A ",
+          "x": 100.0,
+          "y": 40.0,
+          "extra": 0.0
+        },
+        {
+          "text": ")A",
+          "x": 100.0,
+          "y": 58.0,
+          "extra": 0.0
+        }
+      ],
+      "count": 2
+    }
+  ]
+}

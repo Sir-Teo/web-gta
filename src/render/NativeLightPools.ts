@@ -61,6 +61,7 @@ export class NativeLightPools {
  clear(){this.cache.clear();}
  /** Cached lights, for tests. */
  get cached(){return this.cache.size;}
+ set renderOrder(value:number){this.mesh.renderOrder=value;}
  frame(pools:readonly LightPool[],camera:readonly [number,number,number],receivers:Receivers|undefined,raster:THREE.Texture|undefined){
   const shown=this.shown;shown.length=0;
   if(raster&&receivers)for(const pool of pools){

@@ -47,7 +47,8 @@ test('exactly one HP survives, and vehicle death bypasses damage scaling and arm
  sim=new Simulation();sim.player.health=1+5*NATIVE_PLAYER_DAMAGE_MULT;sim.damagePlayer(5,true);
  expect(sim.player.health).toBe(1);
  sim.player.armour=100;sim.vehicleOccupantDied();
- expect(sim.player.health).toBe(0);expect(sim.player.armour).toBe(100);
+ expect(sim.player.health).toBe(0);expect(sim.player.armour).toBe(100);expect(sim.playerRenderScorched).toBe(true);
  sim.advancePlayerDeath(.5);const remaining=sim.deathRemaining;
  sim.vehicleOccupantDied();expect(sim.deathRemaining).toBe(remaining);
+ sim.resetPlayer();expect(sim.playerRenderScorched).toBe(false);
 });

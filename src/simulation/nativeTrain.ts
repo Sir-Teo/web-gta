@@ -1,4 +1,4 @@
-import {TRAIN_TYPES,findClosestTrackNode,type TrainTrack} from './nativeTrainTracks';
+import {TRAIN_STATIONS,TRAIN_TYPES,findClosestTrackNode,type TrainTrack} from './nativeTrainTracks';
 /* CTrain for the trains a script makes, pinned gta-reversed Train.cpp. ProcessControl (0x6F86A0), SetTrainSpeed,
  * SetTrainCruiseSpeed, FindNumCarriagesPulled and the mission-train removal and release are reversed and followed
  * for a train on its rails. CreateMissionTrain is not reversed; what is here is what ProcessControl needs of it:
@@ -24,6 +24,28 @@ export function nextStation(railDistance:number,clockwise:boolean,stationDist:re
  let station=clockwise?ahead:ahead===0?5:ahead-1;
  if(Math.abs(railDistance-stationDist[station])<100)station=clockwise?(station+1>5?0:station+1):(station-1<0?station+5:station-1);
  return station;
+}
+export interface TrainStationSkip {station:number;railDistance:number;speed:number;minutes:number}
+/** CTrain::SkipToNextAllowedStation (iOS 0x1004752d8): search in travel order, stop 20 before the allowed station,
+ * start at signed 0.1 units/step, then PassTime(trunc(23 + old-position-to-station XY distance / 20)). */
+export function trainStationSkipPlan(railDistance:number,clockwise:boolean,stationDist:readonly number[],position:readonly number[],allowed:(station:number)=>boolean):TrainStationSkip|undefined{
+ const f=Math.fround,dist=stationDist.map(f);let probe=f(railDistance);
+ for(let tries=0;tries<6;tries++){
+  const station=nextStation(probe,clockwise,dist);probe=dist[station];
+  if(!allowed(station))continue;
+  const point=TRAIN_STATIONS[station],dx=f(f(point[0])-f(position[0])),dy=f(f(point[1])-f(position[1]));
+  const distance=f(Math.sqrt(f(f(dx*dx)+f(dy*dy))));
+  return {station,railDistance:f(probe+(clockwise?-20:20)),speed:f(clockwise?.1:-.1),minutes:Math.trunc(f(f(distance/20)+23))};
+ }
+ // Valid game city-unlock values always allow a station. Avoid a native infinite loop on invalid custom state.
+ return undefined;
+}
+/** The command accepts any carriage but changes its engine; the trailing carriages follow on ProcessControl. */
+export function skipTrainToAllowedStation(train:NativeTrainCarriage,stationDist:readonly number[],allowed:(station:number)=>boolean){
+ let engine=train;while(engine.prev)engine=engine.prev;
+ const plan=trainStationSkipPlan(engine.railDistance,engine.clockwise,stationDist,engine.position,allowed);
+ if(plan){engine.railDistance=plan.railDistance;engine.speed=plan.speed;}
+ return plan;
 }
 export class NativeTrainCarriage {
  trackId=0;nodeIndex=0;

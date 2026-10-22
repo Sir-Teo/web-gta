@@ -50,3 +50,14 @@ test('CBirds::Render builds two mirrored wings, fading over the last 30% of the 
  expect(near.positions[2*3]).toBeCloseTo(-near.positions[(8+2)*3]);
  const far=birdVertices(bird,0,0,[0,-37,20]);expect(far.colors[3]).toBeLessThan(255);expect(far.colors[3]).toBeGreaterThan(0);
 });
+
+test('script flocks share six slots, skip obstacle checks, and retain native float32 positions and zero-direction fallback',()=>{
+ const birds=new NativeBirds(()=>0),w=world({lineOfSightClear:()=>{throw new Error('Script birds must not query obstacles');}});
+ birds.createNumberOfBirds([1100000000,1100000000,1100000000],[1100000000,1100000000,1100000000],8,'water',false,w);
+ expect(birds.count).toBe(6);expect(birds.birds.every(b=>b.created&&b.position.every(v=>v===1100000000))).toBe(true);
+ expect(birds.birds[0].targetVelocity).toEqual([4,0,0]);expect(birds.birds[0].maxDistance).toBe(45);
+ birds.createNumberOfBirds([0,0,0],[1,0,0],1,'normal',false,w);expect(birds.count).toBe(6);
+ birds.handleGunShot([1100000000,1100000000,1100000000],[1100000000,1100000000,1100000000]);expect(birds.count).toBe(0);
+ birds.createNumberOfBirds([0,0,0],[1,0,0],-1,'normal',false,w);expect(birds.count).toBe(0);
+ birds.createNumberOfBirds([0,0,0],[1,0,0],1,'desert',false,w);expect(birds.count).toBe(1);expect(birds.birds[0].maxDistance).toBe(80);
+});

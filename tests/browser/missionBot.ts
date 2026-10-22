@@ -200,7 +200,9 @@ export function missionBotTick(dtSeconds:number){
   const z=sheer||found===undefined?me.z-1:found;
   // Walking, not a script warp: SET_CHAR_COORDINATES would warp his group round him every step (CPedGroup::Teleport),
   // and the recruits set down on him shoved him back (SWEET7's two at Grove).
-  (world.setPedCoordinatesDontWarpGang??world.setPedCoordinates).call(world,1,sx,sy,z+1);
+  // The host teleport takes feet height; pedPosition above already adds the native origin offset.
+  // Adding it here again keeps CJ falling after every walking step and prevents grounded weapon aim.
+  (world.setPedCoordinatesDontWarpGang??world.setPedCoordinates).call(world,1,sx,sy,z);
   return true;
  };
  if(driveAround){glide(mem.wanderGoal,10);return {action:'drive around'};}
@@ -246,9 +248,9 @@ export function missionBotTick(dtSeconds:number){
  const shoot=(target:any,ownGun=false)=>{
   // The M4 topped up every half minute: three waves of a gang war emptied the first 2000 rounds (CRASH4).
   if(!ownGun&&performance.now()-(mem.armedAt??-Infinity)>30000){try{world.givePedWeapon?.(1,31,2000);world.setPedCurrentWeapon?.(1,31);mem.armedAt=performance.now();}catch{}}
-  const now=performance.now();if(now-mem.lastShot<120)return;mem.lastShot=now;
+  const now=performance.now();if(now-mem.lastShot<120)return false;mem.lastShot=now;
   // __game.fireAt takes renderer coordinates: x, height, -y.
-  g.fireAt(target.x,target.z+.6,-target.y);
+  return g.fireAt(target.x,target.z+.6,-target.y);
  };
  // The gas tank: from four units out on the side the petrol cap is on, a round straight at the cap.
  if(tankCar&&!blips.some((b:any)=>b.type===BLIP_CHAR&&!b.friendly)){
@@ -518,6 +520,11 @@ export function missionBotTick(dtSeconds:number){
   else if(mem.lastOutdoor)for(const b of places)if(b.position.z<500&&Math.hypot(b.position.x-mem.lastOutdoor.x,b.position.y-mem.lastOutdoor.y)<10)stood.set(key(b),6);
   const p=nearest(places.filter((b:any)=>(stood.get(key(b))??0)<6))??nearest(places);
   if(distance(p.position)<4)stood.set(key(p),(stood.get(key(p))??0)+dtSeconds);
+  // A nearby weapon above the road (SYN6's helipad) is approached on foot; driving to its XY hits the stairs/wall.
+  if(vehicle&&p.type===BLIP_PICKUP&&distance(p.position)<40&&p.position.z-me.z>3){
+   mem.drive=undefined;try{world.clearPedTasks?.(1);world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);}catch{}
+   return {action:'leave car near raised pickup'};
+  }
   // A place inside an interior tied to its door (SET_BLIP_ENTRY_EXIT) is reached through the door: CJ drives to it,
   // gets out and walks into the marker, as the radar shows it from outside.
   const door=p.entryExit!=null&&p.position.z>500&&me.z<500?g.entryExitEntrance?.(p.entryExit):null;
@@ -614,7 +621,25 @@ export function missionBotTick(dtSeconds:number){
  }
  if(chases.length){
   const c=nearest(chases);
-  if(glide(c.position,15,true))return {action:'chase car',target:c.handle};
+  // SYN6 supplies an RPG beside the departing helicopter. nativeProjectile starts it at 20 units/s and adds
+  // 20 units/s each second until its three-second fuse: estimate that flight and lead the moving aircraft.
+  // Following it on foot until it is fifteen units away loses the firing opportunity.
+  const appearance=world.vehicleAppearance?.(c.handle),range=Math.hypot(c.position.x-me.x,c.position.y-me.y,c.position.z-me.z);
+  const aimRpg=!vehicle&&(appearance===3||appearance===5)&&(world.pedWeaponAmmo?.(1,35)??0)>0;
+  if(aimRpg){
+   let velocity={x:0,y:0,z:0};try{velocity=world.getCarSpeedVector?.(c.handle)??velocity;}catch{}
+   let flight=(Math.sqrt(400+40*range)-20)/20,aim=c.position;
+   for(let k=0;k<6;k++){
+    aim={x:c.position.x+velocity.x*flight,y:c.position.y+velocity.y*flight,z:c.position.z+velocity.z*flight};
+    flight=(Math.sqrt(400+40*Math.hypot(aim.x-me.x,aim.y-me.y,aim.z-me.z))-20)/20;
+   }
+   if(flight<2.8&&clearShot(me,aim)){
+    try{world.setPedCurrentWeapon?.(1,35);}catch{}const fired=shoot(aim,true);
+    return {action:fired?'fire RPG at aircraft':'aim RPG at aircraft',aimRpg:true,target:c.handle,range:range.toFixed(1),flight:flight.toFixed(2),ammo:world.pedWeaponAmmo?.(1,35),health:world.vehicleHealth?.(c.handle)};
+   }
+  }
+  if(glide(c.position,15,true))return {action:'chase car',target:c.handle,aimRpg};
+  if(aimRpg)return {action:'track aircraft',target:c.handle,aimRpg};
   shoot(c.position);return {action:'shoot car',target:c.handle};
  }
  // "Get those gang members to join you" (SWEET7's TWAR652): a player walks up to each blipped Families member not yet

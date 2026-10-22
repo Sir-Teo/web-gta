@@ -104,9 +104,10 @@ export async function prepareWorldFolder(files:WorldFolderFile[]){
   const datasetIdentity=new Set(placementNames).size===placementNames.length?crypto.randomUUID():undefined;
   /** Starts building the district index before the first request needs it; a failure is left for plan() to report. */
   const prepareIndex=(bounds:boolean)=>{const pending=districtIndex(bounds);pending.catch(()=>{if(indexes.get(bounds)===pending)indexes.delete(bounds);});};
-  return {plan,prepareIndex,datasetIdentity,get indexBuilds(){return indexBuilds;}};
+  return {plan,prepareIndex,datasetIdentity,interiorBounds:async()=>collectInteriorBounds(await districtIndex(true)),get indexBuilds(){return indexBuilds;}};
 }
 export async function planWorldFolder(files:WorldFolderFile[],regionId:string,selection?:SceneRegion,discover=false){
  selectRegion(regionId,selection);
  return (await prepareWorldFolder(files)).plan(regionId,selection,discover);
 }
+import {collectInteriorBounds} from './scriptSceneArea';

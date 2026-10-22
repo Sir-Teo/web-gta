@@ -23,6 +23,16 @@ const dayNightBalance = (mesh: any) => { const material = (Array.isArray(mesh.ma
 let world: RAPIER.World;
 beforeAll(async () => { await RAPIER.init(); });
 afterEach(() => {world?.free();world=undefined!;});
+test('map draw-last overrides isolate one placement and preserve its scorched lighting and collision',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const installed=installNativeScene(world,new Scene(),[makePart()]),meshes:any[]=[];installed.root.traverse(o=>{if((o as any).isMesh)meshes.push(o);});const sibling=meshes[1].material,handle=[...installed.sources].find(([,s])=>s.placement?.position[0]===0)![0],count=world.colliders.len();
+ installed.setPlacementScorched(handle,true);expect(installed.setPlacementDrawLast(handle,true)).toBe(true);const selected=[meshes[0].material].flat();expect(selected.every(m=>m.transparent&&m.alphaTest===100/255&&m.userData.nativeRenderScorched.value)).toBe(true);expect(meshes[1].material).toBe(sibling);expect(world.colliders.len()).toBe(count);expect(installed.setPlacementDrawLast(handle,false)).toBe(true);expect([meshes[0].material].flat().every(m=>m.userData.nativeRenderScorched.value)).toBe(true);installed.dispose();expect(installed.setPlacementDrawLast(handle,true)).toBe(false);
+});
+test('one scorched map placement keeps its own lighting through visibility updates without changing shared neighbors or collision',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const installed=installNativeScene(world,new Scene(),[makePart()]),meshes:any[]=[];installed.root.traverse(o=>{if((o as any).isMesh)meshes.push(o);});const originals=meshes.map(m=>m.material),handle=[...installed.sources].find(([,s])=>s.placement?.position[0]===0)![0],count=world.colliders.len();
+ expect(installed.setPlacementScorched(handle,true)).toBe(true);const first=meshes[0].material;expect(first).not.toBe(originals[0]);expect(meshes[1].material).toBe(originals[1]);
+ const shader:any={uniforms:{},vertexShader:'#include <color_vertex>',fragmentShader:''};(Array.isArray(first)?first[0]:first).onBeforeCompile(shader,{});expect(shader.uniforms.nativeRenderScorched.value).toBe(true);expect(shader.vertexShader).toContain('vec3(0.18)');expect(world.colliders.len()).toBe(count);
+ expect(installed.setPlacementScorched(handle,false)).toBe(true);expect(meshes[0].material).toBe(originals[0]);installed.dispose();expect(installed.setPlacementScorched(handle,true)).toBe(false);
+});
 test('object definitions reclassify owned collider metadata without replacing or removing physical collision',()=>{
   world=new RAPIER.World({x:0,y:-9.81,z:0});const installed=installNativeScene(world,new Scene(),[makePart()]);world.step();
   const handles=[...installed.sources.keys()],count=world.colliders.len();
@@ -220,6 +230,32 @@ test('retained-position checks use the actual standing or crouched capsule and n
 const referencedPart=()=>{
  const part=makePart();part.sourceRefs=part.placements.map((_,index)=>({namespace:'primary',index,format:'text',sourceName:'base.ipl'}));return part;
 };
+test('object-brain source keys survive streamed reindexing and mutations reject retired placements',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const part=referencedPart(),models=new Set([part.name]);
+ const installed=installNativeScene(world,new Scene(),[part],{datasetIdentity:'brain-fixture'}),before=installed.modelPlacementsNear(models,0,0,50);
+ expect(before).toHaveLength(2);expect(installed.setModelPlacementTaken(before[1].key,true)).toBe(true);
+ const nextPart=referencedPart();nextPart.placements=[{...part.placements[1]},{...part.placements[1],position:[20,0,0]}];nextPart.sourceRefs=[1,2].map(index=>({namespace:'district:1:primary',index,format:'text',sourceName:'base.ipl'}));
+ const next=installed.replace([nextPart],undefined,'brain-fixture'),camera=new PerspectiveCamera(60,1,.1,1000);camera.position.set(10,30,40);camera.lookAt(10,0,0);camera.updateMatrixWorld(true);
+ const bodyAt=(x:number)=>world.getCollider([...next.sources].find(([,source])=>source.placement?.position[0]===x)![0])!.parent()!;
+ // Resolve a previously issued key before the new scene has answered any placement queries.
+ expect(next.setModelPlacementTaken(before[1].key,true)).toBe(true);expect(bodyAt(10).isEnabled()).toBe(false);expect(bodyAt(20).isEnabled()).toBe(true);expect(next.visibleInstanceCount).toBe(1);
+ expect(next.setModelPlacementTaken(before[0].key,true)).toBe(false);expect(next.setModelPlacementHidden(before[0].key,true)).toBe(false);
+ expect(next.modelPlacementsNear(models,0,0,50)[0].key).toBe(before[1].key);
+ expect(next.setModelPlacementTaken(before[1].key,false)).toBe(true);expect(bodyAt(10).isEnabled()).toBe(true);next.updateView(camera);expect(next.visibleInstanceCount).toBe(2);
+ expect(next.setModelPlacementHidden(before[1].key,true)).toBe(true);expect(next.visibleInstanceCount).toBe(1);expect(bodyAt(10).isEnabled()).toBe(true);expect(next.setModelPlacementHidden(before[1].key,false)).toBe(true);camera.position.x+=2;camera.updateMatrixWorld(true);next.updateView(camera);expect(next.visibleInstanceCount).toBe(2);
+ expect(installed.modelPlacementsNear(models,0,0,50)).toEqual([]);expect(installed.setModelPlacementTaken(before[1].key,false)).toBe(false);
+ next.dispose();expect(next.modelPlacementsNear(models,0,0,50)).toEqual([]);expect(next.setModelPlacementTaken(before[1].key,false)).toBe(false);expect(next.setModelPlacementHidden(before[1].key,false)).toBe(false);
+});
+test('uncatalogued object-brain keys preserve exact pose identity across placement reordering',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const part=makePart();part.placements[1].position=[0,0,10];
+ const models=new Set([part.name]),installed=installNativeScene(world,new Scene(),[part]),before=installed.modelPlacementsNear(models,0,0,50);
+ const nextPart=makePart();nextPart.placements=[{...part.placements[1]},{...part.placements[0]}];const next=installed.replace([nextPart]),camera=new PerspectiveCamera(60,1,.1,1000);camera.position.set(0,30,40);camera.lookAt(0,5,0);camera.updateMatrixWorld(true);
+ expect(next.modelPlacementsNear(models,0,0,50).map(p=>p.key)).toEqual([before[1].key,before[0].key]);
+ expect(next.setModelPlacementTaken(before[1].key,true)).toBe(true);
+ for(const [handle,source]of next.sources)expect(world.getCollider(handle)!.parent()!.isEnabled()).toBe(source.placement!.position[2]===0);
+ expect(next.visibleInstanceCount).toBe(1);expect(next.setModelPlacementTaken('diagnostic_col3:1:0.0:0.0',true)).toBe(false);
+ expect(next.setModelPlacementTaken(before[1].key,false)).toBe(true);next.updateView(camera);expect(next.visibleInstanceCount).toBe(2);next.dispose();
+});
 test('unchanged source placements transfer collision ownership without duplicating bodies',()=>{
  world=new RAPIER.World({x:0,y:-9.81,z:0});const scene=new Scene(),old=installNativeScene(world,scene,[referencedPart()],{datasetIdentity:'fixture'}),handles=[...old.sources.keys()];
  const part=referencedPart();part.sourceRefs!.forEach(ref=>ref.namespace='district:1:primary');
@@ -417,4 +453,11 @@ test('a window pre-built across steps commits with its instances and new collide
  expect(next.prebuild([referencedPart()],'elsewhere')).toBeUndefined();
  const spare=next.prebuild([referencedPart()],'fixture')!;spare.dispose();expect(spare.step(10)).toBe(false);expect(spare.result()).toBeUndefined();
  next.dispose();expect(world.colliders.len()).toBe(0);
+});
+
+test('map attractor identities survive placement reindexing and reject removed or disposed source entities',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const part=makePart(),fx={position:[.25,0,0] as [number,number,number],type:3,attractor:{type:5,queueDir:[0,1,0] as [number,number,number],useDir:[0,1,0] as [number,number,number],forwardDir:[0,1,0] as [number,number,number],scriptName:'PCUSTOM',probability:100}};part.model.geometries[0].effects=[fx];part.sourceRefs=[10,11].map(index=>({namespace:'primary',index,format:'text',sourceName:'chairs.ipl'}));
+ const installed=installNativeScene(world,new Scene(),[part],{datasetIdentity:'map-attractor-fixture'}),before=installed.mapAttractorsNear(0,0,0,50);expect(before).toHaveLength(2);expect(before.map(e=>installed.mapAttractorExists(e.key))).toEqual([true,true]);
+ const nextPart=makePart();nextPart.model.geometries[0].effects=[fx];nextPart.placements=[{...part.placements[1]},{...part.placements[1],position:[20,0,0]}];nextPart.sourceRefs=[11,12].map(index=>({namespace:'primary',index,format:'text',sourceName:'chairs.ipl'}));const next=installed.replace([nextPart],undefined,'map-attractor-fixture'),after=next.mapAttractorsNear(0,0,0,50);
+ expect(after[0].key).toBe(before[1].key);expect(after[0].key).not.toBe(before[0].key);expect(next.mapAttractorExists(before[0].key)).toBe(false);expect(installed.mapAttractorExists(before[1].key)).toBe(false);expect(installed.attractorsNear(0,0,50)).toEqual([]);next.dispose();expect(next.mapAttractorExists(after[0].key)).toBe(false);
 });

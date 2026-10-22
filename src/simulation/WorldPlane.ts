@@ -1,27 +1,37 @@
+import {applyScriptVehicleForce,type ScriptVehicleForceBasis} from './nativeScriptVehicleForce';
+import {NativeClumpAlpha} from './nativeClumpAlpha';
+import {bindClumpAlpha} from '../render/nativeClumpAlpha';
+import {NativeMovingComponent,movingComponentSpec,movingComponentPivot,movingComponentCollision,applyMovingCollisionShapes} from './nativeMovingComponent';
 import {bindNativeCarDirt} from '../render/nativeCarDirt';
 import {NativeCarReflection} from '../assets/nativeCarEnvMap';
 import {randomSeed} from './nativeVehicleLights';
 import {bindNativeCarPaint,type NativeCarColors} from '../render/nativeCarPaint';
 import RAPIER from '@dimforge/rapier3d-compat';
+import {syncFrozenVehicle} from './nativeFrozenVehicle';
+import {CAR_DOOR_FRAMES,maximumPassengersFromDoors} from './nativeVehiclePassengers';
+import {MODEL_FLAG} from './nativeDoor';
 import {Group,Matrix4,Quaternion,Vector3,type Scene,type Object3D} from 'three';
 import type {Simulation} from './Simulation';
 import type {openStaticWorldVehicles} from '../assets/staticWorldVehicles';
 import {modelObject} from '../assets/ModelObjects';
 import {nativeAmbientState} from '../assets/nativeMaterial';
 import {installNativeVehicleBody} from './nativeVehicleBody';
+import {CAR_MESH_SOLVER_GROUPS} from './solverGroups';
+import {aircraftBaseOffset} from './nativeAircraftBase';
 import {prepareHandling} from './nativeHandling';
 import {interpolateVehiclePose} from '../render/vehiclePose';
 import {FLIGHT_MODEL,applyGravityAndAirResistance,heightAboveCeiling as nativeHeightAboveCeiling,planeFlyingControl,smoothPlaneInput,stepPropSpeed,HELI_FLIGHT_MODEL,HELI_ROTOR_FLY,HELI_ROTOR_FULL,HYDRA_NOZZLE_MAX,HYDRA_NOZZLE_RATE,HYDRA_VTOL_NOZZLE,heliFlyingControl,heliHoverInputs,hydraThrustAxis,stepHeliRotor,type FlyingBody,type NativeVec as NV,type PlaneControls} from './nativeFlyingControl';
 import {requireAsset} from '../assets/binary';
 import {MISSION_HELI_ATTACK_PLAYER,MISSION_HELI_ATTACK_PLAYER_FLY_AWAY,MISSION_HELI_CRASH_AND_BURN,MISSION_HELI_FLYTOCOORS,MISSION_HELI_FLY_AWAY_FROM_PLAYER,MISSION_HELI_FOLLOW_ENTITY,MISSION_HELI_KEEP_ENTITY_IN_VIEW,MISSION_HELI_POLICE_BEHAVIOUR,MISSION_HELI_LAND,MISSION_HELI_LAND_TOUCHING_DOWN,heliCrashYaw,heliForcedOrientation,heliProbeDue,newHeliAI,steerAIHeliAsPoliceHeli,steerAIHeliToAttackPlayer,steerAIHeliFlyingAwayFromPlayer,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliToKeepEntityInView,steerAIHeliToLand,steerAIHeliTowardsTargetCoors,type HeliAI,type HeliPilot} from './nativeHeliAI';
-import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
+import {blastBombTimerMs,notePlayerVehicleHarm,playerVehicleDamage,recordVehicleDamage,vehicleRefusesWeaponDamage,type VehicleDamager} from './carDamageHost';
+import type {PhysicalProofs} from '../combat/nativePhysicalProofs';
 import {stepBombTimer} from '../vehicle/nativeCarBomb';
 import {stepPlaneWheelRoll,type PlaneWheelRoll} from './planeWheelRoll';
 import {MISSION_PLANE_ATTACK_PLAYER,MISSION_PLANE_ATTACK_PLAYER_POLICE,MISSION_PLANE_DOG_FIGHT_PLAYER,MISSION_PLANE_FLYINDIRECTION,MISSION_PLANE_FLYTOCOORS,MISSION_PLANE_FOLLOW_ENTITY,atanOfXY,newPlaneAI,planeSearchDue,steerAIPlane,type PlaneAI,type PlanePilot} from './nativePlaneAI';
 import {applyNativeBuoyancy,nativeBuoyancySplashEdges,nativeSplashParticles,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
 import type {NativeAnimation} from '../assets/ifp';
 import {vehicleAnimation,VEHICLE_ANIM,type VehicleAnimGroupData} from '../assets/vehicleAnimGroups';
-export const PLAYABLE_PLANES:Readonly<Record<number,string>>={476:'Rustler',511:'Beagle',512:'Cropduster',513:'Stuntplane',519:'Shamal',553:'Nevada',593:'Dodo',417:'Leviathan',425:'Hunter',447:'Seasparrow',469:'Sparrow',487:'Maverick',488:'News Maverick',497:'Police Maverick',548:'Cargobob',563:'Raindance',520:'Hydra',
+export const PLAYABLE_PLANES:Readonly<Record<number,string>>={476:'Rustler',511:'Beagle',512:'Cropduster',513:'Stuntplane',519:'Shamal',553:'Nevada',593:'Dodo',592:'Andromada',417:'Leviathan',425:'Hunter',447:'Seasparrow',469:'Sparrow',487:'Maverick',488:'News Maverick',497:'Police Maverick',548:'Cargobob',563:'Raindance',520:'Hydra',
  /* The RC aircraft (bIsRCVehicle), which a script makes (ZERO1's barons) or the player flies by remote control. */
  464:'RC Baron',465:'RC Raider',501:'RC Goblin'};
 /** Entry/exit clip slots resolved through the model's handling anim group (AssocGroupId
@@ -65,6 +75,10 @@ export function aircraftWeaponDamageScale(modelId:number,weapon:number){
 }
 
 export class WorldPlane {
+ private readonly alphaBinding=bindClumpAlpha(()=>this.visual?.materialBindings??[]);
+ private readonly clumpAlpha=new NativeClumpAlpha(this.alphaBinding);
+ get alpha(){return this.clumpAlpha.value;}
+ setClumpAlpha(value:number){this.clumpAlpha.set(value);}
  /** m_autoPilot.m_vehicleRecordingId and the controls a playback sets (recordingBody.ts): CVehicleRecording plays an
   * aircraft's recording as a car's. DRUGS4's police Maverick holds its recording paused, which the script waits on. */
  recordingSlot=-1;recordingControls?:{steerAngle:number;gas:number;brake:number;handbrake:boolean};
@@ -90,11 +104,13 @@ export class WorldPlane {
  get burning(){return this.health>0&&this.health<250&&!this.drowning;}
  get helicopter(){return this.assets.vehicle.type==='heli';}
  /** GetPlaneNumGuns for the flyable models: the Hunter, Seasparrow, Rustler and Hydra carry guns. */
- get armed(){return [425,447,476,520].includes(this.modelId);}
+ get armed(){return [425,447,464,476,520].includes(this.modelId);}
  /** FireUnguidedMissile: only the Hunter and the Hydra launch rockets. */
  get rocketsArmed(){return this.modelId===425||this.modelId===520;}
  /** GetPlaneOrdnancePosition in native model space (right, forward, up): the Hunter's and the Hydra's first rocket pod. */
  ordnancePosition():[number,number,number]{return this.modelId===425?[2.17,1,-.8]:[3.7,.98,-1.02];}
+ canBeDamaged=true;onlyDamagedByPlayer=false;proofs?:PhysicalProofs;
+ lastWeaponDamage=-1;lastDamagedBy?:VehicleDamager;
  /** Damage, returning true when it destroys the aircraft. With a weapon it is CVehicle::InflictDamage's:
   * - the player's own aircraft refuses blasts, rounds and the molotov once burning under 250, and otherwise takes
   *   playerVehicleDamage's share;
@@ -102,34 +118,63 @@ export class WorldPlane {
   * - aircraftWeaponDamageScale applies;
   * - a blast (WEAPON_EXPLOSION) that destroys the aircraft leaves it on the bomb timer.
   * Without a weapon (a crash, the burn-out, the water) it is taken as given, and the aircraft goes up at once. */
- damage(amount:number,weapon?:number,byPlayer?:boolean){
-  if(this.health<=0)return false;
+ damage(amount:number,weapon?:number,byPlayer?:boolean,by?:VehicleDamager){
+  if(this.health<=0||this.canBeDamaged===false)return false;
   if(weapon!==undefined){
-   if(this.occupied){if(this.health<250&&firesExplodesOrShoots(weapon))return false;amount=playerVehicleDamage(amount);}
+   if(vehicleRefusesWeaponDamage(this,weapon,byPlayer))return false;
+   recordVehicleDamage(this,weapon,byPlayer,by);
+   if(this.occupied)amount=playerVehicleDamage(amount);
    notePlayerVehicleHarm(amount,byPlayer);
    amount*=aircraftWeaponDamageScale(this.modelId,weapon);
   }
   this.health=Math.max(0,this.health-amount);
   if(this.health>0)return false;
-  if(weapon===51)this.bombTimerMs=blastBombTimerMs();else this.destroyed();
+  if(weapon===51){this.bombTimerMs=blastBombTimerMs();this.bombDetonatedByPlayer=byPlayer===true;}else this.destroyed(byPlayer===true);
   return true;
  }
  /** m_wBombTimer (ms): a blast's victim blows up when ProcessDelayedExplosion (CAutomobile::ProcessControl, which
   * CPlane and CHeli run) has counted it down. */
- bombTimerMs=0;
- /** STATUS_WRECKED, which BlowUpCar sets: blown up, its health gone and no bomb timer left to run. IS_CAR_DEAD asks it;
-  * a shot-down helicopter never counted as dead, and a mission waiting on one waited for good. */
- get wrecked(){return this.health<=0&&this.bombTimerMs<=0;}
+ bombTimerMs=0;bombDetonatedByPlayer=false;explosionByPlayer=false;
+ /** STATUS_WRECKED is written by accepted destruction. Zero health and an expired but refused bomb are still
+  * not a wreck; IS_CAR_DEAD reads status/drowning rather than health (iOS 0x1001d0f48). */
+ private wreckedStatus=false;
+ get wrecked(){return this.wreckedStatus===true;}
  /** BlowUpCar's end for the aircraft: the engine stops and the player aboard dies with it. */
- private destroyed(){this.throttle=0;if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}}
+ private destroyed(byPlayer=false){if(this.canBeDamaged===false)return false;this.explosionByPlayer=byPlayer;this.wreckedStatus=true;this.health=0;this.bombTimerMs=0;this.throttle=0;if(this.playersVehicle){this.occupied=false;this.playerPassengerSeat=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}return true;}
  toggleVtol(){if(this.modelId!==520)return '';this.vtol=!this.vtol;return this.vtol?'Hydra: vertical lift':'Hydra: forward flight';}
  /** physicalFlags.bMakeMassTwiceAsBig (SET_CAR_HEAVY): the water's drag ×1.5. */
  heavy=false;
+ /** vehicleFlags.bHeliMinimumTilt (SET_HELI_STABILISER), read by both heli flight branches. */
+ heliMinimumTilt=false;
  /** CHeli::m_fHeliRotorSpeed, 0 to 0.22: the dust, the water gates and the rotor sound read it. */
  rotorSpeed=0;
  /** Its audio entity's m_IsHelicopterDisabled (DISABLE_HELI_AUDIO): the helicopter makes no sound while set. */
  heliAudioDisabled=false;
+ /** STATUS_PLAYER_REMOTE receives controls without making CJ an occupant. */
+ remoteControlled=false;
+ get controlled(){return this.occupied||this.remoteControlled;}
  occupied=false;gearUp=false;throttle=0;grounded=true;stall=false;airspeed=0;altitude=0;
+ /** A player passenger does not own the aircraft's controls, AI or recorded playback. */
+ playerPassengerSeat=0;
+ get playersVehicle(){return this.occupied||this.playerPassengerSeat>0;}
+ get maximumPassengers(){
+  const frames=this.assets.model.frames.map(frame=>frame.name.toLowerCase());
+  return maximumPassengersFromDoors({modelId:this.modelId,type:this.assets.vehicle.type,doors:frames.filter(name=>CAR_DOOR_FRAMES.has(name)).length,
+   tandemSeats:!!(this.modelFlags&MODEL_FLAG.tandemSeats),rearSeat:frames.includes('ped_backseat')});
+ }
+ setPlayerInAsPassenger(seat:number){
+  this.playerPassengerSeat=seat;this.sim.setCrouched(false);this.sim.cameraExcludedBody=this.body;this.sim.playerCollider.setEnabled(false);
+  this.sim.player.moveBlend=0;this.sim.player.speed=0;this.sim.player.jumpMomentum={x:0,z:0};this.afterStep();
+ }
+ setPlayerOutAsPassenger(foot:{x:number;y:number;z:number},heading=this.sim.player.heading){
+  this.playerPassengerSeat=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);
+  this.sim.player.position={...foot};this.sim.player.previous={...foot};this.sim.player.heading=heading;this.sim.player.moveBlend=0;
+  this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.jumpMomentum={x:0,z:0};this.sim.player.grounded=false;
+  const centre={...foot,y:foot.y+.9};this.sim.playerBody.setTranslation(centre,true);this.sim.playerBody.setNextKinematicTranslation(centre);
+ }
+ worldPoint(local:{x:number;y:number;z:number}){return new Vector3(local.x,local.z,-local.y).applyQuaternion(new Quaternion().copy(this.body.rotation())).add(this.body.translation());}
+ canStepOut(){return this.leaveMode()==='step';}
+ canJumpOut(){return this.leaveMode()==='jump';}
  /** Scripted collective/cyclic input while no player sits aboard (police pursuit). */
  autopilot?:PlaneControls;
  /** A helicopter's AI pilot: the CAutoPilot fields and CHeli's own the native steering flies it by (nativeHeliAI.ts),
@@ -226,7 +271,7 @@ export class WorldPlane {
  /** CCarCtrl::SteerAICarWithPhysics for an AI plane's mission: its four controls for this step, as the autopilot's, and
   * its gear up once it is flying. */
  private steerAIPlane(dt:number){
-  const pilot=this.planePilot;if(!pilot||this.occupied||this.health<=0)return;
+  const pilot=this.planePilot;if(!pilot||this.controlled||this.health<=0)return;
   const previous=this.planeClockMs;this.planeClockMs+=dt*1000;
   const b=this.flyingBody(),world=this.sim.world,port=(v:NV)=>({x:v[0],y:v[2],z:-v[1]});
   const lineOfSight=(from:NV,to:NV):NV|undefined=>{
@@ -257,7 +302,7 @@ export class WorldPlane {
  /** CCarCtrl::SteerAICarWithPhysics for an AI helicopter's mission: its four controls for this step, as the autopilot's
   * (the roll field is FlyingControl's own sign, which flyHeli turns back). */
  private steerAIHeli(dt:number){
-  const pilot=this.heliPilot;if(!pilot||this.occupied||this.health<=0)return;
+  const pilot=this.heliPilot;if(!pilot||this.controlled||this.health<=0)return;
   const ai=pilot.ai,controls=()=>{this.autopilot={throttle:ai.accel,pitch:ai.pitch,roll:-ai.roll,rudder:ai.yaw,brake:false};};
   if(pilot.mission===MISSION_HELI_CRASH_AND_BURN){steerAIHeliToCrashAndBurn(ai,this.heliSeed,this.crashYaw);controls();return;}
   const landing=pilot.mission===MISSION_HELI_LAND||pilot.mission===MISSION_HELI_LAND_TOUCHING_DOWN;
@@ -289,6 +334,9 @@ export class WorldPlane {
  }
  /** Law-enforcement air unit: the fleet never retires it as ambient traffic. */
  policeHeli=false;
+ readonly movingComponent:NativeMovingComponent;
+ movingPartPad=0;
+ private movingBounds?:import('../assets/col').ColModel['bounds'];
  private physical:ReturnType<typeof installNativeVehicleBody>;private handling:ReturnType<typeof prepareHandling>;
  /** Native-coordinate water height query (WATER.DAT). */
  waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean,normal?:number[])=>number|undefined;
@@ -302,9 +350,13 @@ export class WorldPlane {
  private rollingWheels:{object:Object3D;base:Matrix4;radius:number;previous:number;roll:PlaneWheelRoll}[]=[];
  constructor(private sim:Simulation,scene:Scene,readonly assets:Assets,position:{x:number;y:number;z:number},heading=0,colors?:NativeCarColors){
   requireAsset(PLAYABLE_PLANES[assets.vehicle.id]&&assets.collision&&assets.flyingHandling&&!assets.missingTextures.length,'Unresolved aircraft resources.');
+  this.movingComponent=new NativeMovingComponent(assets.vehicle.id);
   this.modelId=assets.vehicle.id;this.name=PLAYABLE_PLANES[this.modelId];
   this.handling=prepareHandling(assets.handling,assets.flyingHandling!.handlingId);this.water.buoyancy=this.handling.buoyancy;
   this.physical=installNativeVehicleBody(sim.world,assets.collision!,this.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:0});this.body=this.physical.body;this.car={body:this.body,root:this.root};
+  // ProcessColModels never tests a vehicle's triangles against world triangles. As on cars, those contacts can
+  // pin a small plane inside a roof; spheres and landing gear still meet the world's mesh.
+  for(let i=0;i<this.body.numColliders();i++){const c=this.body.collider(i);if(c.shapeType()===RAPIER.ShapeType.TriMesh)c.setSolverGroups(CAR_MESH_SOLVER_GROUPS);}
   const model={...assets.model,atomics:assets.model.atomics.map(a=>({...a,flags:/(_dam|_vlo|moving_prop|moving_rotor)/i.test(assets.model.frames[a.frame].name)?0:a.flags}))};
   // Native plane models reuse a main wheel atomic at empty wheel dummy frames.
   const wheelAtomic=model.atomics.find(a=>/^wheel(?:\d|_[lr])?$/.test(model.frames[a.frame].name));
@@ -330,6 +382,7 @@ export class WorldPlane {
   this.previous={...position};this.previousRotation={...this.body.rotation()};this.update(1);
  }
  distance(){const p=this.sim.player.position,b=this.body.translation();return Math.hypot(p.x-b.x,p.y-b.y,p.z-b.z);}
+ get baseOffset(){return aircraftBaseOffset(this.assets.model.frames,this.assets.collision!.bounds.min[2],this.handling.values.suspensionLowerLimit,this.assets.vehicle.frontWheelSize,!this.helicopter);}
  get modelFlags(){return this.handling.values.modelFlags;}
  /** The ped_frontseat dummy in native model space, mirrored to the driver's side (GetSeatPositionInVehicle). */
  seat(){const frame=this.assets.model.frames.find(f=>f.name.toLowerCase()==='ped_frontseat');return frame?{x:-Math.abs(frame.matrix[12]),y:frame.matrix[13],z:frame.matrix[14]}:undefined;}
@@ -482,6 +535,19 @@ export class WorldPlane {
   * through it. Fixed ground (or water) within forty units below, asked twice a second; one already moving (flying
   * empty, or falling after its pilot bails out) goes on. */
  private groundCheck={seconds:0,loaded:true};
+ /** A remote GIVE can arrive before its terrain. Keep its native ground query until that region is installed. */
+ private remoteGroundFrom?:number;
+ waitForRemoteGround(from:number){this.remoteGroundFrom=from;this.groundCheck.seconds=0;}
+ private remoteGroundLoaded(){
+  if(this.remoteGroundFrom===undefined)return true;
+  const p=this.body.translation();if(!(this.sim.collisionLoaded?.(p.x,p.z)??true))return false;
+  const top=this.remoteGroundFrom,hit=this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:top,z:p.z},{x:0,y:-1,z:0}),2000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+  const ground=hit?top-hit.timeOfImpact:this.waterLevel?.(p.x,-p.z);
+  if(ground===undefined)return false;
+  this.body.setTranslation({x:p.x,y:ground+this.baseOffset,z:p.z},true);
+  this.body.setLinvel({x:0,y:0,z:0},true);this.body.setAngvel({x:0,y:0,z:0},true);
+  this.remoteGroundFrom=undefined;return true;
+ }
  private collisionLoaded(dt:number){
   const v=this.body.linvel();if(Math.hypot(v.x,v.y,v.z)>1)return true;
   const g=this.groundCheck;g.seconds-=dt;if(g.seconds>0)return g.loaded;g.seconds=.5;
@@ -495,41 +561,67 @@ export class WorldPlane {
  startsInAir(){this.startedInAir=true;if(this.modelId===520)this.nozzle=0;}
  /** Made flying (PLANE_STARTS_IN_AIR): never held for the ground under it. */
  private startedInAir=false;
- /** FREEZE_CAR_POSITION (bIsFrozen): the body stays off while it is set, which this step would otherwise undo. */
+ /** FREEZE_CAR_POSITION (bIsFrozen): hold motion while retaining loaded collision. */
  frozen=false;
+ /** APPLY_FORCE_TO_CAR reaches CPhysical for every vehicle family. */
+ applyScriptForce(force:{x:number;y:number;z:number},offset:{x:number;y:number;z:number},basis?:ScriptVehicleForceBasis){
+  const h=this.handling.values;applyScriptVehicleForce(this.body,h.mass,h.turnMass,force,offset,basis);
+ }
+
+ /** Andromada inherits CAutomobile's moving collision and uses PLANE_MISC_B (generic CAR_MISC_E index 24). */
+ controlMovingComponent(angle:number,timeStep=50/60){
+  const state=this.movingComponent,old=state.angle;
+  const geometry=state.update({angle,player:this.occupied,mission:this.missionCar,pad:this.movingPartPad,timeStep});
+  const spec=movingComponentSpec(this.modelId);if(!spec||state.angle===old)return;
+  const pivot=movingComponentPivot(this.assets.model,spec.frame),frame=this.visual.root.getObjectByName(spec.frame);if(!pivot||!frame)return;
+  const offset=state.offset(),c=Math.fround(Math.cos(offset)),s=Math.fround(Math.sin(offset));
+  frame.matrix.makeRotationX(offset).setPosition(pivot[0],pivot[1],pivot[2]);frame.matrix.elements[5]=c;frame.matrix.elements[6]=s;frame.matrix.elements[9]=-s;frame.matrix.elements[10]=c;frame.matrixWorldNeedsUpdate=true;
+  if(geometry){const collision=movingComponentCollision(this.assets.collision!,this.modelId,offset,pivot);this.movingBounds=collision.bounds;applyMovingCollisionShapes(this.sim.world,this.physical.sources,collision);this.body.wakeUp();}
+ }
+ movingComponentOffset(){const spec=movingComponentSpec(this.modelId);return this.movingComponent.offset(!!spec&&!!movingComponentPivot(this.assets.model,spec.frame));}
+ /** The per-instance special COL changes bounds without altering the shared model. */
+ get collisionBounds(){return this.movingBounds??this.assets.collision!.bounds;}
  beforeStep(dt:number,input:{throttle:number;pitch:number;roll:number;rudder:number;brake:boolean}){
+  this.clumpAlpha.step(dt);
+  if(this.modelId===592)this.controlMovingComponent(-1,dt*50);
   // An AI pilot's aircraft flies on however far off it is (SteerAICarWithPhysics has no range); it is drawn only near.
-  const piloted=(this.helicopter?!!this.heliPilot?.mission:!!this.planePilot?.mission)&&!this.occupied&&this.health>0;
+  const piloted=(this.helicopter?!!this.heliPilot?.mission:!!this.planePilot?.mission)&&!this.controlled&&this.health>0;
   const recorded=this.recordingSlot>=0&&this.body.bodyType()===RAPIER.RigidBodyType.KinematicVelocityBased;
-  const nearby=this.occupied||this.distance()<250,active=recorded||(nearby||piloted)&&!this.frozen&&(this.occupied||!!this.autopilot||this.startedInAir||this.collisionLoaded(dt));
-  this.body.setEnabled(active);this.root.visible=nearby;if(!active)return;
+  const focus=this.sim.worldFocus,at=this.body.translation();
+  const frozen=syncFrozenVehicle(this.body,this.frozen),nearby=this.controlled||Math.hypot(focus.x-at.x,focus.y-at.y,focus.z-at.z)<250,active=recorded||(nearby||piloted)&&(this.controlled||!!this.autopilot||this.startedInAir||this.collisionLoaded(dt));
+  const grounded=active&&this.remoteGroundLoaded();
+  this.body.setEnabled(grounded);this.root.visible=nearby;if(!grounded)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};this.stepDt=dt;
+  if(frozen){
+   if(this.helicopter){this.stepRotor(dt,!this.controlled&&this.health>0&&!!this.autopilot,recorded);this.advancePropeller(dt);}
+   return;
+  }
   // Attached to another vehicle (ATTACH_CAR_TO_CAR): a kinematic body the host sets on it after the step.
   if(this.body.bodyType()===RAPIER.RigidBodyType.KinematicPositionBased)return;
   // A playback without car AI moves the body itself (a kinematic body on the recording's speeds); a helicopter's rotor
   // runs at speed meanwhile, as one made already flying.
-  if(recorded){if(this.helicopter){this.rotorSpeed=HELI_ROTOR_FULL;this.propAngle=(this.propAngle+dt*95)%(Math.PI*2);}return;}
+  if(recorded){if(this.helicopter){this.stepRotor(dt,false,true);this.advancePropeller(dt);}return;}
   const p=this.body.translation(),hit=this.sim.world.castRay(new RAPIER.Ray(p,{x:0,y:-1,z:0}),3000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-  this.altitude=hit?hit.timeOfImpact:Math.max(0,p.y);const clearance=Math.max(1.5,-this.assets.collision!.bounds.min[2]+.8);this.grounded=!!hit&&hit.timeOfImpact<clearance;
+  this.altitude=hit?hit.timeOfImpact:Math.max(0,p.y);const clearance=Math.max(1.5,-this.collisionBounds.min[2]+.8);this.grounded=!!hit&&hit.timeOfImpact<clearance;
    if(this.helicopter)this.steerAIHeli(dt);else this.steerAIPlane(dt);
-   const auto=!this.occupied&&this.health>0?this.autopilot:undefined;
+   const auto=!this.controlled&&this.health>0?this.autopilot:undefined;
    if(auto)this.throttle=Math.max(0,Math.min(1,auto.throttle));
-   else if(this.occupied&&this.health>0&&!(this.drowning&&this.water.buoyancy<this.handling.values.mass/125))this.throttle=Math.max(0,Math.min(1,this.throttle+input.throttle*dt*.4));else this.throttle=0;
-   // CHeli::m_fHeliRotorSpeed runs on its own while the engine runs, whatever the collective; it spins up 0.001 a
-   // frame (0.003 for the RC helicopters) to 0.22 and winds down 0.00055 a step. A heli the game flies itself was
-   // made already flying, with its rotor at speed (0.22 from script and AI creation).
-   if(this.helicopter){
-    const running=this.health>0&&(!!auto||this.occupied)&&!this.drowning;
-    this.rotorSpeed=auto?HELI_ROTOR_FULL:stepHeliRotor(this.rotorSpeed,running,this.rcHeli,dt*30,dt*50);
-   }
-   this.inputs={throttle:this.throttle,pitch:this.occupied?input.pitch:auto?.pitch??0,roll:this.occupied?input.roll:auto?.roll??0,rudder:this.occupied?input.rudder:auto?.rudder??0,brake:auto?auto.brake:!this.occupied||input.brake};
+   else if(this.controlled&&this.health>0&&!(this.drowning&&this.water.buoyancy<this.handling.values.mass/125))this.throttle=Math.max(0,Math.min(1,this.throttle+input.throttle*dt*.4));else this.throttle=0;
+   if(this.helicopter)this.stepRotor(dt,!!auto);
+   this.inputs={throttle:this.throttle,pitch:this.controlled?input.pitch:auto?.pitch??0,roll:this.controlled?input.roll:auto?.roll??0,rudder:this.controlled?input.rudder:auto?.rudder??0,brake:auto?auto.brake:!this.controlled||input.brake};
   if(this.helicopter)this.flyHeli(dt,input,auto);else this.flyPlane(dt,input,auto);
   const forwardSpeed=-new Vector3().copy(this.body.linvel()).applyQuaternion(new Quaternion().copy(this.body.rotation()).invert()).z;
   for(const wheel of this.rollingWheels){wheel.previous=wheel.roll.angle;wheel.roll=stepPlaneWheelRoll(wheel.roll,forwardSpeed,wheel.radius,this.grounded&&!this.gearUp,dt);}
   this.impactVelocity.copy(this.body.linvel());
-  this.propAngle=(this.propAngle+dt*(this.helicopter?this.rotorSpeed/HELI_ROTOR_FULL*95:5+this.throttle*90))%(Math.PI*2);
+  this.advancePropeller(dt);
   this.floatOnWater(dt);
  }
+ /** CHeli::ProcessFlyingCarStuff updates rotor speed independently of the physical motion flags. */
+ private stepRotor(dt:number,auto:boolean,recorded=false){
+  const running=this.health>0&&(auto||this.controlled)&&!this.drowning;
+  this.rotorSpeed=recorded||auto?HELI_ROTOR_FULL:stepHeliRotor(this.rotorSpeed,running,this.rcHeli,dt*30,dt*50);
+ }
+ private advancePropeller(dt:number){this.propAngle=(this.propAngle+dt*(this.helicopter?this.rotorSpeed/HELI_ROTOR_FULL*95:5+this.throttle*90))%(Math.PI*2);}
  /** CPlane's flight for a fixed-wing aircraft (nativeFlyingControl.ts): ProcessControlInputs' smoothing, ProcessFlyingCarStuff
   * (the damage biases under 250, the throttle cut above the ceiling, the propeller and its gate) and FlyingControl,
   * after CPhysical's gravity and air resistance, in native units on the body's velocities. On its wheels the browser
@@ -537,17 +629,17 @@ export class WorldPlane {
  private flyPlane(dt:number,input:{throttle:number;pitch:number;roll:number;rudder:number;brake:boolean},auto:WorldPlane['autopilot']){
   const ts=dt*50,h=this.handling.values,f=this.assets.flyingHandling!.values,v=this.body.linvel();
   const body=this.flyingBody(),{right,forward,up,position}=body;
-  const flying=this.health>0&&(!!auto||this.occupied)&&!(this.drowning&&this.water.buoyancy<h.mass/125);
+  const flying=this.health>0&&(!!auto||this.controlled)&&!(this.drowning&&this.water.buoyancy<h.mass/125);
   // ProcessControlInputs: the player's pitch, roll and rudder follow the stick 0.069 of the way a step; the throttle is
   // (gas − brake) / 255 at once. The AI writes its own.
   const s=this.planeInput;
-  if(this.occupied){s.pitch=smoothPlaneInput(s.pitch,input.pitch,ts);s.roll=smoothPlaneInput(s.roll,input.roll,ts);s.rudder=smoothPlaneInput(s.rudder,input.rudder,ts);s.accel=input.throttle;}
+  if(this.controlled){s.pitch=smoothPlaneInput(s.pitch,input.pitch,ts);s.roll=smoothPlaneInput(s.roll,input.roll,ts);s.rudder=smoothPlaneInput(s.rudder,input.rudder,ts);s.accel=input.throttle;}
   else if(auto){s.pitch=auto.pitch;s.roll=auto.roll;s.rudder=auto.rudder;s.accel=auto.throttle;}
   else{s.pitch=s.roll=s.rudder=s.accel=0;}
   let {pitch,roll,rudder,accel}=s;
-  if(this.occupied)this.stepGear(ts,input.throttle>0);
+  if(this.controlled)this.stepGear(ts,input.throttle>0);
   const model=this.modelId===464?FLIGHT_MODEL.baron:FLIGHT_MODEL.plane;
-  if(this.occupied){
+  if(this.controlled){
    // ProcessFlyingCarStuff under 250 health: the controls pull the burning plane over.
    if(this.health<250){const bank=Math.atan2(right[2],up[2]<0?-Math.hypot(right[0],right[1]):Math.hypot(right[0],right[1]));if(Math.abs(bank)<3*Math.PI/4)roll+=.75;rudder+=.5;if(Math.abs(bank)>Math.PI/2)pitch+=.5;}
    // Above the ceiling the throttle is cut by a twenty-fifth a unit.
@@ -558,16 +650,16 @@ export class WorldPlane {
   applyGravityAndAirResistance(body,h.dragMultiplier/2000*(this.gearUp?f.gearUpResistance:1),ts);
   // The Hydra's nozzle (CPlane::ProcessControlInputs, the keyboard's way): 25 a step toward where it was last sent.
   const hydra=this.modelId===520;
-  if(hydra&&this.occupied)this.nozzle=Math.max(0,Math.min(HYDRA_NOZZLE_MAX,this.nozzle+HYDRA_NOZZLE_RATE*(this.vtol?1:-1)*ts));
+  if(hydra&&this.controlled)this.nozzle=Math.max(0,Math.min(HYDRA_NOZZLE_MAX,this.nozzle+HYDRA_NOZZLE_RATE*(this.vtol?1:-1)*ts));
   const moving=body.moveSpeed[0]**2+body.moveSpeed[1]**2+body.moveSpeed[2]**2>.05;
   this.stall=false;
   if(flying&&(this.propSpeed>.05||moving)){
    const axis=hydra?hydraThrustAxis(body,this.nozzle):undefined;
    // Over 3000 the player's Hydra hovers: FlyingControl's heli model on the Hunter's flying handling, the roll
    // reversed and a quarter of the throttle, while climbing or off its wheels.
-   if(hydra&&this.occupied&&this.nozzle>=HYDRA_VTOL_NOZZLE&&this.assets.vtolFlyingHandling){
+   if(hydra&&this.controlled&&this.nozzle>=HYDRA_VTOL_NOZZLE&&this.assets.vtolFlyingHandling){
     const hunter=this.assets.vtolFlyingHandling.values;
-    if(accel>0||!this.grounded&&!this.inWater)heliFlyingControl(body,hunter,{yaw:rudder,pitch,roll:-roll,accel:accel*.25},HELI_FLIGHT_MODEL.heli,ts,{liftAxis:axis,wind:this.flightWind(hunter.windMultiplier)});
+    if(accel>0||!this.grounded&&!this.inWater)heliFlyingControl(body,hunter,{yaw:rudder,pitch,roll:-roll,accel:accel*.25},HELI_FLIGHT_MODEL.heli,ts,{liftAxis:axis,minimumTilt:this.heliMinimumTilt,wind:this.flightWind(hunter.windMultiplier)});
    }else{const r=planeFlyingControl(body,f,{rudder,pitch,roll,accel},model,ts,{vortex:this.modelId===539,thrustAxis:axis,wind:this.flightWind(f.windMultiplier)});this.stall=r.stallMs>0;}
   }
   if(this.grounded){
@@ -604,7 +696,7 @@ export class WorldPlane {
  private flyHeli(dt:number,input:{throttle:number;pitch:number;roll:number;rudder:number;brake:boolean},auto:WorldPlane['autopilot']){
   const ts=dt*50,h=this.handling.values,f=this.assets.flyingHandling!.values,body=this.flyingBody();
   let yaw=0,pitch=0,roll=0,accel=0;
-  if(this.occupied&&this.health>0){
+  if(this.controlled&&this.health>0){
    accel=input.throttle;pitch=input.pitch;roll=-input.roll;yaw=input.rudder;
    if(input.brake&&body.up[2]>0)({yaw,pitch,roll}=heliHoverInputs(body,f));
    if(this.health<250){accel=-.05;yaw+=.5;}
@@ -613,7 +705,7 @@ export class WorldPlane {
   applyGravityAndAirResistance(body,h.dragMultiplier/2000,ts);
   const m=body.moveSpeed,floating=this.inWater&&(this.modelId===447||this.modelId===417);
   if(this.rotorSpeed>HELI_ROTOR_FLY&&(this.rcHeli||accel>0||!this.grounded&&!floating||Math.abs(m[0])>.02||Math.abs(m[1])>.02||Math.abs(m[2])>.02))
-   heliFlyingControl(body,f,{yaw,pitch,roll,accel},this.rcHeli?HELI_FLIGHT_MODEL.rc:HELI_FLIGHT_MODEL.heli,ts,{wind:this.flightWind(f.windMultiplier)});
+   heliFlyingControl(body,f,{yaw,pitch,roll,accel},this.rcHeli?HELI_FLIGHT_MODEL.rc:HELI_FLIGHT_MODEL.heli,ts,{minimumTilt:this.heliMinimumTilt,wind:this.flightWind(f.windMultiplier)});
   this.stall=false;
   this.writeFlyingBody(body);
  }
@@ -630,7 +722,7 @@ export class WorldPlane {
   const waterHeight=this.body.translation().y,level=(x:number,y:number)=>hook(x,y,waterHeight,this.water.touching);
   const p=this.body.translation(),q=new Quaternion().copy(this.body.rotation()),v=this.body.linvel(),w=this.body.angvel(),h=this.handling.values;
   const native=(x:number,y:number,z:number):NativeVec=>[x,-z,y],axis=(x:number,y:number,z:number)=>{const a=new Vector3(x,y,z).applyQuaternion(q);return native(a.x,a.y,a.z);};
-  const b=this.assets.collision!.bounds;
+  const b=this.collisionBounds;
   const state:NativeBuoyancyBody={position:native(p.x,p.y,p.z),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:[...b.min] as NativeVec,boundsMax:[...b.max] as NativeVec,modelId:this.modelId,heli:this.helicopter,plane:!this.helicopter,touchingWater:this.water.touching,mass:h.mass,turnMass:h.turnMass,centerOfMass:[h.centerOfMassX,h.centerOfMassY,h.centerOfMassZ],heavy:this.heavy,buoyancyConstant:this.water.buoyancy,moveSpeed:native(v.x/50,v.y/50,v.z/50),turnSpeed:native(w.x/50,w.y/50,w.z/50)};
   const rotor:Parameters<typeof applyNativeBuoyancy>[3]={rotorSpeed:this.helicopter?this.rotorSpeed:0,initialBuoyancy:this.handling.buoyancy},moveSpeed=[...state.moveSpeed] as NativeVec;
   const result=applyNativeBuoyancy(state,level,dt*50,rotor,1);
@@ -676,7 +768,7 @@ export class WorldPlane {
   return contact;
  }
  afterStep(){let destroyed=this.pendingExplosion;this.pendingExplosion=false;
-  if(stepBombTimer(this,this.stepDt*50)){this.destroyed();destroyed=true;}
+  if(stepBombTimer(this,this.stepDt*50))destroyed=this.destroyed(this.bombDetonatedByPlayer);
   if(!this.occupied)this.exitPending=false;
   else if(this.exitPending&&this.leaveMode()==='wait')this.slowForExit(this.stepDt);
   const change=new Vector3().copy(this.body.linvel()).sub(this.impactVelocity).length();
@@ -689,7 +781,7 @@ export class WorldPlane {
    const v=this.body.linvel(),rising=this.touchingFixed()&&v.y-this.impactVelocity.y>0;
    if((rising||this.grounded)&&(v.y>=0||this.inWater))destroyed=this.damage(this.health);
   }
-  if(!this.occupied)return destroyed;const p=this.body.translation(),q=this.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={...p};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=this.airspeed;player.grounded=this.grounded;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});return destroyed;}
+  if(!this.playersVehicle)return destroyed;const p=this.body.translation(),q=this.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={...p};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=this.airspeed;player.grounded=this.grounded;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});return destroyed;}
  update(alpha:number){
   for(const wheel of this.rollingWheels){wheel.object.visible=!this.gearUp;wheel.object.matrix.copy(wheel.base).multiply(new Matrix4().makeRotationX(wheel.previous+(wheel.roll.angle-wheel.previous)*alpha));}
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);

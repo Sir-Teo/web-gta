@@ -225,12 +225,13 @@ export class ScmPedPool<Ped>{
   * script set on it. */
  private rebuild(handle:number,said:ScriptPed,spawn:()=>Promise<Ped|undefined>,then?:(ped:Ped)=>void){
   const health=this.pool.read(handle,ped=>this.host.healthOf(ped),()=>said.health);
-  if(health>0)said.health=health;
+  said.health=health;
+  said.dead=health<=0;
   const carried=this.pool.read(handle,ped=>this.host.carried?.(ped),()=>undefined);
   this.pool.replace(handle,()=>spawn().then(ped=>{
    if(ped===undefined)return ped;
    if(carried!==undefined)this.host.carry?.(ped,carried);
-   if(said.health>0&&!said.dead)this.host.setHealth(ped,said.health);
+   this.host.setHealth(ped,said.dead?0:said.health);
    if(said.accuracy!==undefined)this.host.setAccuracy(ped,said.accuracy);
    if(said.shootingRate!==undefined)this.host.setShootingRate?.(ped,said.shootingRate);
    if(said.invulnerable!==undefined)this.host.setInvulnerable(ped,said.invulnerable);

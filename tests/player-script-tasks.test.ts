@@ -1,8 +1,23 @@
 import {expect,test} from 'vitest';
+import {createPartnerChat} from '../src/simulation/nativePartnerChat';
 import {PlayerScriptTasks,type PlayerTaskBody} from '../src/simulation/playerScriptTasks';
 
 const world={animation:async()=>undefined,placeOnGround:()=>{}};
 const body=(x=0,z=0,heading=0,speed=0):PlayerTaskBody=>({position:{x,y:0,z},heading,speed,onFoot:true});
+
+test('a jetpack task keeps the pad free, waits for the pack to end, and then advances its sequence',()=>{
+ let pack=false,started=0,ended=0;const tasks=new PlayerScriptTasks({...world,startJetpack:()=>{pack=true;started++;return true;},jetpackRunning:()=>pack,endJetpack:()=>{pack=false;ended++;}}),b=body();
+ expect(PlayerScriptTasks.runs({kind:'jetpack'})).toBe(true);tasks.giveSequence([{kind:'jetpack'},{kind:'standStill',seconds:1}],false,b);expect(started).toBe(1);expect(tasks.active).toBe(true);expect(tasks.progress).toBe(0);
+ for(let i=0;i<5;i++)expect(tasks.step(.1,b)).toBeUndefined();expect(tasks.progress).toBe(0);
+ pack=false;tasks.step(.1,b);expect(tasks.progress).toBe(1);expect(tasks.step(.1,b)).toEqual({kind:'hold'});expect(ended).toBe(1);
+});
+
+test('jetpack tasks refuse ordinary script commands, accept priority-71 tasks, and clear without a dropped pickup',()=>{
+ let pack=false,started=0,ended=0;const tasks=new PlayerScriptTasks({...world,startJetpack:()=>{pack=true;started++;return true;},jetpackRunning:()=>pack,endJetpack:()=>{pack=false;ended++;}}),b=body();
+ expect(tasks.give({kind:'jetpack'},b)).toBe(true);expect(tasks.give({kind:'jetpack'},b)).toBe(false);expect(tasks.give({kind:'standStill',seconds:1},b)).toBe(false);expect([started,ended,pack]).toEqual([1,0,true]);
+ expect(tasks.giveSequence([{kind:'die'}],false,b)).toBe(false);expect(tasks.give({kind:'die'},b)).toBe(true);expect([ended,pack]).toEqual([1,false]);
+ tasks.give({kind:'jetpack'},b);tasks.clear(b);expect([started,ended,pack,tasks.active]).toEqual([2,2,false,false]);
+});
 
 test('the player walks straight at the point until inside the radius, and the task is then over',()=>{
  const tasks=new PlayerScriptTasks(world);
@@ -175,7 +190,7 @@ test('TASK_AIM_GUN_AT_COORD on the player holds his weapon on the point, facing 
  const aims:unknown[]=[];
  const tasks=new PlayerScriptTasks({...world,aimAt:point=>{aims.push(point);}});
  expect(PlayerScriptTasks.runs({kind:'gunAt',point:{x:1,y:2,z:3},fire:false,seconds:1})).toBe(true);
- expect(PlayerScriptTasks.runs({kind:'gunAt',point:{x:1,y:2,z:3},fire:true,seconds:1})).toBe(false);
+ expect(PlayerScriptTasks.runs({kind:'gunAt',point:{x:1,y:2,z:3},fire:true,seconds:1})).toBe(true);
  // The script's (10, -10, 12) is the renderer's (10, 12, 10): north-east of a player at the origin.
  tasks.give({kind:'gunAt',point:{x:10,y:-10,z:12},fire:false,seconds:1},body());
  expect(aims).toEqual([{x:10,y:12,z:10}]);
@@ -251,4 +266,11 @@ test('TASK_ENTER_CAR_AS_PASSENGER on the player walks him to the seat\'s door an
  // Timed out first, he is set in where he is.
  seated=false;tasks.give({kind:'enterCar',vehicle:3,seat:0,seconds:.5},body());
  tasks.step(.6,body());expect(warps).toEqual([0,0]);
+});
+
+test('player partner-chat math uses the ped origin above his feet and clearing drops the reciprocal state',()=>{
+ const other=createPartnerChat(false),tasks=new PlayerScriptTasks({...world,chatPartner:()=>({position:{x:10,y:0,z:1},task:other})});
+ tasks.give({kind:'chat',partner:7,chatter:true,updateDirectionCount:-1},body());tasks.step(.06,body());
+ expect(tasks.chat?.task.point).toEqual({x:4.5,y:0,z:1});expect(other.point).toEqual({x:5.5,y:0,z:1});
+ tasks.clear(body());expect(tasks.chat).toBeUndefined();expect(tasks.active).toBe(false);
 });

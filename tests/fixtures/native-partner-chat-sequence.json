@@ -1,0 +1,742 @@
+{
+  "executableSha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "functions": [
+    "0x10042012c",
+    "0x100421468"
+  ],
+  "scope": "Chat approach helper and fallback sequence with conversation disabled; type query, allocations, constructors and sequence appends intercepted; complete vector normalization executes",
+  "cases": [
+    {
+      "kind": "points",
+      "input": {
+        "a": [
+          0,
+          0,
+          0
+        ],
+        "b": [
+          0,
+          0,
+          0
+        ]
+      },
+      "native": {
+        "a": [
+          -0.5,
+          0.0,
+          0.0
+        ],
+        "b": [
+          0.5,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "kind": "points",
+      "input": {
+        "a": [
+          10,
+          20,
+          30
+        ],
+        "b": [
+          16,
+          28,
+          30
+        ]
+      },
+      "native": {
+        "a": [
+          12.699999809265137,
+          23.600000381469727,
+          30.0
+        ],
+        "b": [
+          13.300000190734863,
+          24.399999618530273,
+          30.0
+        ]
+      }
+    },
+    {
+      "kind": "points",
+      "input": {
+        "a": [
+          -2238.95,
+          120.24,
+          57.94
+        ],
+        "b": [
+          -2237.93,
+          121.4,
+          57
+        ]
+      },
+      "native": {
+        "a": [
+          -2238.721923828125,
+          120.49923706054688,
+          57.72992706298828
+        ],
+        "b": [
+          -2238.157958984375,
+          121.14076232910156,
+          57.21007537841797
+        ]
+      }
+    },
+    {
+      "kind": "points",
+      "input": {
+        "a": [
+          10,
+          20,
+          30
+        ],
+        "b": [
+          10,
+          20,
+          40
+        ]
+      },
+      "native": {
+        "a": [
+          10.0,
+          20.0,
+          34.5
+        ],
+        "b": [
+          10.0,
+          20.0,
+          35.5
+        ]
+      }
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          0,
+          0,
+          0
+        ],
+        "directions": 0,
+        "lead": false
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "stand",
+          "ms": 3500
+        },
+        {
+          "kind": "chat",
+          "ms": 6500,
+          "animation": 12
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          0,
+          0,
+          0
+        ],
+        "directions": 0,
+        "lead": true
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "chat",
+          "ms": 3500,
+          "animation": 12
+        },
+        {
+          "kind": "stand",
+          "ms": 6500
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          0,
+          0,
+          0
+        ],
+        "directions": 1,
+        "lead": false
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "stand",
+          "ms": 3875
+        },
+        {
+          "kind": "chat",
+          "ms": 6125,
+          "animation": 12
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          0,
+          0,
+          0
+        ],
+        "directions": 1,
+        "lead": true
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "chat",
+          "ms": 3875,
+          "animation": 12
+        },
+        {
+          "kind": "stand",
+          "ms": 6125
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          0,
+          0,
+          0
+        ],
+        "directions": 2,
+        "lead": false
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "stand",
+          "ms": 4250
+        },
+        {
+          "kind": "chat",
+          "ms": 5750,
+          "animation": 12
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          0,
+          0,
+          0
+        ],
+        "directions": 2,
+        "lead": true
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "chat",
+          "ms": 4250,
+          "animation": 12
+        },
+        {
+          "kind": "stand",
+          "ms": 5750
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          0,
+          0,
+          0
+        ],
+        "directions": 3,
+        "lead": false
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "stand",
+          "ms": 4625
+        },
+        {
+          "kind": "chat",
+          "ms": 5375,
+          "animation": 12
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          0,
+          0,
+          0
+        ],
+        "directions": 3,
+        "lead": true
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "chat",
+          "ms": 4625,
+          "animation": 12
+        },
+        {
+          "kind": "stand",
+          "ms": 5375
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          -2238.95,
+          120.24,
+          57.94
+        ],
+        "directions": 0,
+        "lead": false
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "stand",
+          "ms": 6218
+        },
+        {
+          "kind": "chat",
+          "ms": 3781,
+          "animation": 12
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          -2238.95,
+          120.24,
+          57.94
+        ],
+        "directions": 0,
+        "lead": true
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "chat",
+          "ms": 6218,
+          "animation": 12
+        },
+        {
+          "kind": "stand",
+          "ms": 3781
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          -2238.95,
+          120.24,
+          57.94
+        ],
+        "directions": 1,
+        "lead": false
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "stand",
+          "ms": 3593
+        },
+        {
+          "kind": "chat",
+          "ms": 6406,
+          "animation": 12
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          -2238.95,
+          120.24,
+          57.94
+        ],
+        "directions": 1,
+        "lead": true
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "chat",
+          "ms": 3593,
+          "animation": 12
+        },
+        {
+          "kind": "stand",
+          "ms": 6406
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          -2238.95,
+          120.24,
+          57.94
+        ],
+        "directions": 2,
+        "lead": false
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "stand",
+          "ms": 3968
+        },
+        {
+          "kind": "chat",
+          "ms": 6031,
+          "animation": 12
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          -2238.95,
+          120.24,
+          57.94
+        ],
+        "directions": 2,
+        "lead": true
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "chat",
+          "ms": 3968,
+          "animation": 12
+        },
+        {
+          "kind": "stand",
+          "ms": 6031
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          -2238.95,
+          120.24,
+          57.94
+        ],
+        "directions": 3,
+        "lead": false
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "stand",
+          "ms": 4343
+        },
+        {
+          "kind": "chat",
+          "ms": 5656,
+          "animation": 12
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          -2238.95,
+          120.24,
+          57.94
+        ],
+        "directions": 3,
+        "lead": true
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "chat",
+          "ms": 4343,
+          "animation": 12
+        },
+        {
+          "kind": "stand",
+          "ms": 5656
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          12.7,
+          23.6,
+          30
+        ],
+        "directions": 0,
+        "lead": false
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "stand",
+          "ms": 5046
+        },
+        {
+          "kind": "chat",
+          "ms": 4953,
+          "animation": 12
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          12.7,
+          23.6,
+          30
+        ],
+        "directions": 0,
+        "lead": true
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "chat",
+          "ms": 5046,
+          "animation": 12
+        },
+        {
+          "kind": "stand",
+          "ms": 4953
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          12.7,
+          23.6,
+          30
+        ],
+        "directions": 1,
+        "lead": false
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "stand",
+          "ms": 5421
+        },
+        {
+          "kind": "chat",
+          "ms": 4578,
+          "animation": 12
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          12.7,
+          23.6,
+          30
+        ],
+        "directions": 1,
+        "lead": true
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "chat",
+          "ms": 5421,
+          "animation": 12
+        },
+        {
+          "kind": "stand",
+          "ms": 4578
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          12.7,
+          23.6,
+          30
+        ],
+        "directions": 2,
+        "lead": false
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "stand",
+          "ms": 5796
+        },
+        {
+          "kind": "chat",
+          "ms": 4203,
+          "animation": 12
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          12.7,
+          23.6,
+          30
+        ],
+        "directions": 2,
+        "lead": true
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "chat",
+          "ms": 5796,
+          "animation": 12
+        },
+        {
+          "kind": "stand",
+          "ms": 4203
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          12.7,
+          23.6,
+          30
+        ],
+        "directions": 3,
+        "lead": false
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "stand",
+          "ms": 6171
+        },
+        {
+          "kind": "chat",
+          "ms": 3828,
+          "animation": 12
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "input": {
+        "point": [
+          12.7,
+          23.6,
+          30
+        ],
+        "directions": 3,
+        "lead": true
+      },
+      "native": [
+        {
+          "kind": "turn"
+        },
+        {
+          "kind": "chat",
+          "ms": 6171,
+          "animation": 12
+        },
+        {
+          "kind": "stand",
+          "ms": 3828
+        }
+      ]
+    }
+  ]
+}

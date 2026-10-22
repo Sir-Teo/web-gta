@@ -221,6 +221,7 @@ export interface ScmIntroRectangle {
  /** gxt1, the window header; DRAW_WINDOW drops the "DUMMY" placeholder and keeps eight characters. */
  header:string;alignment:number;textboxStyle:number;
 }
+export interface ScmSpriteBinding {dictionary?:string;name:string}
 /* CTheScripts::IntroRectangles with the reversed DrawCommands.cpp handlers (gta-reversed ead3051): the script's
  * sprites and rectangles for one frame. Every draw claims the next slot, and the same UseTextCommands gate that
  * clears the text lines clears these. Coordinates come in the 640x448 design space and are stretched to the
@@ -229,6 +230,9 @@ export class ScmIntroRectangles {
  readonly rectangles:ScmIntroRectangle[];
  /** CTheScripts::ScriptSprites: a texture name per slot, or nothing where the script loaded none. */
  readonly sprites:(string|undefined)[]=Array(MAX_NUM_SCRIPT_SPRITES).fill(undefined);
+ /** A CSprite2d keeps its loaded texture when the current script dictionary changes. */
+ readonly spriteBindings:(ScmSpriteBinding|undefined)[]=Array(MAX_NUM_SCRIPT_SPRITES).fill(undefined);
+ missionDictionary=false;
  count=0;
  constructor(readonly screenWidth=640,readonly screenHeight=448){
   this.rectangles=Array.from({length:MAX_NUM_SCRIPT_RECTANGLES},()=>ScmIntroRectangles.defaults());
@@ -248,10 +252,14 @@ export class ScmIntroRectangles {
  /** The models\\txd dictionary LOAD_TEXTURE_DICTIONARY put in the script's texture slot, which LOAD_SPRITE's
   * names are looked up in; none once REMOVE_TEXTURE_DICTIONARY has freed it. */
  dictionary?:string;
+ loadDictionary(name:string,missionCleanup=false){this.dictionary=name.toLowerCase();if(missionCleanup)this.missionDictionary=true;}
+ /** CTheScripts::RemoveScriptTextureDictionary (465A40) deletes every ScriptSprites entry first. */
+ removeDictionary(){this.sprites.fill(undefined);this.spriteBindings.fill(undefined);this.dictionary=undefined;this.missionDictionary=false;}
  /** LOAD_SPRITE: the name is lowered and cut to fifteen characters, as the handler's buffer holds. */
  loadSprite(slot:number,name:string){
   requireAsset(Number.isInteger(slot)&&slot>0&&slot<=MAX_NUM_SCRIPT_SPRITES,'Script sprite slot out of range.');
   this.sprites[slot-1]=name.slice(0,15).toLowerCase();
+  this.spriteBindings[slot-1]={dictionary:this.dictionary,name:this.sprites[slot-1]!};
  }
  /** DRAW_SPRITE. */
  drawSprite(slot:number,x:number,y:number,width:number,height:number,colour:[number,number,number,number]){

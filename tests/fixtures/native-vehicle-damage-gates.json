@@ -1,0 +1,3501 @@
+{
+  "executableSha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "gate": "0x1004780a8",
+  "proofHelper": "0x100252b84",
+  "storageFragment": [
+    "0x10047853c",
+    "0x100478574"
+  ],
+  "cases": [
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 0
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 1
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 2
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 3
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 4
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 5
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 6
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 7
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 8
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 9
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 10
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 11
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 12
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 13
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 14
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 15
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 16
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 17
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 18
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 19
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 20
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 21
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 22
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 23
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 24
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 25
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 26
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 27
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 28
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 29
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 30
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 31
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 32
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 33
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 34
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 35
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 36
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 37
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 38
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 39
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 40
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 41
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 42
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 43
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 44
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 45
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 46
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 47
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 48
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 49
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 50
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 51
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 52
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 53
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 54
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 55
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 56
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 57
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 58
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 59
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "none",
+        "weapon": 60
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 0
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 1
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 2
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 3
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 4
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 5
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 6
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 7
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 8
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 9
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 10
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 11
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 12
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 13
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 14
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 15
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 16
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 17
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 18
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 19
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 20
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 21
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 22
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 23
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 24
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 25
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 26
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 27
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 28
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 29
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 30
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 31
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 32
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 33
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 34
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 35
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 36
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 37
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 38
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 39
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 40
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 41
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 42
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 43
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 44
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 45
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 46
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 47
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 48
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 49
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 50
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 51
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 52
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 53
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 54
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 55
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 56
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 57
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 58
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 59
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "bullet",
+        "weapon": 60
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 0
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 1
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 2
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 3
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 4
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 5
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 6
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 7
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 8
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 9
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 10
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 11
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 12
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 13
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 14
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 15
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 16
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 17
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 18
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 19
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 20
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 21
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 22
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 23
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 24
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 25
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 26
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 27
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 28
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 29
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 30
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 31
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 32
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 33
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 34
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 35
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 36
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 37
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 38
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 39
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 40
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 41
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 42
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 43
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 44
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 45
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 46
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 47
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 48
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 49
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 50
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 51
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 52
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 53
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 54
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 55
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 56
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 57
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 58
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 59
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "fire",
+        "weapon": 60
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 0
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 1
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 2
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 3
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 4
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 5
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 6
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 7
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 8
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 9
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 10
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 11
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 12
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 13
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 14
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 15
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 16
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 17
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 18
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 19
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 20
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 21
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 22
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 23
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 24
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 25
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 26
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 27
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 28
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 29
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 30
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 31
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 32
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 33
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 34
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 35
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 36
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 37
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 38
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 39
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 40
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 41
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 42
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 43
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 44
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 45
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 46
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 47
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 48
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 49
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 50
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 51
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 52
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 53
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 54
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 55
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 56
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 57
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 58
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 59
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "explosion",
+        "weapon": 60
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 0
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 1
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 2
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 3
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 4
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 5
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 6
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 7
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 8
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 9
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 10
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 11
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 12
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 13
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 14
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 15
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 16
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 17
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 18
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 19
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 20
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 21
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 22
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 23
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 24
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 25
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 26
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 27
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 28
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 29
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 30
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 31
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 32
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 33
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 34
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 35
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 36
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 37
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 38
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 39
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 40
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 41
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 42
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 43
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 44
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 45
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 46
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 47
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 48
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 49
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 50
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 51
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 52
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 53
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 54
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 55
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 56
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 57
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 58
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 59
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "collision",
+        "weapon": 60
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 0
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 1
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 2
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 3
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 4
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 5
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 6
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 7
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 8
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 9
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 10
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 11
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 12
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 13
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 14
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 15
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 16
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 17
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 18
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 19
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 20
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 21
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 22
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 23
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 24
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 25
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 26
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 27
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 28
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 29
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 30
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 31
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 32
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 33
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 34
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 35
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 36
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 37
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 38
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 39
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 40
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 41
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 42
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 43
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 44
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 45
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 46
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 47
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 48
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 49
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 50
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 51
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 52
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 53
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 54
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 55
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 56
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 57
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 58
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 59
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "proof": "melee",
+        "weapon": 60
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 31,
+        "occupied": false,
+        "source": "none",
+        "onlyPlayer": true
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 31,
+        "occupied": false,
+        "source": "player",
+        "onlyPlayer": true
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 31,
+        "occupied": false,
+        "source": "playerVehicle",
+        "onlyPlayer": true
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 31,
+        "occupied": false,
+        "source": "other",
+        "onlyPlayer": true
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 31,
+        "occupied": true,
+        "source": "none",
+        "onlyPlayer": true
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 31,
+        "occupied": true,
+        "source": "player",
+        "onlyPlayer": true
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 31,
+        "occupied": true,
+        "source": "playerVehicle",
+        "onlyPlayer": true
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 31,
+        "occupied": true,
+        "source": "other",
+        "onlyPlayer": true
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 4,
+        "occupied": true,
+        "health": 249
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 4,
+        "occupied": true,
+        "health": 249.99999
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 4,
+        "occupied": true,
+        "health": 249.999999
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 4,
+        "occupied": true,
+        "health": 250
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 4,
+        "occupied": true,
+        "health": 250.000001
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 4,
+        "occupied": true,
+        "health": 250.00001
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 18,
+        "occupied": true,
+        "health": 249
+      },
+      "allowed": false,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 18,
+        "occupied": true,
+        "health": 249.99999
+      },
+      "allowed": false,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 18,
+        "occupied": true,
+        "health": 249.999999
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 18,
+        "occupied": true,
+        "health": 250
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 18,
+        "occupied": true,
+        "health": 250.000001
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 18,
+        "occupied": true,
+        "health": 250.00001
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 22,
+        "occupied": true,
+        "health": 249
+      },
+      "allowed": false,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 22,
+        "occupied": true,
+        "health": 249.99999
+      },
+      "allowed": false,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 22,
+        "occupied": true,
+        "health": 249.999999
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 22,
+        "occupied": true,
+        "health": 250
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 22,
+        "occupied": true,
+        "health": 250.000001
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 22,
+        "occupied": true,
+        "health": 250.00001
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 37,
+        "occupied": true,
+        "health": 249
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 37,
+        "occupied": true,
+        "health": 249.99999
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 37,
+        "occupied": true,
+        "health": 249.999999
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 37,
+        "occupied": true,
+        "health": 250
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 37,
+        "occupied": true,
+        "health": 250.000001
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 37,
+        "occupied": true,
+        "health": 250.00001
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 49,
+        "occupied": true,
+        "health": 249
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 49,
+        "occupied": true,
+        "health": 249.99999
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 49,
+        "occupied": true,
+        "health": 249.999999
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 49,
+        "occupied": true,
+        "health": 250
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 49,
+        "occupied": true,
+        "health": 250.000001
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 49,
+        "occupied": true,
+        "health": 250.00001
+      },
+      "allowed": true,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 51,
+        "occupied": true,
+        "health": 249
+      },
+      "allowed": false,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 51,
+        "occupied": true,
+        "health": 249.99999
+      },
+      "allowed": false,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 51,
+        "occupied": true,
+        "health": 249.999999
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 51,
+        "occupied": true,
+        "health": 250
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 51,
+        "occupied": true,
+        "health": 250.000001
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 51,
+        "occupied": true,
+        "health": 250.00001
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 31,
+        "source": "none",
+        "attached": true
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 31,
+        "source": "none",
+        "canBeDamaged": false
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 31,
+        "source": "player",
+        "attached": true
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 31,
+        "source": "player",
+        "canBeDamaged": false
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 31,
+        "source": "playerVehicle",
+        "attached": true
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 31,
+        "source": "playerVehicle",
+        "canBeDamaged": false
+      },
+      "allowed": false,
+      "flagged": false
+    },
+    {
+      "input": {
+        "weapon": 31,
+        "source": "other",
+        "attached": true
+      },
+      "allowed": true,
+      "flagged": true
+    },
+    {
+      "input": {
+        "weapon": 31,
+        "source": "other",
+        "canBeDamaged": false
+      },
+      "allowed": false,
+      "flagged": false
+    }
+  ],
+  "storage": [
+    {
+      "source": "none",
+      "previousSource": "none",
+      "lastSource": "none",
+      "lastWeapon": 31,
+      "health": 80.0
+    },
+    {
+      "source": "none",
+      "previousSource": "player",
+      "lastSource": "player",
+      "lastWeapon": 31,
+      "health": 80.0
+    },
+    {
+      "source": "none",
+      "previousSource": "other",
+      "lastSource": "other",
+      "lastWeapon": 31,
+      "health": 80.0
+    },
+    {
+      "source": "player",
+      "previousSource": "none",
+      "lastSource": "player",
+      "lastWeapon": 31,
+      "health": 80.0
+    },
+    {
+      "source": "player",
+      "previousSource": "player",
+      "lastSource": "player",
+      "lastWeapon": 31,
+      "health": 80.0
+    },
+    {
+      "source": "player",
+      "previousSource": "other",
+      "lastSource": "player",
+      "lastWeapon": 31,
+      "health": 80.0
+    },
+    {
+      "source": "playerVehicle",
+      "previousSource": "none",
+      "lastSource": "playerVehicle",
+      "lastWeapon": 31,
+      "health": 80.0
+    },
+    {
+      "source": "playerVehicle",
+      "previousSource": "player",
+      "lastSource": "playerVehicle",
+      "lastWeapon": 31,
+      "health": 80.0
+    },
+    {
+      "source": "playerVehicle",
+      "previousSource": "other",
+      "lastSource": "playerVehicle",
+      "lastWeapon": 31,
+      "health": 80.0
+    },
+    {
+      "source": "other",
+      "previousSource": "none",
+      "lastSource": "other",
+      "lastWeapon": 31,
+      "health": 80.0
+    },
+    {
+      "source": "other",
+      "previousSource": "player",
+      "lastSource": "other",
+      "lastWeapon": 31,
+      "health": 80.0
+    },
+    {
+      "source": "other",
+      "previousSource": "other",
+      "lastSource": "other",
+      "lastWeapon": 31,
+      "health": 80.0
+    }
+  ]
+}

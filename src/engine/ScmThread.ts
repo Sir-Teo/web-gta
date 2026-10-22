@@ -30,6 +30,7 @@ const UNION_BITS=new DataView(new ArrayBuffer(4));
  * optional: a missing adapter stops the script explicitly at that command. */
 /** One scripted task as its command describes it; a host builds the CTask this names. */
 export type ScmScriptedTask=
+ |{kind:'jetpack'}
  |{kind:'killPedOnFoot';target:number;time:number;flags:number;actionDelay:number;actionChance:number;mustBeOnFoot:boolean}
  |{kind:'turnToFaceEntity';target:number}
  /** TASK_HAND_GESTURE: CTaskComplexSignalAtPed at the other ped. */
@@ -62,6 +63,7 @@ export type ScmScriptedTask=
   /** CTaskComplexLeaveCar's m_nDelayTime: milliseconds in the seat before the leaving starts. */
   delay?:number}
  |{kind:'standStill';time:number}
+ |{kind:'useAtm'}
  |{kind:'shootAtCoord';x:number;y:number;z:number;time:number}
  |{kind:'setDecisionMaker';decisionMaker:number}
  |{kind:'chatWithPed';other:number;leadSpeaker:boolean;unknown:number}
@@ -73,6 +75,7 @@ export type ScmScriptedTask=
  |{kind:'kindaStayInSamePlace';state:boolean}
  |{kind:'useMobilePhone';start:boolean}
  |{kind:'pickUpObject';object:number;offset:{x:number;y:number;z:number};bone:number;orientation:number;animationName:string;animationFile:string;time:number}
+ |{kind:'complexPickUpObject';object:number}
  /** TASK_GO_TO_COORD_WHILE_SHOOTING: `turnRadius` is the go-to's target radius and `stopRadius` its slow-down distance
   * (the iOS handler hands operands 5 and 6 to the constructor in that order). */
  |{kind:'goToCoordWhileShooting';x:number;y:number;z:number;speed:number;turnRadius:number;stopRadius:number;target:number}
@@ -122,6 +125,7 @@ export type ScmScriptedTask=
  |{kind:'weaponRoll';state:boolean}
  |{kind:'fallAndGetUp';direction:number;time:number}
  |{kind:'diveAndGetUp';x:number;y:number;time:number}
+ |{kind:'diveFromAttachmentAndGetUp';time:number}
  |{kind:'gotoPedOffset';target:number;time:number;offsetX:number;offsetY:number}
  |{kind:'goToObject';object:number;time:number;radius:number}
  |{kind:'followFootsteps';target:number}
@@ -945,7 +949,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setCarCoordinatesNoOffset?(handle:number,x:number,y:number,z:number):void;
  addExplosionNoSound?(x:number,y:number,z:number,type:number):void;
  switchOnGroundSearchlight?(handle:number,state:boolean):void;
- taskJetpack?(handle:number):void;
  isCarDoorDamaged?(handle:number,door:number):boolean;
  setVehicleToFadeIn?(handle:number,alpha:number):void;
  addAttractor?(x:number,y:number,z:number,angle:number,p5:number,sequence:number):number;
@@ -963,6 +966,9 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  /** CPed::m_fArmour. */
  pedArmour?(handle:number):number;
  addPedtypeAsAttractorUser?(handle:number,pedType:number):void;
+ useClosestMapAttractor?(ped:number,radius:number,model:number|string,x:number,y:number,z:number,name:string):boolean;
+ closestMapAttractorUser?(x:number,y:number,z:number,radius:number,model:number|string,name:string):number;
+ pedUsesMapAttractor?(ped:number):boolean;
  taskUseAttractor?(char:number,attractor:number):void;
  planeFlyInDirection?(handle:number,heading:number,minAltitude:number,maxAltitude:number):void;
  hasObjectBeenPhotographed?(handle:number):boolean;
@@ -989,7 +995,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  getWheelieStats?(handle:number):{twoWheelsTime:number,twoWheelsDistance:number,wheelieTime:number,wheelieDistance:number,stoppieTime:number,stoppieDistance:number};
  randomPassengerSay?(handle:number,phrase:number):void;
  getStringWidthWithNumber?(gxtEntry:string,number:number):number;
- setForceRandomCarModel?(modelId:number|string):void;
  isPlayerInRemoteMode?(handle:number):boolean;
  getNearestTagPosition?(xCoord:number,yCoord:number,zCoord:number):{x:number,y:number,z:number};
  fixCarPanel?(handle:number,panelId:number):void;
@@ -1039,7 +1044,7 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  /** CREATE_RANDOM_CAR_FOR_CAR_PARK: a random car from the loaded ones parked at a point, its heading in degrees. */
  createRandomCarForCarPark?(x:number,y:number,z:number,heading:number):void;
  addToObjectRotationVelocity?(handle:number,x:number,y:number,z:number):void;
- drawWeaponshopCorona?(x:number,y:number,z:number,size:number,coronaType:number,flareType:number,r:number,g:number,b:number):void;
+ drawWeaponshopCorona?(x:number,y:number,z:number,size:number,coronaType:number,flareType:number,r:number,g:number,b:number,id:number):void;
  fireHunterGun?(handle:number):void;
  taskDiveFromAttachmentAndGetUp?(handle:number,timeOnGround:number):void;
  createFxSystemOnCharWithDirection?(name:string,char:number,xOffset:number,yOffset:number,zOffset:number,xDirection:number,yDirection:number,zDirection:number,ignoreBoundingChecks:boolean):number;
@@ -1444,7 +1449,9 @@ export class ScmThread {
     requireAsset(p[0].type===9&&typeof p[0].value==='string','Unsupported SCM script name.');this.name=p[0].value;
    }else if(op===0x16a){
     if(!this.host?.world)throw new UnsupportedScmCommand(i.offset,op,i.name);
-    this.host.world.fade(this.read(p[0],'int')>>>0,this.read(p[1],'int')&0xffff,nowMs);
+    const direction=this.read(p[1],'int')&0xffff;
+    this.host.world.fade(this.read(p[0],'int')>>>0,direction,nowMs);
+    if(this.usesMissionCleanup&&this.host.game)this.host.game.scriptHasFadedOut=direction!==1;
    }else if(op===0xd7){
     // LAUNCH_MISSION: CTheScripts::StartNewScript(&ScriptSpace[label]).
     if(!this.host?.launchMission)throw new UnsupportedScmCommand(i.offset,op,i.name);

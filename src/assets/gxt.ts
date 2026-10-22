@@ -19,6 +19,9 @@ const GXT_CHARS:Readonly<Record<number,string>>={0xb1:'´',0xaf:'¿',0x80:'À',0
  0x96:'ß',0x97:'à',0x98:'á',0x99:'â',0x9a:'ä',0x9b:'æ',0x9c:'ç',0x9d:'è',0x9e:'é',0x9f:'ê',0xa0:'ë',0xa1:'ì',0xa2:'í',0xa3:'î',0xa4:'ï',
  0xae:'ñ',0xa5:'ò',0xa6:'ó',0xa7:'ô',0xa8:'ö',0xa9:'ù',0xaa:'ú',0xab:'û',0xac:'ü',0x5b:'<',0x5d:'>',0x5e:'¡'};
 export function gxtCharsToText(bytes:Uint8Array){let out='';for(const b of bytes)out+=GXT_CHARS[b]??String.fromCharCode(b);return out;}
+const TEXT_GXT_CODES=new Map(Object.entries(GXT_CHARS).map(([code,text])=>[text,Number(code)]));
+/** Recover the native font's byte index from decoded PC GXT text, including accented and remapped ASCII glyphs. */
+export function gxtFontCode(character:string){return TEXT_GXT_CODES.get(character)??character.codePointAt(0)??0;}
 
 type Table=ReadonlyMap<number,string>;
 export interface Gxt {
@@ -172,11 +175,14 @@ export function controlNaming():'keys'|'touch'|'playstation'|'xbox'{return namin
  * control the help box asks for that has none of its own (a yes-or-no question, collecting a pickup). */
 const NAMED=new Map<string,readonly string[]>();
 export function controlsNamedIn(text:string):readonly string[]{return NAMED.get(text)??[];}
-/** The browser HUD draws plain text: ~n~ breaks the line, a ~k~ control names its key, and colour and style tokens
- * (~w~, ~r~, ~h~, ~z~ and the rest) drop. */
-export function gxtHudText(text:string){
+/** Insert the active input names while retaining the other native formatting tags for font measurement. */
+export function gxtControlKeyText(text:string,named?:string[]){return text.replace(/~k~~([A-Z0-9_]+)~/g,(_,action:string)=>{named?.push(action);return controlNames[action]??action.replace(/_/g,' ');});}
+/** Resolve control names/newlines for the HUD. Script atlas text retains palette/highlight tags;
+ * ordinary DOM HUD callers keep plain text. Both forms retain touch control discovery. */
+export function gxtHudText(text:string,preserveColours=false){
  const named:string[]=[];
- let out=text.replace(/~k~~([A-Z0-9_]+)~/g,(_,action:string)=>{named.push(action);return controlNames[action]??action.replace(/_/g,' ');}).replace(/~n~/gi,'\n').replace(/~[a-z]~/gi,'');
+ // CFont::ParseToken consumes closed numeric tokens too; unresolved placeholders have no glyph or state effect.
+ let out=gxtControlKeyText(text,named).replace(/~[0-9][^~]*~/g,'').replace(/~n~/gi,'\n').replace(/~[a-z]~/gi,tag=>preserveColours&&/^~[rRgGbBpPsSwWyYhHl]~$/.test(tag)?tag:'');
  if(touchNames){for(const [run,name] of DIRECTION_RUNS)out=out.replace(run,name);out=out.replace(...SNEAK_PHRASE);
   // Two controls one button stands for ("RADIO and RADIO", "FIRE or FIRE") are named once.
   out=out.replace(/(?<![A-Z0-9+−◀▶-]|[A-Z0-9+−◀▶-] )([A-Z][A-Z0-9 +−◀▶-]*[A-Z0-9+−◀▶])(?:,? (?:and|or) |\/)\1(?![A-Za-z0-9+−◀▶-]| [A-Z0-9+−◀▶-])/g,'$1');}

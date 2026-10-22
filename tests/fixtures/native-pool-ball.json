@@ -1,0 +1,1643 @@
+{
+  "executableSha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "function": "0x100248828",
+  "intercepted": [
+    "ApplyTurnSpeed",
+    "ApplyFriction",
+    "ReportMissionAudioEvent"
+  ],
+  "cases": [
+    {
+      "input": {
+        "name": "free-roll",
+        "position": [
+          0,
+          0.2,
+          1
+        ],
+        "velocity": [
+          0.1,
+          0.02,
+          0
+        ]
+      },
+      "position": [
+        0.10000000149011612,
+        0.2199999988079071,
+        1.0
+      ],
+      "velocity": [
+        0.10000000149011612,
+        0.019999999552965164,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 255,
+      "events": [],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "right-cushion",
+        "position": [
+          0.98,
+          0.2,
+          1
+        ],
+        "velocity": [
+          0.1,
+          0.02,
+          0
+        ]
+      },
+      "position": [
+        0.9199999570846558,
+        0.2199999988079071,
+        1.0
+      ],
+      "velocity": [
+        -0.10000000149011612,
+        0.019999999552965164,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            1.0369999408721924,
+            0.20399999618530273,
+            1.0
+          ],
+          "normal": [
+            -1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "left-cushion",
+        "position": [
+          -0.98,
+          -0.2,
+          1
+        ],
+        "velocity": [
+          -0.1,
+          0.02,
+          0
+        ]
+      },
+      "position": [
+        -0.9199999570846558,
+        -0.18000000715255737,
+        1.0
+      ],
+      "velocity": [
+        0.10000000149011612,
+        0.019999999552965164,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            -1.0369999408721924,
+            -0.19600000977516174,
+            1.0
+          ],
+          "normal": [
+            1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "top-cushion",
+        "position": [
+          0.2,
+          0.48,
+          1
+        ],
+        "velocity": [
+          0.02,
+          0.1,
+          0
+        ]
+      },
+      "position": [
+        0.2200000137090683,
+        0.42000001668930054,
+        1.0
+      ],
+      "velocity": [
+        0.019999999552965164,
+        -0.10000000149011612,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            0.20400001108646393,
+            0.5370000004768372,
+            1.0
+          ],
+          "normal": [
+            0.0,
+            -1.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "bottom-cushion",
+        "position": [
+          -0.2,
+          -0.48,
+          1
+        ],
+        "velocity": [
+          0.02,
+          -0.1,
+          0
+        ]
+      },
+      "position": [
+        -0.17999999225139618,
+        -0.42000001668930054,
+        1.0
+      ],
+      "velocity": [
+        0.019999999552965164,
+        0.10000000149011612,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            -0.19599999487400055,
+            -0.5370000004768372,
+            1.0
+          ],
+          "normal": [
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "corner-pocket",
+        "position": [
+          0.98,
+          0.48,
+          1
+        ],
+        "velocity": [
+          0.1,
+          0.02,
+          0
+        ]
+      },
+      "position": [
+        1.0240000486373901,
+        0.5,
+        1.0
+      ],
+      "velocity": [
+        0.029999999329447746,
+        0.019999999552965164,
+        0.0
+      ],
+      "gravity": true,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            1.0369999408721924,
+            0.48399999737739563,
+            1.0
+          ],
+          "normal": [
+            -1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "top-side-pocket",
+        "position": [
+          0,
+          0.48,
+          1
+        ],
+        "velocity": [
+          0,
+          0.1,
+          0
+        ]
+      },
+      "position": [
+        0.0,
+        0.5239999890327454,
+        1.0
+      ],
+      "velocity": [
+        0.0,
+        0.029999999329447746,
+        0.0
+      ],
+      "gravity": true,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            0.0,
+            0.5370000004768372,
+            1.0
+          ],
+          "normal": [
+            0.0,
+            -1.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "bottom-side-pocket",
+        "position": [
+          0,
+          -0.48,
+          1
+        ],
+        "velocity": [
+          0,
+          -0.1,
+          0
+        ]
+      },
+      "position": [
+        0.0,
+        -0.5239999890327454,
+        1.0
+      ],
+      "velocity": [
+        0.0,
+        -0.029999999329447746,
+        0.0
+      ],
+      "gravity": true,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            0.0,
+            -0.5370000004768372,
+            1.0
+          ],
+          "normal": [
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "short-side-middle-cushion",
+        "position": [
+          0.98,
+          0,
+          1
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      },
+      "position": [
+        0.9199999570846558,
+        0.0,
+        1.0
+      ],
+      "velocity": [
+        -0.10000000149011612,
+        0.0,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            1.0369999408721924,
+            0.0,
+            1.0
+          ],
+          "normal": [
+            -1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "side-pocket-slow",
+        "position": [
+          0,
+          0.499,
+          1
+        ],
+        "velocity": [
+          0,
+          0.002,
+          0
+        ]
+      },
+      "position": [
+        0.0,
+        0.5009999871253967,
+        1.0
+      ],
+      "velocity": [
+        0.0,
+        0.0020000000949949026,
+        0.0
+      ],
+      "gravity": true,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 0.020000001415610313,
+          "position": [
+            0.0,
+            0.5370000004768372,
+            1.0
+          ],
+          "normal": [
+            0.0,
+            -1.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "cushion-exact-predicted-edge",
+        "position": [
+          0.875,
+          0.25,
+          1
+        ],
+        "velocity": [
+          0.125,
+          0,
+          0
+        ]
+      },
+      "position": [
+        1.0,
+        0.25,
+        1.0
+      ],
+      "velocity": [
+        0.125,
+        0.0,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 255,
+      "events": [],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "already-outside-moving-inward",
+        "position": [
+          1.02,
+          0.25,
+          1
+        ],
+        "velocity": [
+          -0.1,
+          0,
+          0
+        ]
+      },
+      "position": [
+        0.9199999570846558,
+        0.25,
+        1.0
+      ],
+      "velocity": [
+        -0.10000000149011612,
+        0.0,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 255,
+      "events": [],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "impact-time-tie",
+        "position": [
+          0.98,
+          0.48,
+          1
+        ],
+        "velocity": [
+          0.1,
+          0.1,
+          0
+        ]
+      },
+      "position": [
+        1.0240000486373901,
+        0.5799999833106995,
+        1.0
+      ],
+      "velocity": [
+        0.029999999329447746,
+        0.10000000149011612,
+        0.0
+      ],
+      "gravity": true,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            1.0369999408721924,
+            0.4999999701976776,
+            1.0
+          ],
+          "normal": [
+            -1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "falling-above-catch",
+        "position": [
+          0,
+          0.53,
+          0.9
+        ],
+        "velocity": [
+          0,
+          0.01,
+          -0.1
+        ],
+        "gravity": true
+      },
+      "position": [
+        0.0,
+        0.5399999618530273,
+        0.7999999523162842
+      ],
+      "velocity": [
+        0.0,
+        0.009999999776482582,
+        -0.10000000149011612
+      ],
+      "gravity": true,
+      "lastWeaponDamage": 255,
+      "events": [],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "falling-through-catch",
+        "position": [
+          0,
+          0.53,
+          0.72
+        ],
+        "velocity": [
+          0.01,
+          0.01,
+          -0.1
+        ],
+        "gravity": true
+      },
+      "position": [
+        0.0,
+        0.5299999713897705,
+        0.699999988079071
+      ],
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "gravity": true,
+      "lastWeaponDamage": 255,
+      "events": [],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "falling-exact-catch",
+        "position": [
+          0,
+          0.53,
+          0.825
+        ],
+        "velocity": [
+          0,
+          0,
+          -0.125
+        ],
+        "gravity": true
+      },
+      "position": [
+        0.0,
+        0.5299999713897705,
+        0.699999988079071
+      ],
+      "velocity": [
+        0.0,
+        0.0,
+        -0.125
+      ],
+      "gravity": true,
+      "lastWeaponDamage": 255,
+      "events": [],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "side-pocket-cutoff-0.0599",
+        "position": [
+          0.0599,
+          0.48,
+          1
+        ],
+        "velocity": [
+          0,
+          0.1,
+          0
+        ]
+      },
+      "position": [
+        0.05990000069141388,
+        0.5239999890327454,
+        1.0
+      ],
+      "velocity": [
+        0.0,
+        0.029999999329447746,
+        0.0
+      ],
+      "gravity": true,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            0.05990000069141388,
+            0.5370000004768372,
+            1.0
+          ],
+          "normal": [
+            0.0,
+            -1.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "side-pocket-cutoff-0.06",
+        "position": [
+          0.06,
+          0.48,
+          1
+        ],
+        "velocity": [
+          0,
+          0.1,
+          0
+        ]
+      },
+      "position": [
+        0.05999999865889549,
+        0.42000001668930054,
+        1.0
+      ],
+      "velocity": [
+        0.0,
+        -0.10000000149011612,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            0.05999999865889549,
+            0.5370000004768372,
+            1.0
+          ],
+          "normal": [
+            0.0,
+            -1.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "side-pocket-cutoff-0.0601",
+        "position": [
+          0.0601,
+          0.48,
+          1
+        ],
+        "velocity": [
+          0,
+          0.1,
+          0
+        ]
+      },
+      "position": [
+        0.060100000351667404,
+        0.42000001668930054,
+        1.0
+      ],
+      "velocity": [
+        0.0,
+        -0.10000000149011612,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            0.060100000351667404,
+            0.5370000004768372,
+            1.0
+          ],
+          "normal": [
+            0.0,
+            -1.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "side-pocket-cutoff--0.0599",
+        "position": [
+          -0.0599,
+          0.48,
+          1
+        ],
+        "velocity": [
+          0,
+          0.1,
+          0
+        ]
+      },
+      "position": [
+        -0.05990000069141388,
+        0.5239999890327454,
+        1.0
+      ],
+      "velocity": [
+        0.0,
+        0.029999999329447746,
+        0.0
+      ],
+      "gravity": true,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            -0.05990000069141388,
+            0.5370000004768372,
+            1.0
+          ],
+          "normal": [
+            0.0,
+            -1.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "side-pocket-cutoff--0.06",
+        "position": [
+          -0.06,
+          0.48,
+          1
+        ],
+        "velocity": [
+          0,
+          0.1,
+          0
+        ]
+      },
+      "position": [
+        -0.05999999865889549,
+        0.42000001668930054,
+        1.0
+      ],
+      "velocity": [
+        0.0,
+        -0.10000000149011612,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            -0.05999999865889549,
+            0.5370000004768372,
+            1.0
+          ],
+          "normal": [
+            0.0,
+            -1.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "side-pocket-cutoff--0.0601",
+        "position": [
+          -0.0601,
+          0.48,
+          1
+        ],
+        "velocity": [
+          0,
+          0.1,
+          0
+        ]
+      },
+      "position": [
+        -0.060100000351667404,
+        0.42000001668930054,
+        1.0
+      ],
+      "velocity": [
+        0.0,
+        -0.10000000149011612,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            -0.060100000351667404,
+            0.5370000004768372,
+            1.0
+          ],
+          "normal": [
+            0.0,
+            -1.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "corner-cutoff-0.4399",
+        "position": [
+          0.98,
+          0.4399,
+          1
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      },
+      "position": [
+        0.9199999570846558,
+        0.4399000108242035,
+        1.0
+      ],
+      "velocity": [
+        -0.10000000149011612,
+        0.0,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            1.0369999408721924,
+            0.4399000108242035,
+            1.0
+          ],
+          "normal": [
+            -1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "corner-cutoff-0.44",
+        "position": [
+          0.98,
+          0.44,
+          1
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      },
+      "position": [
+        0.9199999570846558,
+        0.4399999976158142,
+        1.0
+      ],
+      "velocity": [
+        -0.10000000149011612,
+        0.0,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            1.0369999408721924,
+            0.4399999976158142,
+            1.0
+          ],
+          "normal": [
+            -1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "corner-cutoff-0.4401",
+        "position": [
+          0.98,
+          0.4401,
+          1
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ]
+      },
+      "position": [
+        1.0240000486373901,
+        0.4401000142097473,
+        1.0
+      ],
+      "velocity": [
+        0.029999999329447746,
+        0.0,
+        0.0
+      ],
+      "gravity": true,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            1.0369999408721924,
+            0.4401000142097473,
+            1.0
+          ],
+          "normal": [
+            -1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "pocket-time-0.5",
+        "position": [
+          0,
+          0.48,
+          1
+        ],
+        "velocity": [
+          0,
+          0.1,
+          0
+        ],
+        "timeStep": 0.5
+      },
+      "position": [
+        0.0,
+        0.5180000066757202,
+        1.0
+      ],
+      "velocity": [
+        0.0,
+        0.05999999865889549,
+        0.0
+      ],
+      "gravity": true,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            0.0,
+            0.5370000004768372,
+            1.0
+          ],
+          "normal": [
+            0.0,
+            -1.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 0.5
+    },
+    {
+      "input": {
+        "name": "pocket-time-2",
+        "position": [
+          0,
+          0.48,
+          1
+        ],
+        "velocity": [
+          0,
+          0.1,
+          0
+        ],
+        "timeStep": 2
+      },
+      "position": [
+        0.0,
+        0.5270000100135803,
+        1.0
+      ],
+      "velocity": [
+        0.0,
+        0.014999999664723873,
+        0.0
+      ],
+      "gravity": true,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            0.0,
+            0.5370000004768372,
+            1.0
+          ],
+          "normal": [
+            0.0,
+            -1.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 2.0
+    },
+    {
+      "input": {
+        "name": "rotated-free-roll",
+        "position": [
+          0.2,
+          0,
+          1
+        ],
+        "velocity": [
+          0.02,
+          0.1,
+          0
+        ],
+        "min": [
+          -0.5,
+          -1,
+          0.7
+        ],
+        "max": [
+          0.5,
+          1,
+          0.7
+        ]
+      },
+      "position": [
+        0.2199999988079071,
+        0.10000000149011612,
+        1.0
+      ],
+      "velocity": [
+        0.019999999552965164,
+        0.10000000149011612,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 255,
+      "events": [],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "rotated-right-cushion",
+        "position": [
+          0.2,
+          0.98,
+          1
+        ],
+        "velocity": [
+          0.02,
+          0.1,
+          0
+        ],
+        "min": [
+          -0.5,
+          -1,
+          0.7
+        ],
+        "max": [
+          0.5,
+          1,
+          0.7
+        ]
+      },
+      "position": [
+        0.2199999988079071,
+        0.9199999570846558,
+        1.0
+      ],
+      "velocity": [
+        0.019999999552965164,
+        -0.10000000149011612,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            0.20399999618530273,
+            1.0369999408721924,
+            1.0
+          ],
+          "normal": [
+            0.0,
+            -1.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "rotated-left-cushion",
+        "position": [
+          -0.2,
+          -0.98,
+          1
+        ],
+        "velocity": [
+          0.02,
+          -0.1,
+          0
+        ],
+        "min": [
+          -0.5,
+          -1,
+          0.7
+        ],
+        "max": [
+          0.5,
+          1,
+          0.7
+        ]
+      },
+      "position": [
+        -0.18000000715255737,
+        -0.9199999570846558,
+        1.0
+      ],
+      "velocity": [
+        0.019999999552965164,
+        0.10000000149011612,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            -0.19600000977516174,
+            -1.0369999408721924,
+            1.0
+          ],
+          "normal": [
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "rotated-top-cushion",
+        "position": [
+          0.48,
+          0.2,
+          1
+        ],
+        "velocity": [
+          0.1,
+          0.02,
+          0
+        ],
+        "min": [
+          -0.5,
+          -1,
+          0.7
+        ],
+        "max": [
+          0.5,
+          1,
+          0.7
+        ]
+      },
+      "position": [
+        0.42000001668930054,
+        0.2200000137090683,
+        1.0
+      ],
+      "velocity": [
+        -0.10000000149011612,
+        0.019999999552965164,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            0.5370000004768372,
+            0.20400001108646393,
+            1.0
+          ],
+          "normal": [
+            -1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "rotated-bottom-cushion",
+        "position": [
+          -0.48,
+          -0.2,
+          1
+        ],
+        "velocity": [
+          -0.1,
+          0.02,
+          0
+        ],
+        "min": [
+          -0.5,
+          -1,
+          0.7
+        ],
+        "max": [
+          0.5,
+          1,
+          0.7
+        ]
+      },
+      "position": [
+        -0.42000001668930054,
+        -0.17999999225139618,
+        1.0
+      ],
+      "velocity": [
+        0.10000000149011612,
+        0.019999999552965164,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            -0.5370000004768372,
+            -0.19599999487400055,
+            1.0
+          ],
+          "normal": [
+            1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "rotated-corner-pocket",
+        "position": [
+          0.48,
+          0.98,
+          1
+        ],
+        "velocity": [
+          0.02,
+          0.1,
+          0
+        ],
+        "min": [
+          -0.5,
+          -1,
+          0.7
+        ],
+        "max": [
+          0.5,
+          1,
+          0.7
+        ]
+      },
+      "position": [
+        0.5,
+        1.0240000486373901,
+        1.0
+      ],
+      "velocity": [
+        0.019999999552965164,
+        0.029999999329447746,
+        0.0
+      ],
+      "gravity": true,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            0.48399999737739563,
+            1.0369999408721924,
+            1.0
+          ],
+          "normal": [
+            0.0,
+            -1.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "rotated-top-side-pocket",
+        "position": [
+          0.48,
+          0,
+          1
+        ],
+        "velocity": [
+          0.1,
+          0,
+          0
+        ],
+        "min": [
+          -0.5,
+          -1,
+          0.7
+        ],
+        "max": [
+          0.5,
+          1,
+          0.7
+        ]
+      },
+      "position": [
+        0.5239999890327454,
+        0.0,
+        1.0
+      ],
+      "velocity": [
+        0.029999999329447746,
+        0.0,
+        0.0
+      ],
+      "gravity": true,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            0.5370000004768372,
+            0.0,
+            1.0
+          ],
+          "normal": [
+            -1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "rotated-bottom-side-pocket",
+        "position": [
+          -0.48,
+          0,
+          1
+        ],
+        "velocity": [
+          -0.1,
+          0,
+          0
+        ],
+        "min": [
+          -0.5,
+          -1,
+          0.7
+        ],
+        "max": [
+          0.5,
+          1,
+          0.7
+        ]
+      },
+      "position": [
+        -0.5239999890327454,
+        0.0,
+        1.0
+      ],
+      "velocity": [
+        -0.029999999329447746,
+        0.0,
+        0.0
+      ],
+      "gravity": true,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            -0.5370000004768372,
+            0.0,
+            1.0
+          ],
+          "normal": [
+            1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    },
+    {
+      "input": {
+        "name": "rotated-short-side-middle-cushion",
+        "position": [
+          0,
+          0.98,
+          1
+        ],
+        "velocity": [
+          0,
+          0.1,
+          0
+        ],
+        "min": [
+          -0.5,
+          -1,
+          0.7
+        ],
+        "max": [
+          0.5,
+          1,
+          0.7
+        ]
+      },
+      "position": [
+        0.0,
+        0.9199999570846558,
+        1.0
+      ],
+      "velocity": [
+        0.0,
+        -0.10000000149011612,
+        0.0
+      ],
+      "gravity": false,
+      "lastWeaponDamage": 54,
+      "events": [
+        {
+          "friction": 1.0,
+          "position": [
+            0.0,
+            1.0369999408721924,
+            1.0
+          ],
+          "normal": [
+            0.0,
+            -1.0,
+            0.0
+          ]
+        },
+        {
+          "audioEvent": 1016
+        }
+      ],
+      "restoredTimeStep": 1.0
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 # Aircraft dogfight steering
 
 Ported October 21, 2026. This implements the steering behind MANSIO2's
-`PLANE_ATTACK_PLAYER_USING_DOG_FIGHT`; aircraft AI weapon firing remains unfinished.
+`PLANE_ATTACK_PLAYER_USING_DOG_FIGHT`; AI plane weapon firing is documented in [AI plane weapons](AIRCRAFT_WEAPONS.md).
 
 ## Sources
 
@@ -45,8 +45,8 @@ some other routines use. `nativePlaneAI.ts` exposes this random input for determ
   clearing within 50 regardless of height, next-frame transition, missing targets and the exact random mark.
 - `tests/browser/script-plane-goto.spec.ts` checks command-to-engine wiring, crash-mission preservation and a live
   plane turning toward the player. The browser pursuit leg fixes the random input; the unit tests exercise breakaway.
-- This does not establish that MANSIO2 passes. AI aircraft guns/missiles, combat choreography and a complete mission
-  play-through remain to be verified.
+- This does not establish that MANSIO2 passes. AI plane guns and missiles were subsequently integrated ([source and limits](AIRCRAFT_WEAPONS.md)); combat
+  choreography and a complete mission play-through remain to be verified.
 
 Validation on October 21: `npm run build` passed; `npm test -- --maxWorkers=4 --testTimeout=30000 --reporter=dot`
 passed 3,257 tests (51 skipped). The unchanged cutscene-data corpus test exceeds its default five-second timeout

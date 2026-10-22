@@ -11,6 +11,8 @@ const BANK_DOORS=51,SLOT_DOORS=31;
 export class NativeDoorAudio implements NativeAudioEntity {
  /** m_nTime and m_nMovingDoorTime. */
  private time=0;private movingDoorTime=0;
+ /** Entry-door voices successfully allocated, for playback diagnostics. */
+ movingSoundsStarted=0;
  /** The events told, by event, for diagnostics. */
  readonly told=new Map<number,number>();
  constructor(private manager:NativeSoundManager,private bank:NativeBankLoader,private defaultVolume:(event:number)=>number){}
@@ -18,11 +20,11 @@ export class NativeDoorAudio implements NativeAudioEntity {
  /** StaticInitialise (0x5B9A80). */
  static staticInitialise(bank:NativeBankLoader){bank.loadSoundBank(BANK_DOORS,SLOT_DOORS);}
  /** Reset (0x4DC6B0). */
- reset(){this.time=0;this.movingDoorTime=0;this.manager.cancelSoundsOwnedByAudioEntity(this,true);}
+ reset(){this.time=0;this.movingDoorTime=0;this.movingSoundsStarted=0;this.manager.cancelSoundsOwnedByAudioEntity(this,true);}
  /** AddAudioEvent(event, physical) (0x4DC9F0): an entry/exit door moving, at most every 4 s. */
  addMovingDoorEvent(position:NativeVec){
   if(this.manager.areSoundsOfThisEventPlayingForThisEntity(AE_DOOR.entryExitMoving,this)||this.now<=this.movingDoorTime+4000)return;
-  this.playDoorSound(1,AE_DOOR.entryExitMoving,position);this.movingDoorTime=this.now;
+  if(this.playDoorSound(1,AE_DOOR.entryExitMoving,position))this.movingSoundsStarted++;this.movingDoorTime=this.now;
  }
  /** AddAudioEvent(event, position, volume, speed) (0x4DC860). */
  addAudioEvent(event:number,position:NativeVec,volume=0,speed=1){
@@ -47,7 +49,7 @@ export class NativeDoorAudio implements NativeAudioEntity {
  private playDoorSound(sound:number,event:number,position:NativeVec,volume=0,speed=1){
   if(!this.bank.isSoundBankLoaded(BANK_DOORS,SLOT_DOORS)){NativeDoorAudio.staticInitialise(this.bank);return;}
   const ahead=position.x===0&&position.y===0&&position.z===0||position.x===-1000&&position.y===-1000&&position.z===-1000;
-  this.manager.playSound({slot:SLOT_DOORS,sound,entity:this,position:ahead?{x:0,y:1,z:0}:position,volume:this.defaultVolume(event)+volume,rollOff:2,speed,doppler:1,event,
+  return !!this.manager.playSound({slot:SLOT_DOORS,sound,entity:this,position:ahead?{x:0,y:1,z:0}:position,volume:this.defaultVolume(event)+volume,rollOff:2,speed,doppler:1,event,
    flags:SOUND.requestUpdates|(ahead?SOUND.frontEnd:0)});
  }
  /** UpdateParameters (0x4DCA60), the PC branch. */

@@ -1,8 +1,12 @@
+import {applyScriptVehicleForce,type ScriptVehicleForceBasis} from './nativeScriptVehicleForce';
+import {NativeClumpAlpha} from './nativeClumpAlpha';
+import {bindClumpAlpha} from '../render/nativeClumpAlpha';
 import {bindNativeCarDirt} from '../render/nativeCarDirt';
 import {NativeCarReflection} from '../assets/nativeCarEnvMap';
 import {randomSeed} from './nativeVehicleLights';
 import {bindNativeCarPaint,type NativeCarColors} from '../render/nativeCarPaint';
 import RAPIER from '@dimforge/rapier3d-compat';
+import {syncFrozenVehicle} from './nativeFrozenVehicle';
 import {NativeDrivingAnims} from './nativeDrivingAnims';
 import {vehicleDestroyed} from './vehicleDestroyed';
 import {boatDriverNeedsBreath} from './playerBreath';
@@ -19,7 +23,8 @@ import {interpolateVehiclePose} from '../render/vehiclePose';
 import {requireAsset} from '../assets/binary';
 import {addWakePoint,applyNativeBoatBuoyancy,createWakeTrail,pruneWakeTrail,nativeBuoyancySplashEdges,nativeSplashParticles,type NativeBoatBody,type NativeVec} from './nativeBuoyancy';
 import {NATIVE_GRAVITY_MS2} from './nativeGravity';
-import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
+import type {PhysicalProofs} from '../combat/nativePhysicalProofs';
+import {blastBombTimerMs,notePlayerVehicleHarm,playerVehicleDamage,recordVehicleDamage,vehicleRefusesWeaponDamage,type VehicleDamager} from './carDamageHost';
 import {stepBombTimer} from '../vehicle/nativeCarBomb';
 import {nativeBoatDrive} from './nativeBoatDrive';
 import {DEFAULT_CRUISE_SPEED,MISSION_GOTOCOORDINATES_ASTHECROWSWIMS,MISSION_NONE,boatCruiseSpeed,boatGotoCoords,boatStop,steerAIBoat,type BoatPilot} from './nativeBoatAI';
@@ -29,6 +34,10 @@ type Assets=Awaited<ReturnType<Awaited<ReturnType<typeof openStaticWorldVehicles
  * seated driver pose, engine audio speed and swim-push boarding follow the
  * reversed boat sources; entry clips arrive with the animation set. */
 export class WorldBoat {
+ private readonly alphaBinding=bindClumpAlpha(()=>this.visual?.materialBindings??[]);
+ private readonly clumpAlpha=new NativeClumpAlpha(this.alphaBinding);
+ get alpha(){return this.clumpAlpha.value;}
+ setClumpAlpha(value:number){this.clumpAlpha.set(value);}
  readonly body:RAPIER.RigidBody;readonly root=new Group();
  /** CCustomCarEnvMapPipeline's reflection state (every vehicle model uses the car pipeline). */
  readonly reflection=new NativeCarReflection();readonly name:string;readonly modelId:number;
@@ -58,29 +67,30 @@ export class WorldBoat {
  /** The driver's steering and look-back clips (ProcessDrivingAnims). */
  readonly driving=new NativeDrivingAnims();
  private stepVelocity?:{x:number;y:number;z:number};
+ canBeDamaged=true;onlyDamagedByPlayer=false;proofs?:PhysicalProofs;
+ lastWeaponDamage=-1;lastDamagedBy?:VehicleDamager;
  /** CVehicle::InflictDamage (iOS 0x1004781b4) for a boat, with WorldCar.damage's arguments:
   * - the player's own one, once burning under 250, refuses blasts, rounds and the molotov (CanVehicleBeDamaged), and
   *   otherwise takes playerVehicleDamage's share;
   * - only health left is taken. Damage that takes the last of it destroys the vehicle and returns true. A blast's
   *   victim waits on the bomb timer; anything else blows it up at once (BlowUpCar). */
- damage(amount:number,_collider?:number,explosive=false,_shotDir?:unknown,options:{kind?:'bullet'|'fire'|'melee';byPlayer?:boolean;weapon?:number}={}){
-  if(this.wrecked)return false;
-  if(this.occupied){
-   if(this.health<250&&(explosive||(options.weapon!==undefined?firesExplodesOrShoots(options.weapon):(options.kind??'bullet')==='bullet')))return false;
-   amount=playerVehicleDamage(amount);
-  }
+ damage(amount:number,_collider?:number,explosive=false,_shotDir?:unknown,options:{kind?:'bullet'|'fire'|'melee';byPlayer?:boolean;weapon?:number;by?:VehicleDamager}={}){
+  const weapon=options.weapon??(explosive?51:options.kind==='fire'?37:options.kind==='melee'?0:22);
+  if(this.wrecked||vehicleRefusesWeaponDamage(this,weapon,options.byPlayer))return false;
+  recordVehicleDamage(this,options.weapon??(explosive?51:options.kind==='fire'?37:-1),options.byPlayer,options.by);
+  if(this.occupied)amount=playerVehicleDamage(amount);
   notePlayerVehicleHarm(amount,options.byPlayer);
   if(this.health<=0)return false;
   if(this.health>amount){this.health-=amount;return false;}
   this.health=0;
-  if(explosive)this.bombTimerMs=blastBombTimerMs();else this.blowUp();
+  if(explosive){this.bombTimerMs=blastBombTimerMs();this.bombDetonatedByPlayer=options.byPlayer===true;}else this.blowUp(options.byPlayer===true);
   return true;
  }
  /** m_wBombTimer (ms): a blast's victim blows up when ProcessDelayedExplosion has counted it down. */
- bombTimerMs=0;
+ bombTimerMs=0;bombDetonatedByPlayer=false;explosionByPlayer=false;
  /** CBoat::BlowUpCar: the hull is scorched and thrown up 0.13 units a frame, and the occupant is killed with it. */
- blowUp(){
-  if(this.wrecked)return;this.wrecked=true;this.health=0;this.pendingExplosion=true;vehicleDestroyed.report?.('boat',this.modelId);
+ blowUp(byPlayer=false){
+  if(this.wrecked||this.canBeDamaged===false)return;this.explosionByPlayer=byPlayer;this.wrecked=true;this.health=0;this.bombTimerMs=0;this.pendingExplosion=true;vehicleDestroyed.report?.('boat',this.modelId);
   const v=this.body.linvel();this.body.setLinvel({x:v.x,y:v.y+.13*50,z:v.z},true);
   this.scorch();
   if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
@@ -214,14 +224,17 @@ export class WorldBoat {
  /** CBoat::ProcessControl buoyancy section for a drifting hull (no throttle yet):
   * native float, browser gravity, stern wake points and bow spray. */
  beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean}={throttle:0,steer:0,brake:false}){
+  this.clumpAlpha.step(dt);
   // ProcessDelayedExplosion (CBoat::ProcessControl) runs whether or not the hull is in the world: a blast's victim
   // carried out of range still goes up on time.
-  if(stepBombTimer(this,dt*50)&&!this.wrecked)this.blowUp();
-  // A frozen boat takes none of the step, as a far one does: its speed would be worked on with nothing to move it.
+  if(stepBombTimer(this,dt*50)&&!this.wrecked)this.blowUp(this.bombDetonatedByPlayer);
+  // A frozen boat keeps its solid hull while its motion is held.
   // A boat its autopilot is taking somewhere goes on beyond 250 m, as a piloted heli does.
-  const nearby=this.distance()<250,steps=nearby||!this.wrecked&&this.pilot?.physics===true&&this.pilot.mission===MISSION_GOTOCOORDINATES_ASTHECROWSWIMS;
-  this.body.setEnabled(steps&&!this.frozen);this.root.visible=nearby;if(!steps||this.frozen)return;
+  const focus=this.sim.worldFocus??this.sim.player.position,at=this.body.translation();
+  const nearby=Math.hypot(focus.x-at.x,focus.y-at.y,focus.z-at.z)<250,steps=nearby||!this.wrecked&&this.pilot?.physics===true&&this.pilot.mission===MISSION_GOTOCOORDINATES_ASTHECROWSWIMS;
+  const frozen=syncFrozenVehicle(this.body,this.frozen);this.body.setEnabled(steps);this.root.visible=nearby;if(!steps)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
+  if(frozen){this.processFire(dt);return;}
   // Attached to another vehicle (ATTACH_CAR_TO_CAR): a kinematic body the host sets on it after the step.
   if(this.body.bodyType()===RAPIER.RigidBodyType.KinematicPositionBased)return;
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
@@ -411,6 +424,11 @@ export class WorldBoat {
  setBoatCruiseSpeed(speed:number){this.autopilot().cruiseSpeed=boatCruiseSpeed(speed);}
  /** FREEZE_CAR_POSITION: the body held where it is. */
  frozen=false;
+ /** APPLY_FORCE_TO_CAR reaches CPhysical for every vehicle family. */
+ applyScriptForce(force:{x:number;y:number;z:number},offset:{x:number;y:number;z:number},basis?:ScriptVehicleForceBasis){
+  const h=this.handling.values;applyScriptVehicleForce(this.body,h.mass,h.turnMass,force,offset,basis);
+ }
+
  heading(){const q=this.body.rotation();return Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));}
  dispose(){this.disposed=true;this.root.removeFromParent();this.visual?.dispose();this.physical.dispose();}
 }

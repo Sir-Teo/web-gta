@@ -42,13 +42,24 @@ export function withoutForeignTracks(model: DffModel, clip: NativeAnimation): Na
   const known = clip.tracks.filter(track => ((track.boneId >= 0 ? frames.byBone.get(track.boneId) : frames.byName.get(track.name.trim().toLowerCase())) ?? []).length === 1);
   return known.length === clip.tracks.length ? clip : { ...clip, tracks: known };
 }
+/** One instance's frame hierarchy excludes models attached below its bones (weapons, held props, jetpacks).
+ * A wrapper containing two peer instances still visits both, so duplicate-frame validation remains effective. */
+function traverseModel(root: Object3D, visit: (object: Object3D) => void) {
+  const walk = (object: Object3D, inInstance: boolean) => {
+    const boundary = object.userData.nativeModelRoot === true;
+    if (object !== root && boundary && inInstance) return;
+    visit(object);
+    for (const child of object.children) walk(child, inInstance || boundary);
+  };
+  walk(root, false);
+}
 /** Bind a source-space clip to one model instance. Validation never changes the current pose. */
 export function bindAnimation(model: DffModel, root: Object3D, clip: NativeAnimation, motionPolicy?: RootMotionPolicy) {
   const motion = motionPolicy ? rootMotion(clip, motionPolicy) : undefined;
   const motionTrack = motionPolicy ? clip.tracks[motionPolicy.track] : undefined;
   const anchor = new Vector3();
   const targets = new Map<number, Object3D>();
-  root.traverse(object => {
+  traverseModel(root, object => {
     const index = object.userData.nativeFrame;
     if (Number.isInteger(index)) {
       if (targets.has(index)) throw new Error('Animation binding requires one model instance.');
@@ -69,7 +80,7 @@ export function bindAnimation(model: DffModel, root: Object3D, clip: NativeAnima
   });
   if (!bindings.length) throw new Error('Animation has no nonempty tracks to bind.');
   const meshes: { mesh: SkinnedMesh; culled: boolean; sortingSphere: Sphere }[] = [];
-  root.traverse(object => {
+  traverseModel(root, object => {
     if (!(object instanceof SkinnedMesh)) return;
     const atomic = model.atomics[object.userData.nativeAtomic];
     const bounds = atomic && model.geometries[atomic.geometry].morphBounds?.[0];

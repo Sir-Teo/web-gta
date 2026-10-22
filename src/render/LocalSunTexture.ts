@@ -47,7 +47,7 @@ export class LocalSunTexture {
           // RenderStaticShadows samples with rwFILTERLINEAR.
           if(data.pool){pool=nativeTexture(data.pool);pool.magFilter=pool.minFilter=THREE.LinearFilter;pool.wrapS=pool.wrapT=THREE.ClampToEdgeWrapping;}
           // RenderStoredShadows samples its rasters clamped and linear.
-          for(const extra of data.extras??[]){const t=nativeTexture(extra);if(extra.name.toLowerCase().startsWith('shad_')){t.magFilter=t.minFilter=THREE.LinearFilter;t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping;}extras.set(extra.name.toLowerCase(),t);}
+          for(const extra of data.extras??[]){const t=nativeTexture(extra);if(extra.name.toLowerCase().startsWith('shad_')||['headlight','bloodpool_64'].includes(extra.name.toLowerCase())){t.magFilter=t.minFilter=THREE.LinearFilter;t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping;}extras.set(extra.name.toLowerCase(),t);}
         }catch(error){next?.dispose();cloud?.dispose();water?.dispose();fog?.dispose();pool?.dispose();extras.forEach(t=>t.dispose());fail(error);return;}
         const previous=this.current,previousCloud=this.cloud,previousWater=this.water,previousFog=this.fog,previousPool=this.pool,previousExtras=this.extras;
         this.current=next;this.cloud=cloud;this.water=water;this.fog=fog;this.pool=pool;this.extras=extras;this.name=file.name;close();resolve(true);previous?.dispose();previousCloud?.dispose();previousWater?.dispose();previousFog?.dispose();previousPool?.dispose();previousExtras.forEach(t=>t.dispose());

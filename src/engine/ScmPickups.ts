@@ -1,5 +1,6 @@
 import {requireAsset} from '../assets/binary';
 import {PICKUP_TYPE} from '../assets/scmPickups';
+import {nativePickupCoordinate} from '../assets/nativePickupPosition';
 /* The pickups a script places. `CPickups::GenerateNewOne` (0x456F20) is one of the routines the reference
  * still calls into the executable, so the slot allocation and merging behind it are not known; what is known,
  * and what src/assets/scmPickups.ts already reads the file with, is each command's operand layout and the
@@ -30,7 +31,7 @@ export class ScmPickups {
  private create(model:number|string,type:number,position:{x:number;y:number;z:number},extra:Partial<ScmPickup>={}){
   requireAsset([position.x,position.y,position.z].every(Number.isFinite),'Invalid pickup position.');
   const handle=this.next++;
-  this.pickups.set(handle,{handle,model,type,ammo:0,position:{...position},collected:false,...extra});this.uncollected++;
+  this.pickups.set(handle,{handle,model,type,ammo:0,position:{x:nativePickupCoordinate(position.x),y:nativePickupCoordinate(position.y),z:nativePickupCoordinate(position.z)},collected:false,...extra});this.uncollected++;
   return handle;
  }
  /** CREATE_PICKUP and CREATE_PICKUP_WITH_AMMO: the script names both the model and the type. */

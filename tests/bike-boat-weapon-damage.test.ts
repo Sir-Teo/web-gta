@@ -3,10 +3,11 @@ import {WorldBike} from '../src/simulation/WorldBike';
 import {WorldBoat} from '../src/simulation/WorldBoat';
 import {carDamageHost} from '../src/simulation/carDamageHost';
 import {stepBombTimer} from '../src/vehicle/nativeCarBomb';
+import {NativeClumpAlpha} from '../src/simulation/nativeClumpAlpha';
 
 // CVehicle::InflictDamage (iOS 0x1004781b4) is every vehicle's: bikes and boats take weapon damage as cars do.
 for(const [name,Vehicle] of [['bike',WorldBike],['boat',WorldBoat]] as const){
- const vehicle=(extra:object={})=>({wrecked:false,occupied:false,health:1000,bombTimerMs:0,blowUp(){this.wrecked=true;},...extra} as any);
+ const vehicle=(extra:object={})=>({clumpAlpha:new NativeClumpAlpha(()=>{}),wrecked:false,occupied:false,health:1000,bombTimerMs:0,blowUp(){this.wrecked=true;},...extra} as any);
  const damage=(target:any,amount:number,explosive=false,options:object={})=>(Vehicle.prototype as any).damage.call(target,amount,undefined,explosive,undefined,options);
  test(`a ${name}: health left only, a blast's victim on the bomb timer, anything else at once`,()=>{
   const shot=vehicle();expect(damage(shot,400,false,{weapon:31})).toBe(false);expect(shot.health).toBe(600);
@@ -19,7 +20,7 @@ for(const [name,Vehicle] of [['bike',WorldBike],['boat',WorldBoat]] as const){
  });
  test(`a ${name} carried out of range still goes up on its bomb timer`,()=>{
   let blown=0;
-  const far=vehicle({bombTimerMs:32,frozen:false,distance:()=>400,collisionLoaded:()=>true,body:{setEnabled(){}},root:{visible:true},blowUp(this:any){blown++;this.wrecked=true;}});
+  const far=vehicle({bombTimerMs:32,frozen:false,sim:{worldFocus:{x:0,y:0,z:0}},collisionLoaded:()=>true,body:{translation:()=>({x:400,y:0,z:0}),setEnabled(){}},root:{visible:true},blowUp(this:any){blown++;this.wrecked=true;}});
   const step=()=>(Vehicle.prototype as any).beforeStep.call(far,1/50);
   step();expect(blown).toBe(0);expect(far.bombTimerMs).toBe(16);
   step();expect(blown).toBe(1);

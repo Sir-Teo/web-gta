@@ -287,6 +287,8 @@ export class ScmGameState {
  readonly specialCharacters=new ScmSpecialCharacters();
  /** Whether the mission the script is running has reported itself finished, and the key it passed on. */
  missionFinished=false;missionPassedKey?:string;
+ /** CTheScripts::bScriptHasFadedOut: DO_FADE in a mission owns the cleanup fade-in. */
+ scriptHasFadedOut=false;
  /** CTheScripts::LastMissionPassedTime: when a mission or an odd job was last passed, -1 until one has been. CJ's
   * mood (CAEPedSpeechAudioEntity::GetCurrentCJMood) reads it. */
  lastMissionPassedTime=-1;
@@ -309,6 +311,8 @@ export class ScmGameState {
  readonly patrolRoute:{x:number;y:number;z:number;animationName:string;animationFile:string}[]=[];
  /** CCarCtrl::CarDensityMultiplier, beside the ped one. */
  carDensityMultiplier=1;
+ /** CTheScripts::ForceRandomCarModel: -1 selects normal civilian traffic; other signed model ids override it. */
+ forceRandomCarModel=-1;
  /** CCarCtrl::bAllowEmergencyServicesToBeCreated, true from CCarCtrl::Init. */
  allowEmergencyServices=true;
  /** CTheScripts' card stack (SHUFFLE_CARD_DECKS, FETCH_NEXT_CARD). */
@@ -324,6 +328,8 @@ export class ScmGameState {
  playerIsOffTheMap=false;
  /** CVehicle::ms_fRailTrackResistance as a multiple of its default, which the script sets. */
  railTrackResistanceMultiplier=1;
+ /** CEventGunShot::ms_fGunShotSenseRangeForRiot2, initialized to -1; mission scripts restore it themselves. */
+ gunshotSenseRangeForRiot2=-1;
  /** CPlayerInfo::m_nMoney, which the score commands add to and read back: the player's own purse once a host
   * binds it (bindMoney), so a reward reaches the HUD and a price is paid from what the player holds. */
  get money(){return this.moneyStore.get();}

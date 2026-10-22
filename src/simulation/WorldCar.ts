@@ -1,5 +1,10 @@
+import {applyScriptVehicleForce,type ScriptVehicleForceBasis} from './nativeScriptVehicleForce';
+import {NativeClumpAlpha} from './nativeClumpAlpha';
+import {createSwingingChassis,type NativeSwingingChassis} from './nativeSwingingChassis';
+import {NativeMovingComponent,movingComponentSpec,movingComponentCollision,movingComponentPivot,stepCementDrum,applyMovingCollisionShapes} from './nativeMovingComponent';
 import {crashShake} from '../engine/nativePadShakes';
-import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
+import {physicalCanBeDamaged} from '../combat/nativePhysicalProofs';
+import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage,recordVehicleDamage} from './carDamageHost';
 import {padSteeringAxis} from './nativeSteeringInput';
 import {cullAirResistance} from './nativeAirResistance';
 import {requireAsset} from '../assets/binary';
@@ -24,6 +29,7 @@ import {NATIVE_CAR_WHEELS} from './nativeDriveContacts';
 import {nativeSurfaceGrip,nativeWetGripByte} from './nativeSurfaceGrip';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 import RAPIER from '@dimforge/rapier3d-compat';
+import {syncFrozenVehicle} from './nativeFrozenVehicle';
 import {Euler,Quaternion,Vector3,type Scene} from 'three';
 import {sampleNativeChassis} from './nativeChassis';
 import {applyNativeWheelDeltas} from './nativeWheelMotion';
@@ -101,6 +107,14 @@ const WRECKED_CONTROLS={steerAngle:0,gas:0,brake:.05,handbrake:true} as const;
 const WAITING_CAR_LIFT_LIMIT=1.5;
 export class WorldCar {
  readonly car:ReturnType<typeof installNativeCar>;
+ readonly movingComponent:NativeMovingComponent;
+ readonly swingingChassis?:NativeSwingingChassis;
+ widescreenOn=false;
+ private swingingClock=0;
+ private cementClock=0;
+ cementDrumPhase=0;
+ private previousSwingMotion?:{linear:{x:number;y:number;z:number};angular:{x:number;y:number;z:number}};
+ private movingBounds?:{min:number[];max:number[]};
  readonly modelId:number;
  readonly name:string;
  /** Native vehicle health: 1000, burning below 250, then CAutomobile::BlowUpCar after 5000 ms. */
@@ -146,6 +160,8 @@ export class WorldCar {
  /** CAutoPilot's own fields as a script sets them: the cruise speed, the driving style and whether the car
   * loads collision round itself. Nothing drives a script's car here yet, so these are held and no more. */
  autopilotFields?:{cruiseSpeed?:number;drivingStyle?:number;loadsCollision?:number;cantGoAgainstTraffic?:number;stayInSlowLane?:number;stayInFastLane?:number};
+ /** CAutoPilot::m_ObstructingEntity: the last vehicle accepted by the current traffic scan. */
+ obstructingEntity?:object;
  /** physicalFlags.bInvulnerable on a car, which SET_CAR_ONLY_DAMAGED_BY_PLAYER sets: a blow from anyone but
   * the player leaves it alone, which in this browser is a ped's gunfire. */
  onlyDamagedByPlayer=false;
@@ -259,12 +275,18 @@ export class WorldCar {
  /** The body handle of the bike or quad the player rides: CAutomobile::VehicleDamage raises CEventVehicleDamageCollision
   * for any driven damager, so a ram from it is the player's as a car's is. */
  playerBikeBody?:()=>number|undefined;
+  /** STATUS_PLAYER_REMOTE takes input independently of the actual driver/passenger. */
+  remoteControlled=false;
+  get controlled(){return this.occupied||this.remoteControlled;}
   occupied=false;
   trafficOrigin=false;
   /** The clump alpha (0 to 255): a generated car starts at 0 and CVehicle::UpdateClumpAlpha raises it 16 a frame. */
-  alpha=255;
+  private readonly clumpAlpha=new NativeClumpAlpha(alpha=>this.car.setAlpha(alpha));
+  get alpha(){return this.clumpAlpha.value;}
+  set alpha(value:number){this.clumpAlpha.set(value);}
+  setClumpAlpha(value:number){this.alpha=value;}
   /** CarGenerator and CCarCtrl set a new car's clump alpha to 0 so it fades in. */
-  fadeIn(){this.alpha=0;this.car.setAlpha(0);}
+  fadeIn(){this.alpha=0;}
   /** pedgrp.dat gang (0 to 9) whose members drive this car; civilians drive when undefined. */
   gang?:number;
  /** CEntity::m_nRandomSeed, and its driver's (only its oddness is read). */
@@ -354,10 +376,11 @@ export class WorldCar {
  private sourceOwner?:ReadonlyMap<number,{source:NativeCollisionSource}>;
  private sources=new Map<number,NativeCollisionSource>();
  constructor(private sim:Simulation,scene:Scene,readonly assets:NativeCarAssets,position:{x:number;y:number;z:number},road:Awaited<ReturnType<typeof loadWorldRoadMaterials>>,heading=0){
+  this.movingComponent=new NativeMovingComponent(assets.vehicle.id);
   this.modelId=assets.vehicle.id;this.name=assets.vehicle.id===492?'Greenwood':assets.vehicle.model;this.surfaces=road.records;
   this.car=installNativeCar(sim.world,scene,assets,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.4,restitution:0});
   const self=this;
-  const h=assets.handling.values;this.mass=h.mass;this.turnMass=h.turnMass;this.collisionDamageMultiplier=h.collisionDamageMultiplier;this.boundsMaxX=Math.max(.5,assets.collision.bounds.max[0]);
+  const h=assets.handling.values;this.swingingChassis=createSwingingChassis(this.modelId,h.handlingFlags);this.mass=h.mass;this.turnMass=h.turnMass;this.collisionDamageMultiplier=h.collisionDamageMultiplier;this.boundsMaxX=Math.max(.5,assets.collision.bounds.max[0]);
   this.groupColliders();
   // CTrailer: a trailer other than the baggage ones stands on two support legs at its front while nothing tows it.
   if(assets.vehicle.type==='trailer'&&assets.vehicle.frontWheelSize!==undefined){
@@ -402,18 +425,15 @@ export class WorldCar {
   * wrecked. */
  damage(amount:number,collider?:number,explosive=false,shotDir?:{x:number;y:number;z:number},options:{kind?:Exclude<CarDamageKind,'explosion'>;byPlayer?:boolean;weapon?:number;by?:CarDamager;point?:{x:number;y:number;z:number}}={}){
   const kind:CarDamageKind=explosive?'explosion':options.kind??'bullet';
-  if(this.wrecked||carRefusesDamage(this,kind))return false;
+  if(this.wrecked||carRefusesDamage(this,kind)||options.weapon!==undefined&&!physicalCanBeDamaged(this.proofs,options.weapon))return false;
   // CVehicle::CanVehicleBeDamaged: a car only the player may damage (bInvulnerable) refuses anyone else's harm, and the
   // player's own car, once under 250 and burning, takes no more from blasts, bullets or the molotov (the weapons
   // CPhysical::CanPhysicalBeDamaged flags as fire, explosion or bullet; the flamethrower is not flagged).
   if(this.onlyDamagedByPlayer&&!this.occupied&&options.byPlayer===false)return false;
-  if(this.occupied&&this.health<250&&(explosive||(options.weapon!==undefined?firesExplodesOrShoots(options.weapon):kind==='bullet')))return false;
+  if(this.occupied&&Math.fround(this.health)<250&&(explosive||(options.weapon!==undefined?firesExplodesOrShoots(options.weapon):kind==='bullet')))return false;
   // CVehicle::InflictDamage: a car with health left keeps the weapon and whoever used it. A blast is WEAPON_EXPLOSION
   // (51) and a fire WEAPON_FLAMETHROWER (37); the player's harm is his own ped's.
-  if(this.health>0){
-   this.lastWeaponDamage=options.weapon??(explosive?51:kind==='fire'?37:-1);
-   this.lastDamagedBy=options.by??(options.byPlayer?{player:true}:undefined);
-  }
+  recordVehicleDamage(this,options.weapon??(explosive?51:kind==='fire'?37:-1),options.byPlayer,options.by);
   // The player's own car (STATUS_PLAYER): 0.95 of the damage, 0.42 once CStats::GetPercentageProgress reaches 100. The
   // iOS build quarters it first while the most recently started script still running is strap3 (Management Issues):
   // strcmp of pActiveScripts' name with "strap3".
@@ -779,21 +799,68 @@ export class WorldCar {
   const center={...foot,y:foot.y+.9};this.sim.player.position={...foot};this.sim.player.previous={...foot};this.sim.player.heading=heading;
   this.sim.playerBody.setTranslation(center,true);this.sim.playerBody.setNextKinematicTranslation(center);this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;
  }
+ private stepCementDrumVisual(seconds:number){
+  if(this.modelId!==524||this.wrecked||!this.car.body.isEnabled())return;
+  this.cementClock+=seconds;if(this.cementClock+1e-9<1/30)return;this.cementClock-=1/30;
+  this.cementDrumPhase=stepCementDrum(this.cementDrumPhase,this.movingComponent.angle,50/30);
+  const pitch=Math.fround(-Math.PI/18),cp=Math.cos(pitch),sp=Math.sin(pitch),c=Math.cos(this.cementDrumPhase),s=Math.sin(this.cementDrumPhase);
+  this.car.setFrameBasis('misc_a',[[0,0,1],[0,1,0],[0,2,0],[1,0,0],[1,1,cp],[1,2,sp],[2,0,0],[2,1,-sp],[2,2,cp]]);
+  // SetRotateYOnly(drum phase), then RotateX(support pitch, keep position).
+  this.car.setFrameBasis('misc_b',[[0,0,c],[0,1,sp*s],[0,2,-cp*s],[1,0,0],[1,1,cp],[1,2,sp],[2,0,s],[2,1,-sp*c],[2,2,cp*c]]);
+ }
+ /** Despite its SCM name, GET_DOOR_ANGLE_RATIO reads the raw angle; index 6+ addresses the swinging chassis. */
+ doorAngle(door:number){return Math.fround(door>=6?this.swingingChassis?.angle??0:this.doors[door]?.angle??0);}
+ private stepSwingingChassis(seconds:number){
+  const swing=this.swingingChassis,body=this.car.body;if(!swing)return;if(!body.isEnabled()){this.drawSwingingChassis();return;}
+  this.swingingClock+=seconds;if(this.swingingClock+1e-9<1/30)return;this.swingingClock-=1/30;
+  const linear={...body.linvel()},angular={...body.angvel()},previous=this.previousSwingMotion;this.previousSwingMotion={linear,angular};
+  const frame=swing.kind==='firetruck'?'misc_b':'chassis',position=this.car.nativeFramePosition(frame);if(!position)return;
+  if(previous){
+   const offset=this.worldOffset(position),now=new Vector3(angular.x,angular.y,angular.z).cross(offset).add(linear as Vector3),old=new Vector3(previous.angular.x,previous.angular.y,previous.angular.z).cross(offset).add(previous.linear as Vector3);
+   const delta=native({x:(now.x-old.x)/50,y:(now.y-old.y)/50,z:(now.z-old.z)/50});swing.step(delta,this.axes(),50/30,this.widescreenOn||this.wheelsOnGround===0);
+  }
+  this.drawSwingingChassis();
+ }
+ private drawSwingingChassis(){
+  const swing=this.swingingChassis;if(!swing)return;const frame=swing.kind==='firetruck'?'misc_b':'chassis';
+  // UpdateFrameMatrix about Z, followed by the fire ladder's moving-part pitch (PreRender, iOS 0x100449d20).
+  const yaw=swing.angle,pitch=swing.kind==='firetruck'?Math.fround(this.movingComponent.angle*Math.fround(-.0001)):0,c=Math.cos(yaw),s=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+  this.car.setFrameBasis(frame,[[0,0,c],[0,1,s*cp],[0,2,s*sp],[1,0,-s],[1,1,c*cp],[1,2,c*sp],[2,0,0],[2,1,-sp],[2,2,cp]]);
+ }
+ /** CONTROL_MOVABLE_VEHICLE_PART: UpdateMovingCollision's normalized script angle, not degrees. */
+ controlMovingComponent(angle:number,timeStep=50/60){
+  const state=this.movingComponent,old=state.angle;
+  const geometry=state.update({angle,player:this.occupied,mission:this.missionCar,pad:this.controlsDisabled?0:this.pad.stick?.upDown??0,timeStep});
+  if(state.angle===old)return;
+  if(this.modelId===544){this.drawSwingingChassis();return;}
+  const spec=movingComponentSpec(this.modelId);if(!spec)return;
+  const pivot=movingComponentPivot(this.assets.model,spec.frame);if(!pivot)return;
+  const offset=state.offset();
+  if(spec.translation)this.car.setFrameBasis(spec.frame,[[3,2,Math.fround(pivot[2]+offset)]]);
+  else{const c=Math.fround(Math.cos(offset)),s=Math.fround(Math.sin(offset));this.car.setFrameBasis(spec.frame,[[0,0,1],[0,1,0],[0,2,0],[1,0,0],[1,1,c],[1,2,s],[2,0,0],[2,1,-s],[2,2,c]]);}
+  if(!geometry)return;
+  const collision=movingComponentCollision(this.assets.collision,this.modelId,offset,pivot);this.movingBounds=collision.bounds;
+  applyMovingCollisionShapes(this.sim.world,this.car.sources,collision);
+  this.nativeBodyCache=undefined;this.car.body.wakeUp();
+ }
+ movingComponentOffset(){const spec=movingComponentSpec(this.modelId);return this.movingComponent.offset(!!spec&&!!movingComponentPivot(this.assets.model,spec.frame));}
   beforeStep(seconds:number,axes:{x:number;y:number;forward?:boolean;back?:boolean},handbrake:boolean,sources?:ReadonlyMap<number,{source:NativeCollisionSource}>){
+   this.controlMovingComponent(-1,seconds*50);
    this.collisionAge+=seconds;
    if(sources!==this.sourceOwner){this.sourceOwner=sources;this.sources=new Map([...(sources??[])].map(([id,value])=>[id,value.source]));}
    this.groupColliders();
    if(this.alarm>0)this.alarm=tickAlarm(this.alarm,seconds);
-   // A frozen car (FREEZE_CAR_POSITION) keeps its body out of the world while its other logic goes on.
+   // FREEZE_CAR_POSITION holds motion while keeping the collision body in the world.
+   const frozen=syncFrozenVehicle(this.car.body,this.frozen);
    const nearby=this.inActiveRange();
    // A car coming back into the active range (CJ out of an interior, a long way back) was asleep where it stood, as a
    // car at rest is (CPhysical's IsStatic) until something moves it: it waits for the world's collision under it
    // before its body joins the world again, rather than falling through a spot whose collision is still streaming in.
-   if(nearby&&!this.wasNearby&&!this.occupied)this.waitForCollision(false);
+   if(nearby&&!this.wasNearby&&!this.controlled)this.waitForCollision(false);
    this.wasNearby=nearby;
-   if(this.waitingForCollision&&(this.occupied&&!this.collisionWait.evenOccupied||this.collisionArrived(seconds)))this.waitingForCollision=false;this.car.body.setEnabled(nearby&&!this.frozen&&!this.waitingForCollision);this.car.root.visible=true;if(!nearby||this.waitingForCollision){this.processDelayedExplosion(seconds);this.car.markStepStart();return;}
+   if(this.waitingForCollision&&(this.controlled&&!this.collisionWait.evenOccupied||this.collisionArrived(seconds)))this.waitingForCollision=false;this.car.body.setEnabled(nearby&&!this.waitingForCollision);this.car.root.visible=true;if(!nearby||this.waitingForCollision||frozen){this.processDelayedExplosion(seconds);this.car.markStepStart();return;}
    this.input.airResistance!.extraMultiplier=cullAirResistance.multiplier;
-  const driving=this.occupied&&this.driverInput&&!this.scriptDriven;
+  const driving=this.controlled&&this.driverInput&&!this.scriptDriven;
   // CEntity::TreatAsPlayerForCollisions (STATUS_PLAYER): wet grip, suspension load and off-road adhesion apply to the player's car only.
   this.input.tires.wheelParameters.playerCollisions=this.occupied;
   // PrepareVehicleForPedEnter stops the car's own autopilot while someone gets in (every mission, whichever system
@@ -803,16 +870,16 @@ export class WorldCar {
   // CJ is pinned at its door.
   // The native pedals themselves: a full brake through the pad (ProcessControlInputs) turns into reverse once the car has
   // stopped, and backed it away from CJ at its door, or from the driver it had just set down.
-  const holding=!this.occupied&&this.holdForEntry?{steering:0,throttle:0,brake:1,handbrake:true,native:{steerAngle:0,gas:0,brake:1,handbrake:true}} as TrafficControls:undefined;
-  const p=this.input.pedals,ai=this.occupied&&!this.scriptDriven?undefined:!this.occupied&&this.driverOut?holding:holding??this.autopilot;p.accelerate=driving?((axes.forward??axes.y>0)?255:0):Math.round((ai?.throttle??0)*255);p.brake=driving?((axes.back??axes.y<0)?255:0):Math.round((ai?.brake??0)*255);
-  p.handbrake=this.occupied&&!this.scriptDriven?(driving&&handbrake)||this.exitHandbrake||this.exitHeld:ai?.handbrake??!this.abandoned;
+  const holding=!this.controlled&&this.holdForEntry?{steering:0,throttle:0,brake:1,handbrake:true,native:{steerAngle:0,gas:0,brake:1,handbrake:true}} as TrafficControls:undefined;
+  const p=this.input.pedals,ai=this.controlled&&!this.scriptDriven?undefined:!this.controlled&&this.driverOut?holding:holding??this.autopilot;p.accelerate=driving?((axes.forward??axes.y>0)?255:0):Math.round((ai?.throttle??0)*255);p.brake=driving?((axes.back??axes.y<0)?255:0):Math.round((ai?.brake??0)*255);
+  p.handbrake=this.controlled&&!this.scriptDriven?(driving&&handbrake)||this.exitHandbrake||this.exitHeld:ai?.handbrake??!this.abandoned;
   // ProcessControlInputs' automaticallyHandBrake: while the driver waits to slow down, is dragged out or holds exit,
   // the gas is 0 and the brake full, not the handbrake alone.
-  p.automaticallyHandbrake=this.occupied&&(this.exitHandbrake||this.exitHeld);
+  p.automaticallyHandbrake=this.controlled&&(this.exitHandbrake||this.exitHeld);
   // CAutomobile::ProcessControl's STATUS_ABANDONED branch: no handbrake, gas or steering, and a 0.2 brake once
   // |v|² < 0.01 units/frame (0.5 on a physical object is not modelled), else none: a car left on a slope settles.
   // These are the native pedals themselves (the S key's brake-then-reverse must not drive an empty car backwards).
-  const abandoned=!this.occupied&&!ai&&this.abandoned?(()=>{const v=this.car.body.linvel(),s=1/50;return {steerAngle:0,gas:0,brake:(v.x*v.x+v.y*v.y+v.z*v.z)*s*s<.01?.2:0,handbrake:false};})():undefined;
+  const abandoned=!this.controlled&&!ai&&this.abandoned?(()=>{const v=this.car.body.linvel(),s=1/50;return {steerAngle:0,gas:0,brake:(v.x*v.x+v.y*v.y+v.z*v.z)*s*s<.01?.2:0,handbrake:false};})():undefined;
   if(abandoned){p.accelerate=0;p.brake=0;p.handbrake=false;}// CPad::GetSteeringLeftRight answers 0 while player controls are disabled.
   this.input.steering.steeringAxis=driving?(this.controlsDisabled?0:padSteeringAxis(axes.x)):padSteeringAxis(ai?.steering??0);
   if(this.wrecked){p.accelerate=0;p.brake=0;p.handbrake=true;}
@@ -835,10 +902,10 @@ export class WorldCar {
   this.input.pedals.drowning=this.drowning;
   // STATUS_PLAYER only for the car the player drives: the speed-sensitive steering lock, the neutral-handling
   // exemption and the perfect-handling grip all tell the player's car from the rest.
-  this.input.steeringControl.playerStatus=this.occupied;this.input.tires.playerControlled=this.occupied;this.input.tires.vehicleGrip.isPlayerVehicle=this.occupied;this.input.tires.vehicleGrip.extraPerfectHandling=this.useCarCheats;
+  this.input.steeringControl.playerStatus=this.occupied;this.input.tires.playerControlled=this.controlled;this.input.tires.vehicleGrip.isPlayerVehicle=this.occupied;this.input.tires.vehicleGrip.extraPerfectHandling=this.useCarCheats;
   // ProcessControlInputs (0x6ADDCC): with the player's controls taken, the car is held on the handbrake and brake,
   // its gas cut and its speed capped at 0.28 units a frame.
-  if(this.occupied&&this.controlsDisabled){
+  if(this.controlled&&this.controlsDisabled){
    this.input.pedals.accelerate=0;this.input.pedals.brake=255;this.input.pedals.handbrake=true;
    const v=this.car.body.linvel(),speed=Math.hypot(v.x,v.y,v.z)/50;
    if(speed>=.28){const k=.28/speed;this.car.body.setLinvel({x:v.x*k,y:v.y*k,z:v.z*k},true);}
@@ -1093,9 +1160,9 @@ export class WorldCar {
   private wasNearby=true;
   /** Within the active radius, with 5 units of hysteresis so a car at its edge does not flap between physics and rails. */
   inActiveRange(){
-   const d=this.distance();
+   const p=this.sim.worldFocus,b=this.car.body.translation(),d=Math.hypot(p.x-b.x,p.y-b.y,p.z-b.z);
    if(this.beyondRange){if(d<this.activeRadius-5)this.beyondRange=false;}else if(d>=this.activeRadius)this.beyondRange=true;
-   return this.occupied||!this.beyondRange;
+   return this.controlled||!this.beyondRange;
   }
   /** ProcessSuspension for the Vortex: the spring force level grows by a quarter of the throttle (CPlane's
    * m_fAccelerationBreakStatus); every other car keeps its handling value. */
@@ -1131,19 +1198,9 @@ export class WorldCar {
  engineRunning=false;
  /** FREEZE_CAR_POSITION: physicalFlags.bDontApplySpeed, the body held where it is. */
  frozen=false;
- /** APPLY_FORCE_TO_CAR: CPhysical::ApplyForce(force x mass, offset) (native axes; the offset from the car's position,
-  * world-aligned): the move speed changes by the force itself, in units a frame, and the turn speed by
-  * (offset - centre of mass) x force x mass / turn mass. The mass scale is read from the scripts' own figures (LOWR's
-  * spring of 0.01 a unit back to the car's spot, ZERO4's lift of 0.005), which move a car only so; the handler is not
-  * in the reversed sources. bDisableMoveForce (FREEZE_CAR_POSITION here) keeps it from moving. */
- applyScriptForce(force:{x:number;y:number;z:number},offset:{x:number;y:number;z:number}){
-  requireAsset([force.x,force.y,force.z,offset.x,offset.y,offset.z].every(Number.isFinite),'Invalid script force.');
-  if(this.frozen)return;
-  const b=this.car.body,v=b.linvel(),w=b.angvel(),p=b.translation(),com=b.worldCom();
-  const f={x:force.x*this.mass,y:force.z*this.mass,z:-force.y*this.mass},arm={x:p.x+offset.x-com.x,y:p.y+offset.z-com.y,z:p.z-offset.y-com.z};
-  b.setLinvel({x:v.x+force.x*50,y:v.y+force.z*50,z:v.z-force.y*50},true);
-  const torque={x:arm.y*f.z-arm.z*f.y,y:arm.z*f.x-arm.x*f.z,z:arm.x*f.y-arm.y*f.x},tm=this.turnMass;
-  b.setAngvel({x:w.x+torque.x/tm*50,y:w.y+torque.y/tm*50,z:w.z+torque.z/tm*50},true);
+ /** APPLY_FORCE_TO_CAR uses the effective mass at the COM-relative application point. */
+ applyScriptForce(force:{x:number;y:number;z:number},offset:{x:number;y:number;z:number},basis?:ScriptVehicleForceBasis){
+  applyScriptVehicleForce(this.car.body,this.mass,this.turnMass,force,offset,basis);
  }
  /** m_bIsStaticWaitingForCollision: CreateCarForScript sets it on a mission car, which stands static until
   * CColStore::HasCollisionLoaded for its spot; here, until fixed ground (or water) is under it, asked twice a second.
@@ -1555,7 +1612,7 @@ export class WorldCar {
  /** Handling mass and turn mass with the collision model's bounds (native units). */
  private nativeBodyCache?:{mass:number;turnMass:number;boundsMin:{x:number;y:number;z:number};boundsMax:{x:number;y:number;z:number}};
  /** Mass, turn mass and the collision model's bounds, built once: hot per-ped checks read it every step. */
- get nativeBody(){if(!this.nativeBodyCache){const b=this.assets.collision.bounds;this.nativeBodyCache={mass:this.mass,turnMass:this.turnMass,boundsMin:{x:b.min[0],y:b.min[1],z:b.min[2]},boundsMax:{x:b.max[0],y:b.max[1],z:b.max[2]}};}return this.nativeBodyCache;}
+ get nativeBody(){if(!this.nativeBodyCache){const b=this.movingBounds??this.assets.collision.bounds;this.nativeBodyCache={mass:this.mass,turnMass:this.turnMass,boundsMin:{x:b.min[0],y:b.min[1],z:b.min[2]},boundsMax:{x:b.max[0],y:b.max[1],z:b.max[2]}};}return this.nativeBodyCache;}
  /** The car as CCarCtrl's danger scans read it (native coordinates): position, the matrix's forward, the collision
   * model's bound centre in the world (CEntity::GetBoundCentre), its box and the move speed per frame. */
  dangerView(){
@@ -1607,8 +1664,8 @@ export class WorldCar {
  }
  afterStep(seconds=1/60){
   // CVehicle::UpdateClumpAlpha from CAutomobile::ProcessControl: 16 a frame, at the frame limiter's 30 fps.
-  if(this.alpha<255&&!this.disposed){this.alpha=Math.min(255,this.alpha+16*seconds*30);this.car.setAlpha(this.alpha/255);}
-  this.readStepPairs();this.resolveProps();this.collisions();this.collisionDamage();this.upsideDownDamage(seconds);this.processComponents(seconds);this.debris.step(seconds);this.debris.sync();
+  if(!this.disposed)this.clumpAlpha.step(seconds);
+  this.readStepPairs();this.resolveProps();this.collisions();this.collisionDamage();this.upsideDownDamage(seconds);this.processComponents(seconds);this.stepSwingingChassis(seconds);this.stepCementDrumVisual(seconds);this.debris.step(seconds);this.debris.sync();
   // The player rides with the car, driving it or as a passenger.
   if(!this.occupied&&!this.playerPassengerSeat)return;const p=this.car.body.translation(),q=this.car.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={x:p.x,y:p.y,z:p.z};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=Math.hypot(this.car.body.linvel().x,this.car.body.linvel().z);player.grounded=true;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});
  }

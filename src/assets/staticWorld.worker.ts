@@ -11,6 +11,8 @@ function open(){
   // Old chunks of a republished world leave the persistent cache once the first windows have had the network.
   setTimeout(()=>{void pruneWorldCache(world.source.hashes());},60000);
   self.postMessage({type:'ready',carGenerators:world.carGenerators,occluders:world.occluders,pickups:world.pickups,stuntJumps:world.stuntJumps,savePoints:world.savePoints,radarBlips:world.radarBlips,restartPoints:world.restartPoints,garages:world.garages,audioZones:world.audioZones,cullZones:world.cullZones,entryExits:{...world.entryExits,archives:world.source.archives},tags:world.tags,setPieces:world.setPieces,ideRecords:world.ideRecords,worldZones:world.worldZones,zoneInitialization:{...world.zoneInitialization,population:undefined},script:world.scriptBytes});
+  // Reuse the collision-bounded index without delaying the initial ready message.
+  void world.planner.interiorBounds().then(bounds=>self.postMessage({type:'interiorBounds',bounds}),error=>self.postMessage({type:'error',message:error instanceof Error?error.message:'Interior source indexing failed.'}));
  },error=>{if(ready===opening)ready=undefined;throw error;});
 }
 let busy=false;
