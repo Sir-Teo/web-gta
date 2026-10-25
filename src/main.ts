@@ -1175,6 +1175,7 @@ async function boot() {
   /** No mission unlocks a city in this build, so every restart point qualifies. */
   const CITY_UNLOCKED=2;
   const weapons=new WeaponSystem(sim,()=>pedestrians,()=>fleet);
+  weapons.npcSeatedShot=scriptDriveByWorld.seatedShot;
   weapons.instantHitIgnoredBody=()=>{
     const seat=(playerPassenger?.car??(worldCar?.occupied?worldCar:undefined)??fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane) as {pedTargetable?:boolean}|undefined;
     const vehicle=instantHitIgnoredVehicle(!!seat,seat,playerAttached?.car as {pedTargetable?:boolean}|undefined),body=vehicle&&attachedBody(vehicle);

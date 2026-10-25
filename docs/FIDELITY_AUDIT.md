@@ -13719,3 +13719,14 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   pose gaps, cover, armour, protection and actual cop pistol/shotgun muzzles.
   Quad eligibility, ordinary on-foot collision, full shooter engagement/tasks
   and retail traces remain open. [Source and limits](research/PLAYER_VEHICLE_SHOTS.md).
+
+## Enemy mounted-gun occupant queries (October 25, 2026)
+
+- Enemy aircraft and scripted Hunter guns now reach the shared NPC seated-hit
+  query before bodywork damage. CJ's head and direct bike model can take the
+  hit with his physical collider off; cover, own-car and protection gates apply.
+  A nearer tyre consumes the round and tracers end at the chosen recipient.
+- Real-physics units cover armour, body pieces, cover, protection, tyres and
+  enemy attribution. Full mounted impact FX, player-owned occupant transfer,
+  native muzzle/spread/barrel parity and retail combat traces remain open.
+  [Call chain and verification scope](research/AIRCRAFT_WEAPONS.md).

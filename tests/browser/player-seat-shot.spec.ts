@@ -27,6 +27,9 @@ test('NPC vehicle-head hits reach seated CJ, absorb armour and respect his scrip
    const wall=sim.world.createCollider(RAPIER.ColliderDesc.cuboid(.3,.5,.3).setTranslation((q.source.x+q.aim.x)/2,q.aim.y,(q.source.z+q.aim.z)/2));sim.world.step();
    const obstruction=weapons.ray(q.source,q.direction,20,sim.playerBody),blocked=crowd.seatedShot(q.source,q.direction,20,{handle:-9999},obstruction?.collider.parent(),{distance:obstruction?.timeOfImpact??20,tyre:false})?.victim!==sim.player;
    sim.world.removeCollider(wall,true);sim.world.step();
+   const mountedProbe='/tests/fixtures/fireNpcMountedAt.ts',{fireNpcMountedAt}=await import(/* @vite-ignore */ mountedProbe);
+   sim.player.health=100;sim.player.armour=1000;const mounted=fireNpcMountedAt(g,q.source,q.direction,RAPIER),mountedLoss=1000-sim.player.armour,mountedPiece=sim.damageEvents.at(-1)?.piece,mountedExpected=(weapons.inventory.info(38)?.damage??35)*Math.fround(.33);
+   m.runtime.world.setPedCanBeShotInVehicle(1,false);sim.player.armour=1000;fireNpcMountedAt(g,q.source,q.direction,RAPIER);const mountedProtected=sim.player.armour===1000;m.runtime.world.setPedCanBeShotInVehicle(1,true);
    let realCop:any;
    if(c.model===492&&c.seat==='driver'){
     const id=await crowd.spawnOfficer('lapd1',22,{x:q.source.x,y:q.source.y-1.6,z:q.source.z},0),cop=crowd.people.find((p:any)=>p.id===id);if(!cop?.weapon)throw Error('Missing cop muzzle fixture');cop.mission=true;cop.gunAccuracy=100;
@@ -38,12 +41,13 @@ test('NPC vehicle-head hits reach seated CJ, absorb armour and respect his scrip
     realCop={steps,hitArmour,copPiece,protectedArmour:sim.player.armour,protectedHealth:sim.player.health,carBefore,carAfter:v.health};crowd.removeScripted(cop);
    }
    m.runtime.world.setPedCanBeShotInVehicle(1,true);
-   return {...c,probes:probes.length,armour,health,piece,ownExcluded,proof,blocked,collider:sim.playerCollider.isEnabled(),realCop};
+   return {...c,probes:probes.length,armour,health,piece,ownExcluded,proof,blocked,collider:sim.playerCollider.isEnabled(),realCop,mounted,mountedLoss,mountedPiece,mountedExpected,mountedProtected};
   },{vehicle,c});results.push(result);
   await page.evaluate(vehicle=>{const w=(window as any).__game.missionForProfiling().runtime.world;w.warpPedFromCarToCoord(1,2495,-1687,13.3);w.deleteVehicle(vehicle);},vehicle);
  }
  writeFileSync('artifacts/player-seat-shot.json',JSON.stringify({results,errors},null,2));
  // AccountForPedDamageStats scales CJ's damage by the native float32 0.33 before armour absorbs it.
  for(const r of results){expect(r.probes).toBeGreaterThan(0);expect(r.collider).toBe(false);expect(r.armour).toBeCloseTo(50-25*Math.fround(.33),5);expect(r.health).toBe(100);expect(r.piece).toBe(9);expect(r.ownExcluded&&r.proof&&r.blocked).toBe(true);if(r.realCop){expect(r.realCop.steps).toBeLessThan(180);expect(r.realCop.hitArmour).toBeLessThan(50);expect(r.realCop.copPiece).toBe(9);expect(r.realCop.protectedArmour).toBe(50);expect(r.realCop.protectedHealth).toBe(100);expect(r.realCop.carAfter).toBeLessThan(r.realCop.carBefore);}}
+ for(const r of results){expect(r.mounted&&r.mountedProtected).toBe(true);expect(r.mountedLoss).toBeCloseTo(r.mountedExpected,4);expect(r.mountedPiece).toBe(9);}
  expect(errors).toEqual([]);
 });

@@ -21,6 +21,8 @@ test('incoming shots use CJ’s animated bike body pieces instead of a standing 
    sim.player.health=100;sim.player.armour=50;trace(q.source,q.direction)!.hit(25,22);const armour=sim.player.armour,piece=sim.damageEvents.at(-1)?.piece,ownExcluded=trace(q.source,q.direction,v)?.victim!==sim.player;
    m.runtime.world.setPedCanBeShotInVehicle(1,false);const proof=trace(q.source,q.direction)?.victim!==sim.player;m.runtime.world.setPedCanBeShotInVehicle(1,true);
    const wall=sim.world.createCollider(RAPIER.ColliderDesc.cuboid(.3,.5,.3).setTranslation(q.source.x+q.direction.x*4,q.source.y,q.source.z+q.direction.z*4));sim.world.step();const blocked=trace(q.source,q.direction)?.victim!==sim.player;sim.world.removeCollider(wall,true);sim.world.step();
+   const mountedProbe='/tests/fixtures/fireNpcMountedAt.ts',{fireNpcMountedAt}=await import(/* @vite-ignore */ mountedProbe);
+   sim.player.health=100;sim.player.armour=1000;const mounted=fireNpcMountedAt(g,q.source,q.direction,RAPIER),mountedLoss=1000-sim.player.armour,mountedPiece=sim.damageEvents.at(-1)?.piece,mountedExpected=(w.inventory.info(38)?.damage??35)*Math.fround(.33);
    // Find a shot accepted by the removed standing capsule but passing through a gap in the actual rider model.
    const old=new RAPIER.Capsule(.6,.3),center=sim.playerBody.translation(),direction={x:-1,y:0,z:0};let gap=false;
    for(const dy of [-.7,-.4,0,.4,.7])for(const dz of [-.2,0,.2]){const source={x:center.x+8,y:center.y+dy,z:center.z+dz};if(old.castRay(new RAPIER.Ray(source,direction),center,{x:0,y:0,z:0,w:1},20,true)>=0&&!pedSphereHit(source,direction,20,spheres)&&crowd.seatedShot(source,direction,20,{handle:-9999},undefined,{distance:20,tyre:false})?.victim!==sim.player)gap=true;}
@@ -29,11 +31,12 @@ test('incoming shots use CJ’s animated bike body pieces instead of a standing 
     const fireCop=async(type:number)=>{const id=await crowd.spawnOfficer('lapd1',type,{x:q.source.x,y:q.source.y-1.6,z:q.source.z},0),cop=crowd.people.find((p:any)=>p.id===id);if(!cop?.weapon)throw Error('Missing cop muzzle fixture');cop.mission=true;cop.gunAccuracy=100;const eye={...cop.actor.player.position,y:cop.actor.player.position.y+1.6},aim={...body.center},offset=new THREE.Vector3(aim.x-eye.x,aim.y-eye.y,aim.z-eye.z);sim.player.health=100;sim.player.armour=1000;let steps=0;for(;steps<180&&sim.player.armour===1000;steps++)crowd.stepPedGun(cop,cop.weapon,eye,aim,offset,[],1/30,true);const event=sim.damageEvents.at(-1),result={steps,armour:1000-sim.player.armour,piece:event?.piece,base:cop.weapon.info.damage*Math.fround(.33)};crowd.removeScripted(cop);return result;};
     const pistol=await fireCop(22);copHit=pistol.steps<180;copPiece=pistol.piece;shotgun=await fireCop(25);
    }
-   return {...c,spheres:spheres.length,armour,piece,ownExcluded,proof,blocked,gap,copHit,copPiece,shotgun,collider:sim.playerCollider.isEnabled()};
+   return {...c,spheres:spheres.length,armour,piece,ownExcluded,proof,blocked,gap,copHit,copPiece,shotgun,collider:sim.playerCollider.isEnabled(),mounted,mountedLoss,mountedPiece,mountedExpected};
   },{vehicle,c}));
   await page.evaluate(vehicle=>{const w=(window as any).__game.missionForProfiling().runtime.world;w.warpPedFromCarToCoord(1,2495,-1687,13.3);w.deleteVehicle(vehicle);},vehicle);
  }
  writeFileSync('artifacts/player-bike-shot.json',JSON.stringify({results,errors},null,2));
  for(const r of results){expect(r.spheres).toBe(12);expect(r.collider).toBe(false);expect(r.armour).toBeCloseTo(50-25*Math.fround(.33),5);expect(r.piece).not.toBe(9);expect(r.ownExcluded&&r.proof&&r.blocked&&r.gap&&r.copHit).toBe(true);if(r.model===481){expect(r.copPiece).not.toBe(9);expect(r.shotgun.steps).toBeLessThan(180);expect(r.shotgun.armour).toBeGreaterThan(r.shotgun.base);expect(r.shotgun.armour).toBeLessThanOrEqual(r.shotgun.base*15+.001);}}
+ for(const r of results){expect(r.mounted).toBe(true);expect(r.mountedLoss).toBeCloseTo(r.mountedExpected,4);expect(r.mountedPiece).not.toBe(9);}
  expect(errors).toEqual([]);
 });

@@ -4,7 +4,7 @@ import {THROW_START_CLIP,THROW_CLIP,THROW_UP_CLIP,THROW_FORCE_PER_COUNTER,throwC
 import {Vector3,Quaternion} from 'three';
 import {pedSphereHit,type PedHitSphere} from '../combat/nativePedHitSpheres';
 import {policeDontCareAboutPedType} from '../ped/nativeAcquaintance';
-import {OCCUPANT_HEAD_LIFT,occupantHeadHit} from '../vehicle/nativeDieInCar';
+import {OCCUPANT_HEAD_LIFT,occupantHeadHit,type SeatedShot} from '../vehicle/nativeDieInCar';
 import {isInstantHitGun} from '../simulation/WorldPedestrians';
 import {pedCanBeTargettedVehicleWise} from '../ped/nativeVehicleTargeting';
 import type {AimCandidate} from '../input/aimAssist';
@@ -224,6 +224,8 @@ export class WeaponSystem {
  }
  /** A seated ped hit through the window: the host applies CPed damage and CTaskComplexDieInCar. */
  onSeatedShot?:(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number)=>'hit'|'killed'|undefined;
+ /** Enemy mounted guns share the NPC world/tyre/occupant query, including CJ with his physical collider off. */
+ npcSeatedShot?:SeatedShot;
  private damageSeated(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number,sniper=false,piece=9){
   const result=this.onSeatedShot?.(target,WeaponSystem.occupantDamage(target,damage,weapon,piece),weapon);
   if(result){this.hits++;const cop=target.kind==='police'||target.pedType?.toUpperCase()==='COP',victim=target.crimeVictim??`seat:${this.seatKey(target)}`,dontCare=policeDontCareAboutPedType(target.pedType);
@@ -695,9 +697,14 @@ export class WeaponSystem {
  }
  private fireMountedGun(body:RAPIER.RigidBody,from:Vector3,direction:Vector3,weapon:number,byPlayer:boolean,fxOptions?:Parameters<WeaponFxHost['gunshot']>[4]){
   const info=this.inventory.info(weapon),amount=info?.damage??35,range=info?.weaponRange??400;
-  const hit=this.ray(from,direction,range,body,undefined,byPlayer),end=from.clone().addScaledVector(direction,hit?.timeOfImpact??range);
+  const hit=this.ray(from,direction,range,body,undefined,byPlayer),reach=hit?.timeOfImpact??range;
+  const tyre=!byPlayer?this.tyreHit(from,direction,reach,body):undefined;
+  const seated=!byPlayer?this.npcSeatedShot?.(from,direction,range,body,hit?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre}):undefined;
+  const end=from.clone().addScaledVector(direction,seated?.t??tyre?.t??reach);
   this.tracer(from,end,'aircraft',.1);this.fx?.gunshot(from,direction,weapon,true,fxOptions);
-  if(hit){
+  if(seated)seated.hit(amount,weapon);
+  else if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
+  else if(hit){
    this.hitFx(hit,end,8,weapon,direction,false,byPlayer,false);
    if(!byPlayer&&hit.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(amount,false,{weapon,from});
    else this.damage(hit.collider.handle,amount,direction,false,'bullet',{weapon,point:end,byPlayer});

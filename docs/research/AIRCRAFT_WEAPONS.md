@@ -97,3 +97,35 @@ dogfight check covers AI guns and missiles after the shared-timer change.
 
 This does not establish a complete DESERT5 pass. The mounted-gun trace still inherits the port's collision,
 weapon spread and impact-force coverage; native `FireInstantHit` has not been completely reproduced by this work.
+
+## Enemy mounted guns and seated occupants (October 25)
+
+Enemy fixed-wing, helicopter and scripted Hunter-gun rounds now ask the shared
+NPC occupant query before applying bodywork damage. CJ's vehicle/head handoff
+and animated motorcycle/bicycle body can receive the hit while his physical
+collider is off. Script riders and street passengers also use this adapter.
+A nearer car tyre consumes the round; cover, own-body exclusion and shot
+protection retain their existing gates. The tracer ends at the actual recipient.
+The hit retains enemy attribution and adds neither player crime nor practice.
+
+PC [CVehicle::FirePlaneGuns, 0x6D4D30](https://github.com/gta-reversed/gta-reversed/blob/4281f82d8af83e14935ac84a69dfd1ceebb9f256/source/game_sa/Entity/Vehicle/Vehicle.cpp)
+constructs a fresh CWeapon and calls FireInstantHit with the vehicle as creator.
+It therefore uses CWorld's bullet collision and the occupant handoff rather
+than a bodywork-only gun ray. Script 0541 reaches the same gun family through
+CWeapon::Fire. The shared head/sphere evidence is in
+[PLAYER_VEHICLE_SHOTS.md](PLAYER_VEHICLE_SHOTS.md).
+
+Focused real-Rapier units fire the public Hunter-gun method through a car/head
+handoff and an exposed bike torso, check armour/piece and tracer endpoint, and
+cover wall, protection, nearer tyre and creator attribution. Existing timer,
+shell, aircraft and helicopter units pass alongside them. Player-owned mounted
+guns keep their existing vehicle-creator path; this change does not add player
+pedestrian crime or weapon-practice calls to that path. Its occupant transfer,
+complete impact FX, spread and multi-barrel equivalence remain open.
+
+Live original Greenwood driver/rear passenger, Burrito rear passenger and
+BMX/PCJ driver/pillion checks invoke the public Hunter-gun path along measured
+exposed lines. Native player armour scaling and body-piece IDs are retained;
+the player flag blocks the car-seat hit. Actual 0541 bytecode and a freely
+flying attacking Hunter also pass their existing shell, timer, gun, rocket and
+aircraft-damage requirements.
