@@ -53,16 +53,18 @@ try{
  await expect(page.locator('.flight-instruments')).toBeVisible({timeout:120000});
  // Native aircraft throttle follows the held pedal; releasing W before the climb cuts the engine.
  await page.keyboard.down('KeyW');
- // Rotate with enough airspeed, then release the elevator as in planes.spec.ts. Holding full pitch-up until the
- // altitude assertion passed sometimes stalled the Rustler at 100 km/h and drove it off the side of the runway.
- await expect.poll(async()=>Number((await page.locator('.flight-instruments').innerText()).match(/(\d+) km\/h/)?.[1]),{timeout:45000}).toBeGreaterThan(150);
- await page.keyboard.down('ArrowDown');await page.waitForTimeout(1000);await page.keyboard.up('ArrowDown');
+ // FlyingControl's form lift can take it off before 150 km/h. Accept that flight, or rotate with enough runway
+ // speed and release the elevator as in planes.spec.ts. A speed-only wait could reject a plane already 19 m up.
+ const flight=async()=>{const text=await page.locator('.flight-instruments').innerText();return {speed:Number(text.match(/(\d+) km\/h/)?.[1]),altitude:Number(text.match(/(\d+) m AGL/)?.[1])};};
+ await expect.poll(async()=>{const f=await flight();return f.speed>150||f.altitude>15;},{timeout:45000}).toBe(true);
+ const takeoffMode=(await flight()).altitude>15?'natural':'rotation';
+ if(takeoffMode==='rotation'){await page.keyboard.down('ArrowDown');await page.waitForTimeout(1000);await page.keyboard.up('ArrowDown');}
  await expect.poll(async()=>Number((await page.locator('.flight-instruments').innerText()).match(/(\d+) m AGL/)?.[1]),{timeout:20000}).toBeGreaterThan(15);
  await page.keyboard.up('KeyW');
  await page.keyboard.press('KeyG');await expect(page.locator('.flight-instruments')).toContainText('Gear UP');
  await page.screenshot({path:`artifacts/pages-${remote?'live':'production'}-flight.png`});
  expect(errors).toEqual([]);expect(failures).toEqual([]);expect(await page.evaluate(()=>typeof window.__game)).toBe('undefined');
- console.log(JSON.stringify({url,loaded:true,saveResume:true,walkingFramesChanged:true,nativeCarEntered:true,nativeMapWaypoint:true,pauseResume:true,aircraftTakeoff:true,landingGear:true,errors,failedRequests:failures}));
+ console.log(JSON.stringify({url,loaded:true,saveResume:true,walkingFramesChanged:true,nativeCarEntered:true,nativeMapWaypoint:true,pauseResume:true,aircraftTakeoff:true,takeoffMode,landingGear:true,errors,failedRequests:failures}));
 }catch(error){
  if(page){await mkdir('artifacts',{recursive:true});await page.screenshot({path:`artifacts/pages-${remote?'live':'production'}-failure.png`}).catch(()=>{});console.error(JSON.stringify({flight:await page.locator('.flight-instruments').textContent({timeout:1000}).catch(()=>null)}));}
  throw error;
