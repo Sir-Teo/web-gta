@@ -31,7 +31,8 @@ import {WalkRoundBuildingRoute,buildingCollisionFacing,type V3 as NativeV3} from
 import {followersToRemove} from '../ped/nativePedGroup';
 import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARGET_TOLERANCE,cornerMoveRatio,cornerSlowing,planFollowNodeRoute,type CornerSlowing,type NodeRouteOptions} from './nativeFollowNodeRoute';
 import {GO_STRAIGHT_MOVE_STATE_RADIUS,SWAT_ROPE_LENGTH,SWAT_ROPE_NODES,SWAT_ROPE_SECONDS,SWAT_ROPE_SHARE_PER_SECOND,swatRopePoint,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,patrolRouteStart,type ScriptedPedOrder,slideToCoordStep,SLIDE_HEADING_TOLERANCE} from './nativeScriptedPedTasks';
-import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NATIVE_PED_TYPES,NativeAcquaintance,nativePedType} from '../ped/nativeAcquaintance';
+import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NATIVE_PED_TYPES,NativeAcquaintance,nativePedType,pedTypeName,policeDontCareAboutPedType,type Acquainted} from '../ped/nativeAcquaintance';
+export {pedTypeName,type Acquainted} from '../ped/nativeAcquaintance';
 import {characterMovement} from './characterMovement';
 import {ANIM_ID,NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
 import {CANNON_PUSH_RANGE2,waterCannonPedSpeed} from './nativeWaterCannon';
@@ -95,12 +96,6 @@ const PED_STAND_PROBE = new RAPIER.Capsule(.6,.3);
 const GET_UP_PROBE=new RAPIER.Ball(GET_UP_CLEAR_RADIUS),NO_ROTATION={x:0,y:0,z:0,w:1};
 /** The attacker's CTaskSimpleFight move, with its combo group's victim clips (FIGHT_HIT_1..3). */
 export interface MeleeFight {move:number;group?:string;hits?:readonly import('../assets/ifp').NativeAnimation[]}
-/** What CPed's acquaintance routines need of a ped: its type and the table a script has given it. A script's rider
- * holds them as a walker does. */
-export interface Acquainted {pedType?:string;scriptPedType?:number;acquaintance?:NativeAcquaintance}
-/** CPed::m_nPedType by name: a script ped's CREATE_CHAR type (TWAR7's Freddy is MISSION1 though his model is a
- * Vagos'), else the peds.ide type its model came with. */
-export const pedTypeName=(p:Acquainted)=>p.scriptPedType!==undefined?NATIVE_PED_TYPES[p.scriptPedType]??p.pedType:p.pedType;
 export interface Pedestrian {
  /** Browser death-task phase; latched after the actual death association finishes, independent of removal age. */
  deathState?:'dying'|'dead';
@@ -551,7 +546,7 @@ const PED_BOUND_RADIUS=1;
 /** Heights above the feet of the stand-in ped hit spheres (see hideNearCamera). */
 const HIT_SPHERE_HEIGHTS=[.25,.6,.95,1.3,1.6];
 /** What a ped carries into a car and out again as CJ's passenger. */
-interface PassengerKeep {weapon:Pedestrian['weapon'];health:number;id?:number;gang?:number;gangClips:boolean;defendMult?:number;noCriticalHits?:boolean;neverTargeted?:boolean;canBeShotInVehicle?:boolean;/** The follower's member slot, kept while it rides. */slot?:number}
+interface PassengerKeep {weapon:Pedestrian['weapon'];health:number;id?:number;pedType?:string;gang?:number;gangClips:boolean;defendMult?:number;noCriticalHits?:boolean;neverTargeted?:boolean;canBeShotInVehicle?:boolean;/** The follower's member slot, kept while it rides. */slot?:number}
 /** CTaskComplexWalkRoundBuildingAttempt's state: the route, the point it walks round to (m_targetPos, native) and the
  * ped or player it follows there (m_targetEntity), its move state, and which sub-task runs: the first one (scratch
  * head walking, hit wall running), look about, following the route, or the stand or hit wall it gives up with. */
@@ -852,8 +847,8 @@ export class WorldPedestrians {
   return {alive:ped.health>0};
  }
  policeDontCare(victim:string|undefined){
-  const id=victim?.startsWith('ped:')?Number(victim.slice(4)):NaN,type=this.people.find(p=>p.id===id)?.pedType;
-  return !!type&&(/^GANG([1-9]|10)$/i.test(type)||/^(CRIMINAL|DEALER)$/i.test(type));
+  const id=victim?.startsWith('ped:')?Number(victim.slice(4)):NaN,ped=this.people.find(p=>p.id===id);
+  return policeDontCareAboutPedType(ped&&pedTypeName(ped));
  }
  snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],playerLook:+(this.playerLook?.blend??0).toFixed(2),attractors:[...this.attractorQueues.values()].reduce((n,q)=>n+q.peds.length,0),queues:[...this.attractorQueues.entries()].map(([key,q])=>({key,peds:[...q.peds]})),attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase,slot:p.attract.slot}:null,look:p.look?+p.look.blend.toFixed(2):null,drowning:!!p.drowning,drowned:!!p.drowned,chase:p.chase?p.chase.target.id:null,attackWave:!!p.attackWave,rage:p.rage?.phase??null,investigate:p.investigate?.phase??null,hangout:p.hangout?.phase??null,party:p.party?p.party.leader.id:null,stealBack:p.stealBack?.phase??null,air:p.air?{vz:+p.air.vz.toFixed(2),clip:p.air.clip??null}:null,landing:p.landing!==undefined,alpha:Math.round(p.alpha),fadeOut:p.fadeOut,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,stare:p.stare?`${p.stare.phase}:${p.stare.remaining.toFixed(1)}`:null,reaction:p.view.reactionName??null,downSeconds:Number.isFinite(p.down)?+p.down.toFixed(2):null,stuckUnderCar:!!p.stuckUnderCar,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',visible:p.view.root.visible}))};}
    /** CWeapon::DoBulletImpact's skill test for a ped, before the damage lands: alive and not in the player's group. */
@@ -1863,7 +1858,7 @@ export class WorldPedestrians {
   const i=this.people.findIndex(p=>p.id===id);if(i<0)return undefined;
   const [p]=this.people.splice(i,1);this.remove(p);
   // The same ped rides and gets out: CPed keeps his weapons, health and gang in the car.
-  const keep:PassengerKeep={weapon:p.weapon,health:p.health,id:p.id,gang:p.gang,gangClips:p.gang!==undefined,slot:p.follow?p.followSlot:undefined,
+  const keep:PassengerKeep={weapon:p.weapon,health:p.health,id:p.id,pedType:pedTypeName(p),gang:p.gang,gangClips:p.gang!==undefined,slot:p.follow?p.followSlot:undefined,
    defendMult:p.defendMult,noCriticalHits:p.noCriticalHits,neverTargeted:p.neverTargeted,canBeShotInVehicle:p.flags?.canBeShotInVehicle};
   return {modelRef:p.modelRef,follow:p.follow,gang:p.gang,keep};
  }
@@ -2760,8 +2755,8 @@ export class WorldPedestrians {
   }
   const p=this.people[this.people.length-1];
   p.follow=follow;p.flee=0;
-  if(keep){p.health=keep.health;if(keep.gangClips)p.view.installReactions(catalog.gangClips,true);if(follow)p.followSlot=keep.slot;
-   p.defendMult=keep.defendMult??p.defendMult;p.noCriticalHits=keep.noCriticalHits;p.neverTargeted=keep.neverTargeted;
+  if(keep){p.health=keep.health;if(keep.id!==undefined){p.id=keep.id;this.nextId=Math.max(this.nextId,p.id+1);}if(keep.gangClips)p.view.installReactions(catalog.gangClips,true);if(follow)p.followSlot=keep.slot;
+   p.defendMult=keep.defendMult??p.defendMult;p.noCriticalHits=keep.noCriticalHits;p.neverTargeted=keep.neverTargeted;if(keep.pedType!==undefined)p.pedType=keep.pedType;
    if(keep.canBeShotInVehicle!==undefined)this.setFlag(p,'canBeShotInVehicle',keep.canBeShotInVehicle);
   }
   if(p.health<=0){p.money=0;this.restoreDeadScriptPed(p);}

@@ -1390,7 +1390,7 @@ async function boot() {
   };
   // CCrime::ReportCrime passes PoliceDontCareAboutCrimesAgainstPedType for the victim, which divides the chaos by 3.
   weapons.policeHelis=()=>police?.helis??[];
-  weapons.onCrime=(type,victim,queued)=>{const dontCare=!!pedestrians?.policeDontCare(victim);if(queued){if(victim)law.registerCrime(type,victim,dontCare);}else law.crime(type,victim,dontCare);};
+  weapons.onCrime=(type,victim,queued,dontCareOverride)=>{const dontCare=dontCareOverride??!!pedestrians?.policeDontCare(victim);if(queued){if(victim)law.registerCrime(type,victim,dontCare);}else law.crime(type,victim,dontCare);};
   // CGangWars::GangWarFightingGoingOn zeroes the chaos a crime adds (CWanted::ReportCrimeNow).
   law.native.gangWarFighting=()=>!!gangWars?.gangWarFightingGoingOn();
   // CWanted::ReportCrimeNow's police scanner: a crime that raises the level is reported (NativePoliceScanner) for where
@@ -5682,17 +5682,17 @@ async function boot() {
             // The seated peds a bullet can reach: traffic drivers and police crews (drive-by crews stay with their own module).
             weapons.seatedPeds=(bikesOnly=false)=>{const out:import('./weapons/WeaponSystem').SeatedTarget<import('./weapons/WeaponSystem').SeatedVehicle>[]=[];
              if(!bikesOnly){const policeCars=new Set(police?.units.map(u=>u.car));
-             for(const car of fleet?.cars??[]){if(!car.autopilot||car.occupied||car.driverOut||car.wrecked||policeCars.has(car)||driveby?.covers(car)||emergency?.covers(car))continue;const seat=car.seat('left');if(seat)out.push({car,seat:0,local:seat,kind:'traffic',head:occupants.headOf(`driver:${car.car.body.handle}`)});}
+             for(const car of fleet?.cars??[]){if(!car.autopilot||car.occupied||car.driverOut||car.wrecked||policeCars.has(car)||driveby?.covers(car)||emergency?.covers(car))continue;const seat=car.seat('left');if(seat)out.push({car,seat:0,local:seat,kind:'traffic',pedType:car.gang!==undefined?`GANG${car.gang+1}`:undefined,head:occupants.headOf(`driver:${car.car.body.handle}`)});}
              for(const c of police?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,headingOffset:c.headingOffset,kind:'police',head:occupants.headOf(`police:${c.car.car.body.handle}:${c.seat}`)});
-             for(const c of driveby?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'driveby',head:occupants.headOf(`driveby-${c.seat===0?'driver':'shooter'}:${c.car.car.body.handle}`)});
-             for(const c of carEntry.passengerTargets()){const keep=c.rider.keep as {noCriticalHits?:boolean;neverTargeted?:boolean;canBeShotInVehicle?:boolean}|undefined;out.push({car:c.car,seat:c.seat,local:c.local,headingOffset:c.headingOffset,kind:'passenger',rider:c.rider,crew:c.rider.follow,noCriticalHits:keep?.noCriticalHits,neverTargeted:keep?.neverTargeted,canBeShot:keep?.canBeShotInVehicle,head:occupants.headOf(`passenger:${c.car.car.body.handle}:${c.seat}`)});}
+             for(const c of driveby?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'driveby',activeDriveBy:c.seat===1,pedType:c.car.gang!==undefined?`GANG${c.car.gang+1}`:undefined,head:occupants.headOf(`driveby-${c.seat===0?'driver':'shooter'}:${c.car.car.body.handle}`)});
+             for(const c of carEntry.passengerTargets()){const keep=c.rider.keep as {id?:number;pedType?:string;noCriticalHits?:boolean;neverTargeted?:boolean;canBeShotInVehicle?:boolean}|undefined;out.push({car:c.car,seat:c.seat,local:c.local,headingOffset:c.headingOffset,kind:'passenger',rider:c.rider,crew:c.rider.follow,activeDriveBy:!!c.rider.driveBy,crimeVictim:keep?.id!==undefined?`ped:${keep.id}`:undefined,pedType:keep?.pedType??(c.rider.gang!==undefined?`GANG${c.rider.gang+1}`:undefined),noCriticalHits:keep?.noCriticalHits,neverTargeted:keep?.neverTargeted,canBeShot:keep?.canBeShotInVehicle,head:occupants.headOf(`passenger:${c.car.car.body.handle}:${c.seat}`)});}
              }
              // A script's peds in every native seat. The shooter's own
              // car is left out by the shot, not here: a drive-by at CJ's car can hit the homies riding with him.
              for(const r of scriptRiders){
               if(r.gone||r.health<=0||r.offset||bikesOnly&&!isScriptBike(r.car))continue;
               const handle=mission?.peds.handleOf(r),crew=handle!==undefined&&[...mission!.groups.values()].some(g=>g.isMember(1)&&g.isMember(handle));
-              const add=(target:import('./weapons/WeaponSystem').SeatedTarget<import('./weapons/WeaponSystem').SeatedVehicle>)=>out.push({...target,crew,neverTargeted:r.neverTargeted,canBeShot:r.canBeShotInVehicle});
+              const add=(target:import('./weapons/WeaponSystem').SeatedTarget<import('./weapons/WeaponSystem').SeatedVehicle>)=>out.push({...target,crew,crimeVictim:handle!==undefined?`script-ped:${handle}`:undefined,pedType:pedTypeName(r),activeDriveBy:!!r.driveBy,neverTargeted:r.neverTargeted,canBeShot:r.canBeShotInVehicle});
               const bike=r.car as unknown as import('./simulation/WorldBike').WorldBike;
               if(!isScriptCar(r.car)&&typeof bike.riderPose==='function'){
                const local=r.seat==='driver'?bike.riderPose().seat:bike.backSeat();

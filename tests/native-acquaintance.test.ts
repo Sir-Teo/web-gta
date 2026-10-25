@@ -1,6 +1,6 @@
 import {expect,test} from 'vitest';
 import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,
- NativeAcquaintance,NATIVE_PED_TYPES,nativePedType} from '../src/ped/nativeAcquaintance';
+ NativeAcquaintance,NATIVE_PED_TYPES,nativePedType,pedTypeName} from '../src/ped/nativeAcquaintance';
 
 test('ePedType numbers the types the way the enum does, by name and without case',()=>{
  expect(NATIVE_PED_TYPES.length).toBe(32);
@@ -49,8 +49,7 @@ test('a mask can carry several ped types at once, as the command’s own bit num
  expect(table.get(ACQUAINTANCE_HATE)).toBe(0x80000000);
 });
 
-test('a script ped\'s acquaintances go by CREATE_CHAR\'s ped type, not its model\'s peds.ide type',async()=>{
- const {pedTypeName}=await import('../src/simulation/WorldPedestrians');
+test('a script ped\'s acquaintances go by CREATE_CHAR\'s ped type, not its model\'s peds.ide type',()=>{
  // TWAR7's Freddy: CREATE_CHAR 24 (MISSION1) with a Vagos model; OG Loc hates MISSION1.
  expect(pedTypeName({pedType:'GANG8',scriptPedType:24})).toBe('MISSION1');
  // A street ped, or a script's rider that holds its type by name.

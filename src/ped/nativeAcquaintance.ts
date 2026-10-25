@@ -14,6 +14,11 @@ export const NATIVE_PED_TYPES=['PLAYER1','PLAYER2','PLAYER_NETWORK','PLAYER_UNUS
 const BY_NAME=new Map<string,number>(NATIVE_PED_TYPES.map((name,index)=>[name as string,index]));
 /** The ePedType a peds.ide type name stands for, or nothing for a name the enum does not have. */
 export const nativePedType=(name:string|undefined)=>name===undefined?undefined:BY_NAME.get(name.toUpperCase());
+/** The type supplied by CREATE_CHAR takes precedence over the model's peds.ide type. */
+export interface Acquainted {pedType?:string;scriptPedType?:number;acquaintance?:NativeAcquaintance}
+export const pedTypeName=(p:Acquainted)=>p.scriptPedType!==undefined?NATIVE_PED_TYPES[p.scriptPedType]??p.pedType:p.pedType;
+/** CPedType::PoliceDontCareAboutCrimesAgainstPedType (PC 0x608A40). */
+export function policeDontCareAboutPedType(name:string|undefined){const type=nativePedType(name);return type!==undefined&&(type>=7&&type<=16||type===17||type===20);}
 export class NativeAcquaintance{
  /** One mask per acquaintance, each a bit per ePedType. */
  private readonly masks=new Int32Array(ACQUAINTANCE_NUM);

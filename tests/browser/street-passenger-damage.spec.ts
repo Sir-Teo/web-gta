@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {writeFileSync} from 'node:fs';
 import {endStoryMission} from './freeRoam';
 
 test('street recruits retain wound health on exit and NPC bullets kill seated recruits without reviving them',async({page})=>{
@@ -17,7 +18,7 @@ test('street recruits retain wound health on exit and NPC bullets kill seated re
  const wounded=await page.evaluate(car=>{
   const g=(window as any).__game,w=g.weapons(),v=g.missionForProfiling().vehicles.entity(car),t=w.seatedPeds().find((t:any)=>t.car===v&&t.kind==='passenger'&&t.seat===1),source={x:t.head.x+6,y:t.head.y+.1,z:t.head.z};
   const found=w.seatedHit(source,{x:-1,y:0,z:0},20,v.car.body);const result=found&&w.onSeatedShot(found.target,25,22);
-  return {found:found?.target.rider===t.rider,result,health:g.carEntry().passengers.find((p:any)=>p.seat===1).keep.health,followers:g.carEntry().ridingFollowers()};
+  return {found:found?.target.rider===t.rider,result,id:t.rider.keep.id,health:g.carEntry().passengers.find((p:any)=>p.seat===1).keep.health,followers:g.carEntry().ridingFollowers()};
  },car);
  expect(wounded).toMatchObject({found:true,result:'hit',followers:2});expect(wounded.health).toBeCloseTo(72.5,5);
  const cop=await page.evaluate(async car=>{
@@ -39,12 +40,17 @@ test('street recruits retain wound health on exit and NPC bullets kill seated re
    v.car.body.setLinvel({x:5,y:0,z:0},true);if(v.canStepOut())throw new Error('Moving passenger fixture is still stopped');crowd.stepPedGun(cop,cop.weapon,eye,aim,offset,[v],1/30,true);
   }
   v.car.body.setLinvel({x:0,y:0,z:0},true);m.runtime.world.freezeVehiclePosition(car,true);
+  // The measured muzzle trial is over; prevent later autonomous rounds from changing the surviving recruit's wound.
+  crowd.removeScripted(cop);
   return {steps,before,health:v.health,riderHealth:rider.keep.health,dead:!!rider.diedInSeat,followers:g.carEntry().ridingFollowers(),targeted:g.weapons().seatedPeds().some((t:any)=>t.rider===rider),kills:m.runtime.game.stats.get(120),recruits:m.runtime.game.stats.get(163),body:v.car.body.handle};
  },{car,copId:cop});
  expect(fatal.steps).toBeLessThan(180);expect(fatal.riderHealth).toBe(0);expect(fatal.dead).toBe(true);expect(fatal.followers).toBe(1);expect(fatal.targeted).toBe(false);
  expect(fatal.health).toBe(fatal.before.health);expect(fatal.kills).toBe(fatal.before.kills+1);expect(fatal.recruits).toBe(fatal.before.recruits+1);
+ // Passenger exit timers use game time, which is held while a terrain window is loading/retrying.
+ await page.waitForFunction(()=>(window as any).__game.state().terrainHold===false,undefined,{timeout:90000});
  await page.evaluate(()=>(window as any).__game.carEntry().abandon());
- await expect.poll(()=>page.evaluate(health=>{const g=(window as any).__game;return g.pedestrians().snapshot().people.some((p:any)=>p.model==='FAM1'&&p.follow&&Math.abs(p.health-health)<.00001);},wounded.health),{timeout:10000}).toBe(true);
+ try{await expect.poll(()=>page.evaluate(({health,id})=>{const g=(window as any).__game;return g.pedestrians().snapshot().people.some((p:any)=>p.id===id&&p.model==='FAM1'&&p.follow&&Math.abs(p.health-health)<.00001);},{health:wounded.health,id:wounded.id}),{timeout:10000}).toBe(true);}
+ catch(error){writeFileSync('artifacts/street-passenger-exit-debug.json',JSON.stringify(await page.evaluate(()=>{const g=(window as any).__game;return {terrainHold:g.state().terrainHold,crowd:g.pedestrians().snapshot(),entry:{phase:g.carEntry().phase,passengers:g.carEntry().passengers.length,leaving:g.carEntry().leaving?.length}};}),null,2));throw error;}
  const after=await page.evaluate(body=>{
   const g=(window as any).__game,m=g.missionForProfiling(),e=g.carEntry();return {corpse:!!g.occupants().headOf(`passenger:${body}:2`),pose:e.leavingPoses().find((p:any)=>p.key===`passenger:${body}:2`)?.clip,followers:e.ridingFollowers(),revived:g.pedestrians().snapshot().people.some((p:any)=>p.model==='FAM2'&&p.health>0),kills:m.runtime.game.stats.get(120),recruits:m.runtime.game.stats.get(163),skipped:m.snapshot().skipped,gaveUp:m.snapshot().gaveUp};
  },fatal.body);

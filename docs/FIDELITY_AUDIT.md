@@ -13683,3 +13683,17 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   head/arm occlusion, cover, protection and dead-seat posing. Quad eligibility,
   player/on-foot collision, complete death tasks and retail comparison remain
   open. [Source, captured table and scope](research/BIKER_BULLET_COLLISION.md).
+
+## Pedestrian firearm crime reports (October 25, 2026)
+
+- Seated shots now retain GenerateDamageEvent's generic report, queue the
+  firearm criminal event and emit the caller's impact report in native order.
+  Scripted cops and gang victims retain their actual type; occupants of one
+  vehicle keep separate crime identities. A surviving active drive-by skips
+  the queued event, as in the PC source.
+- Street passengers retain identity/type on exit. Accepted on-foot damage uses
+  the same event order, including CBulletInfo's cop-specific impact report.
+  Source-backed units, actual CWanted queue checks and live civilian/cop/gang,
+  drive-by and recruit-exit cases cover the integration. Full event scheduling,
+  rejected-hit/corpse gates and retail pursuit comparison remain open.
+  [Exact calls, identity and remaining scope](research/PEDESTRIAN_FIREARM_CRIMES.md).

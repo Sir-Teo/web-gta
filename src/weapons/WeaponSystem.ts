@@ -3,6 +3,7 @@ import {PLANE_GUN_SHAKE,ROCKET_SHAKE} from '../engine/nativePadShakes';
 import {THROW_START_CLIP,THROW_CLIP,THROW_UP_CLIP,THROW_FORCE_PER_COUNTER,throwClip,throwFireTime,throwFiresNow,throwButtonCounter,type ThrowClip} from './nativeThrowProjectile';
 import {Vector3,Quaternion} from 'three';
 import {pedSphereHit,type PedHitSphere} from '../combat/nativePedHitSpheres';
+import {policeDontCareAboutPedType} from '../ped/nativeAcquaintance';
 import {OCCUPANT_HEAD_LIFT,occupantHeadHit} from '../vehicle/nativeDieInCar';
 import {isInstantHitGun} from '../simulation/WorldPedestrians';
 import {pedCanBeTargettedVehicleWise} from '../ped/nativeVehicleTargeting';
@@ -24,6 +25,8 @@ export interface SeatedTarget<V extends SeatedVehicle=import('../simulation/Worl
  /** CWorld's direct biker collision, sampled lazily from the drawn native skeleton. */
  hitSpheres?:()=>readonly PedHitSphere[]|undefined;
  hitOrigin?:()=>Vec3|undefined;
+ /** CPed's crime identity/type remain distinct from the vehicle and from the other people in its seats. */
+ crimeVictim?:string;pedType?:string;activeDriveBy?:boolean;
  /** bNoCriticalHits (SET_CHAR_SUFFERS_CRITICAL_HITS off): a head hit does no more than the weapon's damage. */
  noCriticalHits?:boolean}
 /** Where a seated ped's head node sits from its seat point (the car's ped_frontseat), in the car's native axes, for an
@@ -223,8 +226,14 @@ export class WeaponSystem {
  onSeatedShot?:(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number)=>'hit'|'killed'|undefined;
  private damageSeated(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number,sniper=false,piece=9){
   const result=this.onSeatedShot?.(target,WeaponSystem.occupantDamage(target,damage,weapon,piece),weapon);
-  if(result){this.hits++;const cop=target.kind==='police';
-   this.onCrime?.(sniper?(cop?CRIME.damageCopCar:CRIME.damageCar):(cop?CRIME.damagedCop:CRIME.damagedPed),`car:${target.car.car.body.handle}`);
+  if(result){this.hits++;const cop=target.kind==='police'||target.pedType?.toUpperCase()==='COP',victim=target.crimeVictim??`seat:${this.seatKey(target)}`,dontCare=policeDontCareAboutPedType(target.pedType);
+   // GenerateDamageEvent reports DAMAGED_PED, DoBulletImpact adds DAMAGE_CAR (CBulletInfo has a cop variant),
+   // and CEventDamage queues its weapon/type-specific criminal event. The immediate calls have no cop variant otherwise.
+   this.onCrime?.(CRIME.damagedPed,victim,false,dontCare);
+   const queued=criminalEventCrime(weapon,cop);
+   // GenerateDamageEvent skips EventGroup::Add for a surviving TASK_SIMPLE_GANG_DRIVEBY victim.
+   if(queued!==CRIME.none&&(!target.activeDriveBy||result==='killed'))this.onCrime?.(queued,victim,true,dontCare);
+   this.onCrime?.(sniper&&cop?CRIME.damageCopCar:CRIME.damageCar,victim,false,dontCare);
    // DoBulletImpact's weapon practice excludes the player's own group, as the on-foot path does.
    if(!target.crew)this.onHit?.(weapon);
   }
@@ -283,7 +292,7 @@ export class WeaponSystem {
  onMeleeSwing?:(w:WeaponDefinition,swing:MeleeSwing)=>void;
  onHit?:(weapon:number)=>void;
  /** CCrime::ReportCrime (`queued` false) and CWanted::RegisterCrime from CEventDamage::ReportCriminalEvent (`queued` true). */
- onCrime?:(type:number,victim:string|undefined,queued?:boolean)=>void;
+ onCrime?:(type:number,victim:string|undefined,queued?:boolean,dontCare?:boolean)=>void;
  /** CTaskSimpleStealthKill (keepTargetAlive): the attacker's KILL_Knife_Player sequence. */
  stealth?:{id:number;remaining:number;target:Vec3};
  /** Seconds the KILL_Partial ready pose has been held on the current victim. */
@@ -362,7 +371,7 @@ export class WeaponSystem {
  private playerFireSince?:number;
  /** Whether the last damage() hit trains the weapon skill (see DoBulletImpact). */
  private hitTrains=false;
- private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet',hit?:{weapon?:number;point?:Vec3;fight?:import('../simulation/WorldPedestrians').MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number};byPlayer?:boolean}){
+ private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet',hit?:{weapon?:number;point?:Vec3;fight?:import('../simulation/WorldPedestrians').MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number};byPlayer?:boolean;sniper?:boolean}){
   // CWeapon::DoBulletImpact's test before CStats::UpdateStatsWhenWeaponHit, taken before the damage lands: a ped alive
   // and not in the player's group, a vehicle that can be damaged, is not bullet-proof and is not wrecked.
   this.hitTrains=false;
@@ -374,12 +383,11 @@ export class WeaponSystem {
    if(typeof victim==='object'){
     const id=`ped:${victim.id}`,cop=victim.officer;
     if(hit?.byPlayer!==false&&(kind==='melee'||kind==='bullet'||kind==='spray')){
-     // CWeapon::GenerateDamageEvent reports DAMAGED_PED for the player's damage with a witness check, and
-     // DoBulletImpact adds DAMAGE_CAR for a bullet; neither has a cop variant.
+     // GenerateDamageEvent reports DAMAGED_PED and adds the criminal event before the caller's impact report.
      this.onCrime?.(CRIME.damagedPed,id);
-     if(kind==='bullet')this.onCrime?.(CRIME.damageCar,id);
      const queued=criminalEventCrime(hit?.weapon??(kind==='melee'?0:kind==='spray'?41:22),cop);
      if(queued!==CRIME.none)this.onCrime?.(queued,id,true);
+     if(kind==='bullet')this.onCrime?.(hit?.sniper&&cop?CRIME.damageCopCar:CRIME.damageCar,id);
     }
     // CWorld::TriggerExplosion reports DAMAGE_CAR for each ped a ped's explosion reaches (WEAPON_EXPLOSION queues nothing).
     else if(kind==='explosion'&&hit?.byPlayer)this.onCrime?.(CRIME.damageCar,id);
@@ -970,7 +978,7 @@ export class WeaponSystem {
     this.hitFx(hit,point,8,b.weapon,b.direction,true);
     // CBulletInfo::Update only damages what it hits (or bursts a tyre); the car push is DoBulletImpact's alone.
     if(ped){b.passed.add(hit.collider.handle);next=point;}
-    if(this.damage(hit.collider.handle,b.damage,b.direction,false,'bullet',{weapon:b.weapon,point})&&this.hitTrains)this.onHit?.(b.weapon);
+    if(this.damage(hit.collider.handle,b.damage,b.direction,false,'bullet',{weapon:b.weapon,point,sniper:true})&&this.hitTrains)this.onHit?.(b.weapon);
    }
    if(b.weapon===34)this.testSniperCollision(b.position,next);
    b.position=next;
