@@ -46,6 +46,16 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
   controls pass with explicit native respect in their fixtures. Complete native
   stat calculation and group/task parity remain open.
 
+## Pedestrian bullet blood timing (October 25, 2026)
+
+- WeaponSystem samples on-foot victim health after damage for blood FX, retaining
+  head/fatal scaling, shotgun body counts and instant-hit rejection. Flying
+  sniper rounds retain their independent eight-particle rule. Ordinary and
+  sniper vehicle-to-head transfers now emit blood too. [Source and scope](research/PEDESTRIAN_BULLET_BLOOD.md).
+- Real-ray units cover damage/FX order, proof flags, corpses, shotgun and seated
+  transfers. On-foot animated sphere tracing, native brightness and complete
+  NPC/task/localisation/render parity remain open.
+
 ## Scripted rear car passengers (October 25, 2026)
 
 - Rear script riders now render and enter seated-head bullet checks at the same

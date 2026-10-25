@@ -16,11 +16,13 @@ test('a native sniper round damages a seated mission ped once along its flight',
   const original=w.onSeatedShot;(window as any).__sniperOccupantHits=[];
   w.onSeatedShot=(t:any,damage:number,weapon:number)=>{if(t.rider===m.peds.entity(rider))(window as any).__sniperOccupantHits.push({damage,weapon});return original(t,damage,weapon);};
   w.inventory.select(34);w.firstPerson='sniper';w.aiming=true;
-  const fired=w.fire({origin:source,direction:{x:-1,y:0,z:0}});return {fired,health:m.peds.entity(rider).health,bullets:w.snapshot().bullets,carHealth:v.health};
+  const fired=w.fire({origin:source,direction:{x:-1,y:0,z:0}});return {fired,health:m.peds.entity(rider).health,bullets:w.snapshot().bullets,carHealth:v.health,weaponClock:w.nowMs};
  },{car,rider});
  expect(fired).toMatchObject({fired:true,health:500,bullets:1});
  await expect.poll(()=>page.evaluate(rider=>(window as any).__game.missionForProfiling().peds.entity(rider).health,rider),{timeout:10000}).toBe(375);
- await expect.poll(()=>page.evaluate(()=>(window as any).__game.weapons().snapshot().bullets),{timeout:5000}).toBe(0);
+ // CBulletInfo expires after one second of simulated weapon time; terrain loading can hold that clock.
+ await page.waitForFunction(at=>(window as any).__game.weapons().nowMs>at+1100,fired.weaponClock,{timeout:30000});
+ expect(await page.evaluate(()=>(window as any).__game.weapons().snapshot().bullets)).toBe(0);
  const result=await page.evaluate(rider=>{const g=(window as any).__game,m=g.missionForProfiling();return {health:m.peds.entity(rider).health,hits:(window as any).__sniperOccupantHits,skipped:m.snapshot().skipped,gaveUp:m.snapshot().gaveUp};},rider);
  writeFileSync('artifacts/sniper-occupant.json',JSON.stringify({fired,result,errors},null,2));
  expect(result).toEqual({health:375,hits:[{damage:125,weapon:34}],skipped:[],gaveUp:[]});expect(errors).toEqual([]);

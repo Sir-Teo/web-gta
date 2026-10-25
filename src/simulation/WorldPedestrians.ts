@@ -939,10 +939,8 @@ export class WorldPedestrians {
     if(p.health===0)this.onKill?.({id:p.id,...type,recruit:wasRecruit,byPlayer});
     return {id:p.id,officer:type.officer,pedType:type.pedType};
    }
- /** Browser stand-in for the twelve CPedModelInfo hit spheres. Their bone,
-  * offset and radius table lives in retail data (0x8A6308) and is not in the
-  * reversed source, so height above the feet picks head, torso, midsection
-  * or legs and the side of the ped picks the limb. */
+ /** On-foot collision still uses the browser capsule and height/side damage pieces. The captured native twelve-node
+  * table (nativePedHitSpheres) is used for direct bike-rider traces; on-foot animated sphere tracing remains open. */
  private hitPiece(p:Pedestrian,point?:{x:number;y:number;z:number}){return pedPieceAt(p.actor.player.position,p.actor.player.heading,point);}
  private moveState(p:Pedestrian){
   const speed=p.actor.player.speed;
@@ -1127,6 +1125,8 @@ export class WorldPedestrians {
   frighten(position:{x:number;z:number},radius:number){for(const p of this.people)if(!p.officer&&!p.follow&&!(p.mission&&this.hasScriptTask(p))&&p.health>0&&!p.fleePlayer&&Math.hypot(p.actor.player.position.x-position.x,p.actor.player.position.z-position.z)<radius){p.flee=Math.max(p.flee,8);p.fleeFrom={...position};this.onFlee?.(p,{...p.actor.player.position});}}
   /** A ped by collider, living or dead, while it is in the world: where a fire on it burns (CFire::ProcessFire). */
   pedPosition(handle:number){const p=this.people.find(q=>q.collider.handle===handle);return p&&{position:{...p.body.translation()},dead:p.health<=0,submerged:this.submerged(p)};}
+  /** DoBulletImpact samples the struck piece and the victim's health after GenerateDamageEvent for its blood FX. */
+  bulletImpact(handle:number,point?:{x:number;y:number;z:number}){const p=this.people.find(p=>p.collider.handle===handle);return p&&{head:this.hitPiece(p,point)===PED_PIECE.head,dead:p.health<=0};}
   // bNeverEverTargetThisPed keeps a ped out of the lock-on the weapon system draws its targets from.
   /** Living peds for the weapons; `all` keeps those SET_CHAR_NEVER_TARGETTED hides from targeting. */
   targets(all=false){return this.people.filter(p=>p.health>0&&(all||!p.neverTargeted)).map(p=>({handle:p.collider.handle,id:p.id,fireProof:!!p.proofs?.fire,position:{...p.body.translation()},inAir:!!p.air||p.landing!==undefined,officer:pedTypeInfo(p).officer,armed:!!p.weapon,attacking:p.retaliate>0,down:p.down>0,noCriticalHits:!!p.noCriticalHits,crew:p.follow}));}
