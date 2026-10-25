@@ -2,7 +2,8 @@ import {chromium,expect} from '@playwright/test';
 import {preview} from 'vite';
 const remote=process.argv[2],server=remote?undefined:await preview({base:'/web-gta/',preview:{host:'127.0.0.1',port:5190,strictPort:true}});
 const url=remote??'http://127.0.0.1:5190/web-gta/';
-const browser=await chromium.launch({channel:'chrome'});
+const executablePath=process.env.PW_CHROMIUM_EXECUTABLE;
+const browser=await chromium.launch(executablePath?{executablePath}:{channel:'chrome'});
 try{
  const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
  // Observe actual worker messages; input and terrain requests remain entirely game-owned.

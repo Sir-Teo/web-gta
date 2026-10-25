@@ -38,3 +38,11 @@ This is the fork-transform integration. Native handlebar placement through the
 rider's hand tasks, front/rear suspension articulation, mudguards, pedal cranks,
 quad steering geometry and original bike dynamics remain outside this change.
 There are no matched retail PC steering captures yet.
+
+The final full unit run passes 5,389 tests with 51 skipped. All nine live fleet,
+slope parking, pick-up, player/NPC boarding, pillion and warp-out regressions pass,
+and the production build passes. Logs: `artifacts/native-bike-final-unit.log`,
+`artifacts/bike-animation-regressions.log`, `artifacts/bike-steering-build.log`.
+The standard Playwright configuration also passes the full native-model fork
+and wheel checks with `PW_CHROMIUM_EXECUTABLE=/usr/bin/chromium`, without a
+separate cloud configuration (`artifacts/standard-browser-config.log`).
