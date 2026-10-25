@@ -22,11 +22,14 @@ test('a foot cop sees and shoots CJ on the bike he rides, and a wall still hides
    // CWorld::bIncludeBikers: the cop's rounds strike CJ on the bike though his collider is off.
    cop.gunAccuracy=100;const before=sim.player.health,spot=crowd.spotTarget(cop,target,[]);
    for(let i=0;i<120&&sim.player.health===before;i++)crowd.stepPedGun(cop,cop.weapon,spot.eye,spot.aim,spot.offset,[],1/30,true);
-   return {unhooked,riding,walled,shot:before-sim.player.health};
+   const shot=before-sim.player.health;crowd.playerRide=()=>({body:bike,bike:true,canBeShot:false});const protectedHealth=sim.player.health;
+   for(let i=0;i<120;i++)crowd.stepPedGun(cop,cop.weapon,spot.eye,spot.aim,spot.offset,[],1/30,true);
+   return {unhooked,riding,walled,shot,protected:sim.player.health===protectedHealth};
   }finally{crowd.dispose?.();sim.dispose();}
  });
  expect(result.unhooked).toBe(false);
  expect(result.riding).toBe(true);
  expect(result.walled).toBe(false);
 expect(result.shot).toBeGreaterThan(0);
+expect(result.protected).toBe(true);
 });

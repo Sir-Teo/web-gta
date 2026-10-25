@@ -13697,3 +13697,14 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   drive-by and recruit-exit cases cover the integration. Full event scheduling,
   rejected-hit/corpse gates and retail pursuit comparison remain open.
   [Exact calls, identity and remaining scope](research/PEDESTRIAN_FIREARM_CRIMES.md).
+
+## Incoming player vehicle shots (October 25, 2026)
+
+- NPC muzzle rays now transfer a vehicle hit to CJ's rendered head when he is
+  the nearest eligible occupant. Existing player armour, proofs and friendly
+  damage rules apply. SET_CHAR_CAN_BE_SHOT_IN_VEHICLE now supports CJ and also
+  protects him on the existing bike collision path.
+- Raw script-command units and live Greenwood/Burrito driver/passenger checks
+  cover damage, head piece, cover, own-vehicle exclusion and a real cop muzzle.
+  Direct animated player bike collision, full reaction/death tasks and retail
+  comparison remain open. [Source and scope](research/PLAYER_VEHICLE_SHOTS.md).

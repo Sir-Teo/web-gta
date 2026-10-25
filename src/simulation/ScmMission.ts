@@ -1207,6 +1207,8 @@ export class ScmMission {
  private adapterRef!:ScmWorldCommands;
  /** The player's CPed::bDontDragMeOutCar (SET_CHAR_CANT_BE_DRAGGED_OUT). */
  playerCantBeDraggedOut=false;
+ /** CPed::bCanBeShotInVehicle, on for a new player. The player has no entry in the script-NPC pool. */
+ playerCanBeShotInVehicle=true;
  /** For a ped running a sequence with nested ones, each flattened task's step and nested step. */
  private readonly sequenceSteps=new Map<number,{outer:number;inner:number}[]>();
  /** The mission text block the script last asked for. */
@@ -2041,7 +2043,7 @@ export class ScmMission {
    // The freeze that also waits for collision: a ped the browser built stands on ground it has already
    // loaded, so there is nothing to wait for and it is the plain freeze.
    freezePedPositionAndWaitForCollision:(handle,freeze,missionCleanup)=>{const ped=this.livePed(handle);this.world.setScriptPedFrozen(ped,freeze);if(freeze&&missionCleanup)this.world.scriptPedWaitForCollision?.(ped);},
-   setPedCanBeShotInVehicle:(handle,canBeShot)=>{this.world.setScriptPedFlag(this.livePed(handle),'canBeShotInVehicle',canBeShot);},
+   setPedCanBeShotInVehicle:(handle,canBeShot)=>{if(handle===PLAYER_PED_HANDLE)this.playerCanBeShotInVehicle=canBeShot;else this.world.setScriptPedFlag(this.livePed(handle),'canBeShotInVehicle',canBeShot);},
    // The player's bDontDragMeOutCar is kept here: nothing in the browser drags the player out yet.
    setPedCantBeDraggedOut:(handle,cannot)=>{if(handle===PLAYER_PED_HANDLE)this.playerCantBeDraggedOut=cannot;else this.world.setScriptPedFlag(this.livePed(handle),'cantBeDraggedOut',cannot);},
    setPedLoadsCollision:(handle,loads)=>{this.world.setScriptPedFlag(this.livePed(handle),'loadsCollision',loads);},
