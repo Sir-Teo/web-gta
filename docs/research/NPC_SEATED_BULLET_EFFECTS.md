@@ -36,8 +36,11 @@ drawn car and motorcycle occupants, including protected mission riders and CJ.
 The existing real-cop, recruit death/exit, and player car/bike tests check that
 the routing preserves the existing health, collision and death behavior.
 
-Full damage calculator and force-death parity, persistent script-rider physical
-proof flags, NPC damage to ambient traffic/police/drive-by crews, same-type and
+The later [mission-rider proof fix](SCRIPT_RIDER_PROOFS.md) retains and applies
+physical proof flags in this bullet adapter.
+
+Full damage calculator and force-death parity, recruited-passenger physical
+proof/vest handling, NPC damage to ambient traffic/police/drive-by crews, same-type and
 group identity for opaque creators, contact brightness, localisation, and
 matched retail PC captures remain open. This does not establish full native
 occupant combat or task parity.

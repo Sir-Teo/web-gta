@@ -1,4 +1,5 @@
 import {scriptRiderDeath} from './vehicle/scriptRiderDeath';
+import {scriptRiderShot,type ScriptRiderDamageState} from './vehicle/scriptRiderShot';
 import {playerBikeHit,playerSeatHeadHit} from './vehicle/playerSeatShot';
 import {pedReactionMotion} from './animation/pedReactionMotion';
 import {respondToVehicleDeath} from './simulation/nativeVehicleDied';
@@ -42,10 +43,10 @@ const scriptTilt=(x:number,y:number)=>x||y?{x:x*Math.PI/180,y:y*Math.PI/180}:und
 const scriptCarRotation=(degrees:number)=>degrees*Math.PI/180;
 /** A ped a script made inside a car. It never walks: it rides where the car goes, and the occupant renderer
  * draws it in its seat. CPopulation::AddPedInCar makes one of these rather than a ped on the ground. */
-interface ScriptRider{rider:true;model:number|string;car:import('./simulation/WorldCar').WorldCar;
+interface ScriptRider extends ScriptRiderDamageState{rider:true;model:number|string;car:import('./simulation/WorldCar').WorldCar;
  /** TASK_DRIVE_BY: the rider leans out and fires (scriptDriveBy). */
  driveBy?:import('./simulation/scriptDriveBy').ScriptDriveBy;
- seat:number|'driver';headingChange?:number;health:number;heading:number;accuracy:number;invulnerable:boolean;gone:boolean;
+ seat:number|'driver';headingChange?:number;heading:number;accuracy:number;gone:boolean;
  /** Shot dead where it sat (CTaskSimpleDieInCar): held slumped in the seat, CAR_dead_LHS/RHS on its last frame. */
  diedInSeat?:boolean;renderScorched?:boolean;
  /** bCanBeShotInVehicle (SET_CHAR_CAN_BE_SHOT_IN_VEHICLE), on unless a script turns it off. */
@@ -72,16 +73,6 @@ interface ScriptRider{rider:true;model:number|string;car:import('./simulation/Wo
  clip?:{name:string;animation?:import('./assets/ifp').NativeAnimation;started:number;loop:boolean;hold:boolean;seconds:number;failed?:boolean}}
 const scriptRiders=new Set<ScriptRider>();
 const asRider=(entity:unknown)=>(entity as ScriptRider|undefined)?.rider?entity as ScriptRider:undefined;
-/** A bullet into a script's ped in its seat (CWeapon::CheckForShootingVehicleOccupant, iOS 0x100498190, hands the hit from
- * the car to the occupant): the weapon's damage off its health, none from anyone but the player for one the script made
- * only damaged by him (its `invulnerable`). At no health it dies where it sits, and the script sees it dead. */
-function scriptRiderShot(rider:ScriptRider,damage:number,_weapon:number,byPlayer:boolean):'hit'|'killed'|undefined{
- if(rider.health<=0)return 'killed';
- if(rider.invulnerable&&!byPlayer)return undefined;
- rider.health=Math.max(0,rider.health-damage);
- if(rider.health>0)return 'hit';
- rider.diedInSeat=true;return 'killed';
-}
 /** A script vehicle that is a car (WorldCar) rather than a bike, boat, aircraft or train carriage. */
 const isScriptCar=(v:unknown):v is import('./simulation/WorldCar').WorldCar=>!!v&&typeof (v as {setPedInAsDriver?:unknown}).setPedInAsDriver==='function';
 const isScriptBike=(v:unknown):v is import('./simulation/WorldBike').WorldBike=>!!v&&typeof (v as {riderPose?:unknown}).riderPose==='function';
@@ -6048,7 +6039,7 @@ async function boot() {
                  setScriptPedAccuracy:(ped,accuracy)=>{const r=asRider(ped);if(r)r.accuracy=accuracy;else{const p=onFoot(ped);if(p)p.gunAccuracy=accuracy;}},
                  setScriptPedShootingRate:(ped,rate)=>{const p=onFoot(ped);if(p)p.shootingRate=rate;},
                  setScriptPedInvulnerable:(ped,enabled)=>{const r=asRider(ped);if(r)r.invulnerable=enabled;else{const p=onFoot(ped);if(p)p.onlyDamagedByPlayer=enabled;}},
-                 setScriptPedProofs:(ped,proofs)=>{const p=onFoot(ped);if(p)p.proofs={...proofs};},
+                 setScriptPedProofs:(ped,proofs)=>{const p=onFoot(ped)??asRider(ped);if(p)p.proofs={...proofs};},
                  scriptPedAlive:ped=>{const r=asRider(ped);if(r)return !r.gone&&!r.car.disposed;return !!pedestrians?.holdsScripted(ped as Pedestrian);},
                  removeScriptPed:ped=>{const r=asRider(ped);if(r){r.gone=true;scriptRiders.delete(r);return;}pedestrians?.removeScripted(ped as Pedestrian);},
                  releaseScriptPed:(ped,keepTask)=>{const p=onFoot(ped);if(p)pedestrians?.releaseScripted(p,keepTask);},

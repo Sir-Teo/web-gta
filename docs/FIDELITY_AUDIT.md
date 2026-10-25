@@ -88,9 +88,20 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
   protected script riders no longer report an accepted wound.
   [Source and verification scope](research/NPC_SEATED_BULLET_EFFECTS.md).
 - Live car/bike fixtures exercise the public mounted gun against surviving,
-  fatal and protected targets. Complete damage/force-death, persistent rider
-  physical proofs, ambient-crew NPC damage, lighting and matched PC captures
+  fatal and protected targets. Complete damage/force-death, recruited-passenger
+  proof/vest handling, ambient-crew NPC damage, lighting and matched PC captures
   remain open.
+
+## Mission-rider bullet proofs (October 25, 2026)
+
+- SET_CHAR_PROOFS now reaches a mission ped's seated record and its live bullet
+  damage adapter. Player/NPC rounds respect physical bullet proof, including
+  precomputed head-death damage; clearing it enables wounds and blood again.
+  The existing script pool restores the flags through enter/exit rebuilds.
+  [Source and verification scope](research/SCRIPT_RIDER_PROOFS.md).
+- Car and motorcycle mounted-shot cases check protected/cleared health, blood
+  and vehicle health. Full damage/armour/force-death, recruited-passenger
+  proof/vest handling and exact source/group identities remain open.
 
 ## Scripted rear car passengers (October 25, 2026)
 
