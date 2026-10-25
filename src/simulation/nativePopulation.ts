@@ -83,16 +83,10 @@ export const PED_SEEING_RANGE=15,TURF_KILL_THREATS_CHANCE=200/700;
 export const ACQUAINTANCE_SCAN_SECONDS=.5,ACQUAINTANCE_RAISED_SCAN_SECONDS=3,ACQUAINTANCE_FIRST_SCAN_SECONDS=3;
 /** The line of sight runs from 0.75 above the scanning ped's origin to 0.75 above the other's (−1 while he ducks). */
 export const ACQUAINTANCE_EYE_HEIGHT=.75;
-/** The Families' rivals, whose dead count to the player's respect (authored). */
-export const GANG_RIVALS:ReadonlySet<number>=new Set([0,2]);
-let respect = 40;
-export function gangRespect(){return respect;}
-/** CStats::FindMaxNumberOfGroupMembers (0x559A50) on STAT_TOTAL_RESPECT. The browser keeps respect as a 0-100 share of
- * its own, read here as that share of the stat's thousand. */
-export function maxGroupMembers(totalRespect=respect*10){
+/** CStats::FindMaxNumberOfGroupMembers (PC 0x559A50), using STAT_TOTAL_RESPECT (64) directly. */
+export function maxGroupMembers(totalRespect:number){
  return totalRespect<10?0:totalRespect<60?2:totalRespect<160?3:totalRespect<330?4:totalRespect<540?5:totalRespect<800?6:7;
 }
-export function addRespect(delta:number){respect=Math.max(0,Math.min(100,respect+delta));}
 /** Escalated turf parties (give-peds-weapons script flag): one pistol appears
  * once the mark is armed or wanted, and only on turf strong enough to be armed
  * (INITIAL strength 20+); weak corners stay unarmed. */

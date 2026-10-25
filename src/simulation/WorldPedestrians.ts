@@ -3104,7 +3104,10 @@ export class WorldPedestrians {
    * Families member (ProcessGroupBehaviour and MakeThisPedJoinOurGroup read the three together). */
   private recruitAnyone(){return CHEATS.isActive('recruitPistol')||CHEATS.isActive('recruitAk')||CHEATS.isActive('rocketMayhem');}
   /** How many the player's group may hold for a recruit to join (recruitRoom). */
-  private groupRoom(){return recruitRoom(maxGroupMembers(),this.scriptGangLimit,this.cityUnlocked?.()??0,this.recruitAnyone());}
+  /** The current native STAT_TOTAL_RESPECT, including script changes and restored stats. */
+  totalRespect?:()=>number;
+  private maxGroupMembers(){return maxGroupMembers(this.totalRespect?.()??0);}
+  private groupRoom(){return recruitRoom(this.maxGroupMembers(),this.scriptGangLimit,this.cityUnlocked?.()??0,this.recruitAnyone());}
   /** Of `candidates`, the one `target` names: the ped under the crosshair (`handle`), else the nearest within `range`
    * ahead of the player (within 45° of his heading). */
   private targetAmong(candidates:Pedestrian[],target:{handle?:number;range:number}){
@@ -3125,7 +3128,7 @@ export class WorldPedestrians {
    * CPedGroupMembership::RemoveNFollowers passes over the members a mission made, which `missionMembers` counts. */
   makeRoomForMissionPeds(room:number,missionMembers:number){
    const crew=this.people.filter(p=>p.follow&&p.health>0&&!p.mission);
-   for(const m of crew.slice(0,followersToRemove(crew.length,missionMembers,room,Math.min(maxGroupMembers(),this.scriptGangLimit))))this.leaveGroup(m);
+   for(const m of crew.slice(0,followersToRemove(crew.length,missionMembers,room,Math.min(this.maxGroupMembers(),this.scriptGangLimit))))this.leaveGroup(m);
   }
   /** CPedGroupMembership::AddFollower takes a ped out of the group it was in: a recruit leaves his street gang's
    * party, and a party that loses its leader, or is left with one member, breaks up. */

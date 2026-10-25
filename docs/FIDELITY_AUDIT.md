@@ -36,6 +36,16 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
   scripted corpse regressions pass. Actor-role/task behavior and complete
   kill/respect parity remain open.
 
+## Recruitment capacity from native respect (October 25, 2026)
+
+- Recruitment, room for mission members, the script's maximum-group query and
+  the gang-strength HUD bar now read STAT_TOTAL_RESPECT (64). The separate
+  authored respect store starting at 40 is removed. [Source and scope](research/GROUP_RESPECT.md).
+- Live recruit attempts match all 14 threshold samples, including zero, lowered
+  respect, script limits and city restrictions. Keyboard and touch recruitment
+  controls pass with explicit native respect in their fixtures. Complete native
+  stat calculation and group/task parity remain open.
+
 ## Scripted rear car passengers (October 25, 2026)
 
 - Rear script riders now render and enter seated-head bullet checks at the same

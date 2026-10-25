@@ -243,7 +243,7 @@ import {nativeContactBrightness} from './assets/collisionLighting';
 import {decodeNamedTextures} from './assets/modelTextures';
 import {NativeMovingFog} from './render/NativeMovingFog';
 import {playHornIfNecessary} from './simulation/nativeCarHorn';
-import {ACQUAINTANCE_EYE_HEIGHT,GANG_RIVALS,addRespect,maxGroupMembers} from './simulation/nativePopulation';
+import {ACQUAINTANCE_EYE_HEIGHT,maxGroupMembers} from './simulation/nativePopulation';
 import {Frustum,Matrix4,Object3D,Quaternion,Sphere,Vector2,Vector3} from 'three';
 import {StuntJumps} from './simulation/StuntJumps';
 /** Reused aim-direction scratch: WeaponSystem.tick copies it, fire/driveby read it synchronously. */
@@ -1457,11 +1457,12 @@ async function boot() {
   // CPlayerInfo::m_nNumHoursDidntEat and WorkOutEnergyFromHunger.
   const hunger=new NativeHunger();
   const parachuteTimer=new NativeParachuteTimer();let inAircraft=false;
+  const playerMaxGroupMembers=()=>maxGroupMembers(mission?.runtime.game.stats.get(64)??0);
   /** CStats::DisplayScriptStatUpdateMessage into the HUD's stat box, the name from the GXT's STATnnn. */
   const displayStatUpdate=(increase:boolean,stat:number,value:number)=>{
     const game=mission?.runtime.game;if(!game)return;
     let current=0;try{current=game.stats.get(stat);}catch{return;}
-    const bar=statUpdateBar({stat,value,widescreen:game.widescreenOn,helpShowing:hud.helpShowing()||game.help.state!==0,capped:ScmStats.isCapped(stat),current,maxGroup:Math.min(maxGroupMembers(),pedestrians?.scriptGangLimit??99)});
+    const bar=statUpdateBar({stat,value,widescreen:game.widescreenOn,helpShowing:hud.helpShowing()||game.help.state!==0,capped:ScmStats.isCapped(stat),current,maxGroup:Math.min(playerMaxGroupMembers(),pedestrians?.scriptGangLimit??99)});
     if(bar===undefined||!game.help.setStatUpdate(increase,stat,value,bar))return;
     hud.statUpdate(gxtHudText(gxtText(statNameKey(stat),`Stat ${stat}`)),increase,current,bar);
   };
@@ -5513,6 +5514,7 @@ async function boot() {
           // Crossing peds read the same traffic-light timer as the cars.
           pedestrians.lightClock=()=>traffic?.lightMs;
           pedestrians.cityUnlocked=()=>{try{return mission?.runtime.game.stats.get(181)??0;}catch{return 0;}};
+          pedestrians.totalRespect=()=>mission?.runtime.game.stats.get(64)??0;
           pedestrians.playerArmed=()=>{const fire=weapons.inventory.info()?.fire;return fire==='instant'||fire==='projectile';};
           pedestrians.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
           pedestrians.onShot=(from,to,weapon,hit,shooter)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc',shooter);};
@@ -5573,7 +5575,7 @@ async function boot() {
           // CDarkel::RegisterKillNotByPlayer for everyone else's kills: STAT_PEOPLE_WASTED_BY_OTHERS, a recruit of the
           // player's group costing 2 respect (STAT_RECRUITED_GANG_MEMBERS_KILLED), and a gangster's friendly or enemy count.
           pedestrians.onKill=victim=>{if(victim.byPlayerVehicle)mission?.runtime.game.stats.increment(121,1);
-           else if(!victim.byPlayer){const stats=mission?.runtime.game.stats;if(stats){if(victim.recruit){stats.decrement(68,2);stats.increment(163,1);}stats.increment(120,1);if(victim.gang!==undefined)stats.increment(victim.gang===1?240:239,1);}}if(victim.byPlayer&&sim.playerCollider.isEnabled())gangWars?.addKillToProvocation(victim.gang);if(victim.byPlayer&&pedTypeAtLeastDealer(victim.pedType))playerKilledADealer(worldZones,{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y});if(victim.byPlayer){if(victim.gang!==undefined&&GANG_RIVALS.has(victim.gang))addRespect(5);registerKillByPlayer(victim);}};
+           else if(!victim.byPlayer){const stats=mission?.runtime.game.stats;if(stats){if(victim.recruit){stats.decrement(68,2);stats.increment(163,1);}stats.increment(120,1);if(victim.gang!==undefined)stats.increment(victim.gang===1?240:239,1);}}if(victim.byPlayer&&sim.playerCollider.isEnabled())gangWars?.addKillToProvocation(victim.gang);if(victim.byPlayer&&pedTypeAtLeastDealer(victim.pedType))playerKilledADealer(worldZones,{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y});if(victim.byPlayer)registerKillByPlayer(victim);};
           pedestrians.seatedShot=scriptDriveByWorld.seatedShot;
           carEntry.onPassengerKilled=(rider,byPlayer)=>pedestrians?.onKill?.({id:(rider.keep as {id?:number}|undefined)?.id??-1,officer:false,gang:rider.gang,recruit:rider.follow,byPlayer});
           const speechSeed=(position:{x:number;z:number})=>Math.abs(Math.floor(position.x*13+position.z*7));
@@ -6680,7 +6682,7 @@ async function boot() {
                  },
                  setPedTypeRelationship:(relationship,pedType,other,on)=>{pedestrians?.setPedTypeRelationship(relationship,pedType,other,on);},
                  pedTypeRelationshipSet:(relationship,pedType,other)=>!!pedestrians?.pedTypeRelationshipSet(relationship,pedType,other),
-                 maxGroupMembers:()=>maxGroupMembers(),
+                 maxGroupMembers:playerMaxGroupMembers,
                  pedWeaponInSlot:(ped,slot)=>{
                   const inv=weapons.inventory,model=(type:number)=>inv.info(type)?.models[0]??-1;
                   if(ped===undefined){
@@ -7548,7 +7550,7 @@ async function boot() {
                 releaseCarsInAttackWave:()=>{},tellGangMembersTo:w=>pedestrians?.tellGangMembersTo(w),clearTheStreets:()=>{if(pedestrians)pedestrians.clearStreets=true;},
                 message:t=>hud.message(t,4500),help:t=>hud.help(t),// CStats::IncrementStat(STAT_RESPECT, 45) on a win and DecrementStat(30) on a defensive loss: the stat itself, on its
                 // total-respect scale; the recruit counter (FindMaxNumberOfGroupMembers reads that scale over ten) follows.
-                respect:d=>{const s=mission?.runtime.game.stats;if(s){if(d>0)s.increment(68,d);else s.decrement(68,-d);}addRespect(d/10);},blip:b=>{gangWarBlip=b;},zoneColours:()=>{},streamGangs:()=>{},random:Math.random});
+                respect:d=>{const s=mission?.runtime.game.stats;if(s){if(d>0)s.increment(68,d);else s.decrement(68,-d);}},blip:b=>{gangWarBlip=b;},zoneColours:()=>{},streamGangs:()=>{},random:Math.random});
                gangWars.updateTerritoryUnderControlPercentage();
               }}
             if(data.type==='terrain'&&data.followId===-1&&savedTransfer&&!flightTransfer){

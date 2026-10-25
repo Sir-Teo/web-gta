@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, visibleSpawnAllowed, gangPartySize, gangFormationOffset, gangPartyArmed, separationPush, SEPARATION_RADIUS, GANG_RIVALS, TURF_KILL_THREATS_CHANCE, gangPedType, managePed } from '../src/simulation/nativePopulation';
+import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, visibleSpawnAllowed, gangPartySize, gangFormationOffset, gangPartyArmed, separationPush, SEPARATION_RADIUS, TURF_KILL_THREATS_CHANCE, gangPedType, managePed } from '../src/simulation/nativePopulation';
 
 test('creation bands match re3 MIN 40 RANGE 10 OFFSCREEN 0.5', () => {
   expect(onscreenSpawnBand(1)).toEqual({ min: 42.5, max: 50.5 });
@@ -34,7 +34,6 @@ test('gang formation spreads members 0.75 units apart per index', () => {
 });
 
 test('rivals jump the player only through the hate their ped type holds for him', () => {
-  expect([...GANG_RIVALS].sort()).toEqual([0, 2]);
   expect(TURF_KILL_THREATS_CHANCE).toBeCloseTo(2 / 7);
   expect(gangPedType(0)).toBe(7);
 });
@@ -60,17 +59,6 @@ test('ManagePed keeps onscreen peds and expires the grace', () => {
   expect(managePed({ distance2D: 60, pcdm: 1, onScreen: true, farAwayCull: false, graceExpires: 0, now: 99999, sniperMode: false, lookingAside: false })).toBe('fade');
   expect(managePed({ distance2D: 60, pcdm: 1, onScreen: false, farAwayCull: false, graceExpires: 0, now: 99999, sniperMode: false, lookingAside: false })).toBe('remove');
   expect(managePed({ distance2D: 40, pcdm: 1, onScreen: false, farAwayCull: false, graceExpires: 99999, now: 0, sniperMode: false, lookingAside: false })).toBe('keep');
-});
-
-test('respect moves within 0 to 100 from 40',async()=>{
-  const pop=await import('../src/simulation/nativePopulation');
-  expect(pop.gangRespect()).toBe(40);
-  pop.addRespect(-30);
-  expect(pop.gangRespect()).toBe(10);
-  pop.addRespect(200);
-  expect(pop.gangRespect()).toBe(100);
-  pop.addRespect(-60);
-  expect(pop.gangRespect()).toBe(40);
 });
 
 test('the acquaintance scanner scans every 500 ms and 3 s after an event, the first within 3 s',async()=>{
