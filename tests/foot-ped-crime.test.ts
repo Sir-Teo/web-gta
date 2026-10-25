@@ -1,6 +1,7 @@
 import {expect,test,vi} from 'vitest';
 import {WeaponSystem} from '../src/weapons/WeaponSystem';
 import {WantedSystem,CRIME} from '../src/simulation/WantedSystem';
+import {WorldPedestrians} from '../src/simulation/WorldPedestrians';
 
 function fixture(pedType='COP',officer=false){
  const crowd={damageCollider:vi.fn(()=>({id:8,officer,pedType})),targets:()=>[],frighten(){}},weapons=new WeaponSystem({} as any,()=>crowd,()=>undefined),crime=vi.fn();weapons.onCrime=crime;
@@ -25,4 +26,11 @@ test.each(['COP','GANG1','CIVMALE'])('remote and NPC sources do not report playe
 test('the vehicle creator rule reaches CWanted once, retaining the on-foot ped identity for deduplication',()=>{
  const f=fixture(),law=new WantedSystem();f.weapons.onCrime=(type,victim,queued,dontCare)=>{if(queued)law.registerCrime(type,victim!,dontCare);else law.crime(type,victim,dontCare);};
  f.hit('vehicle');expect(law.native.snapshot().queued).toBe(1);f.hit('vehicle');expect(law.native.snapshot().queued).toBe(1);
+});
+test.each(['fire','npc bullet'])('%s deaths retain the script type and gang in the real damage adapter',kind=>{
+ const p={id:8,health:1,pedType:'COP',officer:true,scriptPedType:8,collider:{handle:12,setShape:vi.fn()},view:{playReaction:vi.fn()},actor:{player:{position:{x:0,y:0,z:0}}}} as any,onKill=vi.fn();
+ const host={people:[p],onKill,hitPiece:()=>3,applyReaction:vi.fn(),damageReaction:()=>({})} as any;
+ if(kind==='fire')(WorldPedestrians.prototype as any).burn.call(host,p,10,false);
+ else WorldPedestrians.prototype.bulletHit.call(host,12,10,22,{x:0,z:1},{x:0,y:1,z:0} as any);
+ expect(p.health).toBe(0);expect(onKill).toHaveBeenCalledExactlyOnceWith({id:8,pedType:'GANG2',officer:false,gang:1,recruit:false,byPlayer:false});
 });

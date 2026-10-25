@@ -17,6 +17,11 @@ export const nativePedType=(name:string|undefined)=>name===undefined?undefined:B
 /** The type supplied by CREATE_CHAR takes precedence over the model's peds.ide type. */
 export interface Acquainted {pedType?:string;scriptPedType?:number;acquaintance?:NativeAcquaintance}
 export const pedTypeName=(p:Acquainted)=>p.scriptPedType!==undefined?NATIVE_PED_TYPES[p.scriptPedType]??p.pedType:p.pedType;
+/** CPed::IsCop / IsGangster and CDarkel's victim classification follow m_nPedType, independently of model/AI flags. */
+export function pedTypeInfo(p:Acquainted&{officer?:boolean;gang?:number}){
+ const pedType=pedTypeName(p),type=nativePedType(pedType);
+ return {pedType,officer:pedType===undefined?!!p.officer:type===6,gang:pedType===undefined?p.gang:type!==undefined&&type>=7&&type<=16?type-7:undefined};
+}
 /** CPedType::PoliceDontCareAboutCrimesAgainstPedType (PC 0x608A40). */
 export function policeDontCareAboutPedType(name:string|undefined){const type=nativePedType(name);return type!==undefined&&(type>=7&&type<=16||type===17||type===20);}
 export class NativeAcquaintance{

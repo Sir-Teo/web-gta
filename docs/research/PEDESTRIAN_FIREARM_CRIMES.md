@@ -96,3 +96,40 @@ a measured clear line. Each mounted hit queues one correctly classified victim
 event and preserves pedstats damage scaling. A later fatal accepted hit emits
 one kill callback with the actual type/cop classification. Existing seated,
 player-mounted and recruit damage-scaling regressions also pass.
+
+## Native victim types across on-foot deaths
+
+CPed::IsCop and IsGangster inspect m_nPedType, independently of the character's
+model. CDarkel::RegisterKillNotByPlayer (0x43D210) and RegisterKillByPlayer also
+use that type for friendly/enemy gang counters and respect. Sources at the
+same pinned revision:
+[Ped.h](https://github.com/gta-reversed/gta-reversed/blob/4281f82d8af83e14935ac84a69dfd1ceebb9f256/source/game_sa/Entity/Ped/Ped.h),
+[Darkel.cpp](https://github.com/gta-reversed/gta-reversed/blob/4281f82d8af83e14935ac84a69dfd1ceebb9f256/source/game_sa/Darkel.cpp).
+
+The shared pedTypeInfo lookup now supplies all nine WorldPedestrians kill
+callbacks: accepted direct damage, scripted/NPC drive-by bullets, scripted die
+tasks, NPC melee, vehicle strikes, player unarmed strikes, fire, NPC foot guns
+and stealth kills. GANG1–10 map to gang indices 0–9; GANG2 is the Families.
+CREATE_CHAR's type overrides peds.ide, while legacy records without a type
+retain their role-flag fallback. Cop classification in targeting metadata,
+gun-aim threats, unarmed/car crime reports and evasive-dive reports uses the
+same lookup.
+
+Death cash passes the resolved type to the existing CreateDeadPedMoney adapter
+(PC 0x4590F0). A COP, MEDIC or FIREMAN using a civilian model drops no cash;
+a CIVMALE using a police model can drop its script-assigned money. Mission
+ownership and script-money gates remain in that adapter. Its death scheduling
+and pickup timeout still have the source limitations documented in MoneyDrops.ts.
+
+These changes classify victims and reports. Actor-role flags and their AI
+tasks still need separate native verification, and this does not establish
+complete kill/respect, damage-calculator or task parity.
+
+The live regression creates eight model/type combinations and kills them
+through accepted direct damage, fire damage and the NPC bullet adapter. It
+checks the emitted kill, the actual player/other/friendly/enemy stat deltas,
+cop gun-aim reports and the later death-cash callback. Pure cases cover all
+ten gang slots and legacy fallbacks; direct burn and NPC-bullet units verify
+that their callbacks use the same classifier. The existing gunshot-sense
+fixture now moves CJ with its test muzzle: native range is measured from the
+firing entity's position.

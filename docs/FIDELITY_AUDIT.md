@@ -24,6 +24,18 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 | Complete content | Vehicle/weapon/archive counts do not establish playable coverage. | Versioned inventory of campaign, side activities, interiors, UI, customization and special vehicle systems, each with end-to-end evidence. |
 | Runtime reliability | Passing units coexist with browser failures. | Reproductions resolved and regression-tested; sustained traversal, cold launch and resource-lifetime checks. |
 
+## On-foot victim type propagation (October 25, 2026)
+
+- All nine WorldPedestrians kill callbacks, death-cash gates and selected cop
+  crime/targeting predicates now resolve CREATE_CHAR's native ped type before
+  the model type. A script cop in a civilian model and a civilian in a police
+  model no longer inherit the wrong victim classification. Native gang indices
+  also reach the kill counters. [Source, checks and limits](research/PEDESTRIAN_FIREARM_CRIMES.md#native-victim-types-across-on-foot-deaths).
+- Eight live model/type cases verify emitted kills, actual kill-stat deltas,
+  cop gun-aim reports and cash callbacks. Existing firearm, damage-scaling and
+  scripted corpse regressions pass. Actor-role/task behavior and complete
+  kill/respect parity remain open.
+
 ## Scripted rear car passengers (October 25, 2026)
 
 - Rear script riders now render and enter seated-head bullet checks at the same
