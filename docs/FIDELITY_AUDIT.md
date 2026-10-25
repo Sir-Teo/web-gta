@@ -13624,13 +13624,3 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   the quaternion and mounting transform. Hand tasks/handlebar placement, native
   suspension and retail PC comparison remain open.
   [Source and verification scope](research/BIKE_STEERING.md).
-
-## Player passenger script coordinates (October 25, 2026)
-
-- Passenger position and heading queries now use CJ's transformed native seat,
-  including van rear-seat facing and a bike's lean matrix. The former center-based
-  query differed from the Cargobob seat by 3.35 units.
-- Live checks compare script results to the rendered root across car, van, bike,
-  quad and aircraft seats; recorded aircraft checks cover moving/rotating seats.
-  Driver/boat/train queries and special combine matrices remain outside this slice.
-  [Source and verification scope](research/PLAYER_PASSENGER_COORDINATES.md).

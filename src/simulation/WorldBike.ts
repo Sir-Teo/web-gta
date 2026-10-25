@@ -836,9 +836,8 @@ export class WorldBike {
   if(this.tailLamp){this.tailLamp.visible=lit;this.tailLamp.scale.setScalar(this.brake?0.45:0.3);}
   // CalculateLeanMatrix: GetMatrix() × RotateY(lean) × RotateX(−0.05·|lean|), so the nose dips a twentieth of the
   // lean before the roll about the forward axis, then the wheels drop (1-cos) × bbox min.
-  const up=new Vector3(0,1,0).applyQuaternion(this.root.quaternion);
   this.root.quaternion.multiply(new Quaternion().setFromAxisAngle(new Vector3(0,0,1),-this.lean)).multiply(new Quaternion().setFromAxisAngle(new Vector3(1,0,0),-.05*Math.abs(this.lean)));
-  this.root.position.addScaledVector(up,bikeLeanDrop(this.lean,this.assets.collision!.bounds.min[2]));
+  this.root.position.y+=bikeLeanDrop(this.lean,this.assets.collision!.bounds.min[2]);
   // interpolateVehiclePose owns the root matrix; the lean is added after it, so recompose.
   composeVehicleRoot(this.root);
  }

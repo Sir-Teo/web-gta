@@ -164,7 +164,6 @@ import {BoatWakes} from './render/BoatWakes';
 import {CarEntry,nativeRideAnims,nativeSteerOverlay} from './simulation/CarEntry';
 import {BikeMount,bikeTooFastToBoard} from './simulation/BikeMount';
 import {MODEL_FLAG,sitClip} from './simulation/nativeDoor';
-import {nativeSeatedPedPose} from './simulation/nativeSeatedPedPose';
 import {WorldPickups} from './simulation/WorldPickups';
 import {updatePlayerSwim} from './simulation/playerSwim';
 import {vehicleDestroyed} from './simulation/vehicleDestroyed';
@@ -482,11 +481,6 @@ async function boot() {
   const playerAircraft=()=>fleet?.occupiedPlane??(playerPassenger?.car instanceof WorldPlane?playerPassenger.car:undefined);
   const passengerSeatLocal=(car:PassengerVehicle,seat:1|2|3)=>isScriptCar(car)?carEntry.passengerSeat(car,seat):isScriptBike(car)?car.backSeat()
    :nativeSeatPosition({front:modelDummy(car.assets.model.frames,'ped_frontseat'),back:modelDummy(car.assets.model.frames,'ped_backseat')},seat-1);
-  const playerPassengerPose=()=>{
-   const ride=playerPassenger;if(!ride||ride.car.disposed)return undefined;
-   const car=ride.car,frame=isScriptCar(car)?carEntry.passengerFrame(car,ride.seat):undefined,local=frame?.local??passengerSeatLocal(car,ride.seat);if(!local)return undefined;
-   return nativeSeatedPedPose(car.car.body.translation(),car.car.body.rotation(),local,{headingOffset:frame?.headingOffset,...(isScriptBike(car)?{bikeLean:car.lean,boundsMinZ:car.assets.collision.bounds.min[2]}:{})});
-  };
   const warpPlayerPassenger=(car:unknown,seat:number)=>{
    if(!(isScriptCar(car)||isScriptBike(car)||car instanceof WorldPlane)||car.disposed)return false;
    if(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger)return false;
@@ -1450,7 +1444,7 @@ async function boot() {
   weapons.onStealth=seconds=>render.nativeCharacter?.playReaction('kill_knife_player',seconds,true);
   law.onArrest=()=>{arrested=true;input.clear();};
   /** Native axes: x east, y north, z up. */
-  const nativePlayerPosition=():[number,number,number]=>{const p=playerPassengerPose()?.position??sim.player.position;return [p.x,-p.z,p.y];};
+  const nativePlayerPosition=():[number,number,number]=>[sim.player.position.x,-sim.player.position.z,sim.player.position.y];
   const nativeLevelAt=(p:readonly [number,number,number])=>worldZones?worldLevelAt(worldZones,[p[0],p[1],p[2]]):LEVEL_COUNTRYSIDE;
   /** CPopulation::CreateWaitingCoppers: NUM_CARS_FOR_WANTED_LEVEL empty cop cars (STATUS_ABANDONED) on the nearest
    * three road nodes within 30 units, facing the door, then NUM_COPS_FOR_WANTED_LEVEL cops 8-10 units out along the
@@ -6969,20 +6963,20 @@ async function boot() {
                  playerPed:()=>{
                   const car=worldCar?.occupied?worldCar:fleet?.occupied??playerPassenger?.car;
                   const vehicle=car??fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;
-                  const passengerPose=playerPassengerPose(),origin=passengerPose?.position??sim.player.position;
                   const speed=vehicle?Math.hypot(sim.player.position.x-sim.player.previous.x,sim.player.position.z-sim.player.previous.z)*60:sim.player.speed;
                   // CVehicle::GetVehicleAppearance follows handling flags, including the helicopter/plane distinction.
                   const appearance=vehicle?nativeVehicleAppearance(vehicle.modelFlags):0;
                   return {
-                   // CPed::SetPedPositionInCar makes a passenger's native seat point his origin. The simulation
-                   // retains the vehicle center for physics/camera focus; on foot the origin is a unit above the feet.
-                   position:{x:origin.x,y:-origin.z,z:origin.y+(vehicle?0:PED_ORIGIN_HEIGHT)},
+                   // CPed::GetPosition is the ped's origin, its collision's centre a unit above the feet
+                   // (GetDistanceFromCentreOfMassToBaseOfModel); in a vehicle it is the vehicle's, which the player's
+                   // position already follows.
+                   position:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y+(vehicle?0:PED_ORIGIN_HEIGHT)},
                    vehicle:vehicle?{appearance,train:false,model:vehicle.modelId,passenger:!!playerPassenger&&car===playerPassenger.car,passengerSeat:playerPassenger?playerPassenger.seat-1:undefined,inAirProper:()=>!(isScriptCar(car)?car.audio.contactWheels>0:'airborne' in vehicle&&!(vehicle as {airborne:boolean}).airborne)&&!touchesBuildingOrVehicle(car?car.car.body:(vehicle as {body:import('@dimforge/rapier3d-compat').RigidBody}).body)}:undefined,
                    stopped:speed<0.01&&(!!vehicle||sim.player.grounded),
                    // m_vecMoveSpeed's magnitude in units a second: the car's in one, his own (with the fall) on foot.
                    moveSpeed:vehicle?speed:Math.hypot(sim.player.speed,sim.player.verticalSpeed),groundSpeed:vehicle?speed:sim.player.speed,
                    health:sim.player.health,dead:sim.player.health<=0,
-                   heading:passengerPose?.heading??((((sim.player.heading-Math.PI)*180/Math.PI)%360)+360)%360,
+                   heading:((((sim.player.heading-Math.PI)*180/Math.PI)%360)+360)%360,
                    areaCode:render.lighting.area,
                    // The inventory holds one of each weapon the player has picked up, and the catalog says
                    // which of them are melee. A weapon with no ammo counts while he holds it if it is used without
