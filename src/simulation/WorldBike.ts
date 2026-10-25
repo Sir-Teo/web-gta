@@ -13,7 +13,7 @@ import {bindBikeWheelRoll} from '../render/bikeWheelRoll';
 import {bindBikeSteering} from '../render/bikeSteering';
 import {bindBicyclePedals} from '../render/bicyclePedals';
 import {stepBicycleCrank} from './bicycleCrank';
-import {stepBicycleHopPose,type BicycleHopPose} from './bicycleHopPose';
+import {stepNativeBicycleHop,type BicycleHopState} from './nativeBicycleHop';
 import {stepBikeWheelRoll,type BikeWheelRoll} from './bikeWheelRoll';
 import {stepWheelAnimation} from './nativeWheelAnimation';
 import {bindNativeCarLod} from '../render/nativeCarLod';
@@ -52,11 +52,6 @@ const WHEELBASE=1.4;
 const COAST_DECEL=3;
 /** The CBmx models (vehicles.ide class bmx): the BMX, Chopper and Mountain Bike. */
 const BMX_MODELS:ReadonlySet<number>=new Set([481,509,510]);
-/** The rest of BIKE_BUNNYHOP after the charged pose, played at 1.5 speed until LaunchBunnyHopCB. The clip is not
- * published with the world, so its length is authored. */
-const HOP_RELEASE_SECONDS=.3;
-/** LaunchBunnyHopCB's g_hopCooldown (iOS only, 0x10045a3f0 = 0.5 s). */
-const HOP_COOLDOWN_SECONDS=.5;
 /** CBmx::ProcessAI's airborne spin: 0x10058fd38 = 0.002 rad a step per step at full stick, to 0.04 rad a step. */
 const BMX_AIR_SPIN_RATE=.002,BMX_AIR_SPIN_CAP=.04;
 /** CBike::ProcessControl on the side stand (iOS 0x100451f48 at rest, 0x1004537e4 under physics): the drawn lean eases to
@@ -195,7 +190,7 @@ export class WorldBike {
  rawSteer=0;gasPedal=0;
  /** CBmx::m_fControlJump (0 to 25 steps of charge) and the time left before the hop launches. */
  controlJump=0;hopLaunch?:number;pillion?:{modelRef:number|string};
- private hopPose?:BicycleHopPose;
+ private hopState?:BicycleHopState;
  /** The hop button's state last frame: CBmx::ProcessBunnyHop starts a charge on a press (IsLeftShoulder1Pressed), not on a hold. */
  private hopHeld=false;
  /** Engine speed for audio (pedal cadence on bicycles, rpm on motorbikes). */
@@ -375,7 +370,7 @@ export class WorldBike {
   this.previousSteer=this.steer;
   this.previousCrankAngle=this.crankAngle;
   // A departed driver's association belongs to that ped, never the next rider of this vehicle.
-  if(!this.occupied){this.hopPose=undefined;this.controlJump=0;this.hopLaunch=undefined;}
+  if(!this.occupied){this.hopState=undefined;this.controlJump=0;this.hopLaunch=undefined;}
   if(this.wheelRoll)this.previousWheelAngles=this.wheelPoses.map(p=>p.rotation);
   this.clumpAlpha.step(dt);
   // ProcessDelayedExplosion, which CBike::ProcessControl runs too, whether or not the body is in the world: a blast's
@@ -404,7 +399,6 @@ export class WorldBike {
   this.rawSteer=rawSteerTowards(this.rawSteer,input.steer,dt);this.steer=this.quad?steerFraction(this.rawSteer):bikeSteerFraction(this.rawSteer);
   if(this.wrecked){this.throttle=0;}
   this.bunnyHop(dt,!!input.hop,input.disabled);
-  if(BMX_MODELS.has(this.modelId))this.hopPose=stepBicycleHopPose(this.hopPose,{charge:this.controlJump,launchRemaining:this.hopLaunch,duration:WorldBike.hopClipSeconds?.(this.modelId),ridden:this.occupied&&!input.disabled},dt);
   if(this.onFire){this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();}else this.burnTimer=0;
   const h=this.assets.handling.values,q=this.body.rotation(),v=this.body.linvel();
   // CAutomobile::ProcessControl for the quad and CBike::ProcessControlInputs for the rest: the player's bike with the
@@ -509,30 +503,20 @@ export class WorldBike {
  /** Metadata for the same loaded IFP association the rider renderer samples. */
  static riderClipSeconds?:(block:string,clip:string)=>number|undefined;
  /** CBmx::ProcessBunnyHop. Under DisablePlayerControls the press is refused and the charge dropped. */
- /** iOS g_hopCooldown (0x100aacc58), seconds: LaunchBunnyHopCB sets it to 0.5, and each CBmx's ProcessControl takes
-  * its frame off it (one counter for every BMX); while it runs ProcessBunnyHop is not called at all. */
- static hopCooldown=0;
  private bunnyHop(dt:number,held:boolean,disabled=false){
-  if(BMX_MODELS.has(this.modelId))WorldBike.hopCooldown=Math.max(0,Math.min(HOP_COOLDOWN_SECONDS,WorldBike.hopCooldown-dt));
-  if(WorldBike.hopCooldown>0&&this.hopLaunch===undefined){this.hopHeld=held;return;}
   const pressed=held&&!this.hopHeld;this.hopHeld=held;
-  if(disabled&&this.hopLaunch===undefined)this.controlJump=0;
-  if(!BMX_MODELS.has(this.modelId)||!this.occupied){this.controlJump=0;this.hopLaunch=undefined;return;}
-  if(this.hopLaunch!==undefined){
-   this.hopLaunch-=dt;
-   if(this.hopLaunch<=0){
-    // CBmx::LaunchBunnyHopCB: the Huge Bunny Hop cheat multiplies the hop's power by 5.
-    const power=(Math.min(this.controlJump/25,1)+1)*(CHEATS.isActive('hugeBunnyHop')?5:1);this.controlJump=0;this.hopLaunch=undefined;
-    // A front wheel and a rear wheel must both be touching (m_WheelCounts); GetFatAndMuscleModifier(STAT_MOD_6) is a
-    // retail stub, taken as 1.
-    if(this.wheelsDown(.5)&&this.wheelsDown(-.5)){const up=rotate(this.body.rotation(),{x:0,y:1,z:0}),v=this.body.linvel(),dv=.06*power*50;this.body.setLinvel({x:v.x+up.x*dv,y:v.y+up.y*dv,z:v.z+up.z*dv},true);}
-    WorldBike.hopCooldown=HOP_COOLDOWN_SECONDS;
-   }
-  }else if(held&&(this.controlJump>0||pressed&&!disabled))this.controlJump=Math.min(25,this.controlJump+dt*50);
-  // On release the bunny-hop clip jumps to (0.2 − t)/0.2 × (T − 0.2) + 0.2, t being the charge's 0..0.2 hold time, and
-  // plays out at speed 1.5, so the launch comes (T − 0.2) × charge/25 / 1.5 later: a tap hops at once.
-  else if(this.controlJump>0){const clip=WorldBike.hopClipSeconds?.(this.modelId);this.hopLaunch=clip!==undefined?Math.max(0,clip-.2)*(this.controlJump/25)/1.5:HOP_RELEASE_SECONDS;}
-  if(this.controlJump>0)this.throttle=0;
+  if(!BMX_MODELS.has(this.modelId)){this.hopState=undefined;this.controlJump=0;this.hopLaunch=undefined;return;}
+  const result=stepNativeBicycleHop(this.hopState??{charge:0},{pressed,held,disabled,ridden:this.occupied,duration:WorldBike.hopClipSeconds?.(this.modelId)},dt);
+  this.hopState=result.state;this.controlJump=result.state.charge;
+  const animation=result.state.animation;
+  this.hopLaunch=animation?.released&&animation.seconds<animation.duration?(animation.duration-animation.seconds)/1.5:undefined;
+  if(result.launchCharge!==undefined)this.launchBunnyHop(result.launchCharge);
+  if(result.cutGas)this.throttle=0;
+ }
+ private launchBunnyHop(charge:number){
+  // CBmx::LaunchBunnyHopCB: both axles must touch. STAT_MOD_6 is a retail stub; the cheat multiplies power by five.
+  const power=(Math.min(charge/25,1)+1)*(CHEATS.isActive('hugeBunnyHop')?5:1);
+  if(this.wheelsDown(.5)&&this.wheelsDown(-.5)){const up=rotate(this.body.rotation(),{x:0,y:1,z:0}),v=this.body.linvel(),dv=.06*power*50;this.body.setLinvel({x:v.x+up.x*dv,y:v.y+up.y*dv,z:v.z+up.z*dv},true);}
  }
  /** CColStore::HasCollisionLoaded for the bike's spot: a vehicle out where the world's collision has not streamed in
   * waits for it (bIsStaticWaitingForCollision) rather than falling through the map. Asked twice a second, as fixed
@@ -651,7 +635,7 @@ export class WorldBike {
     this.advanceWheelRoll(dt);
     if(this.pedals&&(this.occupied||WorldBike.hasDriverPed?.(this))){
      const pose=this.riderPose(),duration=pose.idle.endsWith('_pedal')?WorldBike.riderClipSeconds?.(pose.block,pose.idle):undefined;
-     this.crankAngle=stepBicycleCrank(this.crankAngle,dt*50,duration&&duration>0?{seconds:pose.time,duration}:undefined,this.hopPose?.amount);
+     this.crankAngle=stepBicycleCrank(this.crankAngle,dt*50,duration&&duration>0?{seconds:pose.time,duration}:undefined,this.hopState?.animation?.amount);
     }
    }
   }
@@ -870,7 +854,8 @@ export class WorldBike {
   // aQuadAnimations maps both BIKE_RIDE and BIKE_STILL to QUAD_ride; quad.ifp has no QUAD_still.
   const idle=this.quad?`${clipPrefix}_ride`:speed>.5?(bicycle?`${clipPrefix}_pedal`:`${clipPrefix}_ride`):`${clipPrefix}_still`;
   const lean=this.quad?this.riderLean:this.lean,amount=bikeRiderLean(lean,this.assets.bike.fullAnimLean),right=this.quad?lean>0:this.steer>0;
-  return {block:prefix,seat:this.seat(),time:this.rideTime,idle:prefix?idle.toLowerCase():idle,passenger:`${clipPrefix}_${bicycle?'ride':'passenger'}`.toLowerCase(),overlay:amount>.05?{clip:`${clipPrefix}_${right?'right':'left'}`.toLowerCase(),amount}:undefined,hop:bicycle&&this.hopPose?{clip:`${clipPrefix}_bunnyhop`,seconds:this.hopPose.seconds,amount:this.hopPose.amount}:undefined};
+  const hop=this.hopState?.animation;
+  return {block:prefix,seat:this.seat(),time:this.rideTime,idle:prefix?idle.toLowerCase():idle,passenger:`${clipPrefix}_${bicycle?'ride':'passenger'}`.toLowerCase(),overlay:amount>.05?{clip:`${clipPrefix}_${right?'right':'left'}`.toLowerCase(),amount}:undefined,hop:bicycle&&hop?{clip:`${clipPrefix}_bunnyhop`,seconds:hop.seconds,amount:hop.amount}:undefined};
  }
  /** SetupLightingForEntity's multiplier, GetLightingFromCol(true) × 0.95 + 0.05: the object ambient's mean with a
   * contact brightness of 0.5 stands in (this vehicle keeps no contact lighting). */

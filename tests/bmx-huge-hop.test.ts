@@ -10,7 +10,7 @@ const hop=()=>{
   let v={x:0,y:0,z:0};
   const bike=Object.assign(Object.create(WorldBike.prototype),{modelId:481,occupied:true,controlJump:25,hopLaunch:.001,wheelsDown:()=>true,
     body:{rotation:()=>({x:0,y:0,z:0,w:1}),linvel:()=>v,setLinvel:(n:any)=>{v=n;}}});
-  (WorldBike.prototype as any).bunnyHop.call(bike,.01,false);
+  (WorldBike.prototype as any).launchBunnyHop.call(bike,25);
   return v.y;
 };
 test('the Huge Bunny Hop cheat makes the hop five times as strong',()=>{

@@ -13655,6 +13655,17 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - PC ProcessBunnyHop establishes the timing and rates. The pinned executable
   supplies the missing descriptor entries, including finish-auto-remove.
   Units, all three original bicycle models and the live touch button validate
-  charge, release, freeze, jump, fade and remount. Existing launch dynamics and
-  the iOS-derived cooldown remain outside this rendering change.
+  charge, release, freeze, jump, fade and remount. The later PC control slice
+  below replaces the older iOS-derived cooldown and release countdown.
   [Source, descriptor capture and scope](research/BICYCLE_HOP_POSES.md).
+
+## PC bicycle hop association lifecycle (October 25, 2026)
+
+- PC ProcessBunnyHop now owns charge, held clip time, release playback,
+  blend-gated gas cutoff, the physical finish callback and charge reset after
+  association removal. The global iOS half-second cooldown and authored
+  missing-clip delay are removed. Each bicycle progresses independently.
+- Focused state/integration units and seven live bicycle/touch checks pass.
+  Launch turn force, original suspension/contact dynamics, native task cleanup
+  and matched retail PC traces remain open.
+  [Exact lifecycle, source and limits](research/BICYCLE_HOP_POSES.md).

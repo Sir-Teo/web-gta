@@ -23,13 +23,13 @@ test('all three native bicycles articulate their cranks with the rider and keep 
     bike.occupied=false;for(let i=0;i<5;i++)tick();const abandoned=matrices();
     // Script drivers use the same association phase even with CJ outside the bike.
     WorldBike.hasDriverPed=(b:any)=>b===bike;for(let i=0;i<5;i++)tick(1);const scripted=matrices();WorldBike.hasDriverPed=undefined;
-    bike.occupied=true;WorldBike.hopCooldown=0;
+    bike.occupied=true;
     for(let i=0;i<30;i++)tick(0,true);const charged=bike.riderPose().hop,chargedCrank=[...frames[0].matrix.elements];
     const jumpClip=charged&&clips.peek(assets.vehicle.animation,charged.clip),jumpDuration=jumpClip?.duration;
     bike.frozen=true;tick(0,true);const frozenHop=bike.riderPose().hop;bike.frozen=false;
     tick();const released=bike.riderPose().hop,releaseRemaining=bike.hopLaunch;let jumpVy=0;
     for(let i=0;i<90;i++){tick();jumpVy=Math.max(jumpVy,bike.body.linvel().y);}const cleared=bike.riderPose().hop===undefined;
-    WorldBike.hopCooldown=0;for(let i=0;i<10;i++)tick(0,true);bike.occupied=false;tick();bike.occupied=true;tick();const remounted=bike.riderPose().hop===undefined;
+    for(let i=0;i<10;i++)tick(0,true);bike.occupied=false;tick();bike.occupied=true;tick();const remounted=bike.riderPose().hop===undefined;
     out.push({id,before,moving,angle,duration,level,last,noExtraStep,half,repeated,frozenStart,frozenEnd,abandoned,scripted,charged,chargedCrank,frozenHop,released,releaseRemaining,jumpDuration,jumpVy,cleared,remounted,source:indices.map((i:number)=>assets.model.frames[i].matrix.slice(12,15))});
    }finally{bike.dispose();sim.dispose();}
   }
