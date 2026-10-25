@@ -1,4 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-compat';
+import {nativeCarSeatPose} from '../vehicle/nativeSeatPosition';
 import {NativeDrivingAnims} from './nativeDrivingAnims';
 import {Vector3} from 'three';
 import type {NativeAnimation} from '../assets/ifp';
@@ -152,15 +153,16 @@ export class CarEntry {
    const frame=car.car.nativeFramePosition('ped_backseat');if(!frame)return undefined;
    return {x:seat===2?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z};
   }
+  passengerFrame(car:WorldCar,seat:1|2|3){const local=this.passengerSeat(car,seat);return local&&nativeCarSeatPose(local,seat-1,car.animGroup.id);}
   /** Riding crew poses for the occupant renderer. */
   passengerPoses(driveByPose?:(d:import('./scriptDriveBy').ScriptDriveBy)=>Partial<import('../render/VehicleOccupants').OccupantPose>|undefined):import('../render/VehicleOccupants').OccupantPose[]{
    const car=this.car;if(!car||!this.seated&&this.phase!=='waitSlow')return [];
    const out:import('../render/VehicleOccupants').OccupantPose[]=[];
    for(const p of this.passengers){
-    const local=this.passengerSeat(car,p.seat);if(!local)continue;
+    const frame=this.passengerFrame(car,p.seat);if(!frame)continue;
     // A rider on the group's drive-by leans out with its clip and gun.
     const leaning=!p.diedInSeat&&p.driveBy?driveByPose?.(p.driveBy):undefined;
-    out.push({key:`passenger:${car.car.body.handle}:${p.seat}`,car,model:p.modelRef,local,clip:p.diedInSeat?'car_dead_rhs':sitClip(car.modelFlags,false),seconds:p.diedInSeat?1e6:0,...leaning});
+    out.push({key:`passenger:${car.car.body.handle}:${p.seat}`,car,model:p.modelRef,...frame,clip:p.diedInSeat?'car_dead_rhs':sitClip(car.modelFlags,false),seconds:p.diedInSeat?1e6:0,...leaning});
    }
    return out;
   }
@@ -170,7 +172,7 @@ export class CarEntry {
   ridingFollowers(){return this.passengers.filter(rider=>rider.follow&&!rider.diedInSeat).length+this.leaving.filter(l=>l.rider.follow&&!l.rider.diedInSeat).length;}
   leavingPoses():import('../render/VehicleOccupants').OccupantPose[]{
    const out:import('../render/VehicleOccupants').OccupantPose[]=[];
-   for(const {rider,car} of this.leaving){const local=this.passengerSeat(car,rider.seat);if(local&&!car.disposed)out.push({key:`passenger:${car.car.body.handle}:${rider.seat}`,car,model:rider.modelRef,local,clip:rider.diedInSeat?'car_dead_rhs':sitClip(car.modelFlags,false),seconds:rider.diedInSeat?1e6:0});}
+   for(const {rider,car} of this.leaving){const frame=this.passengerFrame(car,rider.seat);if(frame&&!car.disposed)out.push({key:`passenger:${car.car.body.handle}:${rider.seat}`,car,model:rider.modelRef,...frame,clip:rider.diedInSeat?'car_dead_rhs':sitClip(car.modelFlags,false),seconds:rider.diedInSeat?1e6:0});}
    return out;
   }
   /** Living street recruits, including those still waiting in their seats after the leader stepped out. */
@@ -178,7 +180,7 @@ export class CarEntry {
    const car=this.car,current=car&&(this.seated||this.phase==='waitSlow')?this.passengers.map(rider=>({car,rider})):[];
    return [...current,...this.leaving].flatMap(({car,rider})=>{
     if(car.disposed||car.wrecked||rider.diedInSeat)return [];
-    const local=this.passengerSeat(car,rider.seat);return local?[{car,rider,seat:rider.seat,local}]:[];
+    const frame=this.passengerFrame(car,rider.seat);return frame?[{car,rider,seat:rider.seat,...frame}]:[];
    });
   }
   /** CheckForShootingVehicleOccupant transfers the hit to the recruit's retained pedestrian health. */

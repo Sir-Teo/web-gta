@@ -47,6 +47,16 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
   muzzle ray, wound preservation, both death branches and retained-corpse
   cleanup. Complete native task/event choreography remains unverified.
 
+## Van rear-seat transforms (October 25, 2026)
+
+- CPed::SetPedPositionInCar's animation-group-13 rear-seat offset and inward
+  quarter turns now feed script, player, street-follower and police poses and
+  targets. Head fallbacks rotate with the occupant. Enforcer rear corpses use
+  the native passenger death clip. [Source and checks](research/VAN_PASSENGER_POSES.md).
+- The live Burrito check measures all four script poses, CJ's rear passenger
+  pose and both street followers. Ordinary-car and passenger-combat regressions
+  pass alongside it. Complete native vehicle-task choreography remains unverified.
+
 ## Decisions on the remaining iOS gaps (October 7, 2026)
 
 The gap pass against the iOS build (Google61/gta3sa.app at 67f70cb7) left six questions that the port's budgets, not

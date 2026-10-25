@@ -1,4 +1,5 @@
 import type {SetPieceCar} from './nativeSetPieces';
+import {nativeCarSeatPose} from '../vehicle/nativeSeatPosition';
 import {pedEnteredVehicleLeaveDelay} from './nativePedEnteredVehicle';
 import {DIE_IN_CAR_OFFSET_MS,canPedStepOutCar} from '../vehicle/nativeDieInCar';
 import RAPIER from '@dimforge/rapier3d-compat';
@@ -158,7 +159,7 @@ interface Unit {
  /** The player has climbed into the car: the crew still aboard are getting out, and nobody boards it again. */
  taken?:boolean;
 }
-export interface PolicePose {car:WorldCar;seat:number;model:string;local:V3;clip:string;seconds:number;animation?:NativeAnimation}
+export interface PolicePose {car:WorldCar;seat:number;model:string;local:V3;headingOffset?:number;clip:string;seconds:number;animation?:NativeAnimation}
 /** Law vehicles in pursuit: CCarAI police missions, speeds and switch distances, crew exits and recovery. Spawning comes from the
  * unreversed CCarCtrl::GenerateOneRandomCar. The browser uses car path nodes 60–110 units away,
  * with a strict visibility guard checked again after asset loading. */
@@ -189,13 +190,14 @@ export class WorldPolice {
  onCrewDiesOut?:(car:WorldCar,model:string)=>void;
  /** The seated crew a bullet line can reach (CWorld::ProcessLineOfSight on seated peds): seat locals in car space. */
  crewSeats(){
-  const out:{car:WorldCar;seat:number;local:V3}[]=[];
+  const out:{car:WorldCar;seat:number;local:V3;headingOffset:number}[]=[];
   for(const u of this.units){
    if(u.car.wrecked||u.car.occupied)continue;
    for(let seat=0;seat<4;seat++){
     if(!u.seats[seat]||u.deadSeats[seat]||u.leaving.some(l=>l.seat===seat)||u.entering.some(e=>e.seat===seat))continue;
     const frame=u.car.car.nativeFramePosition(seat<2?'ped_frontseat':'ped_backseat');if(!frame)continue;
-    out.push({car:u.car,seat,local:{x:seat%2===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z}});
+    const pose=nativeCarSeatPose({x:seat%2===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},seat===0?'driver':seat-1,u.car.animGroup.id);
+    out.push({car:u.car,seat,...pose});
    }
   }
   return out;
@@ -832,7 +834,8 @@ export class WorldPolice {
     const frame=u.car.car.nativeFramePosition(seat<2?'ped_frontseat':'ped_backseat');if(!frame)continue;
     // A cop dead in his seat holds CAR_dead_LHS/RHS on its last frame.
     const dead=u.deadSeats[seat];
-    out.push({car:u.car,seat,model:u.member.model,local:{x:seat%2===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},clip:dead?(seat%2===0?'car_dead_lhs':'car_dead_rhs'):sitClip(u.car.modelFlags,seat===0),seconds:dead?1e6:0});
+    const pose=nativeCarSeatPose({x:seat%2===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},seat===0?'driver':seat-1,u.car.animGroup.id);
+    out.push({car:u.car,seat,model:u.member.model,...pose,clip:dead?(seat===0?'car_dead_lhs':'car_dead_rhs'):sitClip(u.car.modelFlags,seat===0),seconds:dead?1e6:0});
    }
   }
   return out;

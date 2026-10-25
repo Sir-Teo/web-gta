@@ -1,5 +1,5 @@
 import {applyScriptVehicleForce,type ScriptVehicleForceBasis} from './nativeScriptVehicleForce';
-import {nativeSeatPosition} from '../vehicle/nativeSeatPosition';
+import {nativeSeatPosition,nativeCarSeatPose} from '../vehicle/nativeSeatPosition';
 import {NativeClumpAlpha} from './nativeClumpAlpha';
 import {createSwingingChassis,type NativeSwingingChassis} from './nativeSwingingChassis';
 import {NativeMovingComponent,movingComponentSpec,movingComponentCollision,movingComponentPivot,stepCementDrum,applyMovingCollisionShapes} from './nativeMovingComponent';
@@ -726,6 +726,8 @@ export class WorldCar {
  seat(side:'left'|'right'){const p=this.car.nativeFramePosition('ped_frontseat');return p?{x:side==='left'?-Math.abs(p.x):Math.abs(p.x),y:p.y,z:p.z}:undefined;}
  /** CPed::GetSeatPositionInVehicle: script passenger indices are zero based, including both rear seats. */
  seatPosition(seat:'driver'|number){return nativeSeatPosition({front:this.car.nativeFramePosition('ped_frontseat'),back:this.car.nativeFramePosition('ped_backseat'),quad:this.assets.vehicle.type==='quad'},seat);}
+ /** The seat dummy plus SetPedPositionInCar's van-specific position and facing. */
+ seatPose(seat:'driver'|number){return nativeCarSeatPose(this.seatPosition(seat),seat,this.animGroup.id);}
  /** World position of a native car-space point. */
  worldPoint(local:{x:number;y:number;z:number}){const p=this.car.body.translation();return this.worldOffset(local).add(new Vector3(p.x,p.y,p.z));}
  /** Native heading of the car: the browser yaw used by the player controller. */

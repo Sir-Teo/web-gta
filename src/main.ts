@@ -133,16 +133,16 @@ function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp'
   // The occupant renderer seats peds in cars; a rider on a script train rides unseen for now.
   if(!isScriptCar(rider.car))continue;
   // Attachments keep their explicit offset; seated riders share GetSeatPositionInVehicle with bullet targeting.
-  const seat=rider.offset??rider.car.seatPosition(rider.seat);
-  if(rider.diedInSeat&&!rider.offset){add({key:`script:${rider.car.car.body.handle}:${rider.seat}`,car:rider.car,model:rider.model,local:seat,clip:rider.seat==='driver'?'car_dead_lhs':'car_dead_rhs',seconds:1e6});continue;}
+  const seatFrame=rider.offset?{local:rider.offset,headingOffset:rider.facing}:rider.car.seatPose(rider.seat);
+  if(rider.diedInSeat&&!rider.offset){add({key:`script:${rider.car.car.body.handle}:${rider.seat}`,car:rider.car,model:rider.model,...seatFrame,clip:rider.seat==='driver'?'car_dead_lhs':'car_dead_rhs',seconds:1e6});continue;}
   // A drive-by rider plays GANG_DRIVEBYLHS/RHS on the window it fires from, the gun in its hand.
   const d=rider.driveBy,clipName=d&&`gang_driveby${d.side==='left'?'lhs':'rhs'}`,clip=clipName?driveBy?.clip(clipName):undefined;
   if(d&&clip&&clip.duration>0&&!rider.offset){
-   add({key:`script:${rider.car.car.body.handle}:${rider.seat}`,car:rider.car,model:rider.model,local:seat,clip:clipName!,seconds:d.seconds%clip.duration,animation:clip,gun:driveBy?.gun?.asset});
+   add({key:`script:${rider.car.car.body.handle}:${rider.seat}`,car:rider.car,model:rider.model,...seatFrame,clip:clipName!,seconds:d.seconds%clip.duration,animation:clip,gun:driveBy?.gun?.asset});
    continue;
   }
   add({key:`script:${rider.car.car.body.handle}:${rider.offset?'on':rider.seat}`,car:rider.car,
-   model:rider.model,local:seat,headingOffset:rider.facing,...(played??{clip:rider.offset?(rider.stand?'idle_stance':'car_sit'):sitClip(rider.car.modelFlags,rider.seat==='driver'),seconds:0})});
+   model:rider.model,...seatFrame,...(played??{clip:rider.offset?(rider.stand?'idle_stance':'car_sit'):sitClip(rider.car.modelFlags,rider.seat==='driver'),seconds:0})});
  }
  return poses;
 }
@@ -4599,10 +4599,11 @@ async function boot() {
       render.cameraFocus={x:x+(t.x-x)*k,y:y+(t.y-y)*k+rise,z:z+(t.z-z)*k};
      }}
     const passengerSeat=playerPassenger&&passengerSeatLocal(playerPassenger.car,playerPassenger.seat),passengerClip=playerPassenger&&sitClip(playerPassenger.car.modelFlags,false);
+    const passengerFrame=playerPassenger&&isScriptCar(playerPassenger.car)?carEntry.passengerFrame(playerPassenger.car,playerPassenger.seat):passengerSeat?{local:passengerSeat}:undefined;
     if(passengerClip){const clip=carEntry.clips.ped(passengerClip);if(clip)render.nativeCharacter?.installVehicleClips({[passengerClip.toLowerCase()]:clip});}
-    if(playerPassenger&&passengerSeat&&passengerClip&&render.nativeCharacter?.hasVehicleClip(passengerClip)){
+    if(playerPassenger&&passengerFrame&&passengerClip&&render.nativeCharacter?.hasVehicleClip(passengerClip)){
       // The passenger sits in his seat (CTaskSimpleCarDrive's sit, not the driver's).
-      render.vehiclePose={frame:{vehicle:playerPassenger.car.car.root,local:passengerSeat},pose:{clip:passengerClip,seconds:0,blend:1}};
+      render.vehiclePose={frame:{vehicle:playerPassenger.car.car.root,...passengerFrame},pose:{clip:passengerClip,seconds:0,blend:1}};
     }else if(climbAnim&&render.nativeCharacter?.hasVehicleClip(climbAnim.clip.toLowerCase())){
       render.vehiclePose={frame:{position:{x:lerp(p.previous.x,p.position.x),y:lerp(p.previous.y,p.position.y)+1,z:lerp(p.previous.z,p.position.z)},heading:p.heading},pose:{clip:climbAnim.clip.toLowerCase(),seconds:climbAnim.time,blend:climbAnim.blend}};
     }else if(swimJumpoutSeconds!==undefined&&sim.player.swimming&&render.nativeCharacter&&(()=>{const clip=carEntry.clips.peek('swim','Swim_Jumpout');if(clip&&!render.nativeCharacter.hasVehicleClip('swim_jumpout'))render.nativeCharacter.installVehicleClips({swim_jumpout:clip});return !!clip&&render.nativeCharacter.hasVehicleClip('climb_jump');})()){
@@ -5652,9 +5653,9 @@ async function boot() {
             // The seated peds a bullet can reach: traffic drivers and police crews (drive-by crews stay with their own module).
             weapons.seatedPeds=()=>{const policeCars=new Set(police?.units.map(u=>u.car));const out:import('./weapons/WeaponSystem').SeatedTarget<import('./weapons/WeaponSystem').SeatedVehicle>[]=[];
              for(const car of fleet?.cars??[]){if(!car.autopilot||car.occupied||car.driverOut||car.wrecked||policeCars.has(car)||driveby?.covers(car)||emergency?.covers(car))continue;const seat=car.seat('left');if(seat)out.push({car,seat:0,local:seat,kind:'traffic',head:occupants.headOf(`driver:${car.car.body.handle}`)});}
-             for(const c of police?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'police',head:occupants.headOf(`police:${c.car.car.body.handle}:${c.seat}`)});
+             for(const c of police?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,headingOffset:c.headingOffset,kind:'police',head:occupants.headOf(`police:${c.car.car.body.handle}:${c.seat}`)});
              for(const c of driveby?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'driveby',head:occupants.headOf(`driveby-${c.seat===0?'driver':'shooter'}:${c.car.car.body.handle}`)});
-             for(const c of carEntry.passengerTargets()){const keep=c.rider.keep as {noCriticalHits?:boolean;neverTargeted?:boolean;canBeShotInVehicle?:boolean}|undefined;out.push({car:c.car,seat:c.seat,local:c.local,kind:'passenger',rider:c.rider,crew:c.rider.follow,noCriticalHits:keep?.noCriticalHits,neverTargeted:keep?.neverTargeted,canBeShot:keep?.canBeShotInVehicle,head:occupants.headOf(`passenger:${c.car.car.body.handle}:${c.seat}`)});}
+             for(const c of carEntry.passengerTargets()){const keep=c.rider.keep as {noCriticalHits?:boolean;neverTargeted?:boolean;canBeShotInVehicle?:boolean}|undefined;out.push({car:c.car,seat:c.seat,local:c.local,headingOffset:c.headingOffset,kind:'passenger',rider:c.rider,crew:c.rider.follow,noCriticalHits:keep?.noCriticalHits,neverTargeted:keep?.neverTargeted,canBeShot:keep?.canBeShotInVehicle,head:occupants.headOf(`passenger:${c.car.car.body.handle}:${c.seat}`)});}
              // A script's peds in every native seat. The shooter's own
              // car is left out by the shot, not here: a drive-by at CJ's car can hit the homies riding with him.
              for(const r of scriptRiders){
@@ -5671,8 +5672,8 @@ async function boot() {
               const onVessel=vesselSeat(r.car,r.seat);
               if(onVessel){const {vessel,local}=onVessel;if(!vessel.wrecked&&!vessel.disposed)add({car:vessel,seat:r.seat==='driver'?0:r.seat+1,local,kind:'script',rider:r,noCriticalHits:r.noCriticalHits,head:occupants.headOf(`script:${vessel.car.body.handle}:${r.seat}`)});continue;}
               if(!isScriptCar(r.car)||r.car.wrecked||r.car.disposed)continue;
-              const local=r.car.seatPosition(r.seat);
-              add({car:r.car,seat:r.seat==='driver'?0:r.seat+1,local,kind:'script',rider:r,noCriticalHits:r.noCriticalHits,head:occupants.headOf(`script:${r.car.car.body.handle}:${r.seat}`)});
+              const frame=r.car.seatPose(r.seat);
+              add({car:r.car,seat:r.seat==='driver'?0:r.seat+1,...frame,kind:'script',rider:r,noCriticalHits:r.noCriticalHits,head:occupants.headOf(`script:${r.car.car.body.handle}:${r.seat}`)});
              }
              return out;};
             // Only a script's rider may sit in a boat or an aircraft; every other seated target is in a car.

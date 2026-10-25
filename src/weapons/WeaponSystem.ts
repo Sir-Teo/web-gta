@@ -11,6 +11,8 @@ import type {AimCandidate} from '../input/aimAssist';
 export interface SeatedVehicle {car:{body:{handle:number;translation():Vec3;rotation():{x:number;y:number;z:number;w:number}}};pedTargetable?:boolean;occupied?:boolean;disposed?:boolean;wrecked?:boolean;driverDead?:boolean}
 /** A seated NPC a bullet can reach: its vehicle, seat index and seat local (native vehicle space). */
 export interface SeatedTarget<V extends SeatedVehicle=import('../simulation/WorldCar').WorldCar> {car:V;seat:number;local:Vec3;kind:'traffic'|'police'|'driveby'|'script'|'passenger';
+ /** SetPedPositionInCar's turn relative to the vehicle, used until the rendered head node is ready. */
+ headingOffset?:number;
  /** A script's ped in its seat: the host's own record of it. */
  rider?:unknown;
  /** Automatic targeting and bullet eligibility are separate pedestrian flags. */
@@ -30,6 +32,11 @@ const carriesPlayer=(vehicle:{occupied:boolean;playerPassengerSeat?:number})=>ve
 function seatWorldPoint(vehicle:SeatedVehicle,local:Vec3){
  const b=vehicle.car.body,q=b.rotation(),p=b.translation();
  return new Vector3(local.x,local.z,-local.y).applyQuaternion(new Quaternion(q.x,q.y,q.z,q.w)).add(p as Vector3);
+}
+function seatedHeadPoint(target:SeatedTarget<SeatedVehicle>):Vec3{
+ if(target.head)return target.head;
+ const a=target.headingOffset??0,c=Math.cos(a),s=Math.sin(a),o=SEATED_HEAD_OFFSET,p=target.local;
+ return seatWorldPoint(target.car,{x:p.x+o.x*c-o.y*s,y:p.y+o.x*s+o.y*c,z:p.z+o.z});
 }
 import type {WorldPlane} from '../simulation/WorldPlane';
 import {planeWeaponRequests} from '../simulation/nativePlaneWeapons';
@@ -200,7 +207,7 @@ export class WeaponSystem {
     !pedCanBeTargettedVehicleWise(true,{bike:t.bike,pedTargetable:t.car.pedTargetable}))continue;
    let seats=this.aimSeatKeys.get(t.car);if(!seats){seats=new Map();this.aimSeatKeys.set(t.car,seats);}
    let handle=seats.get(t.seat);if(handle===undefined){handle=this.nextAimSeatKey--;seats.set(t.seat,handle);}
-   const position=t.head??seatWorldPoint(t.car,{x:t.local.x+SEATED_HEAD_OFFSET.x,y:t.local.y+SEATED_HEAD_OFFSET.y,z:t.local.z+SEATED_HEAD_OFFSET.z});
+   const position=seatedHeadPoint(t);
    targets.push({handle,position:{...position},crew:t.crew});
   }
   return targets;
@@ -215,7 +222,7 @@ export class WeaponSystem {
   const hit=(hitBody as {handle?:number}|undefined)?.handle;if(hit===undefined)return undefined;
   const own=(except as {handle?:number;car?:{body?:{handle:number}}}|undefined);const ownHandle=own?.car?.body?.handle??own?.handle;
   const targets=(this.seatedPeds?.()??[]).filter(t=>t.canBeShot!==false&&t.car.car.body.handle===hit&&t.car.car.body.handle!==ownHandle);
-  const heads=targets.map(t=>{const h=t.head??seatWorldPoint(t.car,{x:t.local.x+SEATED_HEAD_OFFSET.x,y:t.local.y+SEATED_HEAD_OFFSET.y,z:t.local.z+SEATED_HEAD_OFFSET.z});return {x:h.x,y:h.y+OCCUPANT_HEAD_LIFT,z:h.z};});
+  const heads=targets.map(t=>{const h=seatedHeadPoint(t);return {x:h.x,y:h.y+OCCUPANT_HEAD_LIFT,z:h.z};});
   const found=occupantHeadHit(source,direction,heads,range);
   return found&&{target:targets[found.index],t:found.t};
  }

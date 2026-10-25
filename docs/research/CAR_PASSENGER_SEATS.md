@@ -15,8 +15,8 @@ for every seat. Attached peds retain their explicit offsets.
 
 The [pinned PC reference](https://github.com/gta-reversed/gta-reversed/blob/4281f82d8af83e14935ac84a69dfd1ceebb9f256/source/game_sa/Entity/Ped/Ped.cpp)
 agrees on these seat/dummy rules. The van-specific rotation in
-SetPedPositionInCar remains separate; this change uses the existing ordinary
-automobile pose.
+SetPedPositionInCar is now connected separately for script, street, police and
+player passengers ([source and checks](VAN_PASSENGER_POSES.md)).
 
 The live `script-car-passengers` regression uses a native Greenwood and four
 scripted peds. It checks the actual front/rear dummies, waits for all four drawn
@@ -29,7 +29,7 @@ existing focused algorithm and lifecycle checks.
 This connects existing native seat math to the live game. It does not establish
 complete native boarding, drive-by muzzle placement, collision or death-task
 parity. Recruited street followers use a separate passenger store; their combat
-integration remains separate work.
+integration now has its own [source and verification scope](STREET_PASSENGER_COMBAT.md).
 
 Verification on October 25: the build and seven passenger/targeting/drive-by
 browser checks pass. The full unit run passes 5,358 tests with 51 skipped and
