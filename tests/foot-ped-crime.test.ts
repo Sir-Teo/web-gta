@@ -28,8 +28,8 @@ test('the vehicle creator rule reaches CWanted once, retaining the on-foot ped i
  f.hit('vehicle');expect(law.native.snapshot().queued).toBe(1);f.hit('vehicle');expect(law.native.snapshot().queued).toBe(1);
 });
 test.each(['fire','npc bullet'])('%s deaths retain the script type and gang in the real damage adapter',kind=>{
- const p={id:8,health:1,pedType:'COP',officer:true,scriptPedType:8,collider:{handle:12,setShape:vi.fn()},view:{playReaction:vi.fn()},actor:{player:{position:{x:0,y:0,z:0}}}} as any,onKill=vi.fn();
- const host={people:[p],onKill,hitPiece:()=>3,applyReaction:vi.fn(),damageReaction:()=>({})} as any;
+ const p={id:8,health:1,defendMult:1,pedType:'COP',officer:true,scriptPedType:8,collider:{handle:12,setShape:vi.fn()},view:{playReaction:vi.fn()},actor:{player:{position:{x:0,y:0,z:0}}}} as any,onKill=vi.fn();
+ const host=Object.assign(Object.create(WorldPedestrians.prototype),{people:[p],onKill,hitPiece:()=>3,applyReaction:vi.fn(),damageReaction:()=>({})}) as any;
  if(kind==='fire')(WorldPedestrians.prototype as any).burn.call(host,p,10,false);
  else WorldPedestrians.prototype.bulletHit.call(host,12,10,22,{x:0,z:1},{x:0,y:1,z:0} as any);
  expect(p.health).toBe(0);expect(onKill).toHaveBeenCalledExactlyOnceWith({id:8,pedType:'GANG2',officer:false,gang:1,recruit:false,byPlayer:false});

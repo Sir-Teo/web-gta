@@ -6,7 +6,7 @@ import {Vector3,Quaternion} from 'three';
 import {pedSphereHit,type PedHitSphere} from '../combat/nativePedHitSpheres';
 import {policeDontCareAboutPedType} from '../ped/nativeAcquaintance';
 import {OCCUPANT_HEAD_LIFT,occupantHeadHit,type SeatedShot} from '../vehicle/nativeDieInCar';
-import {isInstantHitGun} from '../simulation/WorldPedestrians';
+import {isInstantHitGun,pedPieceAt} from '../simulation/WorldPedestrians';
 import {pedCanBeTargettedVehicleWise} from '../ped/nativeVehicleTargeting';
 import type {AimCandidate} from '../input/aimAssist';
 /** What a seated target rides, by its body: a car, or a script's boat or aircraft (CheckForShootingVehicleOccupant
@@ -725,8 +725,8 @@ export class WeaponSystem {
   }else if(seated)seated.hit(amount,weapon);
   else if(tyre)tyre.car.burstTyre(tyre.wheel,true,byPlayer?'player':'ped');
   else if(hit){
-   const blood=this.hitFx(hit,end,8,weapon,direction,false,byPlayer,false);
-   if(!byPlayer&&hit.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(amount,false,{weapon,from,piece:hit.pedPiece});
+   const blood=this.hitFx(hit,end,8,weapon,direction,{byPlayer,playerPedCreator:false});
+   if(!byPlayer&&hit.collider.handle===this.sim.playerCollider.handle){const accepted=this.sim.damagePlayer(amount,false,{weapon,from,piece:hit.pedPiece});blood?.(accepted);}
    else{const accepted=this.damage(hit.collider.handle,amount,direction,false,'bullet',{weapon,point:end,piece:hit.pedPiece,byPlayer,creator:byPlayer?(playerDriver?'vehicle':'remote'):undefined});blood?.(accepted);}
   }
  }
@@ -1004,7 +1004,7 @@ export class WeaponSystem {
    }
    else if(hit){
     const point=add(b.position,b.direction,hit.timeOfImpact),ped=hit.pedPiece!==undefined||this.pedestrians()?.targets().some(t=>t.handle===hit.collider.handle);
-    const blood=this.hitFx(hit,point,8,b.weapon,b.direction,true);
+    const blood=this.hitFx(hit,point,8,b.weapon,b.direction,{sniper:true});
     // CBulletInfo::Update only damages what it hits (or bursts a tyre); the car push is DoBulletImpact's alone.
     if(ped){b.passed.add(hit.collider.handle);next=point;}
     const accepted=this.damage(hit.collider.handle,b.damage,b.direction,false,'bullet',{weapon:b.weapon,point,piece:hit.pedPiece,sniper:true});blood?.(accepted);
@@ -1032,22 +1032,32 @@ export class WeaponSystem {
  /** Notify a bullet impact, drawing non-ped surfaces at once. Ped blood is returned for emission after damage:
   * DoBulletImpact requires GenerateDamageEvent to accept it and samples the resulting health; CBulletInfo always
   * emits eight blood particles. Keep object/audio notifications before damage. */
- private hitFx(hit:PedBulletIntersection,point:Vec3,amount:number,weapon:number,direction?:Vec3,sniper=false,byPlayer=true,playerPedCreator=byPlayer){
-  const handle=hit.collider.handle;
+ prepareNpcBulletImpact(hit:PedBulletIntersection,point:Vec3,weapon:number,direction:Vec3){return this.hitFx(hit,point,8,weapon,direction,{byPlayer:false,deferObjectDamage:true,strictAcceptance:true});}
+ private hitFx(hit:PedBulletIntersection,point:Vec3,amount:number,weapon:number,direction?:Vec3,options:{sniper?:boolean;byPlayer?:boolean;playerPedCreator?:boolean;deferObjectDamage?:boolean;strictAcceptance?:boolean}={}){
+  const handle=hit.collider.handle,sniper=!!options.sniper,byPlayer=options.byPlayer??true,playerPedCreator=options.playerPedCreator??byPlayer;
   if(playerPedCreator)this.onPlayerBulletImpact?.(handle);
   if(direction)this.onBulletHit?.(hit,point,Math.asin(Math.max(-1,Math.min(1,-(direction.x*hit.normal.x+direction.y*hit.normal.y+direction.z*hit.normal.z))))*180/Math.PI);
-  this.onObjectShot?.(hit,point,amount<8,sniper,weapon,byPlayer);
-  if(!this.fx?.ready)return;
-  const crowd=this.pedestrians(),ped=crowd?.bulletImpact?.(handle,point,hit.pedPiece)??(crowd?.targets().some(t=>t.handle===handle)?{head:false,dead:false}:undefined),fx=this.fx;
+  const crowd=this.pedestrians(),player=handle===this.sim.playerCollider?.handle;
+  const state=()=>player?{head:(hit.pedPiece??pedPieceAt(this.sim.player.position,this.sim.player.heading,point))===9,dead:this.sim.player.health<=0}:crowd?.bulletImpact?.(handle,point,hit.pedPiece);
+  const ped=state()??(crowd?.targets().some(t=>t.handle===handle)?{head:false,dead:false}:undefined);
+  const objectShot=()=>{if(!options.deferObjectDamage||!ped)this.onObjectShot?.(hit,point,amount<8,sniper,weapon,byPlayer);};
+  // NPC callers still inspect the struck physical body after preparation. Retire destructible objects afterward,
+  // so their removal cannot invalidate that body/collider reference midway through damage routing.
+  if(!options.deferObjectDamage)objectShot();
+  const finish=(blood?:((accepted:boolean)=>void))=>options.deferObjectDamage?(accepted:boolean)=>{objectShot();blood?.(accepted);}:blood;
+  if(!this.fx?.ready)return finish();
+  const fx=this.fx;
   const impact={point,normal:{x:hit.normal.x,y:hit.normal.y,z:hit.normal.z},collider:handle,featureType:hit.featureType,featureId:hit.featureId};
-  if(ped)return (accepted:boolean)=>{
-   const state=crowd?.bulletImpact?.(handle,point,hit.pedPiece)??ped;
-   // GenerateDamageEvent returns true for an already dead ped, even while its death task is still running.
-   if(!sniper&&!accepted&&!state.dead)return;
-   fx.bulletHit({...impact,ped:sniper?{head:false,dead:false}:state},!sniper&&weapon>=25&&weapon<=27?4:amount);
-  };
+  if(ped)return finish((accepted:boolean)=>{
+   const current=state()??ped;
+   // Legacy physical damage adapters gate corpse animation, while GenerateDamageEvent accepts a corpse. The
+   // dedicated NPC adapter reports that acceptance itself, including the earlier same-type exclusion.
+   if(!sniper&&!accepted&&(options.strictAcceptance||!current.dead))return;
+   fx.bulletHit({...impact,ped:sniper?{head:false,dead:false}:current},!sniper&&weapon>=25&&weapon<=27?4:amount);
+  });
   const vehicle=[...(this.fleet()?.cars??[])].some(c=>{for(let i=0;i<c.car.body.numColliders();i++)if(c.car.body.collider(i).handle===handle)return true;return false;})||[...(this.fleet()?.boats??[])].some(b=>{for(let i=0;i<b.body.numColliders();i++)if(b.body.collider(i).handle===handle)return true;return false;});
   fx.bulletHit({...impact,vehicle},amount);
+  return finish();
  }
  /** Instant hits (CWeapon::FireInstantHit port): weapon range, crosshair spread, WEAPON.DAT damage, the 150-point
   * point-blank player shot and SetUpPelletCol pellets counted against the first victim. */

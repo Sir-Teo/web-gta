@@ -18,7 +18,7 @@ export function playerPunchDamage(base: number, victimDefend: number): number {
   return scaleBlow(base, PLAYER_ATTACK_MULT, victimDefend);
 }
 
-/** NPC punch damage to the player (defend 0.4x applied inside damagePlayer). */
+/** NPC punch damage before Simulation.damagePlayer applies its native player scaling. */
 export function npcPunchDamage(base: number, npcAttack: number): number {
   return base * npcAttack;
 }

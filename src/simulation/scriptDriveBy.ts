@@ -30,6 +30,7 @@ export interface ScriptDriveByWorld {
  targetPosition:(target:DriveByTarget)=>{x:number;y:number;z:number}|undefined;
  hitPed:(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3,piece?:number)=>boolean;
  bulletLine?:import('../weapons/skinnedPedBulletLine').NpcBulletLine;
+ prepareBulletImpact?:import('../weapons/skinnedPedBulletLine').NpcBulletImpact;
  onShot?:(from:Vector3,to:Vector3,weapon:number,hit:boolean)=>void;
  /** CheckForShootingVehicleOccupant for a line whose first hit is `hitBody`: the occupant of that car whose head sphere
   * the line enters within `range`, how far along, and the hit to apply to it. `own` is the shooter's car. */
@@ -85,13 +86,15 @@ export function stepScriptDriveBy(d:ScriptDriveBy,car:WorldCar,info:NativeWeapon
   }
   const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:reach);d.shots++;
   world.onShot?.(muzzle,end,info.type,!!shot||!!tyre);
+  const finish=shot&&!tyre?world.prepareBulletImpact?.(shot,end,info.type,direction):undefined;let accepted=false;
   if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
-  else if(shot?.collider.handle===world.sim.playerCollider.handle)world.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z},piece:shot.pedPiece});
+  else if(shot?.collider.handle===world.sim.playerCollider.handle)accepted=world.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z},piece:shot.pedPiece});
   else if(shot){
    const hitCar=cars.find(c=>shot.collider.parent()?.handle===c.car.body.handle);
    if(hitCar){pushShotVehicle(hitCar,shot.normal,end,info.type);if(!hitCar.onlyDamagedByPlayer)hitCar.damage(info.damage,undefined,false,undefined,{weapon:info.type});}
-   else world.hitPed(shot.collider.handle,info.damage,info.type,{x:direction.x,z:direction.z},end,shot.pedPiece);
+   else accepted=world.hitPed(shot.collider.handle,info.damage,info.type,{x:direction.x,z:direction.z},end,shot.pedPiece);
   }
+  finish?.(accepted);
  }
  if(d.gun.active&&d.gun.time<oldTime)d.aimPoint={...aim};
 }

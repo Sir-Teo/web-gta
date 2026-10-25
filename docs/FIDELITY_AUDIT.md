@@ -68,6 +68,18 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
   Existing eight drive-by/rider/seated regressions pass. Full native eligibility,
   damage/task/aiming behavior and matched PC captures remain open.
 
+## NPC bullet impact acceptance (October 25, 2026)
+
+- Foot, script/gang drive-by and mounted physical hits share blood/surface FX
+  with accepted damage results. NPC corpse hits no longer recount kills;
+  script/gang rounds account for victim weakness and actual ped types.
+  NPC gunflash queries now compose current bone/weapon transforms, fixing stale
+  muzzle origins. [Source, verification and scope](research/NPC_BULLET_IMPACTS.md).
+- Nine real NPC muzzle cases verify native blood counts, proof/vest/type gates,
+  health and once-only kill stats. Incoming mounted hits verify CJ's head blood
+  and proof behavior. Complete NPC calculator/task, seated-transfer FX, lighting
+  and matched PC capture parity remain open.
+
 ## Scripted rear car passengers (October 25, 2026)
 
 - Rear script riders now render and enter seated-head bullet checks at the same

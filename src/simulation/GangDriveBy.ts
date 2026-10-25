@@ -52,6 +52,7 @@ export class GangDriveBy {
   seatedShot?:import('../vehicle/nativeDieInCar').SeatedShot;
   bulletLine?:import('../weapons/skinnedPedBulletLine').NpcBulletLine;
   hitPed?:import('./scriptDriveBy').ScriptDriveByWorld['hitPed'];
+  prepareBulletImpact?:import('../weapons/skinnedPedBulletLine').NpcBulletImpact;
   canSpawn:(point:{x:number;y:number;z:number},radius:number)=>boolean=()=>true;
   /** Rival turf with INITIAL strength, shared with the street population. */
   gangTurf?:(x:number,z:number)=>{gang:number;strength:number}|undefined;
@@ -227,11 +228,13 @@ export class GangDriveBy {
     const seated=this.seatedShot?.(muzzle,direction,lineLength,car,shot?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre});
     const end=muzzle.clone().addScaledVector(direction,seated?.t??tyre?.t??reach);s.shots++;
     this.onShot?.(muzzle,end,info.type,!!shot||!!tyre||!!seated);
+    const finish=shot&&!tyre&&!seated?this.prepareBulletImpact?.(shot,end,info.type,direction):undefined;let accepted=false;
     if(seated)seated.hit(info.damage,info.type);
     else if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
-    else if(shot?.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z},piece:shot.pedPiece});
+    else if(shot?.collider.handle===this.sim.playerCollider.handle)accepted=this.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z},piece:shot.pedPiece});
     else if(shot&&targetBody&&shot.collider.parent()?.handle===targetBody.handle){pushShotVehicle(playerCar!,shot.normal,end,info.type);playerCar!.damage(info.damage,undefined,false,undefined,{weapon:info.type,by:{ped:s}});}
-    else if(shot)this.hitPed?.(shot.collider.handle,info.damage,info.type,{x:direction.x,z:direction.z},end,shot.pedPiece);
+    else if(shot)accepted=this.hitPed?.(shot.collider.handle,info.damage,info.type,{x:direction.x,z:direction.z},end,shot.pedPiece)??false;
+    finish?.(accepted);
    }
    if(s.gunState.active&&s.gunState.time<oldTime)s.aimPoint={...aim};
   }

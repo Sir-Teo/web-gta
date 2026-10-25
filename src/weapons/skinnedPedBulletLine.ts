@@ -11,6 +11,8 @@ export interface SkinnedPedBulletTarget {
 }
 export type PedBulletIntersection=RAPIER.RayColliderIntersection&{pedPiece?:number};
 export type NpcBulletLine=(from:V,direction:V,range:number,excludeBody:RAPIER.RigidBody)=>PedBulletIntersection|null|undefined;
+/** Impact notifications/surface FX now, ped blood after the caller applies its damage result. */
+export type NpcBulletImpact=(hit:PedBulletIntersection,point:V,weapon:number,direction:V)=>((accepted:boolean)=>void)|undefined;
 /** AnimatePedColModelSkinned (PC 0x4C6F70) centers its box on BONE_SPINE1, with 1.2 units on every local axis.
  * ProcessLineOfSight tests that box before its spheres. The bound sphere is not a gate in that routine. */
 export function pedBulletBoxHit(from:V,direction:V,range:number,bounds:NonNullable<ReturnType<SkinnedPedBulletTarget['bounds']>>){

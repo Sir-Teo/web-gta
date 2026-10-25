@@ -100,6 +100,8 @@ export class NativeCharacter {
   boneMatrix(id:number,out=new Matrix4()){const bone=this.bone(id);if(!bone)return undefined;return out.copy(this.worldOf(bone));}
   /** CPed::GetTransformedBonePosition in the world, or undefined without that bone. */
   bonePosition(id:number,out=new Vector3()){const bone=this.bone(id);if(!bone)return undefined;return out.setFromMatrixPosition(this.worldOf(bone));}
+  /** An attached gun's node through the same current local-matrix chain as the skeleton, without stale bone worlds. */
+  nodePosition(node:Object3D,out=new Vector3()){return out.setFromMatrixPosition(this.worldOf(node));}
   /** A node's world matrix from the character root down its ancestors' local matrices, without walking the whole
    * skeleton (three's parent-only update does not refresh a child under a parent that just moved). */
   private worldOf(node:Object3D){

@@ -38,7 +38,7 @@ import {ANIM_ID,NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirecti
 import {CANNON_PUSH_RANGE2,waterCannonPedSpeed} from './nativeWaterCannon';
 import {PED_ORIGIN_HEIGHT,SWIM,SWIM_STOP_TIME,aiSwimStroke,pedFloatDepth,swimSubmergeZ,type SwimState} from './nativeSwim';
 import type {BulletLineOptions} from '../weapons/bulletLine';
-import {skinnedPedBulletLine,type SkinnedPedBulletTarget} from '../weapons/skinnedPedBulletLine';
+import {skinnedPedBulletLine,type SkinnedPedBulletTarget,type NpcBulletImpact} from '../weapons/skinnedPedBulletLine';
 import {WEAPON_FLAG,hasWeaponFlag} from '../weapons/weaponData';
 import {PED_BIKE_KILL_INTENSITY,PED_CAR_KILL_INTENSITY,PED_MASS,carHitsPed,killPedWithCarTask} from '../combat/nativeCarPedHit';
 import {VEHICLE_ELASTICITY} from './nativeObjectDamage';
@@ -492,10 +492,11 @@ export const healthAfter=(health:number,damage:number)=>health-damage<1?0:health
 /** Whether a street ped's blow or bullet reaches another ped. CEventDamage::AffectsPed: an invulnerable ped
  * (SET_CHAR_ONLY_DAMAGED_BY_PLAYER) takes nothing but drowning and blasts from anyone else while alive; and
  * CWeapon::DoBulletImpact: a bullet leaves a ped of the shooter's own ped type alone unless that is a civilian. */
-export function npcDamageReaches(victim:{onlyDamagedByPlayer?:boolean;bulletProofVest?:boolean;health:number;pedType?:string},shooter:{pedType?:string},weapon:number,bullet:boolean,piece?:number){
+function sameNonCivilianPedType(victim:Acquainted,shooter:Acquainted){const mine=nativePedType(pedTypeName(victim)),theirs=nativePedType(pedTypeName(shooter));return mine!==undefined&&mine===theirs&&mine!==4&&mine!==5;}
+export function npcDamageReaches(victim:{onlyDamagedByPlayer?:boolean;bulletProofVest?:boolean;health:number}&Acquainted,shooter:Acquainted,weapon:number,bullet:boolean,piece?:number){
  if(victim.onlyDamagedByPlayer&&weapon!==WEAPON.drowning&&weapon!==WEAPON.explosion&&victim.health>0)return false;
  if(bulletProofVestStops(victim,weapon,piece))return false;
- if(bullet&&shooter.pedType!==undefined&&shooter.pedType===victim.pedType&&victim.pedType!=='CIVMALE'&&victim.pedType!=='CIVFEMALE')return false;
+ if(bullet&&sameNonCivilianPedType(victim,shooter))return false;
  return true;
 }
 /** CEventDamage::AffectsPed (0x4AD7B0, reversed; iOS 0x10028acb4): a ped with bHasBulletProofVest is not affected by
@@ -599,6 +600,7 @@ export class WorldPedestrians {
   doorPoint(seat:'driver'|number,from:{x:number;z:number}):{x:number;y:number;z:number}|undefined;board(ped:Pedestrian,seat:'driver'|number):boolean}|undefined;
   /** Non-automobile vehicle hit by an ordinary NPC bullet, including incidental targets outside its script task. */
   otherVehicleForBody?:(handle:number)=>ScriptVehicleAttackTarget|undefined;
+  prepareBulletImpact?:NpcBulletImpact;
   /** The ped (or the player) a script's handle names, for the tasks that target one. */
   resolveScriptPed?:(handle:number)=>Pedestrian|'player'|undefined;
   /** CJ's reciprocal PartnerChat task, if he is currently chatting with this ped. */
@@ -879,6 +881,7 @@ export class WorldPedestrians {
     const proofed=hit?.weapon===WEAPON.drowning?false:hit?.weapon===WEAPON.fall?!!p.proofs?.collision:pedProofedAgainst(p,kind);
     if(!ignoreProofs&&proofed)return false;
     const piece=hit?.piece??this.hitPiece(p,hit?.point);
+    if(kind==='bullet'&&hit?.byPlayer===false&&!npcDamageReaches(p,{},hit.weapon??WEAPON.pistol,true,piece))return false;
     if(kind==='bullet'&&bulletProofVestStops(p,hit?.weapon,piece))return false;
     this.noteEvent(p,EVENT.damage);
     // CPed::m_pLastEntityDamage: the player, unless nobody did it (`noSource`: drowning, a fall, the script's TASK_DIE)
@@ -1934,8 +1937,23 @@ export class WorldPedestrians {
   * Whether the collider was a ped's. */
  bulletHit(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3,piece?:number){
   const victim=this.people.find(other=>other.collider.handle===collider);if(!victim)return false;
-  if(pedProofedAgainst(victim,'bullet')||!npcDamageReaches(victim,{},weapon,true,piece??this.hitPiece(victim,end)))return true;
-  victim.lastDamagedBy={};victim.health=healthAfter(victim.health,damage);if(damage>0)victim.lastWeaponDamage=weapon;
+  this.applyNpcBullet(victim,damage,weapon,direction,end,piece);return true;
+ }
+ /** GenerateDamageEvent's acceptance, rather than bulletHit's collider recognition, for NPC impact effects. */
+ npcBulletHit(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3,piece?:number){
+  const victim=this.people.find(other=>other.collider.handle===collider);return !!victim&&this.applyNpcBullet(victim,damage,weapon,direction,end,piece);
+ }
+ private applyNpcBullet(victim:Pedestrian,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3,piece?:number,shooter?:Pedestrian){
+  // DoBulletImpact's same-type gate precedes GenerateDamageEvent, including for a corpse.
+  if(shooter&&sameNonCivilianPedType(victim,shooter))return false;
+  if(victim.health<=0){this.damageCollider(victim.collider.handle,damage,direction,'bullet',{weapon,point:end,piece,byPlayer:false});return true;}
+  if(pedProofedAgainst(victim,'bullet')||!npcDamageReaches(victim,shooter??{},weapon,true,piece??this.hitPiece(victim,end)))return false;
+  victim.lastDamagedBy=shooter?{ped:shooter}:{};
+  if(shooter)this.noteEvent(victim,EVENT.damage);
+  // AccountForPedDamageStats always applies victim weakness. A known ped source also supplies mission-group
+  // membership; opaque script/vehicle sources cannot establish that relationship yet.
+  const dealt=shooter?this.pedOnPedDamage(victim,shooter,damage,weapon):damage*victim.defendMult;
+  victim.health=healthAfter(victim.health,dealt);if(dealt>0)victim.lastWeaponDamage=weapon;
   if(!victim.health)this.onKill?.({id:victim.id,...pedTypeInfo(victim),recruit:!!victim.follow,byPlayer:false});
   const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};
   this.applyReaction(victim,this.damageReaction(victim,weapon,damage,vfrom,end,false,undefined,false,piece),vfrom);
@@ -3628,7 +3646,7 @@ export class WorldPedestrians {
     // A ped shooting on the move (CTaskComplexGoToPointShooting) keeps walking its way and aims the gun alone.
     if(p.order?.kind!=='goToPointShooting')state.heading=Math.atan2(aimOffset.x,aimOffset.z);
     p.view.update(p.actor,1);
-    const muzzle=p.gun?.root.getObjectByName('gunflash')?.getWorldPosition(new Vector3())??p.view.hand()?.getWorldPosition(new Vector3())??new Vector3(eye.x,eye.y,eye.z);
+    const muzzleNode=p.gun?.root.getObjectByName('gunflash')??p.view.hand(),muzzle=muzzleNode?p.view.nodePosition(muzzleNode):new Vector3(eye.x,eye.y,eye.z);
     // CWeapon::FireAreaEffect for a ped's spray can, extinguisher or flamethrower: a CShotInfo cloud toward the aim, which
     // CShotInfo::Update carries on (a spray can's paints the tags it reaches: Sweet's demonstration in SWEET1). They are no
     // instant-hit line.
@@ -3640,7 +3658,7 @@ export class WorldPedestrians {
     const shot=this.bulletLine(muzzle,direction,lineLength,{isShootThrough:this.isShootThrough,excludeCollider:p.collider,excludeBody:p.body});
     // FireInstantHit includes car tyres for every shooter: a wheel sphere before the hit takes the round.
     const reach=shot?.timeOfImpact??lineLength,tyre=bulletTyreHit(cars,muzzle,direction,reach);
-    const hitPlayer=(damage:number,type:number,piece:number)=>{if(this.damagesPlayer(p,type)){this.sim.damagePlayer(damage,false,{weapon:type,from:{x:muzzle.x,z:muzzle.z},piece,friendly:this.friendlyWithPlayer(p)});this.defendPlayer(p);}};
+    const hitPlayer=(damage:number,type:number,piece:number)=>{if(!this.damagesPlayer(p,type))return false;const accepted=this.sim.damagePlayer(damage,false,{weapon:type,from:{x:muzzle.x,z:muzzle.z},piece,friendly:this.friendlyWithPlayer(p)});this.defendPlayer(p);return accepted;};
     const seated=this.seatedShot?.(muzzle,direction,lineLength,p.body,shot?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre,playerHit:hitPlayer});
     const end=muzzle.clone().addScaledVector(direction,seated?.t??tyre?.t??reach);p.flash=.06;
     // SetUpPelletCol (iOS 0x100499000): a shotgun's pellet lines (eight for the SPAS 12, fifteen otherwise) spread with
@@ -3660,12 +3678,14 @@ export class WorldPedestrians {
     }
     const shotDamage=weapon.info.damage*pellets;
     this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre||!!seated,{id:`ped:${p.id}`,position:()=>p.health>0||this.people.includes(p)?{...p.actor.player.position,y:p.actor.player.position.y+1}:undefined});this.gunShot({...state.position,y:state.position.y+1},false,p.id,end);
+    const finish=shot&&!tyre&&!seated?this.prepareBulletImpact?.(shot,end,weapon.info.type,direction):undefined;let accepted=false;
     if(seated)seated.hit(seated.direct?shotDamage:weapon.info.damage,weapon.info.type);
     else if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
-    else if(shot?.collider.handle===this.sim.playerCollider.handle)hitPlayer(shotDamage,weapon.info.type,shot.pedPiece??pedPieceAt(this.sim.player.position,this.sim.player.heading,end));
+    else if(shot?.collider.handle===this.sim.playerCollider.handle)accepted=hitPlayer(shotDamage,weapon.info.type,shot.pedPiece??pedPieceAt(this.sim.player.position,this.sim.player.heading,end));
     else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer){car.damage(shotDamage,undefined,false,undefined,{weapon:weapon.info.type,byPlayer:false,by:{ped:p}});
      // InflictDamage's random tyre burst: (rand() & 0x7f) under the weapon's chance.
-     const chance=aiTyreBurstChance(weapon.info.type);if(chance&&!car.wrecked&&Math.floor(Math.random()*128)<chance)car.burstTyreAt(end);}}else if(!this.damageOtherVehicle(shot.collider,shotDamage,weapon.info.type,p)){const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')&&npcDamageReaches(victim,p,weapon.info.type,true,shot.pedPiece??this.hitPiece(victim,end))){victim.lastDamagedBy={ped:p};this.noteEvent(victim,EVENT.damage);const dealt=this.pedOnPedDamage(victim,p,shotDamage,weapon.info.type);victim.health=healthAfter(victim.health,dealt);if(dealt>0)victim.lastWeaponDamage=weapon.info.type;if(!victim.health)this.onKill?.({id:victim.id,...pedTypeInfo(victim),recruit:!!victim.follow,byPlayer:false});const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,shotDamage,vfrom,end,false,undefined,false,shot.pedPiece),vfrom);}}}
+     const chance=aiTyreBurstChance(weapon.info.type);if(chance&&!car.wrecked&&Math.floor(Math.random()*128)<chance)car.burstTyreAt(end);}}else if(!this.damageOtherVehicle(shot.collider,shotDamage,weapon.info.type,p)){const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim)accepted=this.applyNpcBullet(victim,shotDamage,weapon.info.type,{x:direction.x,z:direction.z},end,shot.pedPiece,p);}}
+    finish?.(accepted);
     }
    }
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}

@@ -319,17 +319,17 @@ export class Simulation {
     /** CTaskSimplePlayerOnFire's ComputeFireDamage: health only, a CEventDamage only once it kills. */ burning?: boolean }) {
     // CEventDamage::AffectsPed rejects damage to a dead ped. Repeated hazards
     // must not re-arm the death timer while the player is waiting to respawn.
-    if(this.player.health<=0)return;
+    if(this.player.health<=0)return false;
     // CPlayerInfo::MakePlayerSafe clears CPlayerData::m_bCanBeDamaged and sets every physicalFlags proof, so
     // a safe player takes nothing from anything at all.
-    if(!this.playerCanBeDamaged)return;
+    if(!this.playerCanBeDamaged)return false;
     // CEventDamage::AffectsPed: MAKE_PLAYER_FIRE_PROOF turns molotov and flamethrower damage away; ComputeWillKillPed:
     // with CHEAT_INFINITE_HEALTH the player takes nothing from a weapon (types below WEAPON_LAST_WEAPON, 47).
-    if(event&&(event.weapon===18||event.weapon===37)&&this.playerFireProof?.())return;
+    if(event&&(event.weapon===18||event.weapon===37)&&this.playerFireProof?.())return false;
     // SET_CHAR_PROOFS on the player: CEventDamage::AffectsPed asks CPhysical::CanPhysicalBeDamaged by the weapon type
     // alone (a landing is WEAPON_FALL, collision-proofed); a knockdown blow is still its fist or nightstick.
-    if(event&&this.playerProofs&&!physicalCanBeDamaged(this.playerProofs,event.weapon))return;
-    if(event&&event.weapon<47&&this.playerWeaponProof?.())return;
+    if(event&&this.playerProofs&&!physicalCanBeDamaged(this.playerProofs,event.weapon))return false;
+    if(event&&event.weapon<47&&this.playerWeaponProof?.())return false;
     amount *= NATIVE_PLAYER_DAMAGE_MULT;
     // AccountForPedDamageStats again (0x10028a114..0x10028a144): from a ped CJ is friendly with, whatever the weapon, a
     // tenth of it and 12.5 at most.
@@ -349,6 +349,7 @@ export class Simulation {
     if (this.player.health === 0) { this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0; }
     if (event && (!event.burning || this.player.health === 0)) this.damageEvents.push({ ...event, armour, health: before - this.player.health, died: this.player.health === 0, inAirTask: !!this.playerInAirTask?.() });
     if (event) { const pain = playerPainContext(event.weapon, amount, this.player.health, !!event.burning); if (pain) this.onPlayerPain?.(pain); }
+    return true;
   }
   /** CPed::m_nLastWeaponDamage for the player: -1 until a weapon has taken his health, and after CLEAR_CHAR_LAST_WEAPON_DAMAGE. */
   lastWeaponDamage = -1;
