@@ -37,7 +37,8 @@ import {characterMovement} from './characterMovement';
 import {ANIM_ID,NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
 import {CANNON_PUSH_RANGE2,waterCannonPedSpeed} from './nativeWaterCannon';
 import {PED_ORIGIN_HEIGHT,SWIM,SWIM_STOP_TIME,aiSwimStroke,pedFloatDepth,swimSubmergeZ,type SwimState} from './nativeSwim';
-import {bulletLine} from '../weapons/bulletLine';
+import type {BulletLineOptions} from '../weapons/bulletLine';
+import {skinnedPedBulletLine,type SkinnedPedBulletTarget} from '../weapons/skinnedPedBulletLine';
 import {WEAPON_FLAG,hasWeaponFlag} from '../weapons/weaponData';
 import {PED_BIKE_KILL_INTENSITY,PED_CAR_KILL_INTENSITY,PED_MASS,carHitsPed,killPedWithCarTask} from '../combat/nativeCarPedHit';
 import {VEHICLE_ELASTICITY} from './nativeObjectDamage';
@@ -854,7 +855,7 @@ export class WorldPedestrians {
    /** CWeapon::DoBulletImpact's skill test for a ped, before the damage lands: alive and not in the player's group. */
    trainsSkill(handle:number){const p=this.people.find(p=>p.collider.handle===handle);return !!p&&p.health>0&&!p.follow;}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
-   damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number};noSource?:boolean;byPlayer?:boolean},ignoreProofs=false){
+   damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};piece?:number;fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number};noSource?:boolean;byPlayer?:boolean},ignoreProofs=false){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p)return false;
     if(p.health<=0){
      // CWeapon::GenerateDamageEvent: a bullet or blow on a body done dying (TASK_SIMPLE_DEAD) blends FLOOR_HIT, or
@@ -877,7 +878,8 @@ export class WorldPedestrians {
     // CPhysical::CanPhysicalBeDamaged: drowning always gets through, a fall only past collision proofing.
     const proofed=hit?.weapon===WEAPON.drowning?false:hit?.weapon===WEAPON.fall?!!p.proofs?.collision:pedProofedAgainst(p,kind);
     if(!ignoreProofs&&proofed)return false;
-    if(kind==='bullet'&&bulletProofVestStops(p,hit?.weapon,this.hitPiece(p,hit?.point)))return false;
+    const piece=hit?.piece??this.hitPiece(p,hit?.point);
+    if(kind==='bullet'&&bulletProofVestStops(p,hit?.weapon,piece))return false;
     this.noteEvent(p,EVENT.damage);
     // CPed::m_pLastEntityDamage: the player, unless nobody did it (`noSource`: drowning, a fall, the script's TASK_DIE)
     // or someone else did (`byPlayer` false: a blast or a fire he did not start).
@@ -891,7 +893,7 @@ export class WorldPedestrians {
     const megaPunch=kind==='melee'&&megaPunchBlow(hit?.weapon??WEAPON.unarmed);
     // CPedDamageResponseCalculator::ComputeWillForceDeath (0x4AD610, not reversed): an instant-hit bullet in the head
     // kills outright, unless the ped is spared critical hits (bNoCriticalHits, SET_CHAR_SUFFERS_CRITICAL_HITS off).
-    const headshot=kind==='bullet'&&!!hit?.point&&!p.noCriticalHits&&isInstantHitGun(hit.weapon)&&this.hitPiece(p,hit.point)===PED_PIECE.head;
+    const headshot=kind==='bullet'&&(hit?.piece!==undefined||!!hit?.point)&&!p.noCriticalHits&&isInstantHitGun(hit?.weapon)&&piece===PED_PIECE.head;
     // iOS CPedDamageResponseCalculator::AccountForPedDamageStats (0x10028a070): any weapon's damage times the victim's
     // pedstats defend weakness (a melee blow's is in playerPunchDamage); then the player's own blow on a member of his
     // group, short of a flamethrower or a blast, is cut to a tenth and to 12.5 at most.
@@ -913,7 +915,7 @@ export class WorldPedestrians {
     // CTaskSimpleBeHit plays FIGHT_HIT_1 + move from the attacker's combo group.
     const hitClip=fight&&fight.move<=2?fight.hits?.[fight.move]:undefined;
     if(hitClip&&!p.view.hasReaction(hitClip.name.toLowerCase()))p.view.installReactions({[hitClip.name.toLowerCase()]:hitClip});
-    const reaction=this.damageReaction(p,weapon,applied,from,hit?.point,byPlayer,fight,hit?.pistolWhip);
+    const reaction=this.damageReaction(p,weapon,applied,from,hit?.point,byPlayer,fight,hit?.pistolWhip,hit?.piece);
     if(p.health>0&&kind==='explosion'){
      const knockout=computeDeathAnim({weapon:WEAPON.explosion,pedPiece:PED_PIECE.torso,direction:browserLocalDirection(p.actor.player.heading,q.x-from.x,q.z-from.z),health:0,damageArmour:0,damageHealth:applied,victim:{player:false,inVehicle:false,moveState:PEDMOVE.still},source:{ped:true,player:true}});
      // An explosion's ApplyMoveForce sets the push; other blows keep the authored strength.
@@ -939,21 +941,20 @@ export class WorldPedestrians {
     if(p.health===0)this.onKill?.({id:p.id,...type,recruit:wasRecruit,byPlayer});
     return {id:p.id,officer:type.officer,pedType:type.pedType};
    }
- /** On-foot collision still uses the browser capsule and height/side damage pieces. The captured native twelve-node
-  * table (nativePedHitSpheres) is used for direct bike-rider traces; on-foot animated sphere tracing remains open. */
+ /** Fallback pieces for melee and legacy damage adapters that supply no native bullet-collision piece. */
  private hitPiece(p:Pedestrian,point?:{x:number;y:number;z:number}){return pedPieceAt(p.actor.player.position,p.actor.player.heading,point);}
  private moveState(p:Pedestrian){
   const speed=p.actor.player.speed;
   return speed<.1?PEDMOVE.still:speed<(p.walkSpeed+p.runSpeed)/2?PEDMOVE.walk:speed<(p.runSpeed+p.sprintSpeed)/2?PEDMOVE.run:PEDMOVE.sprint;
  }
  /** CEventDamage::ComputeAnim for a pedestrian struck from `from`. */
- private damageReaction(p:Pedestrian,weapon:number,damage:number,from:{x:number;z:number},point:{x:number;y:number;z:number}|undefined,attackerIsPlayer:boolean,fight?:MeleeFight,pistolWhip=false):DamageAnimResult{
+ private damageReaction(p:Pedestrian,weapon:number,damage:number,from:{x:number;z:number},point:{x:number;y:number;z:number}|undefined,attackerIsPlayer:boolean,fight?:MeleeFight,pistolWhip=false,piece?:number):DamageAnimResult{
   const q=p.actor.player.position;
   // The attacker's CTaskSimpleFight: combo set UNARMED_1 or a weapon set (4 and above) and
   // its current move (0–2 the attacks, 3 the ground attack, 4 the moving attack). IsComboSet
   // is a retail stub; it is taken as the combo's final move, so the third hit floors the victim.
   const sourceFight=fight&&{comboSet:4,currentMove:fight.move,comboActive:fight.move===2,hitComboActive:false,hitClip:(move:number)=>fight.hits?.[move]?.name.toLowerCase()??`hita_${move+1}`,group:fight.group??'melee_1'};
-  const result=computeDamageEventAnim({weapon,pedPiece:point?this.hitPiece(p,point):fight?PED_PIECE.torso:this.hitPiece(p,point),direction:weapon===WEAPON.explosion?browserLocalDirection(p.actor.player.heading,q.x-from.x,q.z-from.z):browserLocalDirection(p.actor.player.heading,from.x-q.x,from.z-q.z),
+  const result=computeDamageEventAnim({weapon,pedPiece:piece??(point?this.hitPiece(p,point):fight?PED_PIECE.torso:this.hitPiece(p,point)),direction:weapon===WEAPON.explosion?browserLocalDirection(p.actor.player.heading,q.x-from.x,q.z-from.z):browserLocalDirection(p.actor.player.heading,from.x-q.x,from.z-q.z),
    health:p.health,damageArmour:0,damageHealth:damage,
    victim:{player:false,inVehicle:false,taskRefusesAbort:this.fallRefusesDamage(p),moveState:this.moveState(p),upperBodyOnly:!!p.flags?.upperBodyDamageAnimsOnly,fallingOrGettingUp:p.down>0,headBelowRoot:this.headBelowRoot(p),lyingOnFront:isFrontClip(p.fallClip)},
    source:{ped:true,player:attackerIsPlayer,adrenaline:attackerIsPlayer&&this.sim.player.adrenaline>0,fight:sourceFight,pistolWhip:pistolWhip?{group:'melee_1',clip:'hita_2'}:undefined},megaPunch:megaPunchBlow(weapon),previousAnimId:p.damageAnimId,nextRandom:()=>this.damageRandom.next()});
@@ -1126,7 +1127,14 @@ export class WorldPedestrians {
   /** A ped by collider, living or dead, while it is in the world: where a fire on it burns (CFire::ProcessFire). */
   pedPosition(handle:number){const p=this.people.find(q=>q.collider.handle===handle);return p&&{position:{...p.body.translation()},dead:p.health<=0,submerged:this.submerged(p)};}
   /** DoBulletImpact samples the struck piece and the victim's health after GenerateDamageEvent for its blood FX. */
-  bulletImpact(handle:number,point?:{x:number;y:number;z:number}){const p=this.people.find(p=>p.collider.handle===handle);return p&&{head:this.hitPiece(p,point)===PED_PIECE.head,dead:p.health<=0};}
+  bulletImpact(handle:number,point?:{x:number;y:number;z:number},piece?:number){const p=this.people.find(p=>p.collider.handle===handle);return p&&{head:(piece??this.hitPiece(p,point))===PED_PIECE.head,dead:p.health<=0};}
+  /** Bullet-only native skinned collision. Movement and other physical queries retain their controller shapes. */
+  bulletLine(from:{x:number;y:number;z:number},direction:{x:number;y:number;z:number},range:number,options:BulletLineOptions){
+   const targets:SkinnedPedBulletTarget[]=this.people.filter(p=>p.body.isEnabled()&&p.collider.isEnabled()&&p.view.hasHitSpheres).map(p=>({body:p.body,collider:p.collider,bounds:()=>p.view.hitBounds(),hitSpheres:()=>p.view.hitSpheres()}));
+   const player=this.playerView();
+   if(this.sim.playerBody.isEnabled()&&this.sim.playerCollider.isEnabled()&&player?.hasHitSpheres)targets.push({body:this.sim.playerBody,collider:this.sim.playerCollider,bounds:()=>player.hitBounds(),hitSpheres:()=>player.hitSpheres()});
+   return skinnedPedBulletLine(this.sim.world,from,direction,range,options,targets);
+  }
   // bNeverEverTargetThisPed keeps a ped out of the lock-on the weapon system draws its targets from.
   /** Living peds for the weapons; `all` keeps those SET_CHAR_NEVER_TARGETTED hides from targeting. */
   targets(all=false){return this.people.filter(p=>p.health>0&&(all||!p.neverTargeted)).map(p=>({handle:p.collider.handle,id:p.id,fireProof:!!p.proofs?.fire,position:{...p.body.translation()},inAir:!!p.air||p.landing!==undefined,officer:pedTypeInfo(p).officer,armed:!!p.weapon,attacking:p.retaliate>0,down:p.down>0,noCriticalHits:!!p.noCriticalHits,crew:p.follow}));}
@@ -1598,6 +1606,9 @@ export class WorldPedestrians {
   if(nightstick?.melee)view.installReactions(Object.fromEntries(nightstick.melee.attacks.map((clip,i)=>[`cop_bat_${i+1}`,clip])));
   const p:Pedestrian={pedType:o.stats?.pedType,attractScan:Math.random()*ATTRACTOR_SCAN_SECONDS,attractorsTried:new Set(),copScan:0,criminalsAt:0,wanderDir:Math.floor(Math.random()*8),seed:Math.floor(Math.random()*32768),scratch:0,money:pedMoneyCount(Math.random,!!o.stats?.rich),copWeapon:'unarmed',stick,id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?copHealth(String(o.modelRef)):100,actor:{player:{...this.sim.player,tilt:undefined,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,onFire:0,onFireSpeech:0,attackMult:o.stats?.attack??1,decisionMaker:o.stats?.decisionMaker??(o.officer?1:2),statFlags:o.stats?.flags??40,headingChange:o.stats?.headingChange??7.5,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,modelRef:o.modelRef,loiter:!!o.loiter,dealer:!!o.dealer,neededUntil:this.clock+4,alpha:0,fadeOut:false,follow:false,foe:undefined,fightStage:0};
   this.people.push(p);
+  // Put a newly loaded clump at its actor before it can participate in native bullet queries. Sampling here does not
+  // advance its locomotion clock or consume the street ped's randomized first cycle.
+  view.update(p.actor,1);
   // CPed's constructor with CHEAT_HAVE_ABOUNTY_ON_YOUR_HEAD on: a new ped hates PLAYER1 (and is given a hate event
   // with no task, which a street decision maker has no row for).
   if(CHEATS.isActive('bounty'))this.setRelationship(p,ACQUAINTANCE_HATE,PED_TYPE_PLAYER1);
@@ -1921,13 +1932,13 @@ export class WorldPedestrians {
  /** A round from a shooter the peds do not hold themselves (a script's drive-by rider) meeting a ped's collider: the
   * ped takes it and reacts as it does to one of the peds' own rounds, unless proofed or only the player may hurt it.
   * Whether the collider was a ped's. */
- bulletHit(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3){
+ bulletHit(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3,piece?:number){
   const victim=this.people.find(other=>other.collider.handle===collider);if(!victim)return false;
-  if(pedProofedAgainst(victim,'bullet')||!npcDamageReaches(victim,{},weapon,true,this.hitPiece(victim,end)))return true;
+  if(pedProofedAgainst(victim,'bullet')||!npcDamageReaches(victim,{},weapon,true,piece??this.hitPiece(victim,end)))return true;
   victim.lastDamagedBy={};victim.health=healthAfter(victim.health,damage);if(damage>0)victim.lastWeaponDamage=weapon;
   if(!victim.health)this.onKill?.({id:victim.id,...pedTypeInfo(victim),recruit:!!victim.follow,byPlayer:false});
   const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};
-  this.applyReaction(victim,this.damageReaction(victim,weapon,damage,vfrom,end,false),vfrom);
+  this.applyReaction(victim,this.damageReaction(victim,weapon,damage,vfrom,end,false,undefined,false,piece),vfrom);
   return true;
  }
  giveOrder(ped:Pedestrian,order:ScriptedPedOrder){this.giveSequence(ped,[order],false,false);}
@@ -3626,7 +3637,7 @@ export class WorldPedestrians {
     // ped's inaccuracy (npcShotEnd).
     const playerTarget=this.playerTargetAt(aim),endPoint=npcShotEnd(muzzle,aim,weapon.info,p.gunAccuracy,{targetIsPlayer:!!playerTarget,targetSpeed:playerTarget?.speed,rangeMultiplier:playerTarget?.rangeMultiplier});
     const direction=new Vector3(endPoint.x,endPoint.y,endPoint.z).sub(muzzle),lineLength=direction.length();direction.divideScalar(lineLength||1);
-    const shot=bulletLine(this.sim.world,muzzle,direction,lineLength,{isShootThrough:this.isShootThrough,excludeCollider:p.collider,excludeBody:p.body});
+    const shot=this.bulletLine(muzzle,direction,lineLength,{isShootThrough:this.isShootThrough,excludeCollider:p.collider,excludeBody:p.body});
     // FireInstantHit includes car tyres for every shooter: a wheel sphere before the hit takes the round.
     const reach=shot?.timeOfImpact??lineLength,tyre=bulletTyreHit(cars,muzzle,direction,reach);
     const hitPlayer=(damage:number,type:number,piece:number)=>{if(this.damagesPlayer(p,type)){this.sim.damagePlayer(damage,false,{weapon:type,from:{x:muzzle.x,z:muzzle.z},piece,friendly:this.friendlyWithPlayer(p)});this.defendPlayer(p);}};
@@ -3640,7 +3651,7 @@ export class WorldPedestrians {
      for(let i=1;i<shotgunPelletCount(weapon.info.type);i++){
       const o=shotgunPelletOffset(depth),target=end.clone().addScaledVector(right,o.across).addScaledVector(up,o.up);
       const dir=target.sub(muzzle),length=dir.length();dir.divideScalar(length||1);
-      const pellet=this.sim.world.castRay(new RAPIER.Ray(muzzle,dir),length+.5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body);
+      const pellet=this.bulletLine(muzzle,dir,length+.5,{isShootThrough:this.isShootThrough,excludeCollider:p.collider,excludeBody:p.body});
       if(seated?.direct){
        const stop=pellet?.timeOfImpact??length+.5,pelletTyre=bulletTyreHit(cars,muzzle,dir,stop),rider=this.seatedShot?.(muzzle,dir,length+.5,p.body,pellet?.collider.parent(),{distance:pelletTyre?.t??stop,tyre:!!pelletTyre});
        if(rider?.direct&&rider.victim===seated.victim)pellets++;
@@ -3651,10 +3662,10 @@ export class WorldPedestrians {
     this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre||!!seated,{id:`ped:${p.id}`,position:()=>p.health>0||this.people.includes(p)?{...p.actor.player.position,y:p.actor.player.position.y+1}:undefined});this.gunShot({...state.position,y:state.position.y+1},false,p.id,end);
     if(seated)seated.hit(seated.direct?shotDamage:weapon.info.damage,weapon.info.type);
     else if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
-    else if(shot?.collider.handle===this.sim.playerCollider.handle)hitPlayer(shotDamage,weapon.info.type,pedPieceAt(this.sim.player.position,this.sim.player.heading,end));
+    else if(shot?.collider.handle===this.sim.playerCollider.handle)hitPlayer(shotDamage,weapon.info.type,shot.pedPiece??pedPieceAt(this.sim.player.position,this.sim.player.heading,end));
     else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer){car.damage(shotDamage,undefined,false,undefined,{weapon:weapon.info.type,byPlayer:false,by:{ped:p}});
      // InflictDamage's random tyre burst: (rand() & 0x7f) under the weapon's chance.
-     const chance=aiTyreBurstChance(weapon.info.type);if(chance&&!car.wrecked&&Math.floor(Math.random()*128)<chance)car.burstTyreAt(end);}}else if(!this.damageOtherVehicle(shot.collider,shotDamage,weapon.info.type,p)){const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')&&npcDamageReaches(victim,p,weapon.info.type,true,this.hitPiece(victim,end))){victim.lastDamagedBy={ped:p};this.noteEvent(victim,EVENT.damage);const dealt=this.pedOnPedDamage(victim,p,shotDamage,weapon.info.type);victim.health=healthAfter(victim.health,dealt);if(dealt>0)victim.lastWeaponDamage=weapon.info.type;if(!victim.health)this.onKill?.({id:victim.id,...pedTypeInfo(victim),recruit:!!victim.follow,byPlayer:false});const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,shotDamage,vfrom,end,false),vfrom);}}}
+     const chance=aiTyreBurstChance(weapon.info.type);if(chance&&!car.wrecked&&Math.floor(Math.random()*128)<chance)car.burstTyreAt(end);}}else if(!this.damageOtherVehicle(shot.collider,shotDamage,weapon.info.type,p)){const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')&&npcDamageReaches(victim,p,weapon.info.type,true,shot.pedPiece??this.hitPiece(victim,end))){victim.lastDamagedBy={ped:p};this.noteEvent(victim,EVENT.damage);const dealt=this.pedOnPedDamage(victim,p,shotDamage,weapon.info.type);victim.health=healthAfter(victim.health,dealt);if(dealt>0)victim.lastWeaponDamage=weapon.info.type;if(!victim.health)this.onKill?.({id:victim.id,...pedTypeInfo(victim),recruit:!!victim.follow,byPlayer:false});const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,shotDamage,vfrom,end,false,undefined,false,shot.pedPiece),vfrom);}}}
     }
    }
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}

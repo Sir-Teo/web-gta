@@ -10,19 +10,19 @@ test('native blood particles use post-hit health, head/shotgun scaling and disti
  const cases=[{weapon:22,head:false,health:10000,proof:false,count:8},{weapon:22,head:true,health:10000,proof:false,count:16},{weapon:22,head:true,health:1,proof:false,count:32},{weapon:25,head:false,health:10000,proof:false,count:4},{weapon:22,head:true,health:10000,proof:true,count:0},{weapon:34,head:true,health:10000,proof:false,count:8},{weapon:34,head:true,health:10000,proof:true,count:8}],results:any[]=[];
  for(const c of cases){
   const handle=await page.evaluate(()=>{const g=(window as any).__game,p=g.sim.player.position;return g.missionForProfiling().peds.create(4,'MALE01',{x:p.x+10,y:-p.z,z:p.y});});
-  await page.waitForFunction(h=>!!(window as any).__game.missionForProfiling().peds.entity(h),handle,{timeout:45000});
+  await page.waitForFunction(h=>{const p=(window as any).__game.missionForProfiling().peds.entity(h);return p?.view.hasHitSpheres&&!p.collisionWait&&!p.collider.isSensor();},handle,{timeout:45000});
   results.push(await page.evaluate(({handle,c})=>{
    const g=(window as any).__game,m=g.missionForProfiling(),host=m.runtime.world,w=g.weapons(),p=m.peds.entity(handle),q=p.actor.player.position;
    host.freezePedPosition(handle,true);host.setPedSuffersCriticalHits(handle,false);host.setPedHealth(handle,c.health);host.setPedProofs(handle,{bullet:c.proof,fire:false,explosion:false,collision:false,melee:false});
-   const at={x:q.x,y:q.y+(c.head?1.6:1.1),z:q.z},ray=[{x:1,y:0,z:0},{x:-1,y:0,z:0},{x:0,y:0,z:1},{x:0,y:0,z:-1}].map(direction=>({direction,source:{x:at.x-direction.x*6,y:at.y,z:at.z-direction.z*6}})).find(r=>w.ray(r.source,r.direction,12,g.sim.playerBody)?.collider.handle===p.collider.handle);
+   const piece=c.head?9:3,spheres=p.view.hitSpheres().filter((s:any)=>s.piece===piece),axes=[{x:1,y:0,z:0},{x:-1,y:0,z:0},{x:0,y:0,z:1},{x:0,y:0,z:-1},{x:0,y:-1,z:0},{x:0,y:1,z:0}],ray=spheres.flatMap((s:any)=>axes.map(direction=>({direction,source:{x:s.center.x-direction.x*6,y:s.center.y-direction.y*6,z:s.center.z-direction.z*6}}))).find((r:any)=>{const hit=w.ray(r.source,r.direction,12,g.sim.playerBody);return hit?.collider.handle===p.collider.handle&&hit.pedPiece===piece;});
    if(!ray)throw Error('No clear pedestrian bullet line');
-   const fx=w.fx,oldBlood=fx.effects.blood,oldMuzzle=w.muzzle,oldSpread=w.aimSpread,oldRandom=Math.random,blood:any[]=[];
+   const playerStart={...g.sim.player.position},fx=w.fx,oldBlood=fx.effects.blood,oldMuzzle=w.muzzle,oldSpread=w.aimSpread,oldRandom=Math.random,blood:any[]=[];
    fx.effects.blood=function(...args:any[]){blood.push({count:args[2],health:p.health});return oldBlood.apply(this,args);};w.muzzle=()=>ray.source;w.aimSpread=(d:any)=>d;
    try{
-    Math.random=()=>.5;w.inventory.give(c.weapon,100);w.inventory.select(c.weapon);w.inventory.cooldown=0;w.firstPerson=c.weapon===34?'sniper':undefined;w.aiming=true;
+    g.placePlayer(ray.source.x,ray.source.y-1.3,ray.source.z);Math.random=()=>.5;w.inventory.give(c.weapon,100);w.inventory.select(c.weapon);w.inventory.cooldown=0;w.firstPerson=c.weapon===34?'sniper':undefined;w.aiming=true;
     const fired=w.fire({origin:ray.source,direction:ray.direction});if(c.weapon===34)w.tick(1/60);
     return {...c,fired,blood,after:p.health,weakness:p.defendMult};
-   }finally{fx.effects.blood=oldBlood;w.muzzle=oldMuzzle;w.aimSpread=oldSpread;Math.random=oldRandom;w.firstPerson=undefined;}
+   }finally{fx.effects.blood=oldBlood;w.muzzle=oldMuzzle;w.aimSpread=oldSpread;Math.random=oldRandom;w.firstPerson=undefined;g.placePlayer(playerStart.x,playerStart.y,playerStart.z);}
   },{handle,c}));
   await page.evaluate(h=>(window as any).__game.missionForProfiling().runtime.world.deletePed(h),handle);
  }

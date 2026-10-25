@@ -66,6 +66,7 @@ import {CRIME} from '../simulation/nativeWanted';
 import {meleeComboFor} from '../simulation/nativeMelee';
 import {NativeFireManager,explosionFireCount,type FireTarget} from '../combat/nativeFire';
 import {bulletLine} from './bulletLine';
+import type {PedBulletIntersection} from './skinnedPedBulletLine';
 import {EXPLOSION,NativeExplosionSlots,explosionDirection,explosionFalloff,explosionOnPed,explosionOnVehicle,explosionParams,type ExplosionParams} from '../combat/nativeExplosion';
 import type {MeleeSwing} from '../simulation/nativeMelee';
 import {launchVelocity,projectileTuning} from './nativeProjectile';
@@ -335,7 +336,7 @@ export class WeaponSystem {
  npcShot(from:Vec3,to:Vec3,weapon=22,hit=true){this.tracer(from,to,'ped',.09);if(hit)this.effect('impact',to);this.fx?.gunshot(from,normalize(add(to,from,-1)),weapon,false);}
  /** Native FX (effects.fxp); the sphere effects remain as the fallback while it loads or when it is unavailable. */
  fx?:WeaponFxHost;
-  constructor(readonly sim:Simulation,private pedestrians:()=>({damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind?:DamageKind,hit?:{weapon?:number;point?:Vec3}):boolean|PedestrianVictim}&Pick<WorldPedestrians,'targets'|'frighten'>&Partial<Pick<WorldPedestrians,'stealthTarget'|'stealthKill'|'gunShot'|'pedPosition'|'bulletImpact'|'bodyHandles'|'trainsSkill'>>)|undefined,private fleet:()=>(Pick<WorldFleet,'cars'|'boats'>&Partial<Pick<WorldFleet,'planes'|'bikes'|'useDetonator'>>)|undefined){}
+  constructor(readonly sim:Simulation,private pedestrians:()=>({damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind?:DamageKind,hit?:{weapon?:number;point?:Vec3;piece?:number}):boolean|PedestrianVictim}&Pick<WorldPedestrians,'targets'|'frighten'>&Partial<Pick<WorldPedestrians,'stealthTarget'|'stealthKill'|'gunShot'|'pedPosition'|'bulletLine'|'bulletImpact'|'bodyHandles'|'trainsSkill'>>)|undefined,private fleet:()=>(Pick<WorldFleet,'cars'|'boats'>&Partial<Pick<WorldFleet,'planes'|'bikes'|'useDetonator'>>)|undefined){}
  installNative(data:NativeWeaponData){this.inventory.installNative(data);}
  get native(){return this.inventory.native;}
  /** CProjectileInfo::RemoveAllProjectiles: every grenade, rocket and satchel in flight or stuck is gone, unexploded. */
@@ -370,15 +371,19 @@ export class WeaponSystem {
  }
  /** The bullet line test along `direction`, for probes: the distance to what a shot there would hit. */
  lineOfFire(from:Vec3,direction:Vec3,range:number){return this.ray(from,direction,range)?.timeOfImpact;}
+ /** NPC car guns share the animated-ped trace, excluding their carrier while retaining CJ's on-foot body. */
+ npcBulletLine(from:Vec3,direction:Vec3,range:number,body:RAPIER.RigidBody){return this.ray(from,direction,range,body,undefined,false);}
  /** CWeapon's line tests pass doShootThroughCheck, so a shoot-through face (a chain-link fence) is flown through. */
- private ray(from:Vec3,direction:Vec3,range:number,body:RAPIER.RigidBody|null=this.sim.playerBody,filter?:(c:RAPIER.Collider)=>boolean,byPlayer=true){
-  return bulletLine(this.sim.world,from,direction,range,{isShootThrough:hit=>!!this.fx?.isShootThrough?.(hit),excludeCollider:byPlayer?this.sim.playerCollider:undefined,excludeBody:body??undefined,filter});
+ private ray(from:Vec3,direction:Vec3,range:number,body:RAPIER.RigidBody|null=this.sim.playerBody,filter?:(c:RAPIER.Collider)=>boolean,byPlayer=true):PedBulletIntersection|null|undefined{
+  const options={isShootThrough:(hit:RAPIER.RayColliderIntersection)=>!!this.fx?.isShootThrough?.(hit),excludeCollider:byPlayer?this.sim.playerCollider:undefined,excludeBody:body??undefined,filter},crowd=this.pedestrians();
+  if(crowd?.bulletLine)return crowd.bulletLine(from,direction,range,options);
+  return bulletLine(this.sim.world,from,direction,range,options);
  }
  /** CTaskSimplePlayerOnFire's timer: when the player's current fire started, in game milliseconds. */
  private playerFireSince?:number;
  /** Whether the last damage() hit trains the weapon skill (see DoBulletImpact). */
  private hitTrains=false;
- private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet',hit?:{weapon?:number;point?:Vec3;fight?:import('../simulation/WorldPedestrians').MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number};byPlayer?:boolean;sniper?:boolean;creator?:ShotCreator}){
+ private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet',hit?:{weapon?:number;point?:Vec3;piece?:number;fight?:import('../simulation/WorldPedestrians').MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number};byPlayer?:boolean;sniper?:boolean;creator?:ShotCreator}){
   // CWeapon::DoBulletImpact's test before CStats::UpdateStatsWhenWeaponHit, taken before the damage lands: a ped alive
   // and not in the player's group, a vehicle that can be damaged, is not bullet-proof and is not wrecked.
   this.hitTrains=false;
@@ -721,8 +726,8 @@ export class WeaponSystem {
   else if(tyre)tyre.car.burstTyre(tyre.wheel,true,byPlayer?'player':'ped');
   else if(hit){
    const blood=this.hitFx(hit,end,8,weapon,direction,false,byPlayer,false);
-   if(!byPlayer&&hit.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(amount,false,{weapon,from});
-   else{const accepted=this.damage(hit.collider.handle,amount,direction,false,'bullet',{weapon,point:end,byPlayer,creator:byPlayer?(playerDriver?'vehicle':'remote'):undefined});blood?.(accepted);}
+   if(!byPlayer&&hit.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(amount,false,{weapon,from,piece:hit.pedPiece});
+   else{const accepted=this.damage(hit.collider.handle,amount,direction,false,'bullet',{weapon,point:end,piece:hit.pedPiece,byPlayer,creator:byPlayer?(playerDriver?'vehicle':'remote'):undefined});blood?.(accepted);}
   }
  }
  /** The SCM command creates a fresh minigun, independent of the held weapon and its ammo; timestamp is shared
@@ -998,11 +1003,11 @@ export class WeaponSystem {
     this.fx?.bulletHit({point,normal,collider:this.seatKey(seated.target),ped:{head:false,dead:false}},8);
    }
    else if(hit){
-    const point=add(b.position,b.direction,hit.timeOfImpact),ped=this.pedestrians()?.targets().some(t=>t.handle===hit.collider.handle);
+    const point=add(b.position,b.direction,hit.timeOfImpact),ped=hit.pedPiece!==undefined||this.pedestrians()?.targets().some(t=>t.handle===hit.collider.handle);
     const blood=this.hitFx(hit,point,8,b.weapon,b.direction,true);
     // CBulletInfo::Update only damages what it hits (or bursts a tyre); the car push is DoBulletImpact's alone.
     if(ped){b.passed.add(hit.collider.handle);next=point;}
-    const accepted=this.damage(hit.collider.handle,b.damage,b.direction,false,'bullet',{weapon:b.weapon,point,sniper:true});blood?.(accepted);
+    const accepted=this.damage(hit.collider.handle,b.damage,b.direction,false,'bullet',{weapon:b.weapon,point,piece:hit.pedPiece,sniper:true});blood?.(accepted);
     if(accepted&&this.hitTrains)this.onHit?.(b.weapon);
    }
    if(b.weapon===34)this.testSniperCollision(b.position,next);
@@ -1027,16 +1032,16 @@ export class WeaponSystem {
  /** Notify a bullet impact, drawing non-ped surfaces at once. Ped blood is returned for emission after damage:
   * DoBulletImpact requires GenerateDamageEvent to accept it and samples the resulting health; CBulletInfo always
   * emits eight blood particles. Keep object/audio notifications before damage. */
- private hitFx(hit:RAPIER.RayColliderIntersection,point:Vec3,amount:number,weapon:number,direction?:Vec3,sniper=false,byPlayer=true,playerPedCreator=byPlayer){
+ private hitFx(hit:PedBulletIntersection,point:Vec3,amount:number,weapon:number,direction?:Vec3,sniper=false,byPlayer=true,playerPedCreator=byPlayer){
   const handle=hit.collider.handle;
   if(playerPedCreator)this.onPlayerBulletImpact?.(handle);
   if(direction)this.onBulletHit?.(hit,point,Math.asin(Math.max(-1,Math.min(1,-(direction.x*hit.normal.x+direction.y*hit.normal.y+direction.z*hit.normal.z))))*180/Math.PI);
   this.onObjectShot?.(hit,point,amount<8,sniper,weapon,byPlayer);
   if(!this.fx?.ready)return;
-  const crowd=this.pedestrians(),ped=crowd?.bulletImpact?.(handle,point)??(crowd?.targets().some(t=>t.handle===handle)?{head:false,dead:false}:undefined),fx=this.fx;
+  const crowd=this.pedestrians(),ped=crowd?.bulletImpact?.(handle,point,hit.pedPiece)??(crowd?.targets().some(t=>t.handle===handle)?{head:false,dead:false}:undefined),fx=this.fx;
   const impact={point,normal:{x:hit.normal.x,y:hit.normal.y,z:hit.normal.z},collider:handle,featureType:hit.featureType,featureId:hit.featureId};
   if(ped)return (accepted:boolean)=>{
-   const state=crowd?.bulletImpact?.(handle,point)??ped;
+   const state=crowd?.bulletImpact?.(handle,point,hit.pedPiece)??ped;
    // GenerateDamageEvent returns true for an already dead ped, even while its death task is still running.
    if(!sniper&&!accepted&&!state.dead)return;
    fx.bulletHit({...impact,ped:sniper?{head:false,dead:false}:state},!sniper&&weapon>=25&&weapon<=27?4:amount);
@@ -1091,7 +1096,7 @@ export class WeaponSystem {
    this.tracer(source,end,'player',.065);this.fx?.gunshot(source,direction,w.id,false);if(!hit)return true;this.effect('impact',end);
    const target=this.pedestrians()?.targets().find(t=>t.handle===hit.collider.handle),pointBlank=!!target&&!target.noCriticalHits&&distance(target.position,source)<=1;
    const blood=this.hitFx(hit,end,8,w.id,direction);this.pushShotVehicle(hit,end,w.id);
-   const accepted=this.damage(hit.collider.handle,pointBlank?150:info.damage,direction,false,'bullet',{weapon:w.id,point:end});blood?.(accepted);
+   const accepted=this.damage(hit.collider.handle,pointBlank?150:info.damage,direction,false,'bullet',{weapon:w.id,point:end,piece:hit.pedPiece});blood?.(accepted);
    if(accepted&&this.hitTrains)this.onHit?.(w.id);return true;
   }
   // SetUpPelletCol: pellet lines spread with distance to the first victim; hits on that victim accumulate.
@@ -1108,7 +1113,7 @@ export class WeaponSystem {
   this.fx?.gunshot(source,direction,w.id,false);
   // DoBulletImpact's 150-point player shot within a unit spares only the shotgun and SPAS-12: the sawn-off gets it.
   const victim=hit&&this.pedestrians()?.targets().find(t=>t.handle===hit.collider.handle),pointBlank=w.id===26&&!!victim&&!victim.noCriticalHits&&distance(victim.position,source)<=1;
-  if(hit){this.effect('impact',end);const blood=this.hitFx(hit,end,8,w.id,direction);if(pellets)this.pushShotVehicle(hit,end,w.id);const accepted=!!pellets&&this.damage(hit.collider.handle,pointBlank?150:pellets*info.damage,direction,false,'bullet',{weapon:w.id,point:end});blood?.(accepted);if(accepted&&this.hitTrains)this.onHit?.(w.id);}
+  if(hit){this.effect('impact',end);const blood=this.hitFx(hit,end,8,w.id,direction);if(pellets)this.pushShotVehicle(hit,end,w.id);const accepted=!!pellets&&this.damage(hit.collider.handle,pointBlank?150:pellets*info.damage,direction,false,'bullet',{weapon:w.id,point:end,piece:hit.pedPiece});blood?.(accepted);if(accepted&&this.hitTrains)this.onHit?.(w.id);}
   return true;
  }
  /** CWeapon::DoBulletImpact's vehicle push on the car a ray hit (see bulletVehicle). */

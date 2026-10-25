@@ -14,8 +14,10 @@ export interface PedHitSphere {center:V3;radius:number;piece:number}
 export function pedSphereHit(origin:V3,direction:V3,range:number,spheres:readonly PedHitSphere[]){
  let best:{t:number;piece:number;normal:V3}|undefined;
  for(const sphere of spheres){
+  // CCollision::ProcessLineSphere ignores a line starting inside/on the sphere (PC 0x412AA0).
+  if((origin.x-sphere.center.x)**2+(origin.y-sphere.center.y)**2+(origin.z-sphere.center.z)**2<=sphere.radius**2)continue;
   const t=raySphere(origin,direction,sphere.center,sphere.radius);
-  if(t===undefined||t>range||best&&t>=best.t)continue;
+  if(t===undefined||t>=range||best&&t>=best.t)continue;
   const x=origin.x+direction.x*t-sphere.center.x,y=origin.y+direction.y*t-sphere.center.y,z=origin.z+direction.z*t-sphere.center.z,length=Math.hypot(x,y,z)||1;
   best={t,piece:sphere.piece,normal:{x:x/length,y:y/length,z:z/length}};
  }

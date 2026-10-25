@@ -53,8 +53,20 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
   sniper rounds retain their independent eight-particle rule. Ordinary and
   sniper vehicle-to-head transfers now emit blood too. [Source and scope](research/PEDESTRIAN_BULLET_BLOOD.md).
 - Real-ray units cover damage/FX order, proof flags, corpses, shotgun and seated
-  transfers. On-foot animated sphere tracing, native brightness and complete
-  NPC/task/localisation/render parity remain open.
+  transfers. The later animated trace supplies native pieces in these paths.
+  Native brightness and complete NPC/task/localisation/render parity remain open.
+
+## Animated on-foot bullet collision (October 25, 2026)
+
+- Handheld, sniper, mounted, foot-NPC and drive-by bullet queries now use the
+  drawn ped's twelve native spheres inside its animated spine-centred bound
+  box. Body pieces reach vest gates, critical hits, reactions and blood; CJ's
+  on-foot skeleton supplies incoming hit pieces too. [Source and limits](research/SKINNED_PED_BULLETS.md).
+- Six original model/pose cases verify ordinary torso/arm/leg damage, actual
+  capsule gaps, cover, once-only sniper damage and fatal head hits. Incoming
+  mounted rounds and a real cop verify CJ's pieces, armour and proof behavior.
+  Existing eight drive-by/rider/seated regressions pass. Full native eligibility,
+  damage/task/aiming behavior and matched PC captures remain open.
 
 ## Scripted rear car passengers (October 25, 2026)
 

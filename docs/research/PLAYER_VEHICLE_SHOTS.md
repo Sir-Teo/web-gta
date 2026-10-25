@@ -65,7 +65,8 @@ by the removed capsule that correctly miss the actual rider. Real cop pistol
 and shotgun muzzle trials reach CJ; the shotgun accumulates multiple pellets.
 The seated-car and script-rider browser cases guard the two shared paths.
 
-Remaining scope: ordinary on-foot player collision is still the host collider.
-Player hit reaction/death tasks and all mounted-shooter engagement/selection
+The later [on-foot trace](SKINNED_PED_BULLETS.md) supplies CJ's animated pieces
+to incoming foot and mounted rounds too. Remaining scope: player hit
+reaction/death tasks and all mounted-shooter engagement/selection
 paths are not established by these checks. Queries use the last rendered
 skeleton, and matched retail PC traces remain open.

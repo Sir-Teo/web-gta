@@ -56,6 +56,7 @@ const TRANSITION_SECONDS = .18;
 /** Session-local native locomotion. The simulation owns time and physical position. */
 export class NativeCharacter {
   readonly root = new Group();
+  private worldPoseReady=false;
   private ambient = nativeAmbientState();
   private owner: ReturnType<typeof modelObject>;
   private shoulders?: ReturnType<typeof bindPlayerShoulders>;
@@ -113,6 +114,10 @@ export class NativeCharacter {
   private chainScratch:Object3D[]=[];private worldScratch=new Matrix4();
   /** CPed::GetTransformedBonePosition(BONE_HEAD) in the world, or undefined without a head bone. */
   headPosition(out=new Vector3()){return this.bonePosition(5,out);}
+  /** Native collision needs a sampled world pose: a newly loaded clump still has its bind pose at the origin. */
+  get hasHitSpheres(){return this.worldPoseReady&&PED_HIT_NODES.every(node=>!!this.bone(node.bone));}
+  /** AnimatePedColModelSkinned's bound box follows the spine, in the entity's axes. */
+  hitBounds(){const center=this.bonePosition(3);return center&&{center,rotation:this.root.getWorldQuaternion(new Quaternion())};}
   /** CPedModelInfo::AnimatePedColModelSkinnedWorld: the original twelve spheres at the currently sampled pose. */
   hitSpheres():PedHitSphere[]{
     const point=new Vector3(),matrix=new Matrix4(),out:PedHitSphere[]=[];
@@ -780,6 +785,7 @@ export class NativeCharacter {
   updateSeated(vehicle:Object3D,seat:Vector3){
     const binding=this.reactions.get('car_sit');if(!binding){this.root.visible=false;return;}
     this.root.position.copy(vehicle.localToWorld(seat.clone()));this.root.quaternion.copy(vehicle.getWorldQuaternion(new Quaternion()));this.root.visible=vehicle.visible;
+    this.worldPoseReady=true;
     this.transition.restoreTargets();binding.sample(0,false,false);this.updatePoseMatrices();this.poseRevision++;
   }
   private vehicleBindings=new Map<string,ReturnType<typeof bindAnimation>>();
@@ -805,8 +811,8 @@ export class NativeCharacter {
    * frame, and `overlays` several partial clips at their own times. */
   updateVehicle(frame:{vehicle?:Object3D;local?:{x:number;y:number;z:number};headingOffset?:number;position?:{x:number;y:number;z:number};heading?:number},pose:{clip:string;seconds:number;blend?:number;overlay?:{clip:string;amount:number};overlays?:readonly {clip:string;amount:number;seconds:number}[]}){
     const binding=this.vehicleBindings.get(pose.clip);if(!binding){this.root.visible=false;return false;}
-    if(frame.vehicle&&frame.local){this.root.position.copy(frame.vehicle.localToWorld(new Vector3(frame.local.x,frame.local.z,-frame.local.y)));this.root.quaternion.copy(frame.vehicle.getWorldQuaternion(new Quaternion()));if(frame.headingOffset)this.root.quaternion.multiply(new Quaternion().setFromAxisAngle(new Vector3(0,1,0),frame.headingOffset));this.root.visible=frame.vehicle.visible;}
-    else if(frame.position){this.root.position.set(frame.position.x,frame.position.y,frame.position.z);this.root.rotation.set(0,(frame.heading??0)+this.headingOffset,0);this.root.visible=true;}
+    if(frame.vehicle&&frame.local){this.root.position.copy(frame.vehicle.localToWorld(new Vector3(frame.local.x,frame.local.z,-frame.local.y)));this.root.quaternion.copy(frame.vehicle.getWorldQuaternion(new Quaternion()));if(frame.headingOffset)this.root.quaternion.multiply(new Quaternion().setFromAxisAngle(new Vector3(0,1,0),frame.headingOffset));this.root.visible=frame.vehicle.visible;this.worldPoseReady=true;}
+    else if(frame.position){this.root.position.set(frame.position.x,frame.position.y,frame.position.z);this.root.rotation.set(0,(frame.heading??0)+this.headingOffset,0);this.root.visible=true;this.worldPoseReady=true;}
     if(pose.clip!==this.vehicleClip){
       this.transition.capture();
       if(this.vehicleClip&&this.vehicleClip!==pose.clip)this.vehicleBindings.get(this.vehicleClip)?.restore();
@@ -844,6 +850,7 @@ export class NativeCharacter {
     // forward; in these axes native y is -z, so the roll turns the other way about z.
     const tilt = p.tilt;
     this.root.rotation.set(tilt ? tilt.x : 0, heading + this.headingOffset, tilt ? -tilt.y : 0, 'YXZ');this.renderedHeading=heading;
+    this.worldPoseReady=true;
     this.samplePose(this.previous + (this.seconds-this.previous)*alpha, this.previousTransitionTime + (this.transitionTime-this.previousTransitionTime)*alpha);
   }
   private samplePose(seconds: number, transitionTime: number) {

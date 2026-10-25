@@ -33,10 +33,10 @@ vehicle-to-head transfers emit the corresponding blood effect too. The direct
 biker shotgun path now supplies four particles for body pieces and respects a
 rejected instant-hit damage result. Damage still executes when FX is absent.
 
-This changes effect timing/classification in these WeaponSystem paths. On-foot
-collision still uses the browser capsule and its height/side damage-piece
-approximation; the captured animated twelve-sphere table currently serves
-bike-rider traces. Complete NPC muzzle-effect integration, native contact
+This changes effect timing/classification in these WeaponSystem paths. The
+later [animated on-foot trace](SKINNED_PED_BULLETS.md) supplies native collision
+pieces to these effects; melee and legacy adapters retain their fallback.
+Complete NPC muzzle-effect integration, native contact
 brightness, localisation, corpse/task acceptance and original PC render captures
 remain separate work.
 

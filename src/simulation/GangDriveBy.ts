@@ -50,6 +50,8 @@ export class GangDriveBy {
   private lastAttack=-Infinity;
   onShot?:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},weapon:number,hit:boolean)=>void;
   seatedShot?:import('../vehicle/nativeDieInCar').SeatedShot;
+  bulletLine?:import('../weapons/skinnedPedBulletLine').NpcBulletLine;
+  hitPed?:import('./scriptDriveBy').ScriptDriveByWorld['hitPed'];
   canSpawn:(point:{x:number;y:number;z:number},radius:number)=>boolean=()=>true;
   /** Rival turf with INITIAL strength, shared with the street population. */
   gangTurf?:(x:number,z:number)=>{gang:number;strength:number}|undefined;
@@ -219,7 +221,7 @@ export class GangDriveBy {
     // the player's car (TargetWeaponRangeMultiplier), its end moved by his inaccuracy; on foot the player's speed scales it.
     const endPoint=npcShotEnd(muzzle,aim,info,60,playerCar?{rangeMultiplier:3}:{targetIsPlayer:true,targetSpeed:this.sim.player.speed/50});
     const direction=new Vector3(endPoint.x,endPoint.y,endPoint.z).sub(muzzle),lineLength=direction.length();direction.divideScalar(lineLength||1);
-    const shot=this.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),lineLength,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
+    const shot:import('../weapons/skinnedPedBulletLine').PedBulletIntersection|null|undefined=this.bulletLine?this.bulletLine(muzzle,direction,lineLength,car.car.body):this.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),lineLength,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
     // FireInstantHit includes car tyres for every shooter, the gang car's own excepted.
     const reach=shot?.timeOfImpact??lineLength,tyre=bulletTyreHit([...this.fleet.cars].filter(c=>c!==car),muzzle,direction,reach);
     const seated=this.seatedShot?.(muzzle,direction,lineLength,car,shot?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre});
@@ -227,8 +229,9 @@ export class GangDriveBy {
     this.onShot?.(muzzle,end,info.type,!!shot||!!tyre||!!seated);
     if(seated)seated.hit(info.damage,info.type);
     else if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
-    else if(shot?.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z}});
+    else if(shot?.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z},piece:shot.pedPiece});
     else if(shot&&targetBody&&shot.collider.parent()?.handle===targetBody.handle){pushShotVehicle(playerCar!,shot.normal,end,info.type);playerCar!.damage(info.damage,undefined,false,undefined,{weapon:info.type,by:{ped:s}});}
+    else if(shot)this.hitPed?.(shot.collider.handle,info.damage,info.type,{x:direction.x,z:direction.z},end,shot.pedPiece);
    }
    if(s.gunState.active&&s.gunState.time<oldTime)s.aimPoint={...aim};
   }

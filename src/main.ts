@@ -688,7 +688,8 @@ async function boot() {
     const at=target.kind==='ped'?world?.pedExists?.(target.handle)?world.pedPosition?.(target.handle):undefined:mission&&mission.vehicles.exists(target.handle)?mission.vehicles.positionOf(target.handle):undefined;
     return at&&{x:at.x,y:at.z-(target.kind==='ped'?PED_ORIGIN_HEIGHT:0),z:-at.y};
    },
-   hitPed:(collider,damage,weapon,direction,end)=>!!pedestrians?.bulletHit(collider,damage,weapon,direction,end),
+   hitPed:(collider,damage,weapon,direction,end,piece)=>!!pedestrians?.bulletHit(collider,damage,weapon,direction,end,piece),
+   bulletLine:(from,direction,range,body)=>weapons.npcBulletLine(from,direction,range,body),
    // A mission rider or street recruit seated in the vehicle the NPC's muzzle line reaches.
    seatedShot:(from,direction,range,own,hitBody,first)=>{
     const direct=weapons.bikerHit(from,direction,first?.distance??range,own);
@@ -5759,6 +5760,7 @@ async function boot() {
             void import('./simulation/GangDriveBy').then(({GangDriveBy})=>{
              if(!alive||!fleet||driveby)return;driveby=new GangDriveBy(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
              driveby.seatedShot=scriptDriveByWorld.seatedShot;
+             driveby.bulletLine=scriptDriveByWorld.bulletLine;driveby.hitPed=scriptDriveByWorld.hitPed;
              driveby.gangTurf=turfAt;driveby.gangResident=gang=>pedestrians?.gangResident(gang)??[];driveby.carMissions=scriptCars;driveby.gangHatesPlayer=gang=>!!pedestrians?.gangHatesPlayer(gang);driveby.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
              driveby.onShot=(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');};
             }).catch(error=>{if(alive)hud.message(`Drive-by pursuit could not load: ${error instanceof Error?error.message:String(error)}`);});
