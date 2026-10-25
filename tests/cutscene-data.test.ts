@@ -42,7 +42,8 @@ describe('the published cutscenes',()=>{
   expect(d.uncompressed).toEqual(['cssuitcase-1','cssuitcase-2','csplay','cstaxi92','csbogman']);
   expect(d.extraColour).toBe(2);
  });
- test('every clip the cast plays is in its package, compressed unless listed',()=>{
+ // Decodes all 147 native bundles; constrained runners can exceed Vitest's five-second default.
+ test('every clip the cast plays is in its package, compressed unless listed',{timeout:15000},()=>{
   for(const name of Object.keys(manifest.cutscenes)){
    const f=files(name),d=readCutsceneFile(f.cut),pkg=readIfp(f.anp3);
    expect(pkg.format).toBe('ANP3');
