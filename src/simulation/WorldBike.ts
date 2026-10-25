@@ -836,8 +836,9 @@ export class WorldBike {
   if(this.tailLamp){this.tailLamp.visible=lit;this.tailLamp.scale.setScalar(this.brake?0.45:0.3);}
   // CalculateLeanMatrix: GetMatrix() × RotateY(lean) × RotateX(−0.05·|lean|), so the nose dips a twentieth of the
   // lean before the roll about the forward axis, then the wheels drop (1-cos) × bbox min.
+  const up=new Vector3(0,1,0).applyQuaternion(this.root.quaternion);
   this.root.quaternion.multiply(new Quaternion().setFromAxisAngle(new Vector3(0,0,1),-this.lean)).multiply(new Quaternion().setFromAxisAngle(new Vector3(1,0,0),-.05*Math.abs(this.lean)));
-  this.root.position.y+=bikeLeanDrop(this.lean,this.assets.collision!.bounds.min[2]);
+  this.root.position.addScaledVector(up,bikeLeanDrop(this.lean,this.assets.collision!.bounds.min[2]));
   // interpolateVehiclePose owns the root matrix; the lean is added after it, so recompose.
   composeVehicleRoot(this.root);
  }
@@ -846,10 +847,11 @@ export class WorldBike {
   * BMX rider sat frozen mid-stroke with one knee up, leaning to the side. */
  rideTime=0;
  riderPose(){
-  const prefix=this.assets.vehicle.animation,bicycle=BICYCLES.has(prefix),speed=Math.abs(this.speed());
-  const idle=speed>.5?(bicycle?`${prefix}_pedal`:`${prefix}_ride`):`${prefix}_still`;
+  const prefix=this.assets.vehicle.animation,clipPrefix=prefix==='wayfarer'?'wf':prefix,bicycle=BICYCLES.has(prefix),speed=Math.abs(this.speed());
+  // aQuadAnimations maps both BIKE_RIDE and BIKE_STILL to QUAD_ride; quad.ifp has no QUAD_still.
+  const idle=this.quad?`${clipPrefix}_ride`:speed>.5?(bicycle?`${clipPrefix}_pedal`:`${clipPrefix}_ride`):`${clipPrefix}_still`;
   const lean=this.quad?this.riderLean:this.lean,amount=bikeRiderLean(lean,this.assets.bike.fullAnimLean),right=this.quad?lean>0:this.steer>0;
-  return {block:prefix,seat:this.seat(),time:this.rideTime,idle:prefix?idle.toLowerCase():idle,overlay:amount>.05?{clip:`${prefix}_${right?'right':'left'}`.toLowerCase(),amount}:undefined};
+  return {block:prefix,seat:this.seat(),time:this.rideTime,idle:prefix?idle.toLowerCase():idle,passenger:`${clipPrefix}_${bicycle?'ride':'passenger'}`.toLowerCase(),overlay:amount>.05?{clip:`${clipPrefix}_${right?'right':'left'}`.toLowerCase(),amount}:undefined};
  }
  /** SetupLightingForEntity's multiplier, GetLightingFromCol(true) × 0.95 + 0.05: the object ambient's mean with a
   * contact brightness of 0.5 stands in (this vehicle keeps no contact lighting). */

@@ -265,6 +265,7 @@ export interface ScmMissionWorld {
  /** The player's own ped, which is the only ped the browser holds while the opening runs: its position in
   * native axes, the vehicle it is in if any, whether it has stopped, and its health. */
  playerPed():{
+  /** GET_CHAR_COORDINATES position: the vehicle origin while seated; the actual ped matrix is separate. */
   position:{x:number;y:number;z:number};
   /** The vehicle it is in, as eVehicleAppearance and whether that vehicle is a train. */
   vehicle:{appearance:number;train:boolean;model?:number;inAirProper?:()=>boolean;
@@ -273,6 +274,8 @@ export interface ScmMissionWorld {
   stopped:boolean;health:number;dead:boolean;
   /** CPlaceable::GetHeading in degrees, as the script reads a ped's. */
   heading?:number;
+  /** CPed's actual matrix for offset commands; coordinate/heading commands select the vehicle separately. */
+  matrix?:ReturnType<NonNullable<ScmWorldCommands['pedMatrix']>>;
   /** CEntity::GetAreaCode: the interior it is in, zero being the normal world. */
   areaCode:number;
   /** CPed::m_aWeapons as the types it carries, and the one it is holding. */
@@ -394,8 +397,11 @@ export interface ScmMissionWorld {
  spawnScriptPedOnCar(pedType:number,model:number|string,car:unknown,offset:{x:number;y:number;z:number},turret?:number):Promise<unknown>;
  placeScriptPed(ped:unknown,position:{x:number;y:number;z:number}):void;
  setScriptPedHeading(ped:unknown,degrees:number):void;
+ /** Script coordinate/heading queries select the vehicle for a seated ped. The actual ped matrix is separate. */
  scriptPedPosition(ped:unknown):{x:number;y:number;z:number};
  scriptPedHeading(ped:unknown):number;
+ /** CPed's matrix while seated; undefined lets the existing upright on-foot adapter answer. */
+ scriptPedMatrix?(ped:unknown):ReturnType<NonNullable<ScmWorldCommands['pedMatrix']>>|undefined;
  scriptPedHealth(ped:unknown):number;
  setScriptPedHealth(ped:unknown,health:number):void;
  killScriptPed(ped:unknown):void;
@@ -2539,11 +2545,12 @@ export class ScmMission {
     const heading=this.world.playerPed().heading;if(heading===undefined)throw new UnsupportedScmCommand(-1,0,'GET_CHAR_HEADING','player heading');
     return heading;
    },
-   // A ped stands upright: its matrix is its heading's turn about the vertical, at its position. The player's comes
-   // from the host; one the host does not know is not guessed.
+   // Offset commands read the ped's actual seated matrix. The existing on-foot adapter supplies an upright
+   // heading frame when the host has no full matrix; coordinate/heading commands keep their separate shortcuts.
    pedMatrix:handle=>{
-    if(handle===PLAYER_PED_HANDLE){const player=this.world.playerPed();if(player.heading===undefined)throw new UnsupportedScmCommand(-1,0,'GET_OFFSET_FROM_CHAR_IN_WORLD_COORDS','player heading');
+    if(handle===PLAYER_PED_HANDLE){const player=this.world.playerPed(),matrix=player.matrix;if(matrix)return matrix;if(player.heading===undefined)throw new UnsupportedScmCommand(-1,0,'GET_OFFSET_FROM_CHAR_IN_WORLD_COORDS','player heading');
      return {...headingFrame(player.heading*Math.PI/180),position:player.position};}
+    const ped=this.peds.entity(handle),matrix=ped!==undefined?this.world.scriptPedMatrix?.(ped):undefined;if(matrix)return matrix;
     return {...headingFrame(this.peds.headingOf(handle)*Math.PI/180),position:this.ridingIn(handle)??this.peds.positionOf(handle)};
    },
    setPedCoordinates:(handle,x,y,z)=>{if(handle===PLAYER_PED_HANDLE)this.teleportPlayer(x,y,z,'SET_CHAR_COORDINATES');else this.peds.setPosition(handle,{x,y,z});},

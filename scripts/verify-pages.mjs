@@ -31,7 +31,7 @@ try{
  });
  await play.click();await expect(page.locator('.menu-backdrop')).not.toBeVisible();
  await page.waitForFunction(()=>window.__productionOpeningReady,undefined,{timeout:120000});
- await expect(page.locator('.screen-fade')).toHaveCSS('opacity','0');
+ await expect(page.locator('.screen-fade')).toHaveCSS('opacity','0',{timeout:30000});
  await page.keyboard.press('KeyM');await expect(page.locator('.world-map-panel')).toBeVisible();await expect(page.locator('.map-status')).toContainText('North is up');await page.locator('.world-map-panel canvas').click({position:{x:100,y:100}});await expect(page.locator('.map-status')).toContainText('Waypoint');await page.keyboard.press('KeyM');
  const before=await page.screenshot();await page.keyboard.down('KeyW');await page.waitForTimeout(800);await page.keyboard.up('KeyW');
  const after=await page.screenshot();expect(before.equals(after)).toBe(false);

@@ -105,10 +105,10 @@ function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp'
    continue;
   }
   // The pillion (pPassengers[0]) sits at the model's ped_backseat (SetPedPositionInCar), holding the ride group's
-  // BIKE_PASSENGER (iOS 0x1003d6134 blends it from GetRideAnimData's group); a bike with no back seat or no passenger
-  // clip (the BMX, the mountain bike) has none. TWAR7's OG Loc rode CJ's PCJ-600 unseen.
+  // BIKE_PASSENGER (iOS 0x1003d6134 blends it from GetRideAnimData's group); a bike without a rear dummy has none.
+  // TWAR7's OG Loc rode CJ's PCJ-600 unseen.
   if(!isScriptCar(rider.car)&&typeof bike.riderPose==='function'&&typeof bike.backSeat==='function'&&bike.car&&!rider.offset&&rider.seat!=='driver'){
-   const seat=bike.backSeat(),block=bike.riderPose().block,name=`${block}_passenger`.toLowerCase(),clip=seat&&block?bikeClip?.(block,name):undefined;
+   const seat=bike.backSeat(),ride=bike.riderPose(),block=ride.block,name=ride.passenger,clip=seat&&block?bikeClip?.(block,name):undefined;
    // A pillion's drive-by (TWAR7's OG Loc at Freddy): BIKE_DBZ's clip (bike_dbz.ifp) toward where it aims, the gun in hand.
    const d=rider.driveBy,aim=d?.aimPoint;
    if(seat&&d&&aim){
@@ -153,6 +153,15 @@ function vesselSeat(ridden:unknown,seat:'driver'|number){
  const frames=ridden.assets.model?.frames;
  return {vessel:ridden,local:nativeSeatPosition({front:modelDummy(frames,'ped_frontseat'),back:modelDummy(frames,'ped_backseat'),boat:ridden instanceof WorldBoat},seat)};
 }
+/** The actual seated ped matrix; script coordinate/heading commands deliberately use the vehicle's instead. */
+function seatedPedMatrix(car:unknown,seat:'driver'|number){
+ if(!(isScriptCar(car)||isScriptBike(car)||car instanceof WorldBoat||car instanceof WorldPlane)||car.disposed)return undefined;
+ let frame:{local:{x:number;y:number;z:number};headingOffset?:number};
+ if(isScriptCar(car))frame=car.seatPose(seat);
+ else if(isScriptBike(car))frame={local:nativeSeatPosition({front:car.seat(),back:car.backSeat(),bike:!car.quad,quad:car.quad},seat)};
+ else frame={local:vesselSeat(car,seat)!.local};
+ return nativeSeatedPedMatrix(car.car.body.translation(),car.car.body.rotation(),frame.local,{headingOffset:frame.headingOffset,...(isScriptBike(car)?{bikeLean:car.lean,boundsMinZ:car.assets.collision.bounds.min[2]}:{})});
+}
 /** The browser's walking ped behind a script handle, or nothing when the handle names a ped that rides. */
 const onFoot=(entity:unknown)=>asRider(entity)?undefined:entity as import('./simulation/WorldPedestrians').Pedestrian|undefined;
 import {canPedStepOutCar} from './vehicle/nativeDieInCar';
@@ -164,6 +173,7 @@ import {BoatWakes} from './render/BoatWakes';
 import {CarEntry,nativeRideAnims,nativeSteerOverlay} from './simulation/CarEntry';
 import {BikeMount,bikeTooFastToBoard} from './simulation/BikeMount';
 import {MODEL_FLAG,sitClip} from './simulation/nativeDoor';
+import {nativeSeatedPedMatrix} from './simulation/nativeSeatedPedMatrix';
 import {WorldPickups} from './simulation/WorldPickups';
 import {updatePlayerSwim} from './simulation/playerSwim';
 import {vehicleDestroyed} from './simulation/vehicleDestroyed';
@@ -4610,8 +4620,8 @@ async function boot() {
       render.cameraFocus={x:x+(t.x-x)*k,y:y+(t.y-y)*k+rise,z:z+(t.z-z)*k};
      }}
     const passengerBike=playerPassenger&&isScriptBike(playerPassenger.car)?playerPassenger.car:undefined;
-    const passengerBlock=passengerBike?.riderPose().block;
-    const passengerSeat=playerPassenger&&passengerSeatLocal(playerPassenger.car,playerPassenger.seat),passengerClip=passengerBlock?`${passengerBlock}_passenger`.toLowerCase():playerPassenger&&sitClip(playerPassenger.car.modelFlags,false);
+    const passengerBikePose=passengerBike?.riderPose(),passengerBlock=passengerBikePose?.block;
+    const passengerSeat=playerPassenger&&passengerSeatLocal(playerPassenger.car,playerPassenger.seat),passengerClip=passengerBikePose?passengerBikePose.passenger:playerPassenger&&sitClip(playerPassenger.car.modelFlags,false);
     const passengerFrame=playerPassenger&&isScriptCar(playerPassenger.car)?carEntry.passengerFrame(playerPassenger.car,playerPassenger.seat):passengerSeat?{local:passengerSeat}:undefined;
     if(passengerClip){const clip=passengerBlock?carEntry.clips.peek(passengerBlock,passengerClip):carEntry.clips.ped(passengerClip);if(clip)render.nativeCharacter?.installVehicleClips({[passengerClip.toLowerCase()]:clip});}
     if(playerPassenger&&passengerFrame&&passengerClip&&render.nativeCharacter?.hasVehicleClip(passengerClip)){
@@ -5992,6 +6002,7 @@ async function boot() {
                  setScriptPedRotation:(ped,x,y,z)=>{const p=onFoot(ped);if(p){p.actor.player.heading=scriptYaw(z);p.actor.player.tilt=scriptTilt(x,y);}},
                  scriptPedPosition:ped=>{const r=asRider(ped);if(r){const body=r.car.car.body,q=body.translation();if(r.offset){const rot=body.rotation(),p=new Vector3(r.offset.x,r.offset.z,-r.offset.y).applyQuaternion(new Quaternion(rot.x,rot.y,rot.z,rot.w)).add(q as Vector3);return {x:p.x,y:-p.z,z:p.y};}return {x:q.x,y:-q.z,z:q.y};}const q=onFoot(ped)!.actor.player.position;return {x:q.x,y:-q.z,z:q.y+PED_ORIGIN_HEIGHT};},
                  scriptPedHeading:ped=>{const r=asRider(ped);const yaw=r?r.car.heading()+(r.offset?r.facing??0:0):onFoot(ped)!.actor.player.heading;const degrees=(yaw-Math.PI)*180/Math.PI;return ((degrees%360)+360)%360;},
+                 scriptPedMatrix:ped=>{const r=asRider(ped);return r&&!r.offset?seatedPedMatrix(r.car,r.seat):undefined;},
                  scriptPedHeadingRate:ped=>asRider(ped)?.headingChange??onFoot(ped)?.headingChange??7.5,
                  scriptPedHealth:ped=>asRider(ped)?.health??onFoot(ped)?.health??0,
                  setScriptPedHealth:(ped,health)=>{const r=asRider(ped);if(r){if(health<=0)scriptRiderDeath(r,gameTimeMs,(file,name)=>pedestrians?.scriptAnimation(file,name)??Promise.resolve(undefined));else r.health=health;}else{const p=onFoot(ped);if(p){if(health<=0)pedestrians?.restoreDeadScriptPed(p);else p.health=health;}}},
@@ -6967,9 +6978,9 @@ async function boot() {
                   // CVehicle::GetVehicleAppearance follows handling flags, including the helicopter/plane distinction.
                   const appearance=vehicle?nativeVehicleAppearance(vehicle.modelFlags):0;
                   return {
-                   // CPed::GetPosition is the ped's origin, its collision's centre a unit above the feet
-                   // (GetDistanceFromCentreOfMassToBaseOfModel); in a vehicle it is the vehicle's, which the player's
-                   // position already follows.
+                   get matrix(){return vehicle?seatedPedMatrix(vehicle,playerPassenger?playerPassenger.seat-1:'driver'):undefined;},
+                   // GET_CHAR_COORDINATES selects the vehicle in a seat; on foot it selects the ped origin,
+                   // a unit above the feet (GetDistanceFromCentreOfMassToBaseOfModel).
                    position:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y+(vehicle?0:PED_ORIGIN_HEIGHT)},
                    vehicle:vehicle?{appearance,train:false,model:vehicle.modelId,passenger:!!playerPassenger&&car===playerPassenger.car,passengerSeat:playerPassenger?playerPassenger.seat-1:undefined,inAirProper:()=>!(isScriptCar(car)?car.audio.contactWheels>0:'airborne' in vehicle&&!(vehicle as {airborne:boolean}).airborne)&&!touchesBuildingOrVehicle(car?car.car.body:(vehicle as {body:import('@dimforge/rapier3d-compat').RigidBody}).body)}:undefined,
                    stopped:speed<0.01&&(!!vehicle||sim.player.grounded),

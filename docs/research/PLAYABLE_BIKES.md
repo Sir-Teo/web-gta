@@ -23,3 +23,9 @@ dummy reject the seat. See [player passenger implementation and remaining scope]
 The thirteen motorcycle and bicycle front forks also follow their native rake
 axes with interpolated steering ([source and live model checks](BIKE_STEERING.md)).
 Handlebar hand tasks and complete suspension articulation remain separate work.
+
+Stationary quad riders use QUAD_ride in both native ride/still association slots;
+there is no QUAD_still in the shipped block. Scripted quad drivers now remain
+drawn at rest. Seated script offset commands also use the real lean/seat matrix,
+while coordinate and heading commands retain the native vehicle shortcut
+([source and verification](SEATED_PED_MATRICES.md)).

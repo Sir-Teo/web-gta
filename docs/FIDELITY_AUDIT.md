@@ -13624,3 +13624,13 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   the quaternion and mounting transform. Hand tasks/handlebar placement, native
   suspension and retail PC comparison remain open.
   [Source and verification scope](research/BIKE_STEERING.md).
+
+## Seated script offset matrices and quad idle riders (October 25, 2026)
+
+- GET_OFFSET_FROM_CHAR_IN_WORLD_COORDS now receives supported seated player/NPC
+  matrices, including van rear-seat facing and bike lean. The native
+  GET_CHAR_COORDINATES/GET_CHAR_HEADING vehicle shortcuts are retained.
+- Live cases compare all four matrix vectors to rendered player and NPC roots.
+  The quad uses the original QUAD_ride association at rest, restoring the
+  previously missing stationary script driver; Wayfarer uses its WF_* clip names.
+  [Exact command semantics, source and validation scope](research/SEATED_PED_MATRICES.md).
