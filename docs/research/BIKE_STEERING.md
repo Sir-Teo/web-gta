@@ -35,8 +35,9 @@ mounting-point preservation. Existing wheel, riding, jump, knock-off and water
 checks run alongside it.
 
 This is the fork-transform integration. Native handlebar placement through the
-rider's hand tasks, front/rear suspension articulation, mudguards, pedal cranks,
+rider's hand tasks, front/rear suspension articulation, mudguards,
 quad steering geometry and original bike dynamics remain outside this change.
+Pedal cranks were subsequently integrated in [the bicycle pedal slice](BICYCLE_PEDALS.md).
 There are no matched retail PC steering captures yet.
 
 The final full unit run passes 5,389 tests with 51 skipped. All nine live fleet,

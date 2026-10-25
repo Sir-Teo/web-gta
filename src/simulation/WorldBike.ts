@@ -11,6 +11,8 @@ import {vehicleDestroyed} from './vehicleDestroyed';
 import {bikeWheelSupports} from '../vehicle/nativeBikeWheels';
 import {bindBikeWheelRoll} from '../render/bikeWheelRoll';
 import {bindBikeSteering} from '../render/bikeSteering';
+import {bindBicyclePedals} from '../render/bicyclePedals';
+import {stepBicycleCrank} from './bicycleCrank';
 import {stepBikeWheelRoll,type BikeWheelRoll} from './bikeWheelRoll';
 import {stepWheelAnimation} from './nativeWheelAnimation';
 import {bindNativeCarLod} from '../render/nativeCarLod';
@@ -229,6 +231,7 @@ export class WorldBike {
  private previous:{x:number;y:number;z:number};private previousRotation:RAPIER.Rotation;
  private wheelRoll?:ReturnType<typeof bindBikeWheelRoll>;
  private forkSteering?:ReturnType<typeof bindBikeSteering>;private previousSteer=0;
+ private pedals?:ReturnType<typeof bindBicyclePedals>;private crankAngle=0;private previousCrankAngle=0;
  private wheelPoses:BikeWheelRoll[]=[];private previousWheelAngles:number[]=[];private wheelStepSeconds=0;
  /** CVehicleModelInfo's detail switch: chassis_vlo stands in for the full model only past the LOD distance. */
  private lod?:ReturnType<typeof bindNativeCarLod>;
@@ -258,6 +261,7 @@ export class WorldBike {
   if(this.visual){
    this.wheelRoll=bindBikeWheelRoll(this.visual.root,assets.wheelFrames);
    if(!this.quad)this.forkSteering=bindBikeSteering(this.visual.root,assets.model,assets.vehicle.misc??-1);
+   if(BMX_MODELS.has(this.modelId))this.pedals=bindBicyclePedals(this.visual.root,assets.model);
    this.wheelPoses=[...assets.wheelFrames.front,...assets.wheelFrames.rear].map(()=>({rotation:0,speed:0}));this.previousWheelAngles=this.wheelPoses.map(()=>0);
   }
   // Bike TXDs carry no vehiclelights128 texture, so the lamp pass mounts glow
@@ -367,6 +371,7 @@ export class WorldBike {
  beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean;disabled?:boolean}={throttle:0,steer:0,brake:false}){
   this.wheelStepSeconds=0;
   this.previousSteer=this.steer;
+  this.previousCrankAngle=this.crankAngle;
   if(this.wheelRoll)this.previousWheelAngles=this.wheelPoses.map(p=>p.rotation);
   this.clumpAlpha.step(dt);
   // ProcessDelayedExplosion, which CBike::ProcessControl runs too, whether or not the body is in the world: a blast's
@@ -496,6 +501,8 @@ export class WorldBike {
   * that tips the nose is left out: this controller keeps the bike from pitching. */
  /** The ANIM_ID_BIKE_BUNNYHOP clip's length for a CBmx model's ride group, once loaded. */
  static hopClipSeconds?:(modelId:number)=>number|undefined;
+ /** Metadata for the same loaded IFP association the rider renderer samples. */
+ static riderClipSeconds?:(block:string,clip:string)=>number|undefined;
  /** CBmx::ProcessBunnyHop. Under DisablePlayerControls the press is refused and the charge dropped. */
  /** iOS g_hopCooldown (0x100aacc58), seconds: LaunchBunnyHopCB sets it to 0.5, and each CBmx's ProcessControl takes
   * its frame off it (one counter for every BMX); while it runs ProcessBunnyHop is not called at all. */
@@ -635,7 +642,13 @@ export class WorldBike {
  afterStep(){
   if(this.wheelRoll&&this.wheelStepSeconds>0){
    const dt=this.wheelStepSeconds;this.wheelStepSeconds=0;
-   if(this.body.isEnabled())this.advanceWheelRoll(dt);
+   if(this.body.isEnabled()){
+    this.advanceWheelRoll(dt);
+    if(this.pedals&&(this.occupied||WorldBike.hasDriverPed?.(this))){
+     const pose=this.riderPose(),duration=pose.idle.endsWith('_pedal')?WorldBike.riderClipSeconds?.(pose.block,pose.idle):undefined;
+     this.crankAngle=stepBicycleCrank(this.crankAngle,dt*50,duration&&duration>0?{seconds:pose.time,duration}:undefined);
+    }
+   }
   }
   // A new step: its pairs are read when first asked for (a resting bike with no step speed has no props pass).
   this.stepPairsRead=false;
@@ -830,6 +843,7 @@ export class WorldBike {
  update(alpha:number){
   this.forkSteering?.update((this.previousSteer+(this.steer-this.previousSteer)*alpha)*this.assets.handling.values.steeringLock*Math.PI/180);
   this.wheelRoll?.update(this.previousWheelAngles,this.wheelPoses.map(p=>p.rotation),alpha);
+  this.pedals?.update(this.previousCrankAngle,this.crankAngle,alpha);
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
   const lit=this.lightsOn&&!this.wrecked;
   if(this.lamp)this.lamp.visible=lit;

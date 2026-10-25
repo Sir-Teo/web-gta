@@ -1,0 +1,120 @@
+{
+  "source": {
+    "url": "https://raw.githubusercontent.com/Google61/gta3sa.app/67f70cb72eb207aeca650ea9e8c10b0e7dda166a/gta3sa",
+    "bytes": 14226544,
+    "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78"
+  },
+  "functions": [
+    "CBmx::ProcessDrivingAnims",
+    "CBmx::PreRender"
+  ],
+  "notes": [
+    "Animation IDs 207/208 are BIKE_PEDAL/BIKE_SPRINT; the selected association phase sets crank = -2pi * currentTime / duration.",
+    "Without an active association, crank *= pow(float32(0.97), CTimer::ms_fTimeStep).",
+    "Both pedal angles are -crank. Chainset/pedal_r/pedal_l nodes are optional and their matrices use SetRotate(angle, 0, 0), restoring their original translation.",
+    "The bunny-hop association blends the crank towards pi/2; that association and native transition selection are not yet ported by the browser rider controller."
+  ],
+  "constants": {
+    "negativeTau": -6.2831854820251465,
+    "restKeep": 0.9700000286102295,
+    "hopTarget": 1.5707963705062866
+  },
+  "instructions": [
+    {
+      "address": "0x100459bc8",
+      "word": "0x528019c1"
+    },
+    {
+      "address": "0x100459bec",
+      "word": "0xbd4ab502"
+    },
+    {
+      "address": "0x10045a0a8",
+      "word": "0xbd403b00"
+    },
+    {
+      "address": "0x10045a0b0",
+      "word": "0xbd47e901"
+    },
+    {
+      "address": "0x10045a0b4",
+      "word": "0x1e210800"
+    },
+    {
+      "address": "0x10045a0b8",
+      "word": "0xf9401708"
+    },
+    {
+      "address": "0x10045a0bc",
+      "word": "0xbd401901"
+    },
+    {
+      "address": "0x10045a0c0",
+      "word": "0x1e211800"
+    },
+    {
+      "address": "0x10045a0e0",
+      "word": "0xbd41e900"
+    },
+    {
+      "address": "0x10045a0e4",
+      "word": "0x94024d3f"
+    },
+    {
+      "address": "0x10045a0ec",
+      "word": "0x1e210800"
+    },
+    {
+      "address": "0x10045a0f0",
+      "word": "0xbd0a2660"
+    },
+    {
+      "address": "0x10045a214",
+      "word": "0x1e214000"
+    },
+    {
+      "address": "0x10045a218",
+      "word": "0xbd0a2a60"
+    },
+    {
+      "address": "0x10045a21c",
+      "word": "0xbd0a2e60"
+    },
+    {
+      "address": "0x10045aca0",
+      "word": "0xf943ca68"
+    },
+    {
+      "address": "0x10045acc4",
+      "word": "0xbd4a2660"
+    },
+    {
+      "address": "0x10045acd4",
+      "word": "0x97f9bcf9"
+    },
+    {
+      "address": "0x10045ad04",
+      "word": "0xf943ce68"
+    },
+    {
+      "address": "0x10045ad28",
+      "word": "0xbd4a2a60"
+    },
+    {
+      "address": "0x10045ad38",
+      "word": "0x97f9bce0"
+    },
+    {
+      "address": "0x10045ad68",
+      "word": "0xf943d268"
+    },
+    {
+      "address": "0x10045ad8c",
+      "word": "0xbd4a2e60"
+    },
+    {
+      "address": "0x10045ad9c",
+      "word": "0x97f9bcc7"
+    }
+  ]
+}

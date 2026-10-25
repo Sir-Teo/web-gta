@@ -13634,3 +13634,15 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   The quad uses the original QUAD_ride association at rest, restoring the
   previously missing stationary script driver; Wayfarer uses its WF_* clip names.
   [Exact command semantics, source and validation scope](research/SEATED_PED_MATRICES.md).
+
+## Bicycle crank and pedal frames (October 25, 2026)
+
+- BMX, Chopper and Mountain Bike cranks now follow their rider's loaded IFP
+  phase. Pedals counter-rotate within the original hierarchy to keep treads
+  level, preserve their mounting points and replace the native rest basis.
+- The native association-phase, rest-damping and frame math are captured from
+  the pinned executable. Live checks cover all three original models, script
+  drivers, frozen/abandoned bikes and repeated rendering. The existing rider
+  selection/cadence controller remains approximate; sprint and bunny-hop
+  association blending remain open.
+  [Source and verification scope](research/BICYCLE_PEDALS.md).
