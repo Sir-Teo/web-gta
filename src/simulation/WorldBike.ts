@@ -120,6 +120,33 @@ export class WorldBike {
  /** Set by blowUp until the weapon system spawns its explosion. */
  pendingExplosion=false;
  occupied=false;throttle=0;steer=0;brake=false;message?:string;
+ /** A pillion is an occupant without owning the bike's controls, AI or recording. */
+ playerPassengerSeat=0;
+ get playersVehicle(){return this.occupied||this.playerPassengerSeat>0;}
+ get maximumPassengers(){return this.backSeat()?1:0;}
+ setPlayerInAsPassenger(seat:number){
+  this.playerPassengerSeat=seat;this.sim.setCrouched(false);this.sim.cameraExcludedBody=this.body;this.sim.playerCollider.setEnabled(false);
+  this.sim.player.moveBlend=0;this.sim.player.speed=0;this.sim.player.jumpMomentum={x:0,z:0};this.syncPlayer();
+ }
+ setPlayerOutAsPassenger(foot:{x:number;y:number;z:number},heading=this.sim.player.heading){
+  this.playerPassengerSeat=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);
+  this.sim.player.position={...foot};this.sim.player.previous={...foot};this.sim.player.heading=heading;this.sim.player.moveBlend=0;
+  this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.jumpMomentum={x:0,z:0};this.sim.player.grounded=false;
+  const centre={...foot,y:foot.y+.9};this.sim.playerBody.setTranslation(centre,true);this.sim.playerBody.setNextKinematicTranslation(centre);
+ }
+ worldPoint(local:{x:number;y:number;z:number}){return new Vector3(local.x,local.z,-local.y).applyQuaternion(new Quaternion().copy(this.body.rotation())).add(this.body.translation());}
+ canStepOut(){const v=this.body.linvel(),w=this.body.angvel(),s=1/50;return Math.hypot(v.x,v.z)*s<=.01&&Math.abs(v.y)*s<=.05&&(w.x*w.x+w.y*w.y+w.z*w.z)*s*s<=.0004;}
+ /** CVehicle::CanPedJumpOutCar (0x6D2030): a pillion may jump at v2D squared >= 0.07; the quad is an automobile. */
+ canJumpOut(seconds=1/50){
+  const v=this.body.linvel(),s=1/50,v2=(v.x*v.x+v.z*v.z)*s*s;
+  if(!this.quad)return v2>=.07;
+  const up=rotate(this.body.rotation(),{x:0,y:1,z:0});
+  if(!(up.y<.3&&this.lastCollisionSeconds<=1))return v2>=.1&&v2<=.5;
+  if(v2>=.1)return true;if(this.canStepOut())return false;
+  const tenth=Math.pow(.9,seconds*30),w=this.body.angvel();this.body.setAngvel({x:w.x*tenth,y:w.y*tenth,z:w.z*tenth},true);
+  const ts=seconds*50,m2=(v.x*v.x+v.y*v.y+v.z*v.z)*s*s,mult=m2/100>(ts*.008)**2?tenth:Math.max(0,1-ts/Math.sqrt(m2)*.016);
+  this.body.setLinvel({x:v.x*mult,y:v.y*mult,z:v.z*mult},true);return false;
+ }
  /** CAutoPilot's pedals while a script drives the bike (ScriptCarMissions), and whether the player's own bike is on a
   * script's driving task. */
  autopilot?:import('./WorldCar').WorldCar['autopilot'];scriptDriven?:boolean;
@@ -269,7 +296,7 @@ export class WorldBike {
   * blow-up-cars cheat and a wreck included). */
  blowUp(byPlayer=false){
   if(this.wrecked||!this.motorbike||this.canBeDamaged===false)return;this.explosionByPlayer=byPlayer;this.wrecked=true;this.health=0;this.bombTimerMs=0;this.pendingExplosion=true;vehicleDestroyed.report?.('road',this.modelId);
-  if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
+  if(this.playersVehicle){this.occupied=false;this.playerPassengerSeat=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
  }
  /** Set upright at its heading, still, just clear of the ground: the end of a pick-up (CBike's bGettingPickedUp). */
  standUpright(){
@@ -600,12 +627,15 @@ export class WorldBike {
   }
   this.collisionKnockOff();
   if(this.pendingExplosion){this.pendingExplosion=false;return true;}
-  if(!this.occupied)return false;
+  if(!this.playersVehicle)return false;
   const up=rotate(this.body.rotation(),{x:0,y:1,z:0});
   if(up.y<0){this.finishExit();this.message='The bike tipped over.';return false;}
+  this.syncPlayer();return false;
+ }
+ private syncPlayer(){
   const p=this.body.translation(),player=this.sim.player;
   player.previous={...player.position};player.position={...p};player.heading=this.heading();player.speed=Math.abs(this.speed());player.grounded=true;
-  this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});return false;
+  this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});
  }
  /** WATER.DAT's level at a native (x, y), which the fleet hands its bikes. */
  waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean,normal?:number[])=>number|undefined;
@@ -627,7 +657,7 @@ export class WorldBike {
   if(!result.inWater)return;
   const [mx,my,mz]=state.moveSpeed;this.body.setLinvel({x:mx*50,y:mz*50,z:-my*50},true);this.body.setAngvel({x:w.x,y:state.turnSpeed[2]*50,z:w.z},true);
   if(!result.drowning)return;
-  if(!this.occupied){this.throttle=0;return;}
+  if(!this.playersVehicle){this.throttle=0;return;}
   if(this.sim.player.health<=0)return;
   this.sim.handlePlayerBreath(dt);
   if(offGround)this.fallOff();
@@ -653,7 +683,7 @@ export class WorldBike {
   // CBike::DamageKnockOffRider: a rider the script keeps on (CANT_BE_KNOCKED_OFF_NEVER) is never thrown, and the
   // force is zeroed for the player on stairs (CamStairsForPlayer and a stairs zone holding him).
   const mass=this.assets.handling.values.mass;let knocked=false;
-  if(hit&&this.occupied&&!WorldBike.riderStaysOn?.()&&!WorldBike.playerOnStairs?.()){
+  if(hit&&this.playersVehicle&&!WorldBike.riderStaysOn?.()&&!WorldBike.playerOnStairs?.()){
    const q=this.body.rotation(),right=rotate(q,{x:1,y:0,z:0}),forward=rotate(q,{x:0,y:0,z:-1}),up=rotate(q,{x:0,y:1,z:0}),n=hit.normal;
    const dir={fwd:n.x*forward.x+n.y*forward.y+n.z*forward.z,up:n.x*up.x+n.y*up.y+n.z*up.z,right:n.x*right.x+n.y*right.y+n.z*right.z};
    const force=knockOffForce({intensity:hit.intensity,mass,player:true,skill:WorldBike.ridingSkill?.()??0,dir,worldZ:n.y,upZ:up.y,sanchez:this.modelId===468,quad:this.quad});
@@ -732,7 +762,7 @@ export class WorldBike {
   * bike and 5 up it over his 70 kg (ApplyMoveForce); faster, he keeps the ride's speed. It is not forced, so a rider
   * the script keeps on stays on. Returns whether he came off. */
  explosionKnockOff(){
-  if(!this.occupied||WorldBike.riderStaysOn?.())return false;
+  if(!this.playersVehicle||WorldBike.riderStaysOn?.())return false;
   const spot=this.knockOffSpot();if(!spot)return false;
   const v={...this.body.linvel()};this.leave(spot);
   if(Math.hypot(v.x,v.y,v.z)/50<.3){
@@ -763,6 +793,7 @@ export class WorldBike {
  }
  /** CTaskSimpleCarSetPedOut: the rider is off the bike at `spot`. */
  private leave(spot:{x:number;y:number;z:number}){
+  if(this.playerPassengerSeat){this.setPlayerOutAsPassenger(spot);return;}
   this.occupied=false;this.throttle=0;this.steer=0;this.rawSteer=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.player.position=spot;this.sim.player.previous={...spot};this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});this.sim.playerCollider.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z});
  }
  update(alpha:number){

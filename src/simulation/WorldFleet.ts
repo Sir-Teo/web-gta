@@ -379,7 +379,7 @@ export class WorldFleet {
  /** The start window's frames, counted down once a frame (CTheCarGenerators::Process), not per 500 ms update. */
  /** A game frame: the start window's count, and CPlayerPed::ProcessControl's RegisterVehicleOfInterest for the
   * vehicle he is in (`passengerOf`, the car he rides in as a passenger) with CCarCtrl::PruneVehiclesOfInterest. */
- tickFrame(frame=0,timeMs=0,passengerOf?:WorldCar|WorldPlane){
+ tickFrame(frame=0,timeMs=0,passengerOf?:WorldCar|WorldPlane|WorldBike){
   if(this.closeCounter>0)this.closeCounter--;
   const ridden=this.occupied??this.occupiedBike??this.occupiedBoat??this.occupiedPlane??passengerOf;
   if(ridden)this.vehiclesOfInterest.register(ridden,timeMs);

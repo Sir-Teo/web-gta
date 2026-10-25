@@ -82,6 +82,7 @@ function scriptRiderShot(rider:ScriptRider,damage:number,_weapon:number,byPlayer
 }
 /** A script vehicle that is a car (WorldCar) rather than a bike, boat, aircraft or train carriage. */
 const isScriptCar=(v:unknown):v is import('./simulation/WorldCar').WorldCar=>!!v&&typeof (v as {setPedInAsDriver?:unknown}).setPedInAsDriver==='function';
+const isScriptBike=(v:unknown):v is import('./simulation/WorldBike').WorldBike=>!!v&&typeof (v as {riderPose?:unknown}).riderPose==='function';
 /** A script vehicle CAutoPilot drives: a car, or a bike, whose rider takes the autopilot's pedals. */
 const isScriptDrivable=(v:unknown):v is import('./simulation/ScriptCarMissions').ScriptDrivable=>isScriptCar(v)||!!v&&typeof (v as {autopilotInput?:unknown}).autopilotInput==='function';
 /** The riders the occupant renderer should draw this frame, at their native front or rear seat dummies.
@@ -475,10 +476,18 @@ async function boot() {
   let towCameraBlend=0;
   /** The player riding a vehicle as a passenger (WARP_CHAR_INTO_CAR_AS_PASSENGER): the vehicle and its seat (1 front right,
    * 2 rear left, 3 rear right). The car goes on under its own driver, AI or recording. */
-  let playerPassenger:{car:ScriptCar|WorldPlane;seat:1|2|3}|undefined;
+  type PassengerVehicle=ScriptCar|WorldPlane|import('./simulation/WorldBike').WorldBike;
+  let playerPassenger:{car:PassengerVehicle;seat:1|2|3}|undefined;
   const playerAircraft=()=>fleet?.occupiedPlane??(playerPassenger?.car instanceof WorldPlane?playerPassenger.car:undefined);
-  const passengerSeatLocal=(car:ScriptCar|WorldPlane,seat:1|2|3)=>isScriptCar(car)?carEntry.passengerSeat(car,seat)
+  const passengerSeatLocal=(car:PassengerVehicle,seat:1|2|3)=>isScriptCar(car)?carEntry.passengerSeat(car,seat):isScriptBike(car)?car.backSeat()
    :nativeSeatPosition({front:modelDummy(car.assets.model.frames,'ped_frontseat'),back:modelDummy(car.assets.model.frames,'ped_backseat')},seat-1);
+  const warpPlayerPassenger=(car:unknown,seat:number)=>{
+   if(!(isScriptCar(car)||isScriptBike(car)||car instanceof WorldPlane)||car.disposed)return false;
+   if(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger)return false;
+   const chosen=(seat>=0&&seat<=2?seat+1:1) as 1|2|3;
+   if(!isScriptCar(car)&&chosen>car.maximumPassengers)return false;
+   carEntry.cancel();car.setPlayerInAsPassenger(chosen);playerPassenger={car,seat:chosen};return true;
+  };
   /** The exit button was pressed in a passenger seat: he gets out once the car is slow enough. */
   let passengerExitPending=false;
   /** CPed::m_pAttachedTo for the player (ATTACH_CHAR_TO_CAR): the vehicle, the offset in its axes (native), the side
@@ -883,13 +892,13 @@ async function boot() {
    const fx=ahead.x-c.x,fz=ahead.z-c.z,fl=Math.hypot(fx,fz);if(fl<1e-6)return undefined;
    return walkRoundCar(from,to,{center:{x:center.x,z:center.z},forward:{x:fx/fl,z:fz/fl},halfLength:(b.boundsMax.y-b.boundsMin.y)/2,halfWidth:(b.boundsMax.x-b.boundsMin.x)/2},WALK_ROUND_PAD);
   },
-  passengerDoor:(vehicle,seat)=>{const car=mission?.vehicles.entity(vehicle) as ScriptCar|undefined;if(!car||!isScriptCar(car)||car.disposed)return undefined;const local=carEntry.seatDoorPoint(car,seat);return local&&car.worldPoint(local);},
-  warpIntoCarAsPassenger:(vehicle,seat)=>{
-   const car=mission?.vehicles.entity(vehicle) as ScriptCar|undefined;
-   if(!car||!isScriptCar(car)||car.disposed||worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger)return false;
-   const chosen=(seat>=0&&seat<=2?seat+1:1) as 1|2|3;
-   carEntry.cancel();car.setPlayerInAsPassenger(chosen);playerPassenger={car,seat:chosen};return true;
+  passengerDoor:(vehicle,seat)=>{
+   const car=mission?.vehicles.entity(vehicle);if(!(isScriptCar(car)||isScriptBike(car))||car.disposed)return undefined;
+   if(isScriptCar(car)){const local=carEntry.seatDoorPoint(car,seat);return local&&car.worldPoint(local);}
+   if(isScriptBike(car)&&seat===0){const local=car.backSeat();return local&&car.worldPoint({...local,x:Math.max(Math.abs(car.assets.collision.bounds.min[0]),Math.abs(car.assets.collision.bounds.max[0]))+.6});}
+   return undefined;
   },
+  warpIntoCarAsPassenger:(vehicle,seat)=>warpPlayerPassenger(mission?.vehicles.entity(vehicle),seat),
   warpIntoCar:vehicle=>{const car=mission?.vehicles.entity(vehicle) as Partial<ScriptCar>|undefined;if(car&&typeof car.setPedInAsDriver==='function'&&!car.disposed&&!car.occupied){carEntry.cancel();carEntry.warpIn(car as ScriptCar);}},
   leaveCar:(vehicle,immediately)=>{
    // From a passenger seat he steps out beside it (the passenger's get-out clip is not ported).
@@ -4333,7 +4342,7 @@ async function boot() {
         // the player on foot.
         // FindPlayerVehicle counts a passenger seat. CPickups::Update skips the player's pickups while he runs
         // CTaskComplexEnterCarAsDriver (the walk to the door included, and a bike's mount) or the mobile phone.
-        const passenger=playerPassenger?.car,driven=worldCar?.occupied?worldCar:fleet?.occupied??(isScriptCar(passenger)?passenger:undefined),ridden=fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane??(passenger instanceof WorldPlane?passenger:undefined);
+        const passenger=playerPassenger?.car,driven=worldCar?.occupied?worldCar:fleet?.occupied??(isScriptCar(passenger)?passenger:undefined),ridden=fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane??(passenger instanceof WorldPlane||isScriptBike(passenger)?passenger:undefined);
         const pickupsBusy=carEntry.active||bikeMount.active||!!phones.get('player')?.active;
         pickups.step(step,driven?(point,radius)=>driven.sphereTouches(point,radius):ridden?(point,radius)=>!!ridden.assets.collision&&sphereTouchingVehicle(ridden.body,ridden.assets.collision.bounds,point,radius):pickupsBusy?()=>false:undefined,Math.floor(gameTimeExact*30/1000));
         const onFootDrops=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!playerPassenger&&!pickupsBusy;
@@ -4374,6 +4383,8 @@ async function boot() {
     if(!paused&&!navigation?.open&&!arsenal.open){stepPrebuild();scriptSceneTransfer();requestFollowingTerrain();}
     // A passenger whose car has gone or burnt out is set down beside it.
     if(playerPassenger&&(playerPassenger.car.disposed||playerPassenger.car.wrecked))leavePassengerSeat();
+    // A bike can throw its pillion during physics; keep the fall's position and momentum when clearing the render seat.
+    if(playerPassenger&&!playerPassenger.car.playerPassengerSeat){playerPassenger=undefined;passengerExitPending=false;}
     render.vehicleView=!!worldCar?.occupied||!!fleet?.occupiedPlane||!!fleet?.occupiedBoat||!!fleet?.occupiedBike||!!playerPassenger;
     {
       const p=sim.player,water=render.lighting.water.levels?.level(p.position.x,-p.position.z,p.position.y),entering=carEntry.active&&['approach','align','locked','open','pullout','getIn','closeInside','shuffle'].includes(carEntry.phase!);
@@ -4598,12 +4609,14 @@ async function boot() {
       const rise=towCameraBlend*Math.max(0,towed.assets.collision.bounds.max[2]-car.assets.collision.bounds.max[2]);
       render.cameraFocus={x:x+(t.x-x)*k,y:y+(t.y-y)*k+rise,z:z+(t.z-z)*k};
      }}
-    const passengerSeat=playerPassenger&&passengerSeatLocal(playerPassenger.car,playerPassenger.seat),passengerClip=playerPassenger&&sitClip(playerPassenger.car.modelFlags,false);
+    const passengerBike=playerPassenger&&isScriptBike(playerPassenger.car)?playerPassenger.car:undefined;
+    const passengerBlock=passengerBike?.riderPose().block;
+    const passengerSeat=playerPassenger&&passengerSeatLocal(playerPassenger.car,playerPassenger.seat),passengerClip=passengerBlock?`${passengerBlock}_passenger`.toLowerCase():playerPassenger&&sitClip(playerPassenger.car.modelFlags,false);
     const passengerFrame=playerPassenger&&isScriptCar(playerPassenger.car)?carEntry.passengerFrame(playerPassenger.car,playerPassenger.seat):passengerSeat?{local:passengerSeat}:undefined;
-    if(passengerClip){const clip=carEntry.clips.ped(passengerClip);if(clip)render.nativeCharacter?.installVehicleClips({[passengerClip.toLowerCase()]:clip});}
+    if(passengerClip){const clip=passengerBlock?carEntry.clips.peek(passengerBlock,passengerClip):carEntry.clips.ped(passengerClip);if(clip)render.nativeCharacter?.installVehicleClips({[passengerClip.toLowerCase()]:clip});}
     if(playerPassenger&&passengerFrame&&passengerClip&&render.nativeCharacter?.hasVehicleClip(passengerClip)){
       // The passenger sits in his seat (CTaskSimpleCarDrive's sit, not the driver's).
-      render.vehiclePose={frame:{vehicle:playerPassenger.car.car.root,...passengerFrame},pose:{clip:passengerClip,seconds:0,blend:1}};
+      render.vehiclePose={frame:{vehicle:playerPassenger.car.car.root,...passengerFrame},pose:{clip:passengerClip,seconds:passengerBlock?carEntry.clips.peek(passengerBlock,passengerClip)?.duration??0:0,blend:1}};
     }else if(climbAnim&&render.nativeCharacter?.hasVehicleClip(climbAnim.clip.toLowerCase())){
       render.vehiclePose={frame:{position:{x:lerp(p.previous.x,p.position.x),y:lerp(p.previous.y,p.position.y)+1,z:lerp(p.previous.z,p.position.z)},heading:p.heading},pose:{clip:climbAnim.clip.toLowerCase(),seconds:climbAnim.time,blend:climbAnim.blend}};
     }else if(swimJumpoutSeconds!==undefined&&sim.player.swimming&&render.nativeCharacter&&(()=>{const clip=carEntry.clips.peek('swim','Swim_Jumpout');if(clip&&!render.nativeCharacter.hasVehicleClip('swim_jumpout'))render.nativeCharacter.installVehicleClips({swim_jumpout:clip});return !!clip&&render.nativeCharacter.hasVehicleClip('climb_jump');})()){
@@ -5721,7 +5734,7 @@ async function boot() {
              // Reinforcements arrive with their car crews; do not synthesize extra nearby foot police.
              pedestrians.footOfficerLimit=()=>0;
              // PopulateInterior's interior peds are not generated; street peds only come outside (CanSeeOutSideFromCurrArea).
-             pedestrians.limits=()=>render.lighting.area!==0?{civilians:0,total:0}:scalePedLimits(fewerPedsLimits(fleet?.pedLimits(),cullZones.fewerPeds),(mission?.runtime.game.pedDensityMultiplier??1)*touchPopulation());pedestrians.pedZone=()=>fleet?.pedZone();pedestrians.trains=()=>[...(fleet?.trains??[])].filter(t=>!t.disposed).map(t=>({body:t.body,nativeBody:t.nativeBody,occupied:false,boundRadius:t.boundRadius,train:true}));pedestrians.pedTargets=()=>{const t=fleet?.pedTargets();return t&&scalePedTargets(t,(mission?.runtime.game.pedDensityMultiplier??1)*touchPopulation());};pedestrians.dontCreateRandomCops=()=>!!mission?.runtime.game.population.dontCreateRandomCops;pedestrians.copModel=()=>DEFAULT_COP_MODEL[fleet?.zoneLevel()??0];pedestrians.cameraKeepsPeds=()=>render.firstPerson==='sniper'||render.firstPerson==='camera'||render.glance!=='none';pedestrians.noCivilians=()=>gangWars?.dontCreateCivilians()??false;pedestrians.gangWarFighting=()=>!!gangWars?.gangWarFightingGoingOn();pedestrians.playerVehicle=()=>{const car=worldCar?.occupied?worldCar:fleet?.occupied;if(!car)return undefined;const t=car.car.body.translation();return {position:{x:t.x,y:t.y,z:t.z},alarm:car.alarm>0,law:LAW_ENFORCEMENT_MODELS.has(car.modelId),wrecked:car.wrecked};};pedestrians.bikes=()=>[...(fleet?.bikes??[])].map(bike=>({body:bike.body,nativeBody:bike.nativeBody,occupied:bike.occupied,boundRadius:bike.boundRadius}));pedestrians.playerRide=()=>{const bike=fleet?.occupiedBike;if(bike)return {body:bike.body,bike:true};const other=fleet?.occupiedBoat??fleet?.occupiedPlane;return other?{body:other.body,bike:false}:undefined;};pedestrians.playerVehicleSpeed=()=>{const car=worldCar?.occupied&&!worldCar.disposed?worldCar:fleet?.occupied&&!fleet.occupied.disposed?fleet.occupied:undefined;if(!car)return 0;const v=car.car.body.linvel();return Math.hypot(v.x,v.z)/50;};pedestrians.attractorsNear=(x,y,r)=>importedScene?.attractorsNear(x,y,r)??[];pedestrians.waterLevel=(x,y,z,touching)=>render.lighting.water.levels?.level(x,y,z,touching);pedestrians.visibleArea=()=>render.lighting.area;pedestrians.scriptDecisionMaker=slot=>mission?.scriptDecisions.get(slot);pedestrians.sameScriptGroup=(a,b)=>{const m=mission;if(!m)return false;const ha=m.peds.handleOf(a),hb=m.peds.handleOf(b);if(ha===undefined||hb===undefined)return false;for(const g of m.groups.values())if(g.isMember(ha)&&g.isMember(hb))return true;return false;};if(fleet)fleet.rain=()=>{if(!weatherStarted)return 0;const car=worldCar?.occupied?worldCar:fleet?.occupied;
+             pedestrians.limits=()=>render.lighting.area!==0?{civilians:0,total:0}:scalePedLimits(fewerPedsLimits(fleet?.pedLimits(),cullZones.fewerPeds),(mission?.runtime.game.pedDensityMultiplier??1)*touchPopulation());pedestrians.pedZone=()=>fleet?.pedZone();pedestrians.trains=()=>[...(fleet?.trains??[])].filter(t=>!t.disposed).map(t=>({body:t.body,nativeBody:t.nativeBody,occupied:false,boundRadius:t.boundRadius,train:true}));pedestrians.pedTargets=()=>{const t=fleet?.pedTargets();return t&&scalePedTargets(t,(mission?.runtime.game.pedDensityMultiplier??1)*touchPopulation());};pedestrians.dontCreateRandomCops=()=>!!mission?.runtime.game.population.dontCreateRandomCops;pedestrians.copModel=()=>DEFAULT_COP_MODEL[fleet?.zoneLevel()??0];pedestrians.cameraKeepsPeds=()=>render.firstPerson==='sniper'||render.firstPerson==='camera'||render.glance!=='none';pedestrians.noCivilians=()=>gangWars?.dontCreateCivilians()??false;pedestrians.gangWarFighting=()=>!!gangWars?.gangWarFightingGoingOn();pedestrians.playerVehicle=()=>{const car=worldCar?.occupied?worldCar:fleet?.occupied;if(!car)return undefined;const t=car.car.body.translation();return {position:{x:t.x,y:t.y,z:t.z},alarm:car.alarm>0,law:LAW_ENFORCEMENT_MODELS.has(car.modelId),wrecked:car.wrecked};};pedestrians.bikes=()=>[...(fleet?.bikes??[])].map(bike=>({body:bike.body,nativeBody:bike.nativeBody,occupied:bike.occupied,boundRadius:bike.boundRadius}));pedestrians.playerRide=()=>{const bike=fleet?.occupiedBike??(isScriptBike(playerPassenger?.car)?playerPassenger.car:undefined);if(bike)return {body:bike.body,bike:true};const other=fleet?.occupiedBoat??fleet?.occupiedPlane??(playerPassenger?.car instanceof WorldPlane?playerPassenger.car:undefined);return other?{body:other.body,bike:false}:undefined;};pedestrians.playerVehicleSpeed=()=>{const car=worldCar?.occupied&&!worldCar.disposed?worldCar:fleet?.occupied&&!fleet.occupied.disposed?fleet.occupied:undefined;if(!car)return 0;const v=car.car.body.linvel();return Math.hypot(v.x,v.z)/50;};pedestrians.attractorsNear=(x,y,r)=>importedScene?.attractorsNear(x,y,r)??[];pedestrians.waterLevel=(x,y,z,touching)=>render.lighting.water.levels?.level(x,y,z,touching);pedestrians.visibleArea=()=>render.lighting.area;pedestrians.scriptDecisionMaker=slot=>mission?.scriptDecisions.get(slot);pedestrians.sameScriptGroup=(a,b)=>{const m=mission;if(!m)return false;const ha=m.peds.handleOf(a),hb=m.peds.handleOf(b);if(ha===undefined||hb===undefined)return false;for(const g of m.groups.values())if(g.isMember(ha)&&g.isMember(hb))return true;return false;};if(fleet)fleet.rain=()=>{if(!weatherStarted)return 0;const car=worldCar?.occupied?worldCar:fleet?.occupied;
              // CPopCycle::GetCurrentPercOther_Peds: no rain damping on a mission in a Taxi or Cabbie (the fares keep coming).
              if(car&&(car.modelId===420||car.modelId===438)&&mission?.playerOnAMission())return 0;return weather.rain;};if(fleet)fleet.insideHideOutGarage=at=>!!mission?.runtime.game.garages.isPointWithinHideOut([at.x,-at.z,at.y]);if(fleet)fleet.pedCentres=()=>pedestrians?.targets(true).map(t=>t.position)??[];if(fleet){fleet.suppressedModels=()=>mission?.suppressedCarModels()??new Set();fleet.forceRandomCarModel=()=>mission?.runtime.game.forceRandomCarModel??-1;}if(fleet)fleet.scriptZoneInfo=index=>mission?.scriptZoneInfo(index);occupants.pickDriver=car=>car.gang!==undefined?pedestrians?.gangDriver(car.gang):pedestrians?.specificDriver(fleet?.modelName(car.modelId),fleet?.zoneLevel()??0)??pedestrians?.rosterDriver(fleet?.vehicleClass(car.modelId));
              carEntry.crowd=pedestrians;
@@ -6725,13 +6738,7 @@ async function boot() {
                  },
                  // CTaskSimpleCarSetPedInAsPassenger for the player: SA's seat 0 is the front right, 1 and 2 the rear; -1 the
                  // first free one.
-                 warpPlayerIntoCarAsPassenger:(car,seat)=>{
-                  if(!(isScriptCar(car)||car instanceof WorldPlane)||car.disposed)return false;
-                  if(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger)return false;
-                  const chosen=(seat>=0&&seat<=2?seat+1:1) as 1|2|3;
-                  if(car instanceof WorldPlane&&chosen>car.maximumPassengers)return false;
-                  carEntry.cancel();car.setPlayerInAsPassenger(chosen);playerPassenger={car,seat:chosen};return true;
-                 },
+                 warpPlayerIntoCarAsPassenger:warpPlayerPassenger,
                  warpPlayerIntoCar:car=>{
                   const riding=()=>!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger);
                   const target=car as ScriptCar;

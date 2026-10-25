@@ -13595,3 +13595,12 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - All 5,360 unit tests pass (51 skipped), and the build passes. Full Interdiction,
   manual aircraft door entry, native task choreography and complete passenger
   combat/rendering parity remain unverified.
+
+## Player bike and quad passengers (October 25, 2026)
+
+- CJ can occupy the native rear dummy with the ride group's passenger pose
+  without taking the NPC driver's controls or playback. Bike occupancy follows
+  physics and restores collision on warp-out, destruction and ejection.
+- Jump eligibility follows the PC pillion threshold or the quad's automobile
+  branch. Full boarding/exit task and dynamics parity remains open.
+  [Source and validation scope](research/PLAYER_BIKE_PASSENGERS.md).
