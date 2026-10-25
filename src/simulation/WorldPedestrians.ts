@@ -935,8 +935,9 @@ export class WorldPedestrians {
      }
      if(p.health>0&&!floored)this.onPain?.(p,{...q});
     }
-    if(p.health===0)this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,recruit:wasRecruit,byPlayer});
-    return {id:p.id,officer:p.officer};
+    const pedType=pedTypeName(p),officer=pedType!==undefined?pedType.toUpperCase()==='COP':p.officer;
+    if(p.health===0)this.onKill?.({id:p.id,officer,gang:p.gang,pedType,recruit:wasRecruit,byPlayer});
+    return {id:p.id,officer,pedType};
    }
  /** Browser stand-in for the twelve CPedModelInfo hit spheres. Their bone,
   * offset and radius table lives in retail data (0x8A6308) and is not in the

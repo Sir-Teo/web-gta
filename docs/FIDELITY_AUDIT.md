@@ -13752,3 +13752,15 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   models verify the positions. PC dummy precedence is preserved where the mobile
   branch differs. Second-barrel behavior, attached FX and retail comparison
   remain open. [Exact source, capture and scope](research/PLANE_GUN_POSITIONS.md).
+
+## On-foot victim type and mounted damage crimes (October 25, 2026)
+
+- Accepted on-foot damage now carries CREATE_CHAR's actual type into crime and
+  kill reports. A civilian model typed as COP receives cop crime selection;
+  a police model typed as civilian receives civilian selection. Police-care
+  classification follows the resolved type.
+- Mounted on-foot hits now use the same vehicle-driver criminal-event rule as
+  seated hits, including the remote-vehicle exception. Source-backed units
+  cover type precedence, sniper selection, exempt types and CWanted deduplication.
+  Complete actor roles, other kill paths and pursuit parity remain open.
+  [Source and scope](research/PEDESTRIAN_FIREARM_CRIMES.md).

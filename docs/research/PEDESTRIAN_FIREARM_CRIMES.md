@@ -60,3 +60,39 @@ not a full CEventGroup/response-task implementation. Event-group capacity,
 rejected damage/corpse gates, identity replacement in opaque ambient seats,
 complete witness/pursuit behavior and matched retail PC traces remain open.
 The existing CWanted implementation still carries its own documented limits.
+
+## On-foot type and vehicle-creator propagation
+
+WorldPedestrians.damageCollider now returns the resolved ped type alongside
+the retained ped identity. CREATE_CHAR's type takes precedence over the model's
+peds.ide type. A script COP using MALE01 therefore queues the cop firearm crime,
+and a civilian using a police model retains the civilian crime. The same
+accepted-hit path supplies the resolved type and cop classification to its
+kill callback. This does not change the actor's AI role flags.
+
+WeaponSystem carries this type's PoliceDontCareAboutCrimesAgainstPedType value
+explicitly through immediate and queued reports. Callers that provide only the
+older id/officer record retain the existing fallback. Handheld and sniper shots
+keep their three-report order and the sniper-specific cop impact selection.
+
+Mounted rounds carry their vehicle-creator class into on-foot damage as well
+as seated damage. A vehicle driven by CJ queues only ReportCriminalEvent's
+victim event; it does not add the two player-ped reports. A remotely controlled
+vehicle without CJ as driver queues no damage criminal event. These are the
+same PC GenerateDamageEvent, IsCriminalEvent and DoBulletImpact rules detailed
+in [AIRCRAFT_WEAPONS.md](AIRCRAFT_WEAPONS.md). The host's separate player-input
+fire/explosion notifications are outside this damage-event change.
+
+Units cover model/type precedence, ordinary/sniper cop selection, all twelve
+police-care exemptions, vehicle and remote creators, NPC sources and actual
+CWanted identity deduplication. Other actor-role, kill-attribution and event
+paths still need their own verification; the change does not establish full
+CPed subclass/task or native pursuit parity.
+
+The live test creates COP/MALE01, CIVMALE/LAPD1 and three MALE01 victims typed
+GANG1, DEALER and CRIMINAL. It verifies the handheld damage adapter's exact
+reports, then seats CJ in a real Hunter and fires its actual mounted gun along
+a measured clear line. Each mounted hit queues one correctly classified victim
+event and preserves pedstats damage scaling. A later fatal accepted hit emits
+one kill callback with the actual type/cop classification. Existing seated,
+player-mounted and recruit damage-scaling regressions also pass.

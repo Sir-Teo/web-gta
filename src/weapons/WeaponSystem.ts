@@ -102,7 +102,8 @@ export function criminalEventCrime(weapon:number,cop:boolean){
 const MAX_PROJECTILES=32;
 export type DamageKind='melee'|'bullet'|'explosion'|'fire'|'spray';
 /** A pedestrian hit reported back to the weapon system. */
-export interface PedestrianVictim {id:number;officer:boolean}
+export interface PedestrianVictim {id:number;officer:boolean;pedType?:string}
+type ShotCreator='ped'|'vehicle'|'remote';
 export interface WeaponEffect {id:number;kind:'tracer'|'impact'|'explosion'|'flame'|'gas'|'spray'|'extinguisher';from:Vec3;to:Vec3;life:number;radius:number;}
 export interface Projectile {id:number;weapon:number;position:Vec3;velocity:Vec3;fuse:number;stuck:boolean;target?:number;owner?:number;
  /** The launcher's crime and damage attribution, separate from the body excluded by collision tests. */
@@ -228,7 +229,7 @@ export class WeaponSystem {
  onSeatedShot?:(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number)=>'hit'|'killed'|undefined;
  /** Enemy mounted guns share the NPC world/tyre/occupant query, including CJ with his physical collider off. */
  npcSeatedShot?:SeatedShot;
- private damageSeated(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number,sniper=false,piece=9,creator:'ped'|'vehicle'|'remote'='ped'){
+ private damageSeated(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number,sniper=false,piece=9,creator:ShotCreator='ped'){
   const result=this.onSeatedShot?.(target,WeaponSystem.occupantDamage(target,damage,weapon,piece),weapon);
   if(result){this.hits++;const cop=target.kind==='police'||target.pedType?.toUpperCase()==='COP',victim=target.crimeVictim??`seat:${this.seatKey(target)}`,dontCare=policeDontCareAboutPedType(target.pedType);
    // GenerateDamageEvent reports DAMAGED_PED, DoBulletImpact adds DAMAGE_CAR (CBulletInfo has a cop variant),
@@ -377,7 +378,7 @@ export class WeaponSystem {
  private playerFireSince?:number;
  /** Whether the last damage() hit trains the weapon skill (see DoBulletImpact). */
  private hitTrains=false;
- private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet',hit?:{weapon?:number;point?:Vec3;fight?:import('../simulation/WorldPedestrians').MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number};byPlayer?:boolean;sniper?:boolean}){
+ private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet',hit?:{weapon?:number;point?:Vec3;fight?:import('../simulation/WorldPedestrians').MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number};byPlayer?:boolean;sniper?:boolean;creator?:ShotCreator}){
   // CWeapon::DoBulletImpact's test before CStats::UpdateStatsWhenWeaponHit, taken before the damage lands: a ped alive
   // and not in the player's group, a vehicle that can be damaged, is not bullet-proof and is not wrecked.
   this.hitTrains=false;
@@ -387,16 +388,18 @@ export class WeaponSystem {
   if(victim){
    this.hits++;
    if(typeof victim==='object'){
-    const id=`ped:${victim.id}`,cop=victim.officer;
+    const id=`ped:${victim.id}`,cop=victim.pedType!==undefined?victim.pedType.toUpperCase()==='COP':victim.officer,creator=hit?.creator??'ped';
+    const dontCare=victim.pedType!==undefined?policeDontCareAboutPedType(victim.pedType):undefined;
+    const report=(type:number,queued=false)=>{if(dontCare!==undefined)this.onCrime?.(type,id,queued,dontCare);else if(queued)this.onCrime?.(type,id,true);else this.onCrime?.(type,id);};
     if(hit?.byPlayer!==false&&(kind==='melee'||kind==='bullet'||kind==='spray')){
      // GenerateDamageEvent reports DAMAGED_PED and adds the criminal event before the caller's impact report.
-     this.onCrime?.(CRIME.damagedPed,id);
+     if(creator==='ped')report(CRIME.damagedPed);
      const queued=criminalEventCrime(hit?.weapon??(kind==='melee'?0:kind==='spray'?41:22),cop);
-     if(queued!==CRIME.none)this.onCrime?.(queued,id,true);
-     if(kind==='bullet')this.onCrime?.(hit?.sniper&&cop?CRIME.damageCopCar:CRIME.damageCar,id);
+     if(creator!=='remote'&&queued!==CRIME.none)report(queued,true);
+     if(kind==='bullet'&&creator==='ped')report(hit?.sniper&&cop?CRIME.damageCopCar:CRIME.damageCar);
     }
     // CWorld::TriggerExplosion reports DAMAGE_CAR for each ped a ped's explosion reaches (WEAPON_EXPLOSION queues nothing).
-    else if(kind==='explosion'&&hit?.byPlayer)this.onCrime?.(CRIME.damageCar,id);
+    else if(kind==='explosion'&&hit?.byPlayer)report(CRIME.damageCar);
    }
    return true;
   }
@@ -719,7 +722,7 @@ export class WeaponSystem {
   else if(hit){
    this.hitFx(hit,end,8,weapon,direction,false,byPlayer,false);
    if(!byPlayer&&hit.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(amount,false,{weapon,from});
-   else this.damage(hit.collider.handle,amount,direction,false,'bullet',{weapon,point:end,byPlayer});
+   else this.damage(hit.collider.handle,amount,direction,false,'bullet',{weapon,point:end,byPlayer,creator:byPlayer?(playerDriver?'vehicle':'remote'):undefined});
   }
  }
  /** The SCM command creates a fresh minigun, independent of the held weapon and its ammo; timestamp is shared
