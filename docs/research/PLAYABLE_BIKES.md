@@ -28,6 +28,10 @@ All three bicycles now layer their original bunny-hop clip over the rider while
 charging and releasing, with crank ownership and a fade back to the riding pose
 ([timing, descriptor evidence and limits](BICYCLE_HOP_POSES.md)).
 
+Script motorcycle/bicycle drivers and pillions also take direct bullets against
+their twelve native bone-bound spheres, independently of a vehicle-body hit
+([collision evidence and remaining scope](BIKER_BULLET_COLLISION.md)).
+
 Stationary quad riders use QUAD_ride in both native ride/still association slots;
 there is no QUAD_still in the shipped block. Scripted quad drivers now remain
 drawn at rest. Seated script offset commands also use the real lean/seat matrix,

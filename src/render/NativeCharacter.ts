@@ -1,4 +1,5 @@
 import {characterShadowBounds} from './characterShadowBounds';
+import {PED_HIT_NODES,type PedHitSphere} from '../combat/nativePedHitSpheres';
 import {HEAD_EFFECTOR_OFFSET,LOOK_AT_SPEED,applyQuat,limitHead,moveHeadToTarget,slerpQuat,startLookAt,stepLookAt,type LookAtTask,type Quat} from '../simulation/nativeIkLookAt';
 import {playerMoveBlend} from '../animation/playerMoveBlend';
 import {STAMINA_EXHAUST_FLOOR} from '../locomotion/player';
@@ -112,6 +113,12 @@ export class NativeCharacter {
   private chainScratch:Object3D[]=[];private worldScratch=new Matrix4();
   /** CPed::GetTransformedBonePosition(BONE_HEAD) in the world, or undefined without a head bone. */
   headPosition(out=new Vector3()){return this.bonePosition(5,out);}
+  /** CPedModelInfo::AnimatePedColModelSkinnedWorld: the original twelve spheres at the currently sampled pose. */
+  hitSpheres():PedHitSphere[]{
+    const point=new Vector3(),matrix=new Matrix4(),out:PedHitSphere[]=[];
+    for(const node of PED_HIT_NODES){if(!this.boneMatrix(node.bone,matrix))continue;point.set(node.x,0,0).applyMatrix4(matrix);out.push({center:{x:point.x,y:point.y,z:point.z},radius:node.radius,piece:node.piece});}
+    return out;
+  }
   /** Rotate a native bone in its parent space so the hand's +X barrel follows the aim. */
   private pointBone(boneId:number,handId:number,weight=1){
     const hand=this.hand(handId),bone=this.bone(boneId);if(!hand||!bone?.parent||!this.weaponAim||weight<=0)return;

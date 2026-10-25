@@ -99,6 +99,11 @@ function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp'
   // A bike's rider sits on the saddle with the ride group's clip, as the player does: still, riding or pedalling by
   // the bike's speed.
   const bike=rider.car as unknown as Partial<import('./simulation/WorldBike').WorldBike>;
+  if(!isScriptCar(rider.car)&&typeof bike.riderPose==='function'&&bike.car&&!rider.offset&&rider.diedInSeat){
+   const driver=rider.seat==='driver',local=driver?bike.riderPose().seat:bike.backSeat?.();
+   if(local)add({key:`script:${bike.car.body.handle}:${driver?'driver':'pillion'}`,car:bike as import('./render/VehicleOccupants').OccupantVehicle,model:rider.model,local,clip:driver?'car_dead_lhs':'car_dead_rhs',seconds:1e6});
+   continue;
+  }
   if(!isScriptCar(rider.car)&&typeof bike.riderPose==='function'&&bike.car&&!rider.offset&&rider.seat==='driver'){
    const pose=bike.riderPose(),clip=pose.seat&&bikeClip?.(pose.block,pose.idle);
    if(pose.seat&&(clip||played))add({key:`script:${bike.car.body.handle}:driver`,car:bike as import('./render/VehicleOccupants').OccupantVehicle,model:rider.model,local:pose.seat,...(played??{clip:pose.idle,seconds:clip!.duration>0?pose.time%clip!.duration:0,animation:clip!})});
@@ -684,10 +689,11 @@ async function boot() {
    },
    hitPed:(collider,damage,weapon,direction,end)=>!!pedestrians?.bulletHit(collider,damage,weapon,direction,end),
    // A mission rider or street recruit seated in the vehicle the NPC's muzzle line reaches.
-   seatedShot:(from,direction,range,own,hitBody)=>{
-    const seated=weapons.seatedHit(from,direction,range,hitBody,own);if(!seated||seated.target.kind!=='script'&&seated.target.kind!=='passenger')return undefined;
+   seatedShot:(from,direction,range,own,hitBody,first)=>{
+    const direct=weapons.bikerHit(from,direction,first?.distance??range,own);
+    const seated=direct??(!first?.tyre?weapons.seatedHit(from,direction,range,hitBody,own):undefined);if(!seated||seated.target.kind!=='script'&&seated.target.kind!=='passenger')return undefined;
     const target=seated.target;
-    return {t:seated.t,hit:(damage,weapon)=>{if(target.kind==='passenger')carEntry.passengerShot(target.car as ScriptCar,target.seat,damage,false,!target.noCriticalHits&&isInstantHitGun(weapon));else scriptRiderShot(target.rider as ScriptRider,WeaponSystem.occupantDamage(target,damage,weapon),weapon,false);}};
+    return {t:seated.t,direct:!!direct,victim:target.rider,hit:(damage,weapon)=>{if(target.kind==='passenger')carEntry.passengerShot(target.car as ScriptCar,target.seat,damage,false,!target.noCriticalHits&&isInstantHitGun(weapon));else scriptRiderShot(target.rider as ScriptRider,WeaponSystem.occupantDamage(target,damage,weapon,direct?.piece),weapon,false);}};
    },
    onShot:(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');}};
   /** CTaskAllocatorKillThreatsDriveby (reversed) for CJ's group while he drives: every member riding his car (not
@@ -5674,21 +5680,24 @@ async function boot() {
             traffic.onDriverDiesOut=car=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(occupants.driverModel(car),position,heading,car.gang,false,car.wrecked)))traffic?.onDriverDied?.(car);};
             traffic.onDriverDeadInSeat=car=>occupants.markDeadInSeat(car);
             // The seated peds a bullet can reach: traffic drivers and police crews (drive-by crews stay with their own module).
-            weapons.seatedPeds=()=>{const policeCars=new Set(police?.units.map(u=>u.car));const out:import('./weapons/WeaponSystem').SeatedTarget<import('./weapons/WeaponSystem').SeatedVehicle>[]=[];
+            weapons.seatedPeds=(bikesOnly=false)=>{const out:import('./weapons/WeaponSystem').SeatedTarget<import('./weapons/WeaponSystem').SeatedVehicle>[]=[];
+             if(!bikesOnly){const policeCars=new Set(police?.units.map(u=>u.car));
              for(const car of fleet?.cars??[]){if(!car.autopilot||car.occupied||car.driverOut||car.wrecked||policeCars.has(car)||driveby?.covers(car)||emergency?.covers(car))continue;const seat=car.seat('left');if(seat)out.push({car,seat:0,local:seat,kind:'traffic',head:occupants.headOf(`driver:${car.car.body.handle}`)});}
              for(const c of police?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,headingOffset:c.headingOffset,kind:'police',head:occupants.headOf(`police:${c.car.car.body.handle}:${c.seat}`)});
              for(const c of driveby?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'driveby',head:occupants.headOf(`driveby-${c.seat===0?'driver':'shooter'}:${c.car.car.body.handle}`)});
              for(const c of carEntry.passengerTargets()){const keep=c.rider.keep as {noCriticalHits?:boolean;neverTargeted?:boolean;canBeShotInVehicle?:boolean}|undefined;out.push({car:c.car,seat:c.seat,local:c.local,headingOffset:c.headingOffset,kind:'passenger',rider:c.rider,crew:c.rider.follow,noCriticalHits:keep?.noCriticalHits,neverTargeted:keep?.neverTargeted,canBeShot:keep?.canBeShotInVehicle,head:occupants.headOf(`passenger:${c.car.car.body.handle}:${c.seat}`)});}
+             }
              // A script's peds in every native seat. The shooter's own
              // car is left out by the shot, not here: a drive-by at CJ's car can hit the homies riding with him.
              for(const r of scriptRiders){
-              if(r.gone||r.health<=0||r.offset)continue;
+              if(r.gone||r.health<=0||r.offset||bikesOnly&&!isScriptBike(r.car))continue;
               const handle=mission?.peds.handleOf(r),crew=handle!==undefined&&[...mission!.groups.values()].some(g=>g.isMember(1)&&g.isMember(handle));
               const add=(target:import('./weapons/WeaponSystem').SeatedTarget<import('./weapons/WeaponSystem').SeatedVehicle>)=>out.push({...target,crew,neverTargeted:r.neverTargeted,canBeShot:r.canBeShotInVehicle});
               const bike=r.car as unknown as import('./simulation/WorldBike').WorldBike;
               if(!isScriptCar(r.car)&&typeof bike.riderPose==='function'){
                const local=r.seat==='driver'?bike.riderPose().seat:bike.backSeat();
-               if(local&&!bike.wrecked&&!bike.disposed)add({car:bike,bike:true,seat:r.seat==='driver'?0:r.seat+1,local,kind:'script',rider:r,noCriticalHits:r.noCriticalHits,head:occupants.headOf(`script:${bike.car.body.handle}:${r.seat==='driver'?'driver':'pillion'}`)});
+               const key=`script:${bike.car.body.handle}:${r.seat==='driver'?'driver':'pillion'}`;
+               if(local&&!bike.wrecked&&!bike.disposed)add({car:bike,bike:true,seat:r.seat==='driver'?0:r.seat+1,local,kind:'script',rider:r,noCriticalHits:r.noCriticalHits,head:bikesOnly?undefined:occupants.headOf(key),hitSpheres:!bike.quad?()=>occupants.hitSpheresOf(key):undefined,hitOrigin:()=>occupants.positionOf(key)});
                continue;
               }
               // A boat's or an aircraft's riders, every seat: the line's first hit need only be a vehicle.

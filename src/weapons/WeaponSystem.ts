@@ -2,6 +2,7 @@ import {hunterGunOrigin,vehicleGunReady,type HunterGunMatrix} from '../simulatio
 import {PLANE_GUN_SHAKE,ROCKET_SHAKE} from '../engine/nativePadShakes';
 import {THROW_START_CLIP,THROW_CLIP,THROW_UP_CLIP,THROW_FORCE_PER_COUNTER,throwClip,throwFireTime,throwFiresNow,throwButtonCounter,type ThrowClip} from './nativeThrowProjectile';
 import {Vector3,Quaternion} from 'three';
+import {pedSphereHit,type PedHitSphere} from '../combat/nativePedHitSpheres';
 import {OCCUPANT_HEAD_LIFT,occupantHeadHit} from '../vehicle/nativeDieInCar';
 import {isInstantHitGun} from '../simulation/WorldPedestrians';
 import {pedCanBeTargettedVehicleWise} from '../ped/nativeVehicleTargeting';
@@ -20,6 +21,9 @@ export interface SeatedTarget<V extends SeatedVehicle=import('../simulation/Worl
  /** Its head node in the world (renderer axes), where its view is drawn; else it is taken to be SEATED_HEAD_OFFSET from
   * the seat point. */
  head?:Vec3;
+ /** CWorld's direct biker collision, sampled lazily from the drawn native skeleton. */
+ hitSpheres?:()=>readonly PedHitSphere[]|undefined;
+ hitOrigin?:()=>Vec3|undefined;
  /** bNoCriticalHits (SET_CHAR_SUFFERS_CRITICAL_HITS off): a head hit does no more than the weapon's damage. */
  noCriticalHits?:boolean}
 /** Where a seated ped's head node sits from its seat point (the car's ped_frontseat), in the car's native axes, for an
@@ -195,7 +199,7 @@ export class WeaponSystem {
   * own unconditional exclusion, and sniper/projectile/area paths keep their separate native rules. */
  instantHitIgnoredBody?:()=>RAPIER.RigidBody|undefined;
  /** The seated NPCs a bullet line can reach (traffic drivers, police crews): seat locals in car space. */
- seatedPeds?:()=>readonly SeatedTarget<SeatedVehicle>[];
+ seatedPeds?:(bikesOnly?:boolean)=>readonly SeatedTarget<SeatedVehicle>[];
  private aimSeatKeys=new WeakMap<SeatedVehicle,Map<number,number>>();
  private nextAimSeatKey=-1;
  private seatKey(target:SeatedTarget<SeatedVehicle>){
@@ -217,14 +221,25 @@ export class WeaponSystem {
  }
  /** A seated ped hit through the window: the host applies CPed damage and CTaskComplexDieInCar. */
  onSeatedShot?:(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number)=>'hit'|'killed'|undefined;
- private damageSeated(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number,sniper=false){
-  const result=this.onSeatedShot?.(target,WeaponSystem.occupantDamage(target,damage,weapon),weapon);
+ private damageSeated(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number,sniper=false,piece=9){
+  const result=this.onSeatedShot?.(target,WeaponSystem.occupantDamage(target,damage,weapon,piece),weapon);
   if(result){this.hits++;const cop=target.kind==='police';
    this.onCrime?.(sniper?(cop?CRIME.damageCopCar:CRIME.damageCar):(cop?CRIME.damagedCop:CRIME.damagedPed),`car:${target.car.car.body.handle}`);
    // DoBulletImpact's weapon practice excludes the player's own group, as the on-foot path does.
    if(!target.crew)this.onHit?.(weapon);
   }
   return result;
+ }
+ /** CWorld::ProcessLineOfSightSectorList's bIncludeBikers path: these ped spheres can precede any vehicle hit. */
+ bikerHit(source:Vec3,direction:Vec3,range:number,except?:unknown,passed?:ReadonlySet<number>){
+  const own=except as {handle?:number;car?:{body?:{handle:number}}}|undefined,ownHandle=own?.car?.body?.handle??own?.handle;
+  let nearest:ReturnType<typeof pedSphereHit>&{target:SeatedTarget<SeatedVehicle>}|undefined;
+  for(const target of this.seatedPeds?.(true)??[]){
+   if(!target.bike||target.canBeShot===false||target.car.disposed||target.car.wrecked||target.car.car.body.handle===ownHandle||passed?.has(this.seatKey(target)))continue;
+   const spheres=target.hitSpheres?.();if(!spheres)continue;
+   const hit=pedSphereHit(source,direction,nearest?.t??range,spheres);if(hit&&(!nearest||hit.t<nearest.t))nearest={...hit,target};
+  }
+  return nearest;
  }
  /** CWeapon::CheckForShootingVehicleOccupant (iOS 0x100498190): with the line's first hit a car (`hitBody`), the
   * nearest of that car's occupants whose head sphere the line enters within `range`, with the entry distance. The
@@ -240,7 +255,7 @@ export class WeaponSystem {
  }
  /** The damage a head hit on an occupant does: CPedDamageResponseCalculator::ComputeWillForceDeath kills outright with an
   * instant-hit gun unless the ped is spared critical hits. */
- static occupantDamage(target:Pick<SeatedTarget<SeatedVehicle>,'noCriticalHits'>,damage:number,weapon:number){return !target.noCriticalHits&&isInstantHitGun(weapon)?Math.max(damage,1000):damage;}
+ static occupantDamage(target:Pick<SeatedTarget<SeatedVehicle>,'noCriticalHits'>,damage:number,weapon:number,piece=9){return piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon)?Math.max(damage,1000):damage;}
  /** CAECollisionAudioEntity::ReportBulletHit: the struck collider, the hit point and asin(-dir·normal) in degrees. */
  onBulletHit?:(hit:RAPIER.RayColliderIntersection,point:Vec3,angle:number)=>void;
  /** DoBulletImpact / CBulletInfo::Update with a player ped creator; the world checks ENTITY_TYPE_BUILDING. */
@@ -935,9 +950,16 @@ export class WeaponSystem {
    // CWorld::IsInWorldBounds: ±3000 across the map.
    if(Math.abs(next.x)>=3000||Math.abs(next.z)>=3000){this.bullets.splice(i,1);continue;}
    const hit=this.ray(b.position,b.direction,reach,this.sim.playerBody,c=>!b.passed.has(c.handle));
-   const tyre=this.tyreHit(b.position,b.direction,hit?.timeOfImpact??reach);
-   const seated=!tyre&&hit&&this.onSeatedShot?this.seatedHit(b.position,b.direction,reach,hit.collider.parent(),this.sim.playerBody,b.passed):undefined;
+   const biker=this.onSeatedShot?this.bikerHit(b.position,b.direction,hit?.timeOfImpact??reach,this.sim.playerBody,b.passed):undefined;
+   const tyre=this.tyreHit(b.position,b.direction,biker?.t??hit?.timeOfImpact??reach);
+   const seated=!tyre&&!biker&&hit&&this.onSeatedShot?this.seatedHit(b.position,b.direction,reach,hit.collider.parent(),this.sim.playerBody,b.passed):undefined;
    if(tyre){const at=add(b.position,b.direction,tyre.t);if(tyre.car.burstTyre(tyre.wheel,true,'player'))this.onHit?.(b.weapon);this.effect('impact',at);}
+   else if(biker){
+    const point=add(b.position,b.direction,biker.t);b.passed.add(this.seatKey(biker.target));next=point;
+    this.effect('impact',point);this.damageSeated(biker.target,b.damage,b.weapon,true,biker.piece);
+    // CBulletInfo::Update emits eight blood particles for every piece; DoBulletImpact's head scaling is separate.
+    this.fx?.bulletHit({point,normal:biker.normal,collider:this.seatKey(biker.target),ped:{head:false,dead:false}},8);
+   }
    else if(seated){
     // CBulletInfo::Update calls CheckForShootingVehicleOccupant before switching on the hit entity's type.
     const point=add(b.position,b.direction,seated.t);b.passed.add(this.seatKey(seated.target));next=point;
@@ -985,11 +1007,32 @@ export class WeaponSystem {
   // The player's shot shakes his pad (StartShake_Distance at the player, 240 ms at 128).
   this.onPadShake?.(240,128,source);
   const shotgun=w.id===25||w.id===26||w.id===27,direction=this.aimSpread(aim,info),hit=this.ray(source,direction,reach,exclude),end=add(source,direction,hit?.timeOfImpact??reach);
-  const tyre=this.tyreHit(source,direction,hit?.timeOfImpact??reach,exclude);
+  const biker=this.onSeatedShot?this.bikerHit(source,direction,hit?.timeOfImpact??reach,exclude):undefined;
+  const tyre=this.tyreHit(source,direction,biker?.t??hit?.timeOfImpact??reach,exclude);
   if(tyre){
    // DoBulletImpact on a wheel piece: BurstTyre instead of vehicle damage.
    const at=add(source,direction,tyre.t);this.tracer(source,at,'player',.065);this.fx?.gunshot(source,direction,w.id,false);this.effect('impact',at);
    if(tyre.car.burstTyre(tyre.wheel,true,'player'))this.onHit?.(w.id);
+   return true;
+  }
+  if(biker){
+   const at=add(source,direction,biker.t);let pellets=1;
+   if(shotgun){
+    const depth=Math.max(.05,biker.t*(.05/info.accuracy)*1.3),right=normalize({x:-direction.z,y:0,z:direction.x}),up=normalize({x:-direction.y*direction.x,y:direction.x**2+direction.z**2,z:-direction.y*direction.z}),count=w.id===27?SPAS_PELLETS:PELLETS;
+    pellets=0;
+    for(let i=0;i<count;i++){
+     const angle=(Math.random()*2-1)*Math.PI,spread=i===0?0:Math.random()*depth*.8,target=add(add(at,right,Math.cos(angle)*spread),up,Math.sin(angle)*spread),dir=normalize(add(target,source,-1)),length=distance(target,source)+depth*2;
+     const shell=this.ray(source,dir,length,exclude),ped=this.bikerHit(source,dir,shell?.timeOfImpact??length,exclude),tyre=this.tyreHit(source,dir,ped?.t??shell?.timeOfImpact??length,exclude);
+     if(!tyre&&ped&&this.seatKey(ped.target)===this.seatKey(biker.target))pellets++;
+     if(i<8)this.tracer(source,add(source,dir,tyre?.t??ped?.t??shell?.timeOfImpact??length),'player',.065);
+    }
+   }else this.tracer(source,at,'player',.065);
+   this.fx?.gunshot(source,direction,w.id,false);this.effect('impact',at);
+   if(pellets){
+    const origin=biker.target.hitOrigin?.(),pointBlank=w.id!==25&&w.id!==27&&!biker.target.noCriticalHits&&origin&&distance(origin,source)<=1;
+    const result=this.damageSeated(biker.target,pointBlank?150:pellets*info.damage,w.id,false,biker.piece);
+    this.fx?.bulletHit({point:at,normal:biker.normal,collider:this.seatKey(biker.target),ped:{head:biker.piece===9,dead:result==='killed'}},8);
+   }
    return true;
   }
   // A line whose first hit is a car may hand the hit on to one of its occupants (CheckForShootingVehicleOccupant): the

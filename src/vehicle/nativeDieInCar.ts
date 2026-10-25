@@ -9,8 +9,8 @@
  * wheel for 2000 ms, and then he leaves and dies (CTaskComplexLeaveCarAndDie) if the car can be stepped out of, or dies
  * in the seat (CTaskSimpleDieInCar, CAR_dead_LHS) if it is still moving. */
 export type V3={x:number;y:number;z:number};
-/** A muzzle line whose first collision may hand its hit on to a seated pedestrian. */
-export type SeatedShot=(from:V3,direction:V3,range:number,own:unknown,hitBody:unknown)=>{t:number;hit:(damage:number,weapon:number)=>void}|undefined;
+/** A muzzle line may meet an exposed biker before its first world/tyre hit, or transfer a vehicle hit to an occupant. */
+export type SeatedShot=(from:V3,direction:V3,range:number,own:unknown,hitBody:unknown,first?:{distance:number;tyre:boolean})=>{t:number;direct?:boolean;victim?:unknown;hit:(damage:number,weapon:number)=>void}|undefined;
 /** The occupant's sphere: its radius (iOS 0x10058ca0c) and the lift over the head node (0x10058cb80). */
 export const OCCUPANT_HEAD_RADIUS=0.2,OCCUPANT_HEAD_LIFT=0.1;
 export const DIE_IN_CAR_OFFSET_MS=2000;

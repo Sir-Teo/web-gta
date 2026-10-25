@@ -3637,24 +3637,27 @@ export class WorldPedestrians {
     const riderHit=riderAt>=0;
     // FireInstantHit includes car tyres for every shooter: a wheel sphere before the hit takes the round.
     const reach=riderHit?riderAt:shot?.timeOfImpact??lineLength,tyre=bulletTyreHit(cars,muzzle,direction,reach);
-    const seated=!tyre&&!riderHit&&shot?this.seatedShot?.(muzzle,direction,lineLength,p.body,shot.collider.parent()):undefined;
-    const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:seated?.t??reach);p.flash=.06;
+    const seated=this.seatedShot?.(muzzle,direction,lineLength,p.body,shot?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre||riderHit});
+    const end=muzzle.clone().addScaledVector(direction,seated?.t??tyre?.t??reach);p.flash=.06;
     // SetUpPelletCol (iOS 0x100499000): a shotgun's pellet lines (eight for the SPAS 12, fifteen otherwise) spread with
     // the distance to what the first line hit, and every pellet on that same victim adds the weapon's damage.
     let pellets=1;
-    if(shot&&!tyre&&!riderHit&&!seated&&SHOTGUN_TYPES.has(weapon.info.type)){
-     const depth=Math.max(.05,reach*(.05/weapon.info.accuracy)*1.3),right=new Vector3(-direction.z,0,direction.x).normalize(),up=new Vector3().crossVectors(right,direction).normalize();
+    if((shot&&!tyre&&!riderHit&&!seated||seated?.direct)&&SHOTGUN_TYPES.has(weapon.info.type)){
+     const depth=Math.max(.05,(seated?.t??reach)*(.05/weapon.info.accuracy)*1.3),right=new Vector3(-direction.z,0,direction.x).normalize(),up=new Vector3().crossVectors(right,direction).normalize();
      for(let i=1;i<shotgunPelletCount(weapon.info.type);i++){
       const o=shotgunPelletOffset(depth),target=end.clone().addScaledVector(right,o.across).addScaledVector(up,o.up);
       const dir=target.sub(muzzle),length=dir.length();dir.divideScalar(length||1);
       const pellet=this.sim.world.castRay(new RAPIER.Ray(muzzle,dir),length+.5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body);
-      if(pellet?.collider.handle===shot.collider.handle)pellets++;
+      if(seated?.direct){
+       const stop=pellet?.timeOfImpact??length+.5,pelletTyre=bulletTyreHit(cars,muzzle,dir,stop),rider=this.seatedShot?.(muzzle,dir,length+.5,p.body,pellet?.collider.parent(),{distance:pelletTyre?.t??stop,tyre:!!pelletTyre});
+       if(rider?.direct&&rider.victim===seated.victim)pellets++;
+      }else if(pellet?.collider.handle===shot?.collider.handle)pellets++;
      }
     }
     const shotDamage=weapon.info.damage*pellets;
-    this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre,{id:`ped:${p.id}`,position:()=>p.health>0||this.people.includes(p)?{...p.actor.player.position,y:p.actor.player.position.y+1}:undefined});this.gunShot({...state.position,y:state.position.y+1},false,p.id,end);
-    if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
-    else if(seated)seated.hit(weapon.info.damage,weapon.info.type);
+    this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre||!!seated,{id:`ped:${p.id}`,position:()=>p.health>0||this.people.includes(p)?{...p.actor.player.position,y:p.actor.player.position.y+1}:undefined});this.gunShot({...state.position,y:state.position.y+1},false,p.id,end);
+    if(seated)seated.hit(seated.direct?shotDamage:weapon.info.damage,weapon.info.type);
+    else if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
     else if(riderHit||shot?.collider.handle===this.sim.playerCollider.handle){if(this.damagesPlayer(p,weapon.info.type)){this.sim.damagePlayer(shotDamage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z},piece:pedPieceAt(this.sim.player.position,this.sim.player.heading,end),friendly:this.friendlyWithPlayer(p)});this.defendPlayer(p);}}
     else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer){car.damage(shotDamage,undefined,false,undefined,{weapon:weapon.info.type,byPlayer:false,by:{ped:p}});
      // InflictDamage's random tyre burst: (rand() & 0x7f) under the weapon's chance.

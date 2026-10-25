@@ -76,7 +76,7 @@ export function stepScriptDriveBy(d:ScriptDriveBy,car:WorldCar,info:NativeWeapon
   const cars=[...world.cars()].filter(c=>c!==car);
   const reach=shot?.timeOfImpact??lineLength,tyre=bulletTyreHit(cars,muzzle,direction,reach);
   // A line whose first hit is a car may hand the hit on to one of its occupants, along the whole line.
-  const seated=tyre||!shot?undefined:world.seatedShot?.(muzzle,direction,lineLength,car,shot.collider.parent());
+  const seated=world.seatedShot?.(muzzle,direction,lineLength,car,shot?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre});
   if(seated&&seated.t<=lineLength){
    const at=muzzle.clone().addScaledVector(direction,seated.t);d.shots++;world.onShot?.(muzzle,at,info.type,true);seated.hit(info.damage,info.type);
    if(d.gun.active&&d.gun.time<oldTime)d.aimPoint={...aim};

@@ -71,6 +71,8 @@ export class VehicleOccupants {
  }
  /** The head node of the occupant drawn under `key`, in the world (renderer axes), while it is drawn. */
  headOf(key:string){return this.views.get(key)?.view.headPosition();}
+ hitSpheresOf(key:string){const view=this.views.get(key)?.view;return view?.root.visible?view.hitSpheres():undefined;}
+ positionOf(key:string){return this.views.get(key)?.view.root.getWorldPosition(new Vector3());}
  snapshot(){return {drivers:this.views.size,ready:!!this.catalog,error:this.error??null};}
  dispose(){this.disposed=true;for(const {view,gun} of this.views.values()){gun?.dispose();view.dispose();}this.views.clear();}
 }

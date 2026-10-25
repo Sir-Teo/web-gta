@@ -13669,3 +13669,17 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   Launch turn force, original suspension/contact dynamics, native task cleanup
   and matched retail PC traces remain open.
   [Exact lifecycle, source and limits](research/BICYCLE_HOP_POSES.md).
+
+## Animated direct collision for script bike riders (October 25, 2026)
+
+- Player instant-hit and sniper rounds can strike the original twelve
+  bone-bound spheres of motorcycle/bicycle riders without hitting the vehicle
+  first. NPC and drive-by muzzle adapters use the same direct query with world
+  and tyre occlusion. Body/limb hits retain ordinary damage; head hits use the
+  critical-hit gate. Dead-seat riders stop using their live riding pose.
+- The pinned executable's two architecture slices agree on the sphere table;
+  PC CWorld and CPedModelInfo establish its transform and collision branch.
+  Live original-model cases cover drivers, pillion, body/sniper/NPC damage,
+  head/arm occlusion, cover, protection and dead-seat posing. Quad eligibility,
+  player/on-foot collision, complete death tasks and retail comparison remain
+  open. [Source, captured table and scope](research/BIKER_BULLET_COLLISION.md).
