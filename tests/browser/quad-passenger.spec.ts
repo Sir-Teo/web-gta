@@ -6,7 +6,7 @@ for(const modelId of [471,461])test(`CJ rides the native ${modelId===471?'quad':
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});await endStoryMission(page);
- const car=await page.evaluate(modelId=>{const g=(window as any).__game,p=g.sim.player.position;return g.missionForProfiling().vehicles.create(modelId,{x:p.x+8,y:-p.z,z:p.y+1},0);},modelId);
+ const car=await page.evaluate(modelId=>{const g=(window as any).__game,p=g.sim.player.position;return g.missionForProfiling().vehicles.create(modelId,{x:2483,y:-1682,z:14.5},0);},modelId);
  await page.waitForFunction(h=>!!(window as any).__game.missionForProfiling().vehicles.entity(h),car,{timeout:45000});
  const model=await page.evaluate(car=>{const g=(window as any).__game,m=g.missionForProfiling(),v=m.vehicles.entity(car);m.runtime.world.freezeVehiclePosition(car,true);const driver=m.peds.createInCar(4,'MALE01',car,'driver');return {body:v.body.handle,type:v.assets.vehicle.type,capacity:v.maximumPassengers,front:v.seat(),back:v.backSeat(),block:v.riderPose().block,driver};},car);
  expect(model.capacity).toBe(1);expect(model.back).toBeDefined();expect(Math.abs(model.front.y-model.back.y)).toBeGreaterThan(.3);

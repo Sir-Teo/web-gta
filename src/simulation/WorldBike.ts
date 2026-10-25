@@ -9,6 +9,9 @@ import {resolveVehicleProps,type VehicleProp} from './vehiclePropContacts';
 import {randomSeed} from './nativeVehicleLights';
 import {vehicleDestroyed} from './vehicleDestroyed';
 import {bikeWheelSupports} from '../vehicle/nativeBikeWheels';
+import {bindBikeWheelRoll} from '../render/bikeWheelRoll';
+import {stepBikeWheelRoll,type BikeWheelRoll} from './bikeWheelRoll';
+import {stepWheelAnimation} from './nativeWheelAnimation';
 import {bindNativeCarLod} from '../render/nativeCarLod';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {syncFrozenVehicle} from './nativeFrozenVehicle';
@@ -223,6 +226,8 @@ export class WorldBike {
  /** Props destroyed or knocked loose by this bike, for diagnostics. */
  propsSmashed=0;propsUprooted=0;
  private previous:{x:number;y:number;z:number};private previousRotation:RAPIER.Rotation;
+ private wheelRoll?:ReturnType<typeof bindBikeWheelRoll>;
+ private wheelPoses:BikeWheelRoll[]=[];private previousWheelAngles:number[]=[];private wheelStepSeconds=0;
  /** CVehicleModelInfo's detail switch: chassis_vlo stands in for the full model only past the LOD distance. */
  private lod?:ReturnType<typeof bindNativeCarLod>;
  /** The camera's squared distance this frame, which picks the bike's detail (as for cars). */
@@ -247,6 +252,10 @@ export class WorldBike {
   for(let i=0;i<this.body.numColliders();i++){const c=this.body.collider(i);c.setSolverGroups(vehicleSolverGroups(c));}
   if(assets.model&&assets.textures){
    try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);try{this.lod=bindNativeCarLod(this.visual.root,assets.model,[...assets.wheelFrames.front,...assets.wheelFrames.rear]);}catch{this.lod=undefined;}this.root.add(this.visual.root);}catch{this.visual=undefined;}
+  }
+  if(this.visual){
+   this.wheelRoll=bindBikeWheelRoll(this.visual.root,assets.wheelFrames);
+   this.wheelPoses=[...assets.wheelFrames.front,...assets.wheelFrames.rear].map(()=>({rotation:0,speed:0}));this.previousWheelAngles=this.wheelPoses.map(()=>0);
   }
   // Bike TXDs carry no vehiclelights128 texture, so the lamp pass mounts glow
   // sprites at the hull ends instead of textured lamp atomics.
@@ -353,6 +362,8 @@ export class WorldBike {
   return this.finishEnter();
  }
  beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean;disabled?:boolean}={throttle:0,steer:0,brake:false}){
+  this.wheelStepSeconds=0;
+  if(this.wheelRoll)this.previousWheelAngles=this.wheelPoses.map(p=>p.rotation);
   this.clumpAlpha.step(dt);
   // ProcessDelayedExplosion, which CBike::ProcessControl runs too, whether or not the body is in the world: a blast's
   // victim carried out of range still goes up on time.
@@ -363,6 +374,7 @@ export class WorldBike {
   const frozen=syncFrozenVehicle(this.body,this.frozen),nearby=Math.hypot(focus.x-at.x,focus.y-at.y,focus.z-at.z)<250,active=nearby&&this.collisionLoaded(dt);this.body.setEnabled(active);this.root.visible=nearby;if(!active)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
   if(frozen)return;
+  this.wheelStepSeconds=dt;
   // Attached to another vehicle (ATTACH_CAR_TO_CAR): a kinematic body the host sets on it after the step.
   if(this.body.bodyType()===RAPIER.RigidBodyType.KinematicPositionBased)return;
   // A playback without car AI owns the body (bDisableCollisionForce, a velocity-driven body here): the bike's own
@@ -617,6 +629,10 @@ export class WorldBike {
  }
  /** Pin the embarked player to the bike; knock-offs eject through the reversed force formula. */
  afterStep(){
+  if(this.wheelRoll&&this.wheelStepSeconds>0){
+   const dt=this.wheelStepSeconds;this.wheelStepSeconds=0;
+   if(this.body.isEnabled())this.advanceWheelRoll(dt);
+  }
   // A new step: its pairs are read when first asked for (a resting bike with no step speed has no props pass).
   this.stepPairsRead=false;
   if(this.body.isEnabled()){
@@ -631,6 +647,17 @@ export class WorldBike {
   const up=rotate(this.body.rotation(),{x:0,y:1,z:0});
   if(up.y<0){this.finishExit();this.message='The bike tipped over.';return false;}
   this.syncPlayer();return false;
+ }
+ private advanceWheelRoll(dt:number){
+  const frontCount=this.assets.wheelFrames.front.length,front=this.wheelsDown(.5),rear=this.wheelsDown(-.5),speed=this.speed()/50;
+  this.wheelPoses=this.wheelPoses.map((p,i)=>{
+   const isFront=i<frontCount,contact=isFront?front:rear,radius=(isFront?this.assets.vehicle.frontWheelSize??this.assets.vehicle.rearWheelSize??.6:this.assets.vehicle.rearWheelSize??this.assets.vehicle.frontWheelSize??.6)/2;
+   const state=isFront?'normal':this.audio.states[1];
+   if(!this.quad)return stepBikeWheelRoll(p,state,speed,radius,contact,dt*50);
+   const drive=this.assets.handling.values.driveType,driven=drive==='4'||(isFront?drive==='F':drive==='R');
+   // The quad shares the automobile's wheel update, including its driven airborne branch. Suspension remains the bike controller's axle probes.
+   return stepWheelAnimation({...p,steering:0,height:0},{timeStep:dt*50,state:!isFront&&this.brake&&Math.abs(speed)>.04?'fixed':'normal',forwardSpeed:speed,radius,contactCount:contact?1:0,driven,acceleration:this.throttle,steering:0,startHeight:0,springLength:1,compression:0});
+  });
  }
  private syncPlayer(){
   const p=this.body.translation(),player=this.sim.player;
@@ -797,6 +824,7 @@ export class WorldBike {
   this.occupied=false;this.throttle=0;this.steer=0;this.rawSteer=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.player.position=spot;this.sim.player.previous={...spot};this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});this.sim.playerCollider.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z});
  }
  update(alpha:number){
+  this.wheelRoll?.update(this.previousWheelAngles,this.wheelPoses.map(p=>p.rotation),alpha);
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
   const lit=this.lightsOn&&!this.wrecked;
   if(this.lamp)this.lamp.visible=lit;

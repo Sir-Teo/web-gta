@@ -13604,3 +13604,14 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Jump eligibility follows the PC pillion threshold or the quad's automobile
   branch. Full boarding/exit task and dynamics parity remains open.
   [Source and validation scope](research/PLAYER_BIKE_PASSENGERS.md).
+
+## Bike wheel rendering (October 25, 2026)
+
+- Native imported motorcycle, bicycle and quad wheel frames now roll, preserve
+  their centers and hold rear angles under braking. A frozen vehicle holds its
+  wheel pose without replaying the previous interpolation interval.
+- The shared PC rotation scalar and captured ARM64 bike contact/angle/render
+  instructions back the integration. Body velocity and the existing axle probes
+  still approximate native contact-point velocity and suspension; fork, handlebar,
+  pedal and burst-wheel articulation remain open.
+  [Source, capture and live scope](research/BIKE_WHEEL_ROLL.md).

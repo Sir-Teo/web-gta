@@ -1,0 +1,110 @@
+{
+  "source": {
+    "url": "https://raw.githubusercontent.com/Google61/gta3sa.app/67f70cb72eb207aeca650ea9e8c10b0e7dda166a/gta3sa",
+    "bytes": 14226544,
+    "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78"
+  },
+  "function": "CBike::PreRender",
+  "entry": "0x100454ee0",
+  "processWheelRotation": "0x100477280",
+  "angleFields": {
+    "front": "0x940",
+    "rear": "0x944"
+  },
+  "notes": [
+    "A positive front contact count selects half the front wheel diameter and wheel state NORMAL.",
+    "A positive rear contact count selects half the rear diameter and the state at bike+0xa14.",
+    "Each returned rotation speed is multiplied by CTimer::ms_fTimeStep and added to its axle angle.",
+    "The ordinary non-burst wheel frames use SetRotateX of the stored axle angle."
+  ],
+  "instructions": [
+    {
+      "address": "0x1004554b4",
+      "word": "0xbd492260"
+    },
+    {
+      "address": "0x1004554bc",
+      "word": "0x5400008c"
+    },
+    {
+      "address": "0x100455520",
+      "word": "0xbd4072a0"
+    },
+    {
+      "address": "0x100455534",
+      "word": "0x52800001"
+    },
+    {
+      "address": "0x100455538",
+      "word": "0x94008752"
+    },
+    {
+      "address": "0x100455544",
+      "word": "0xbd094a60"
+    },
+    {
+      "address": "0x10045554c",
+      "word": "0x1e210800"
+    },
+    {
+      "address": "0x100455558",
+      "word": "0xbd094260"
+    },
+    {
+      "address": "0x10045555c",
+      "word": "0xbd492a60"
+    },
+    {
+      "address": "0x100455570",
+      "word": "0x540004ad"
+    },
+    {
+      "address": "0x1004555c8",
+      "word": "0xb94a1661"
+    },
+    {
+      "address": "0x1004555cc",
+      "word": "0xbd4076a0"
+    },
+    {
+      "address": "0x1004555e0",
+      "word": "0x94008728"
+    },
+    {
+      "address": "0x1004555ec",
+      "word": "0xbd094e60"
+    },
+    {
+      "address": "0x1004555f4",
+      "word": "0x1e210800"
+    },
+    {
+      "address": "0x100455600",
+      "word": "0xbd094660"
+    },
+    {
+      "address": "0x100455868",
+      "word": "0xbd494268"
+    },
+    {
+      "address": "0x10045589c",
+      "word": "0x9103c3e0"
+    },
+    {
+      "address": "0x1004558a4",
+      "word": "0x97f9d1cb"
+    },
+    {
+      "address": "0x100455944",
+      "word": "0xbd494668"
+    },
+    {
+      "address": "0x100455978",
+      "word": "0x9103c3e0"
+    },
+    {
+      "address": "0x100455980",
+      "word": "0x97f9d194"
+    }
+  ]
+}
