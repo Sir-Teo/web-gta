@@ -241,7 +241,7 @@ import {HUD_COLOURS} from './ui/nativeHudColours';
 import {PICKUP_TYPE} from './assets/scmPickups';
 import {Arsenal} from './weapons/Arsenal';
 import {WorldTraffic} from './simulation/WorldTraffic';
-import {WorldPedestrians,pedTypeName,setCharacterAnim,type Pedestrian} from './simulation/WorldPedestrians';
+import {WorldPedestrians,pedTypeName,setCharacterAnim,isInstantHitGun,type Pedestrian} from './simulation/WorldPedestrians';
 import {WALK_ROUND_PAD,walkRoundCar} from './ped/nativeWalkRoundCar';
 import {PlayerScriptTasks} from './simulation/playerScriptTasks';
 import {PlayerPhone} from './simulation/PlayerPhone';
@@ -664,11 +664,11 @@ async function boot() {
     return at&&{x:at.x,y:at.z-(target.kind==='ped'?PED_ORIGIN_HEIGHT:0),z:-at.y};
    },
    hitPed:(collider,damage,weapon,direction,end)=>!!pedestrians?.bulletHit(collider,damage,weapon,direction,end),
-   // A script's ped seated in the car the line reaches (SWEET3's Ballas, shot by Sweet and Smoke from CJ's Greenwood).
+   // A mission rider or street recruit seated in the vehicle the NPC's muzzle line reaches.
    seatedShot:(from,direction,range,own,hitBody)=>{
-    const seated=weapons.seatedHit(from,direction,range,hitBody,own);if(!seated||seated.target.kind!=='script')return undefined;
-    const target=seated.target,rider=target.rider as ScriptRider;
-    return {t:seated.t,hit:(damage,weapon)=>{scriptRiderShot(rider,WeaponSystem.occupantDamage(target,damage,weapon),weapon,false);}};
+    const seated=weapons.seatedHit(from,direction,range,hitBody,own);if(!seated||seated.target.kind!=='script'&&seated.target.kind!=='passenger')return undefined;
+    const target=seated.target;
+    return {t:seated.t,hit:(damage,weapon)=>{if(target.kind==='passenger')carEntry.passengerShot(target.car as ScriptCar,target.seat,damage,false,!target.noCriticalHits&&isInstantHitGun(weapon));else scriptRiderShot(target.rider as ScriptRider,WeaponSystem.occupantDamage(target,damage,weapon),weapon,false);}};
    },
    onShot:(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');}};
   /** CTaskAllocatorKillThreatsDriveby (reversed) for CJ's group while he drives: every member riding his car (not
@@ -694,7 +694,7 @@ async function boot() {
    const entityOf=(h:number)=>{try{return m.peds.exists(h)?m.peds.entity(h):undefined;}catch{return undefined;}};
    const riders=members.map((h:number)=>asRider(entityOf(h))).filter((r):r is ScriptRider=>!!r&&r.car===leaderCar&&r.seat!=='driver'&&!r.gone&&r.health>0);
    // The crew recruited off the street ride along too; one carrying a gun takes part (the drive-by needs one).
-   const crew=carEntry.seated&&carEntry.car===leaderCar?carEntry.passengers.filter(p=>{const w=(p.keep as {weapon?:{info?:{type?:number}}}|undefined)?.weapon?.info?.type;return w!==undefined&&w>=22&&w<=34;}):[];
+   const crew=carEntry.seated&&carEntry.car===leaderCar?carEntry.passengers.filter(p=>{const w=(p.keep as {weapon?:{info?:{type?:number}}}|undefined)?.weapon?.info?.type;return !p.diedInSeat&&w!==undefined&&w>=22&&w<=34;}):[];
    if(!riders.length&&!crew.length){clearAll();return;}
    const memberEntities=new Set(members.map(entityOf).filter(Boolean));
    const isUs=(handle:number)=>handle===1||members.includes(handle);
@@ -4035,7 +4035,7 @@ async function boot() {
         guard('groupDriveBys',()=>groupThreatDriveBys(step));
         guard('riderThreats',()=>riderThreatDriveBys(step));
         guard('scriptDriveBys',()=>{const gun=driveby?.gun;if(!gun)return;for(const rider of scriptRiders)if(rider.driveBy&&!rider.gone&&rider.health>0&&!rider.car.wrecked)stepScriptDriveBy(rider.driveBy,rider.car,gun.info,gun.reloadSeconds,step,scriptDriveByWorld);
-          if(carEntry.seated&&carEntry.car&&!carEntry.car.wrecked)for(const p of carEntry.passengers)if(p.driveBy)stepScriptDriveBy(p.driveBy,carEntry.car,gun.info,gun.reloadSeconds,step,scriptDriveByWorld);});
+          if(carEntry.seated&&carEntry.car&&!carEntry.car.wrecked)for(const p of carEntry.passengers)if(!p.diedInSeat&&p.driveBy)stepScriptDriveBy(p.driveBy,carEntry.car,gun.info,gun.reloadSeconds,step,scriptDriveByWorld);});
         frameProfile.stepTraffic+=performance.now()-tTraffic;const tPeds=performance.now();
         guard('pedestrians.beforeStep',()=>pedestrians?.beforeStep(step,fleet?.cars??[]));
         frameProfile.stepPeds+=performance.now()-tPeds;
@@ -5533,6 +5533,8 @@ async function boot() {
           // player's group costing 2 respect (STAT_RECRUITED_GANG_MEMBERS_KILLED), and a gangster's friendly or enemy count.
           pedestrians.onKill=victim=>{if(victim.byPlayerVehicle)mission?.runtime.game.stats.increment(121,1);
            else if(!victim.byPlayer){const stats=mission?.runtime.game.stats;if(stats){if(victim.recruit){stats.decrement(68,2);stats.increment(163,1);}stats.increment(120,1);if(victim.gang!==undefined)stats.increment(victim.gang===1?240:239,1);}}if(victim.byPlayer&&sim.playerCollider.isEnabled())gangWars?.addKillToProvocation(victim.gang);if(victim.byPlayer&&pedTypeAtLeastDealer(victim.pedType))playerKilledADealer(worldZones,{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y});if(victim.byPlayer){if(victim.gang!==undefined&&GANG_RIVALS.has(victim.gang))addRespect(5);registerKillByPlayer(victim);}};
+          pedestrians.seatedShot=scriptDriveByWorld.seatedShot;
+          carEntry.onPassengerKilled=(rider,byPlayer)=>pedestrians?.onKill?.({id:(rider.keep as {id?:number}|undefined)?.id??-1,officer:false,gang:rider.gang,recruit:rider.follow,byPlayer});
           const speechSeed=(position:{x:number;z:number})=>Math.abs(Math.floor(position.x*13+position.z*7));
           pedestrians.playerVehicleVelocity=()=>{const b=worldCar?.occupied?worldCar.car.body:fleet?.occupiedBike?.body??fleet?.occupiedBoat?.body??fleet?.occupiedPlane?.body;if(!b)return undefined;const v=b.linvel();return {x:v.x,y:v.y,z:v.z};};
           // CAEPedSpeechAudioEntity::AddSayEvent says nothing for a ped whose speech a script disabled.
@@ -5652,6 +5654,7 @@ async function boot() {
              for(const car of fleet?.cars??[]){if(!car.autopilot||car.occupied||car.driverOut||car.wrecked||policeCars.has(car)||driveby?.covers(car)||emergency?.covers(car))continue;const seat=car.seat('left');if(seat)out.push({car,seat:0,local:seat,kind:'traffic',head:occupants.headOf(`driver:${car.car.body.handle}`)});}
              for(const c of police?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'police',head:occupants.headOf(`police:${c.car.car.body.handle}:${c.seat}`)});
              for(const c of driveby?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'driveby',head:occupants.headOf(`driveby-${c.seat===0?'driver':'shooter'}:${c.car.car.body.handle}`)});
+             for(const c of carEntry.passengerTargets()){const keep=c.rider.keep as {noCriticalHits?:boolean;neverTargeted?:boolean;canBeShotInVehicle?:boolean}|undefined;out.push({car:c.car,seat:c.seat,local:c.local,kind:'passenger',rider:c.rider,crew:c.rider.follow,noCriticalHits:keep?.noCriticalHits,neverTargeted:keep?.neverTargeted,canBeShot:keep?.canBeShotInVehicle,head:occupants.headOf(`passenger:${c.car.car.body.handle}:${c.seat}`)});}
              // A script's peds in every native seat. The shooter's own
              // car is left out by the shot, not here: a drive-by at CJ's car can hit the homies riding with him.
              for(const r of scriptRiders){
@@ -5673,7 +5676,7 @@ async function boot() {
              }
              return out;};
             // Only a script's rider may sit in a boat or an aircraft; every other seated target is in a car.
-            weapons.onSeatedShot=(target,damage,weapon)=>{if(target.kind==='script')return scriptRiderShot(target.rider as ScriptRider,damage,weapon,true);const car=target.car as ScriptCar;return target.kind==='police'?police?.crewShot(car,target.seat,damage):target.kind==='driveby'?driveby?.crewShot(car,target.seat,damage):traffic?.driverShot(car,damage);};
+            weapons.onSeatedShot=(target,damage,weapon)=>{if(target.kind==='script')return scriptRiderShot(target.rider as ScriptRider,damage,weapon,true);const car=target.car as ScriptCar;return target.kind==='passenger'?carEntry.passengerShot(car,target.seat,damage,true,!target.noCriticalHits&&isInstantHitGun(weapon)):target.kind==='police'?police?.crewShot(car,target.seat,damage):target.kind==='driveby'?driveby?.crewShot(car,target.seat,damage):traffic?.driverShot(car,damage);};
             if(driveby)driveby.onCrewDiesOut=(car,model)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading,car.gang,false,car.wrecked))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading(),car.gang,false,car.wrecked);}};
             if(police)police.onCrewDiesOut=(car,model)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading,undefined,false,car.wrecked))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading(),undefined,false,car.wrecked);}};
             // CTaskComplexLeaveCarAndFlee (a tyre shot out, R_Weak.ped): CTaskComplexLeaveCar without waiting for the car to
@@ -5709,6 +5712,7 @@ async function boot() {
             police.onPullFromCar=()=>{if(carEntry.seated)carEntry.dragOut();};police.onPullFromBike=bike=>{if(!bikeMount.active&&!bikeMount.jacked(bike))bike.pulledOff();};
             void import('./simulation/GangDriveBy').then(({GangDriveBy})=>{
              if(!alive||!fleet||driveby)return;driveby=new GangDriveBy(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
+             driveby.seatedShot=scriptDriveByWorld.seatedShot;
              driveby.gangTurf=turfAt;driveby.gangResident=gang=>pedestrians?.gangResident(gang)??[];driveby.carMissions=scriptCars;driveby.gangHatesPlayer=gang=>!!pedestrians?.gangHatesPlayer(gang);driveby.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
              driveby.onShot=(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');};
             }).catch(error=>{if(alive)hud.message(`Drive-by pursuit could not load: ${error instanceof Error?error.message:String(error)}`);});

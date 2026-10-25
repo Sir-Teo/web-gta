@@ -86,5 +86,7 @@ audit), and are no longer listed:
   but the seven-entry tuning table `ms_waterCreatureInfos` (models, group sizes, spawn depths, speeds) is a
   binary address (0x8D3698) the reference only points at, so the creatures are not ported.
 - Crosshair growth while firing: `m_fAttackButtonCounter` never increments in reversed code.
-- Follow-up (not a stub): civilian passengers are not on the seated-sphere bullet path yet (traffic drivers,
-  police crews and drive-by crews are).
+- Street recruits now share the seated-head bullet path, retain wounds on exit
+  and stay dead when shot in a moving car. Full passenger death/exit task
+  choreography and all NPC damage-event responses remain separate work
+  ([scope](research/STREET_PASSENGER_COMBAT.md)).

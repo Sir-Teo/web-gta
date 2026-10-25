@@ -2,6 +2,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import {Vector3} from 'three';
 import {stepNpcGun,npcShotEnd,type NpcGunState} from './npcGun';
 import {bulletTyreHit,pushShotVehicle} from '../weapons/bulletVehicle';
+import type {SeatedShot} from '../vehicle/nativeDieInCar';
 import type {NativeWeaponInfo} from '../weapons/weaponData';
 import type {Simulation} from './Simulation';
 import type {WorldCar} from './WorldCar';
@@ -31,7 +32,7 @@ export interface ScriptDriveByWorld {
  onShot?:(from:Vector3,to:Vector3,weapon:number,hit:boolean)=>void;
  /** CheckForShootingVehicleOccupant for a line whose first hit is `hitBody`: the occupant of that car whose head sphere
   * the line enters within `range`, how far along, and the hit to apply to it. `own` is the shooter's car. */
- seatedShot?:(from:Vector3,direction:Vector3,range:number,own:WorldCar,hitBody:unknown)=>{t:number;hit:(damage:number,weapon:number)=>void}|undefined;
+ seatedShot?:SeatedShot;
  random:()=>number;
 }
 /** CTaskSimpleGangDriveBy's clip for a bike's pillion (iOS 0x1003b7830): the target's heading against the bike's

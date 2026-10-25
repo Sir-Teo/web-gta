@@ -551,7 +551,7 @@ const PED_BOUND_RADIUS=1;
 /** Heights above the feet of the stand-in ped hit spheres (see hideNearCamera). */
 const HIT_SPHERE_HEIGHTS=[.25,.6,.95,1.3,1.6];
 /** What a ped carries into a car and out again as CJ's passenger. */
-interface PassengerKeep {weapon:Pedestrian['weapon'];health:number;gang?:number;gangClips:boolean;/** The follower's member slot, kept while it rides. */slot?:number}
+interface PassengerKeep {weapon:Pedestrian['weapon'];health:number;id?:number;gang?:number;gangClips:boolean;defendMult?:number;noCriticalHits?:boolean;neverTargeted?:boolean;canBeShotInVehicle?:boolean;/** The follower's member slot, kept while it rides. */slot?:number}
 /** CTaskComplexWalkRoundBuildingAttempt's state: the route, the point it walks round to (m_targetPos, native) and the
  * ped or player it follows there (m_targetEntity), its move state, and which sub-task runs: the first one (scratch
  * head walking, hit wall running), look about, following the route, or the stand or hit wall it gives up with. */
@@ -587,6 +587,8 @@ export class WorldPedestrians {
  }
   /** `shooter` is the ped's id and live position (renderer frame), for the ped's own CAEPedWeaponAudioEntity. */
   onShot?:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},weapon:number,hit:boolean,shooter?:{id:string;position:()=>{x:number;y:number;z:number}|undefined})=>void;
+  /** NPC instant-hit fire shares the seated-head transfer with player and script drive-by fire. */
+  seatedShot?:import('../vehicle/nativeDieInCar').SeatedShot;
   /** A ped's area-effect shot (CWeapon::FireAreaEffect): the weapon, the muzzle and the point aimed at (renderer axes), and
    * the shooter's collider. */
   onAreaShot?:(weapon:number,from:{x:number;y:number;z:number},at:{x:number;y:number;z:number},shooter:number)=>void;
@@ -1861,7 +1863,8 @@ export class WorldPedestrians {
   const i=this.people.findIndex(p=>p.id===id);if(i<0)return undefined;
   const [p]=this.people.splice(i,1);this.remove(p);
   // The same ped rides and gets out: CPed keeps his weapons, health and gang in the car.
-  const keep:PassengerKeep={weapon:p.weapon,health:p.health,gang:p.gang,gangClips:p.gang!==undefined,slot:p.follow?p.followSlot:undefined};
+  const keep:PassengerKeep={weapon:p.weapon,health:p.health,id:p.id,gang:p.gang,gangClips:p.gang!==undefined,slot:p.follow?p.followSlot:undefined,
+   defendMult:p.defendMult,noCriticalHits:p.noCriticalHits,neverTargeted:p.neverTargeted,canBeShotInVehicle:p.flags?.canBeShotInVehicle};
   return {modelRef:p.modelRef,follow:p.follow,gang:p.gang,keep};
  }
  /** The model a script ped id stands for: its peds.ide row's name where the depot carries that model, so the
@@ -2757,8 +2760,12 @@ export class WorldPedestrians {
   }
   const p=this.people[this.people.length-1];
   p.follow=follow;p.flee=0;
-  if(keep){p.health=keep.health;if(keep.gangClips)p.view.installReactions(catalog.gangClips,true);if(follow)p.followSlot=keep.slot;}
-  if(rollout)this.rollOut(p,rollout.velocity,rollout.clip);
+  if(keep){p.health=keep.health;if(keep.gangClips)p.view.installReactions(catalog.gangClips,true);if(follow)p.followSlot=keep.slot;
+   p.defendMult=keep.defendMult??p.defendMult;p.noCriticalHits=keep.noCriticalHits;p.neverTargeted=keep.neverTargeted;
+   if(keep.canBeShotInVehicle!==undefined)this.setFlag(p,'canBeShotInVehicle',keep.canBeShotInVehicle);
+  }
+  if(p.health<=0){p.money=0;this.restoreDeadScriptPed(p);}
+  else if(rollout)this.rollOut(p,rollout.velocity,rollout.clip);
   return true;
  }
  private allowed(n:PathNode){return n.kind==='pedestrian'&&!n.water&&!n.switchedOff&&!n.dontWander&&n.linkCount>0;}
@@ -3630,11 +3637,12 @@ export class WorldPedestrians {
     const riderHit=riderAt>=0;
     // FireInstantHit includes car tyres for every shooter: a wheel sphere before the hit takes the round.
     const reach=riderHit?riderAt:shot?.timeOfImpact??lineLength,tyre=bulletTyreHit(cars,muzzle,direction,reach);
-    const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:reach);p.flash=.06;
+    const seated=!tyre&&!riderHit&&shot?this.seatedShot?.(muzzle,direction,lineLength,p.body,shot.collider.parent()):undefined;
+    const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:seated?.t??reach);p.flash=.06;
     // SetUpPelletCol (iOS 0x100499000): a shotgun's pellet lines (eight for the SPAS 12, fifteen otherwise) spread with
     // the distance to what the first line hit, and every pellet on that same victim adds the weapon's damage.
     let pellets=1;
-    if(shot&&!tyre&&!riderHit&&SHOTGUN_TYPES.has(weapon.info.type)){
+    if(shot&&!tyre&&!riderHit&&!seated&&SHOTGUN_TYPES.has(weapon.info.type)){
      const depth=Math.max(.05,reach*(.05/weapon.info.accuracy)*1.3),right=new Vector3(-direction.z,0,direction.x).normalize(),up=new Vector3().crossVectors(right,direction).normalize();
      for(let i=1;i<shotgunPelletCount(weapon.info.type);i++){
       const o=shotgunPelletOffset(depth),target=end.clone().addScaledVector(right,o.across).addScaledVector(up,o.up);
@@ -3646,6 +3654,7 @@ export class WorldPedestrians {
     const shotDamage=weapon.info.damage*pellets;
     this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre,{id:`ped:${p.id}`,position:()=>p.health>0||this.people.includes(p)?{...p.actor.player.position,y:p.actor.player.position.y+1}:undefined});this.gunShot({...state.position,y:state.position.y+1},false,p.id,end);
     if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
+    else if(seated)seated.hit(weapon.info.damage,weapon.info.type);
     else if(riderHit||shot?.collider.handle===this.sim.playerCollider.handle){if(this.damagesPlayer(p,weapon.info.type)){this.sim.damagePlayer(shotDamage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z},piece:pedPieceAt(this.sim.player.position,this.sim.player.heading,end),friendly:this.friendlyWithPlayer(p)});this.defendPlayer(p);}}
     else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer){car.damage(shotDamage,undefined,false,undefined,{weapon:weapon.info.type,byPlayer:false,by:{ped:p}});
      // InflictDamage's random tyre burst: (rand() & 0x7f) under the weapon's chance.

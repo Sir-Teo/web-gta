@@ -34,6 +34,19 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
   own-car exclusion, shot immunity, nonfatal/fatal damage and transport.
   Full passenger task and combat parity remains unverified.
 
+## Street followers taking damage in cars (October 25, 2026)
+
+- Recruited street passengers now enter seated-head bullet checks. Boarding and
+  exit preserve health, weakness and targeting/critical-hit flags. NPC foot and
+  gang-car shooters share the existing occupant transfer for mission riders and
+  street recruits. [Source and limits](research/STREET_PASSENGER_COMBAT.md).
+- Moving-car passenger deaths retain their corpse and seat; stationary deaths
+  rebuild a dead pedestrian at the door. Group/kill accounting occurs once,
+  and the corpse does not regain health or create cash on exit.
+- Eight new unit checks and 12 browser regressions pass, including a real cop's
+  muzzle ray, wound preservation, both death branches and retained-corpse
+  cleanup. Complete native task/event choreography remains unverified.
+
 ## Decisions on the remaining iOS gaps (October 7, 2026)
 
 The gap pass against the iOS build (Google61/gta3sa.app at 67f70cb7) left six questions that the port's budgets, not

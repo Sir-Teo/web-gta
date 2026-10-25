@@ -88,7 +88,9 @@ export class CarEntry {
   /** Crew riding along: model refs with seats, ejected when the driver leaves. */
   passengers:{modelRef:number|string;seat:1|2|3;follow:boolean;gang?:number;keep?:unknown;
    /** The group's drive-by on a threat (CTaskAllocatorKillThreatsDriveby), and on whom. */
-   driveBy?:import('./scriptDriveBy').ScriptDriveBy;groupDriveBy?:string}[]=[];
+   driveBy?:import('./scriptDriveBy').ScriptDriveBy;groupDriveBy?:string;diedInSeat?:boolean}[]=[];
+  /** Report a fatal shot once, while the recruit's identity and group membership are still available. */
+  onPassengerKilled?:(rider:CarEntry['passengers'][number],byPlayer:boolean)=>void;
   /** Street population for boarding and ejection (wired by the host). */
   crowd?:PassengerCrowd;
   private prevSeated=false;
@@ -152,30 +154,58 @@ export class CarEntry {
   }
   /** Riding crew poses for the occupant renderer. */
   passengerPoses(driveByPose?:(d:import('./scriptDriveBy').ScriptDriveBy)=>Partial<import('../render/VehicleOccupants').OccupantPose>|undefined):import('../render/VehicleOccupants').OccupantPose[]{
-   const car=this.car;if(!car||!this.seated)return [];
+   const car=this.car;if(!car||!this.seated&&this.phase!=='waitSlow')return [];
    const out:import('../render/VehicleOccupants').OccupantPose[]=[];
    for(const p of this.passengers){
     const local=this.passengerSeat(car,p.seat);if(!local)continue;
     // A rider on the group's drive-by leans out with its clip and gun.
-    const leaning=p.driveBy?driveByPose?.(p.driveBy):undefined;
-    out.push({key:`passenger:${car.car.body.handle}:${p.seat}`,car,model:p.modelRef,local,clip:sitClip(car.modelFlags,false),seconds:0,...leaning});
+    const leaning=!p.diedInSeat&&p.driveBy?driveByPose?.(p.driveBy):undefined;
+    out.push({key:`passenger:${car.car.body.handle}:${p.seat}`,car,model:p.modelRef,local,clip:p.diedInSeat?'car_dead_rhs':sitClip(car.modelFlags,false),seconds:p.diedInSeat?1e6:0,...leaning});
    }
    return out;
   }
   /** Riders waiting their turn to get out, still in their seats. */
   private leaving:{rider:CarEntry['passengers'][number];car:WorldCar;at:number}[]=[];
   /** The followers riding with the player, or still getting out: members of his group while off the street. */
-  ridingFollowers(){return this.passengers.filter(rider=>rider.follow).length+this.leaving.filter(l=>l.rider.follow).length;}
+  ridingFollowers(){return this.passengers.filter(rider=>rider.follow&&!rider.diedInSeat).length+this.leaving.filter(l=>l.rider.follow&&!l.rider.diedInSeat).length;}
   leavingPoses():import('../render/VehicleOccupants').OccupantPose[]{
    const out:import('../render/VehicleOccupants').OccupantPose[]=[];
-   for(const {rider,car} of this.leaving){const local=this.passengerSeat(car,rider.seat);if(local&&!car.disposed)out.push({key:`passenger:${car.car.body.handle}:${rider.seat}`,car,model:rider.modelRef,local,clip:sitClip(car.modelFlags,false),seconds:0});}
+   for(const {rider,car} of this.leaving){const local=this.passengerSeat(car,rider.seat);if(local&&!car.disposed)out.push({key:`passenger:${car.car.body.handle}:${rider.seat}`,car,model:rider.modelRef,local,clip:rider.diedInSeat?'car_dead_rhs':sitClip(car.modelFlags,false),seconds:rider.diedInSeat?1e6:0});}
    return out;
+  }
+  /** Living street recruits, including those still waiting in their seats after the leader stepped out. */
+  passengerTargets(){
+   const car=this.car,current=car&&(this.seated||this.phase==='waitSlow')?this.passengers.map(rider=>({car,rider})):[];
+   return [...current,...this.leaving].flatMap(({car,rider})=>{
+    if(car.disposed||car.wrecked||rider.diedInSeat)return [];
+    const local=this.passengerSeat(car,rider.seat);return local?[{car,rider,seat:rider.seat,local}]:[];
+   });
+  }
+  /** CheckForShootingVehicleOccupant transfers the hit to the recruit's retained pedestrian health. */
+  passengerShot(car:WorldCar,seat:number,damage:number,byPlayer=true,headshot=false):'hit'|'killed'|undefined{
+   const target=this.passengerTargets().find(t=>t.car===car&&t.seat===seat);if(!target)return undefined;
+   const rider=target.rider,keep=rider.keep as {health?:number;defendMult?:number}|undefined;
+   // AccountForPedDamageStats: retain the on-foot weakness and the player's friendly-fire reduction. A forced
+   // instant-hit head death bypasses both, as ComputeWillForceDeath does for the same pedestrian on foot.
+   const scaled=damage*(keep?.defendMult??1),applied=byPlayer&&rider.follow?Math.min(scaled*Math.fround(.1),12.5):scaled;
+   const health=headshot?0:Math.max(0,(keep?.health??100)-applied);
+   rider.keep={...(rider.keep as object|undefined),health};
+   if(health>0)return 'hit';
+   rider.diedInSeat=true;rider.driveBy=undefined;rider.groupDriveBy=undefined;
+   this.onPassengerKilled?.(rider,byPlayer);
+   // CTaskComplexDieInCar: a passenger steps out to die only if the car can be stepped out of now; otherwise he
+   // stays dead in his seat, even after the leader leaves. The exit itself uses the existing authored door placement.
+   if(car.canStepOut()&&this.crowd){
+    this.passengers=this.passengers.filter(p=>p!==rider);this.leaving=this.leaving.filter(p=>p.rider!==rider);
+    this.passengerOut(car,rider);
+   }else for(const leaving of this.leaving)if(leaving.rider===rider)leaving.at=Infinity;
+   return 'killed';
   }
   /** Board nearby followers and eject the crew when the driver leaves or wrecks. */
   stepPassengers(dt:number){
    this.passengerClock+=dt;
    const car=this.car;
-   for(let i=this.leaving.length-1;i>=0;i--){const l=this.leaving[i];if(this.passengerClock>=l.at){this.leaving.splice(i,1);this.passengerOut(l.car,l.rider);}}
+   for(let i=this.leaving.length-1;i>=0;i--){const l=this.leaving[i];if(l.car.disposed){this.leaving.splice(i,1);continue;}if(this.passengerClock>=l.at){this.leaving.splice(i,1);this.passengerOut(l.car,l.rider);}}
    for(let i=this.doorCloses.length-1;i>=0;i--){
     const pending=this.doorCloses[i];
     if(this.passengerClock<pending.at||pending.car!==this.car)continue;
@@ -193,7 +223,7 @@ export class CarEntry {
    if(!car||car.wrecked||!this.seated||car.speed2D()>.1||!this.crowd){for(const p of crew)this.crowd?.sendToSeat?.(p.id);return;}
    // CVehicle::m_nMaxPassengers (GetMaximumNumberOfPassengersFromNumberOfDoors) bounds the seats; a door knocked off
    // keeps nobody out of its seat (the door just does not open).
-   const free=PASSENGER_SEATS.slice(0,car.maximumPassengers).filter(s=>!this.passengers.some(p=>p.seat===s.seat));
+   const free=PASSENGER_SEATS.slice(0,car.maximumPassengers).filter(s=>!this.passengers.some(p=>p.seat===s.seat)&&!this.leaving.some(l=>l.car===car&&l.rider.seat===s.seat));
    if(!crew.length)return;
    // ComputeResponseLeaderEnteredCar (iOS 0x10034cbe0): every follower, in member-slot order, runs to a seat
    // (CTaskComplexEnterCarAsPassengerWait, RUN) wherever it is, the seats taken in turn (the front one first, which a
@@ -224,7 +254,7 @@ export class CarEntry {
    // CVehicle::KillPedsInVehicle kills everyone aboard a car that blew up at once; only living riders leave one by one
    // (ComputeResponseLeaderExitedCar, iOS 0x10034d564): the follower in member slot k after 250 + 500 × k ms and up to
    // 500 more. A rider with no slot takes its place in the riders' order.
-   riders.forEach((rider,i)=>{const slot=(rider.keep as {slot?:number}|undefined)?.slot??i;this.leaving.push({rider,car,at:this.passengerClock+(car.wrecked?0:(250+500*slot+Math.random()*500)/1000)});});
+   riders.forEach((rider,i)=>{const slot=(rider.keep as {slot?:number}|undefined)?.slot??i;this.leaving.push({rider,car,at:rider.diedInSeat?Infinity:this.passengerClock+(car.wrecked?0:(250+500*slot+Math.random()*500)/1000)});});
   }
   private passengerOut(car:WorldCar,rider:CarEntry['passengers'][number]){
    if(!this.crowd||car.disposed)return;
@@ -235,11 +265,11 @@ export class CarEntry {
     const hit=this.sim.world.castRay(new RAPIER.Ray({x:door.x,y:door.y+1.5,z:door.z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,car.car.body);
     const spot={x:door.x,y:(hit?door.y+1.5-hit.timeOfImpact:door.y-1)+.03,z:door.z};
     // A car that blew up killed everyone aboard (CVehicle::KillPedsInVehicle, CEventVehicleDied for each rider).
-    if(car.wrecked&&this.crowd.spawnDead){void Promise.resolve(this.crowd.spawnDead(rider.modelRef,spot,car.heading(),rider.gang,!!rider.follow)).catch(()=>{});return;}
+    if(car.wrecked&&!rider.diedInSeat&&this.crowd.spawnDead){void Promise.resolve(this.crowd.spawnDead(rider.modelRef,spot,car.heading(),rider.gang,!!rider.follow)).catch(()=>{});return;}
     // ComputeResponseLeaderExitedCar gives followers CTaskComplexLeaveCar with bSensibleLeaveCar off: nobody waits for
     // the car to slow (GroupEventHandler.cpp:344-349). One still too fast to step out of is rolled out of
     // (CTaskSimpleCarJumpOut) with its move speed, by the seat's side.
-    const v=car.car.body.linvel(),rollout=car.canStepOut()?undefined:{velocity:{x:v.x,z:v.z},clip:(rider.seat===2?'car_rollout_lhs':'car_rollout_rhs') as 'car_rollout_lhs'|'car_rollout_rhs'};
+    const v=car.car.body.linvel(),rollout=rider.diedInSeat||car.canStepOut()?undefined:{velocity:{x:v.x,z:v.z},clip:(rider.seat===2?'car_rollout_lhs':'car_rollout_rhs') as 'car_rollout_lhs'|'car_rollout_rhs'};
     void Promise.resolve(this.crowd.spawnPassenger(rider.modelRef,spot,car.heading(),rider.follow,rider.keep,rollout)).catch(()=>{});
    }
   }

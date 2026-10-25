@@ -49,6 +49,7 @@ export class GangDriveBy {
   private busy=false;private nextCheck=0;private disposed=false;private seconds=0;
   private lastAttack=-Infinity;
   onShot?:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},weapon:number,hit:boolean)=>void;
+  seatedShot?:import('../vehicle/nativeDieInCar').SeatedShot;
   canSpawn:(point:{x:number;y:number;z:number},radius:number)=>boolean=()=>true;
   /** Rival turf with INITIAL strength, shared with the street population. */
   gangTurf?:(x:number,z:number)=>{gang:number;strength:number}|undefined;
@@ -221,9 +222,11 @@ export class GangDriveBy {
     const shot=this.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),lineLength,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
     // FireInstantHit includes car tyres for every shooter, the gang car's own excepted.
     const reach=shot?.timeOfImpact??lineLength,tyre=bulletTyreHit([...this.fleet.cars].filter(c=>c!==car),muzzle,direction,reach);
-    const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:reach);s.shots++;
+    const seated=!tyre&&shot?this.seatedShot?.(muzzle,direction,lineLength,car,shot.collider.parent()):undefined;
+    const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:seated?.t??reach);s.shots++;
     this.onShot?.(muzzle,end,info.type,!!shot||!!tyre);
     if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
+    else if(seated)seated.hit(info.damage,info.type);
     else if(shot?.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z}});
     else if(shot&&targetBody&&shot.collider.parent()?.handle===targetBody.handle){pushShotVehicle(playerCar!,shot.normal,end,info.type);playerCar!.damage(info.damage,undefined,false,undefined,{weapon:info.type,by:{ped:s}});}
    }
