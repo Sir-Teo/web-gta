@@ -13730,3 +13730,14 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   enemy attribution. Full mounted impact FX, player-owned occupant transfer,
   native muzzle/spread/barrel parity and retail combat traces remain open.
   [Call chain and verification scope](research/AIRCRAFT_WEAPONS.md).
+
+## Player-mounted occupant shots and vehicle crime sources (October 25, 2026)
+
+- Player-controlled aircraft and Hunter guns now reach NPC heads and animated
+  biker body pieces before bodywork damage. Tyres, cover, protection and own-car
+  exclusion apply; accepted hits emit ped blood metadata.
+- Vehicle creators queue the native victim crime only when CJ is their driver,
+  without the two immediate player-ped reports or weapon practice. RC damage
+  without a CJ driver is not a criminal damage event. Existing handheld/sniper
+  calls retain their source semantics. Full mounted FX, spread, barrel and kill
+  attribution parity remain open. [Exact source rules](research/AIRCRAFT_WEAPONS.md).

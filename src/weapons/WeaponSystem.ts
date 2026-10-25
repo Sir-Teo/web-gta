@@ -226,18 +226,20 @@ export class WeaponSystem {
  onSeatedShot?:(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number)=>'hit'|'killed'|undefined;
  /** Enemy mounted guns share the NPC world/tyre/occupant query, including CJ with his physical collider off. */
  npcSeatedShot?:SeatedShot;
- private damageSeated(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number,sniper=false,piece=9){
+ private damageSeated(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number,sniper=false,piece=9,creator:'ped'|'vehicle'|'remote'='ped'){
   const result=this.onSeatedShot?.(target,WeaponSystem.occupantDamage(target,damage,weapon,piece),weapon);
   if(result){this.hits++;const cop=target.kind==='police'||target.pedType?.toUpperCase()==='COP',victim=target.crimeVictim??`seat:${this.seatKey(target)}`,dontCare=policeDontCareAboutPedType(target.pedType);
    // GenerateDamageEvent reports DAMAGED_PED, DoBulletImpact adds DAMAGE_CAR (CBulletInfo has a cop variant),
    // and CEventDamage queues its weapon/type-specific criminal event. The immediate calls have no cop variant otherwise.
-   this.onCrime?.(CRIME.damagedPed,victim,false,dontCare);
+   if(creator==='ped')this.onCrime?.(CRIME.damagedPed,victim,false,dontCare);
    const queued=criminalEventCrime(weapon,cop);
    // GenerateDamageEvent skips EventGroup::Add for a surviving TASK_SIMPLE_GANG_DRIVEBY victim.
-   if(queued!==CRIME.none&&(!target.activeDriveBy||result==='killed'))this.onCrime?.(queued,victim,true,dontCare);
-   this.onCrime?.(sniper&&cop?CRIME.damageCopCar:CRIME.damageCar,victim,false,dontCare);
+   // IsCriminalEvent accepts a vehicle whose driver is CJ. A remotely controlled vehicle with no CJ driver is not
+   // a criminal source; the two immediate reports above/below require an actual player-ped creator.
+   if(creator!=='remote'&&queued!==CRIME.none&&(!target.activeDriveBy||result==='killed'))this.onCrime?.(queued,victim,true,dontCare);
+   if(creator==='ped')this.onCrime?.(sniper&&cop?CRIME.damageCopCar:CRIME.damageCar,victim,false,dontCare);
    // DoBulletImpact's weapon practice excludes the player's own group, as the on-foot path does.
-   if(!target.crew)this.onHit?.(weapon);
+   if(creator==='ped'&&!target.crew)this.onHit?.(weapon);
   }
   return result;
  }
@@ -693,17 +695,23 @@ export class WeaponSystem {
   const weapon=plane.modelId===476||plane.modelId===447||plane.modelId===464?31:38,q=new Quaternion().copy(plane.body.rotation());
   const direction=new Vector3(0,0,-1).applyQuaternion(q),position=plane.body.translation();
   const from=new Vector3(0,0,plane.modelId===464?-.45:-Math.min(6,plane.assets.collision!.bounds.radius)).applyQuaternion(q).add(position);
-  this.fireMountedGun(plane.body,from,direction,weapon,byPlayer);
+  this.fireMountedGun(plane.body,from,direction,weapon,byPlayer,undefined,plane.occupied);
  }
- private fireMountedGun(body:RAPIER.RigidBody,from:Vector3,direction:Vector3,weapon:number,byPlayer:boolean,fxOptions?:Parameters<WeaponFxHost['gunshot']>[4]){
+ private fireMountedGun(body:RAPIER.RigidBody,from:Vector3,direction:Vector3,weapon:number,byPlayer:boolean,fxOptions?:Parameters<WeaponFxHost['gunshot']>[4],playerDriver=false){
   const info=this.inventory.info(weapon),amount=info?.damage??35,range=info?.weaponRange??400;
   const hit=this.ray(from,direction,range,body,undefined,byPlayer),reach=hit?.timeOfImpact??range;
-  const tyre=!byPlayer?this.tyreHit(from,direction,reach,body):undefined;
+  const biker=byPlayer&&this.onSeatedShot?this.bikerHit(from,direction,reach,body):undefined;
+  const tyre=this.tyreHit(from,direction,biker?.t??reach,body);
+  const occupant=byPlayer&&!tyre?(biker??(hit&&this.onSeatedShot?this.seatedHit(from,direction,range,hit.collider.parent(),body):undefined)):undefined;
   const seated=!byPlayer?this.npcSeatedShot?.(from,direction,range,body,hit?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre}):undefined;
-  const end=from.clone().addScaledVector(direction,seated?.t??tyre?.t??reach);
+  const end=from.clone().addScaledVector(direction,occupant?.t??seated?.t??tyre?.t??reach);
   this.tracer(from,end,'aircraft',.1);this.fx?.gunshot(from,direction,weapon,true,fxOptions);
-  if(seated)seated.hit(amount,weapon);
-  else if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
+  if(occupant){
+   const piece=biker?.piece??9,result=this.damageSeated(occupant.target,amount,weapon,false,piece,playerDriver?'vehicle':'remote');
+   let normal=biker?.normal;if(!normal){const head=seatedHeadPoint(occupant.target);normal=normalize(add(end,{x:head.x,y:head.y+OCCUPANT_HEAD_LIFT,z:head.z},-1));}
+   if(result)this.fx?.bulletHit({point:end,normal,collider:this.seatKey(occupant.target),ped:{head:piece===9,dead:result==='killed'}},8);
+  }else if(seated)seated.hit(amount,weapon);
+  else if(tyre)tyre.car.burstTyre(tyre.wheel,true,byPlayer?'player':'ped');
   else if(hit){
    this.hitFx(hit,end,8,weapon,direction,false,byPlayer,false);
    if(!byPlayer&&hit.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(amount,false,{weapon,from});
@@ -717,7 +725,7 @@ export class WeaponSystem {
   const v=body.linvel(),origin=hunterGunOrigin(matrix,{x:Math.fround(v.x/50),y:Math.fround(-v.z/50),z:Math.fround(v.y/50)},timeStep);
   const from=new Vector3(origin.x,origin.z,-origin.y),direction=new Vector3(matrix.forward.x,matrix.forward.z,-matrix.forward.y).normalize();
   const c=bounds?.center??[0,0,0],center={x:matrix.position.x+matrix.right.x*c[0]+matrix.forward.x*c[1]+matrix.up.x*c[2],y:matrix.position.z+matrix.right.z*c[0]+matrix.forward.z*c[1]+matrix.up.z*c[2],z:-(matrix.position.y+matrix.right.y*c[0]+matrix.forward.y*c[1]+matrix.up.y*c[2])};
-  this.fireMountedGun(body,from,direction,38,byPlayer,{shell:{direction:[0,Math.fround(.1)],size:Math.fround(.025),creator:{position:{x:matrix.position.x,y:matrix.position.z,z:-matrix.position.y},center,radius:bounds?.radius??0}}});
+  this.fireMountedGun(body,from,direction,38,byPlayer,{shell:{direction:[0,Math.fround(.1)],size:Math.fround(.025),creator:{position:{x:matrix.position.x,y:matrix.position.z,z:-matrix.position.y},center,radius:bounds?.radius??0}}},byPlayer&&(vehicle as {occupied?:boolean}).occupied===true);
   this.vehicleGunTimes.set(vehicle,nowMs>>>0);this.aircraftShots++;this.onSound?.('fire',38,from,'aircraft');return true;
  }
 
