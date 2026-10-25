@@ -1,0 +1,80 @@
+{
+  "source": {
+    "url": "https://raw.githubusercontent.com/Google61/gta3sa.app/67f70cb72eb207aeca650ea9e8c10b0e7dda166a/gta3sa",
+    "bytes": 14226544,
+    "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78"
+  },
+  "function": "CBike::PreRender",
+  "slice": "0x100455604–0x1004556f4",
+  "notes": [
+    "Read the model rake at modelInfo+0x88, multiply by float32 pi and divide by 180.",
+    "Build axis (0, sin(rake), -cos(rake)) and quaternion angle -vehicle.steerAngle (vehicle+0x834).",
+    "Set the fork matrix to identity, apply that quaternion matrix and restore the original XYZ translation."
+  ],
+  "constants": {
+    "pi": 3.1415927410125732,
+    "degrees": 180
+  },
+  "instructions": [
+    {
+      "address": "0x100455644",
+      "word": "0xbd408aa0"
+    },
+    {
+      "address": "0x100455650",
+      "word": "0x1e210800"
+    },
+    {
+      "address": "0x10045565c",
+      "word": "0x1e211800"
+    },
+    {
+      "address": "0x100455660",
+      "word": "0x94025d25"
+    },
+    {
+      "address": "0x100455664",
+      "word": "0x1e214021"
+    },
+    {
+      "address": "0x100455670",
+      "word": "0x910043e0"
+    },
+    {
+      "address": "0x100455678",
+      "word": "0xbd483660"
+    },
+    {
+      "address": "0x10045567c",
+      "word": "0x1e214000"
+    },
+    {
+      "address": "0x100455688",
+      "word": "0x97f9d666"
+    },
+    {
+      "address": "0x100455698",
+      "word": "0x9101c3e0"
+    },
+    {
+      "address": "0x1004556c0",
+      "word": "0x97f9d0f9"
+    },
+    {
+      "address": "0x1004556d0",
+      "word": "0x1e202940"
+    },
+    {
+      "address": "0x1004556dc",
+      "word": "0x1e202920"
+    },
+    {
+      "address": "0x1004556e8",
+      "word": "0x1e202900"
+    },
+    {
+      "address": "0x1004556f4",
+      "word": "0x97f9d193"
+    }
+  ]
+}

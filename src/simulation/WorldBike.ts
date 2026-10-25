@@ -10,6 +10,7 @@ import {randomSeed} from './nativeVehicleLights';
 import {vehicleDestroyed} from './vehicleDestroyed';
 import {bikeWheelSupports} from '../vehicle/nativeBikeWheels';
 import {bindBikeWheelRoll} from '../render/bikeWheelRoll';
+import {bindBikeSteering} from '../render/bikeSteering';
 import {stepBikeWheelRoll,type BikeWheelRoll} from './bikeWheelRoll';
 import {stepWheelAnimation} from './nativeWheelAnimation';
 import {bindNativeCarLod} from '../render/nativeCarLod';
@@ -227,6 +228,7 @@ export class WorldBike {
  propsSmashed=0;propsUprooted=0;
  private previous:{x:number;y:number;z:number};private previousRotation:RAPIER.Rotation;
  private wheelRoll?:ReturnType<typeof bindBikeWheelRoll>;
+ private forkSteering?:ReturnType<typeof bindBikeSteering>;private previousSteer=0;
  private wheelPoses:BikeWheelRoll[]=[];private previousWheelAngles:number[]=[];private wheelStepSeconds=0;
  /** CVehicleModelInfo's detail switch: chassis_vlo stands in for the full model only past the LOD distance. */
  private lod?:ReturnType<typeof bindNativeCarLod>;
@@ -255,6 +257,7 @@ export class WorldBike {
   }
   if(this.visual){
    this.wheelRoll=bindBikeWheelRoll(this.visual.root,assets.wheelFrames);
+   if(!this.quad)this.forkSteering=bindBikeSteering(this.visual.root,assets.model,assets.vehicle.misc??-1);
    this.wheelPoses=[...assets.wheelFrames.front,...assets.wheelFrames.rear].map(()=>({rotation:0,speed:0}));this.previousWheelAngles=this.wheelPoses.map(()=>0);
   }
   // Bike TXDs carry no vehiclelights128 texture, so the lamp pass mounts glow
@@ -363,6 +366,7 @@ export class WorldBike {
  }
  beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean;disabled?:boolean}={throttle:0,steer:0,brake:false}){
   this.wheelStepSeconds=0;
+  this.previousSteer=this.steer;
   if(this.wheelRoll)this.previousWheelAngles=this.wheelPoses.map(p=>p.rotation);
   this.clumpAlpha.step(dt);
   // ProcessDelayedExplosion, which CBike::ProcessControl runs too, whether or not the body is in the world: a blast's
@@ -824,6 +828,7 @@ export class WorldBike {
   this.occupied=false;this.throttle=0;this.steer=0;this.rawSteer=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.player.position=spot;this.sim.player.previous={...spot};this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});this.sim.playerCollider.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z});
  }
  update(alpha:number){
+  this.forkSteering?.update((this.previousSteer+(this.steer-this.previousSteer)*alpha)*this.assets.handling.values.steeringLock*Math.PI/180);
   this.wheelRoll?.update(this.previousWheelAngles,this.wheelPoses.map(p=>p.rotation),alpha);
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
   const lit=this.lightsOn&&!this.wrecked;

@@ -19,7 +19,7 @@ test('native bike and quad wheel frames roll with travel without moving their ce
     // A rear wheel locked by the brake holds its angle while the rolling front follows travel.
     tick({throttle:0,steer:0,brake:true});const brakeStart=matrices();tick({throttle:0,steer:0,brake:true});const brakeEnd=matrices();
     bike.frozen=true;tick();bike.update(0);const frozenStart=matrices();bike.update(1);const frozenEnd=matrices();
-    out.push({id,front:assets.wheelFrames.front.length,frames:indices.map((i:number)=>({name:assets.model.frames[i].name,parent:assets.model.frames[assets.model.frames[i].parent].name,base:assets.model.frames[i].matrix})),before,rolling,interpolated,repeated,start,position,speed,brakeStart,brakeEnd,frozenStart,frozenEnd});
+    out.push({id,rake:assets.vehicle.misc,steerFrames:assets.model.frames.filter((f:any)=>/forks_front|handlebars/.test(f.name)).map((f:any)=>({name:f.name,parent:assets.model.frames[f.parent]?.name,matrix:f.matrix})),front:assets.wheelFrames.front.length,frames:indices.map((i:number)=>({name:assets.model.frames[i].name,parent:assets.model.frames[assets.model.frames[i].parent].name,base:assets.model.frames[i].matrix})),before,rolling,interpolated,repeated,start,position,speed,brakeStart,brakeEnd,frozenStart,frozenEnd});
    }finally{bike.dispose();sim.dispose();}
   }
   return out;

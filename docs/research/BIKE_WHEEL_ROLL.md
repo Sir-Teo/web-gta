@@ -36,8 +36,9 @@ vehicles use their body's movement without acquiring player controls.
 This is a wheel-rendering integration, not complete native suspension or
 contact simulation. Body velocity stands in for the original per-contact point
 velocity, and the quad shares an axle probe between its left and right wheels.
-Steering forks, handlebars, pedal cranks, burst wobble and suspension articulation
-remain separate work. The existing authored bike dynamics remain unchanged.
+Handlebar task placement, pedal cranks, burst wobble and suspension articulation
+remain separate work. Fork steering has since gained its native rake transform
+([source and scope](BIKE_STEERING.md)). The existing authored bike dynamics remain unchanged.
 
 The real-model browser regression failed before the fix because all wheel
 matrices stayed static. It now checks all fourteen supported motorcycle, bicycle and quad models for

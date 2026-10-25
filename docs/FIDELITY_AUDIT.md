@@ -13615,3 +13615,12 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   still approximate native contact-point velocity and suspension; fork, handlebar,
   pedal and burst-wheel articulation remain open.
   [Source, capture and live scope](research/BIKE_WHEEL_ROLL.md).
+
+## Bike fork steering (October 25, 2026)
+
+- Thirteen native motorcycle/bicycle forks now steer about their vehicles.ide
+  rake axes, with their front wheels retained beneath the original fork frames.
+- The PC loader establishes the rake data and an ARM64 PreRender capture backs
+  the quaternion and mounting transform. Hand tasks/handlebar placement, native
+  suspension and retail PC comparison remain open.
+  [Source and verification scope](research/BIKE_STEERING.md).

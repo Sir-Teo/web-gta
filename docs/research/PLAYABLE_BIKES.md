@@ -19,3 +19,7 @@
 CJ can also be warped into a motorcycle or quad's rear passenger seat by the
 original script commands while its driver keeps control. Models without a rear
 dummy reject the seat. See [player passenger implementation and remaining scope](PLAYER_BIKE_PASSENGERS.md).
+
+The thirteen motorcycle and bicycle front forks also follow their native rake
+axes with interpolated steering ([source and live model checks](BIKE_STEERING.md)).
+Handlebar hand tasks and complete suspension articulation remain separate work.
