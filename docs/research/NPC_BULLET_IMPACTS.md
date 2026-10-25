@@ -53,7 +53,10 @@ proof rejection. Units cover acceptance, corpse accounting, actual types,
 weakness/group scaling, callback ordering, prop removal without FX, drive-by
 completion and a moved gunflash under stale bone world matrices.
 
-Remaining scope includes NPC seated-occupant transfer FX, complete NPC critical
+The later [seated-impact adapter](NPC_SEATED_BULLET_EFFECTS.md) adds effects for
+the shared CJ, mission-rider and recruited-passenger route.
+
+Remaining scope includes complete NPC critical
 death/calculator/task behavior, creator/group identity for opaque drive-by
 sources, native contact brightness and matched retail captures. The existing
 host corpse animation gates and broader event/task limits remain documented

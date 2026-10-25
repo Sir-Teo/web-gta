@@ -37,7 +37,8 @@ This changes effect timing/classification in these WeaponSystem paths. The
 later [animated on-foot trace](SKINNED_PED_BULLETS.md) supplies native collision
 pieces to these effects; melee and legacy adapters retain their fallback.
 The later [NPC impact adapter](NPC_BULLET_IMPACTS.md) covers ordinary foot,
-drive-by and mounted physical hits. Complete NPC seated-transfer effects, native contact
+drive-by and mounted physical hits. The [NPC seated adapter](NPC_SEATED_BULLET_EFFECTS.md)
+adds CJ, mission-rider and recruited-passenger effects. Native contact
 brightness, localisation, corpse/task acceptance and original PC render captures
 remain separate work.
 

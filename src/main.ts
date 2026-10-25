@@ -75,8 +75,9 @@ const asRider=(entity:unknown)=>(entity as ScriptRider|undefined)?.rider?entity 
 /** A bullet into a script's ped in its seat (CWeapon::CheckForShootingVehicleOccupant, iOS 0x100498190, hands the hit from
  * the car to the occupant): the weapon's damage off its health, none from anyone but the player for one the script made
  * only damaged by him (its `invulnerable`). At no health it dies where it sits, and the script sees it dead. */
-function scriptRiderShot(rider:ScriptRider,damage:number,_weapon:number,byPlayer:boolean):'hit'|'killed'{
- if(rider.health<=0||rider.invulnerable&&!byPlayer)return 'hit';
+function scriptRiderShot(rider:ScriptRider,damage:number,_weapon:number,byPlayer:boolean):'hit'|'killed'|undefined{
+ if(rider.health<=0)return 'killed';
+ if(rider.invulnerable&&!byPlayer)return undefined;
  rider.health=Math.max(0,rider.health-damage);
  if(rider.health>0)return 'hit';
  rider.diedInSeat=true;return 'killed';
@@ -170,7 +171,7 @@ function seatedPedMatrix(car:unknown,seat:'driver'|number){
 }
 /** The browser's walking ped behind a script handle, or nothing when the handle names a ped that rides. */
 const onFoot=(entity:unknown)=>asRider(entity)?undefined:entity as import('./simulation/WorldPedestrians').Pedestrian|undefined;
-import {canPedStepOutCar} from './vehicle/nativeDieInCar';
+import {canPedStepOutCar,OCCUPANT_HEAD_LIFT} from './vehicle/nativeDieInCar';
 import {modelDummy,nativeSeatPosition} from './vehicle/nativeSeatPosition';
 import {VehicleOccupants} from './render/VehicleOccupants';
 import {SirenLights} from './render/SirenLights';
@@ -226,7 +227,7 @@ import {WantedHud} from './ui/WantedHud';
 import {hudAmmoText} from './ui/nativeAmmoText';
 import {radarRange} from './ui/nativeRadar';
 import {carsStrikePlayer} from './simulation/playerCarHit';
-import {WeaponSystem,playerAimReach,SEATED_HEAD_OFFSET} from './weapons/WeaponSystem';
+import {WeaponSystem,playerAimReach,SEATED_HEAD_OFFSET,seatedHeadPoint} from './weapons/WeaponSystem';
 import {AIM_CROSSHAIR_NDC,pickAimTarget} from './input/aimAssist';
 import {WeaponView} from './weapons/WeaponView';
 import {WorldFx} from './simulation/fx/WorldFx';
@@ -702,10 +703,19 @@ async function boot() {
     const seated=direct??(!playerDirect&&!first?.tyre?weapons.seatedHit(from,direction,range,hitBody,own):undefined);
     const head=!direct&&!playerDirect&&body&&(hitBody as {handle?:number}|undefined)?.handle===body.handle&&render.nativeCharacter?.headPosition();
     const playerHit=playerDirect??(!first?.tyre&&head&&body?playerSeatHeadHit({body,head,canBeShot},from,direction,range,hitBody,own):undefined);
-    if(playerHit&&(!seated||playerHit.t<seated.t)){const piece=playerDirect?.piece??9;return {t:playerHit.t,direct:!!playerDirect,victim:sim.player,hit:(damage,weapon)=>{if(first?.playerHit)first.playerHit(damage,weapon,piece);else sim.damagePlayer(damage,false,{weapon,from:{x:from.x,z:from.z},piece});}};}
+    if(playerHit&&(!seated||playerHit.t<seated.t)){
+     const piece=playerDirect?.piece??9,point=new Vector3(from.x,from.y,from.z).addScaledVector(direction,playerHit.t);
+     const normal=playerDirect?.normal??(head?point.clone().sub(new Vector3(head.x,head.y+OCCUPANT_HEAD_LIFT,head.z)).normalize():undefined);
+     if(!normal)return undefined;
+     return {t:playerHit.t,direct:!!playerDirect,victim:sim.player,hit:(damage,weapon)=>weapons.hitNpcSeatedBullet('player',{point,normal,direction,piece},weapon,()=>{
+      const accepted=first?.playerHit?first.playerHit(damage,weapon,piece):sim.damagePlayer(damage,false,{weapon,from:{x:from.x,z:from.z},piece});
+      return accepted?(sim.player.health<=0?'killed':'hit'):undefined;
+     })};
+    }
     if(!seated||seated.target.kind!=='script'&&seated.target.kind!=='passenger')return undefined;
-    const target=seated.target;
-    return {t:seated.t,direct:!!direct,victim:target.rider,hit:(damage,weapon)=>{if(target.kind==='passenger')carEntry.passengerShot(target.car as ScriptCar,target.seat,damage,false,!target.noCriticalHits&&isInstantHitGun(weapon));else scriptRiderShot(target.rider as ScriptRider,WeaponSystem.occupantDamage(target,damage,weapon,direct?.piece),weapon,false);}};
+    const target=seated.target,piece=direct?.piece??9,point=new Vector3(from.x,from.y,from.z).addScaledVector(direction,seated.t),center=seatedHeadPoint(target);
+    const normal=direct?.normal??point.clone().sub(new Vector3(center.x,center.y+OCCUPANT_HEAD_LIFT,center.z)).normalize();
+    return {t:seated.t,direct:!!direct,victim:target.rider,hit:(damage,weapon)=>weapons.hitNpcSeatedBullet(target,{point,normal,direction,piece},weapon,()=>target.kind==='passenger'?carEntry.passengerShot(target.car as ScriptCar,target.seat,damage,false,piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon)):scriptRiderShot(target.rider as ScriptRider,WeaponSystem.occupantDamage(target,damage,weapon,piece),weapon,false))};
    },
    onShot:(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');}};
   /** CTaskAllocatorKillThreatsDriveby (reversed) for CJ's group while he drives: every member riding his car (not
@@ -1401,6 +1411,7 @@ async function boot() {
     const record=importedScene?.sources.get(handle),surface=vehicle?SURFACE.car:ped?SURFACE.ped:record?nativeCollisionSurface(record.source,hit)?.material:undefined;
     if(surface!==undefined)collisions.reportBulletHit(surface,{x:point.x,y:-point.z,z:point.y},angle);
   };
+  weapons.onPedBulletHit=(point,angle)=>{if(!paused)sound.nativeEngine?.collisions.reportBulletHit(SURFACE.ped,{x:point.x,y:-point.z,z:point.y},angle);};
   // CCrime::ReportCrime passes PoliceDontCareAboutCrimesAgainstPedType for the victim, which divides the chaos by 3.
   weapons.policeHelis=()=>police?.helis??[];
   weapons.onCrime=(type,victim,queued,dontCareOverride)=>{const dontCare=dontCareOverride??!!pedestrians?.policeDontCare(victim);if(queued){if(victim)law.registerCrime(type,victim,dontCare);}else law.crime(type,victim,dontCare);};

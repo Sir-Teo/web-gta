@@ -77,8 +77,20 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
   muzzle origins. [Source, verification and scope](research/NPC_BULLET_IMPACTS.md).
 - Nine real NPC muzzle cases verify native blood counts, proof/vest/type gates,
   health and once-only kill stats. Incoming mounted hits verify CJ's head blood
-  and proof behavior. Complete NPC calculator/task, seated-transfer FX, lighting
+  and proof behavior. Complete NPC calculator/task, lighting
   and matched PC capture parity remain open.
+
+## NPC seated bullet effects (October 25, 2026)
+
+- NPC hits on CJ, mission riders and recruited passengers now report pedestrian
+  contact audio and emit blood after accepted damage. Transferred heads and
+  direct bike body pieces retain their separate native counts and normals;
+  protected script riders no longer report an accepted wound.
+  [Source and verification scope](research/NPC_SEATED_BULLET_EFFECTS.md).
+- Live car/bike fixtures exercise the public mounted gun against surviving,
+  fatal and protected targets. Complete damage/force-death, persistent rider
+  physical proofs, ambient-crew NPC damage, lighting and matched PC captures
+  remain open.
 
 ## Scripted rear car passengers (October 25, 2026)
 

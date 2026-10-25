@@ -41,7 +41,7 @@ function seatWorldPoint(vehicle:SeatedVehicle,local:Vec3){
  const b=vehicle.car.body,q=b.rotation(),p=b.translation();
  return new Vector3(local.x,local.z,-local.y).applyQuaternion(new Quaternion(q.x,q.y,q.z,q.w)).add(p as Vector3);
 }
-function seatedHeadPoint(target:SeatedTarget<SeatedVehicle>):Vec3{
+export function seatedHeadPoint(target:SeatedTarget<SeatedVehicle>):Vec3{
  if(target.head)return target.head;
  const a=target.headingOffset??0,c=Math.cos(a),s=Math.sin(a),o=SEATED_HEAD_OFFSET,p=target.local;
  return seatWorldPoint(target.car,{x:p.x+o.x*c-o.y*s,y:p.y+o.x*s+o.y*c,z:p.z+o.z});
@@ -230,6 +230,15 @@ export class WeaponSystem {
  onSeatedShot?:(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number)=>'hit'|'killed'|undefined;
  /** Enemy mounted guns share the NPC world/tyre/occupant query, including CJ with his physical collider off. */
  npcSeatedShot?:SeatedShot;
+ /** A transferred vehicle head hit or direct biker hit keeps its native piece and samples health after damage.
+  * The callback's result is authoritative: protected riders produce the contact sound without blood. */
+ hitNpcSeatedBullet(target:'player'|SeatedTarget<SeatedVehicle>,contact:{point:Vec3;normal:Vec3;direction:Vec3;piece:number},weapon:number,apply:()=> 'hit'|'killed'|undefined){
+  const {point,normal,direction,piece}=contact;
+  this.onPedBulletHit?.(point,Math.asin(Math.max(-1,Math.min(1,-(direction.x*normal.x+direction.y*normal.y+direction.z*normal.z))))*180/Math.PI);
+  const result=apply();
+  if(result)this.fx?.bulletHit({point,normal,collider:target==='player'?this.sim.playerCollider.handle:this.seatKey(target),ped:{head:piece===9,dead:result==='killed'}},weapon>=25&&weapon<=27?4:8);
+  return result;
+ }
  private damageSeated(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number,sniper=false,piece=9,creator:ShotCreator='ped'){
   const result=this.onSeatedShot?.(target,WeaponSystem.occupantDamage(target,damage,weapon,piece),weapon);
   if(result){this.hits++;const cop=target.kind==='police'||target.pedType?.toUpperCase()==='COP',victim=target.crimeVictim??`seat:${this.seatKey(target)}`,dontCare=policeDontCareAboutPedType(target.pedType);
@@ -275,6 +284,8 @@ export class WeaponSystem {
  static occupantDamage(target:Pick<SeatedTarget<SeatedVehicle>,'noCriticalHits'>,damage:number,weapon:number,piece=9){return piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon)?Math.max(damage,1000):damage;}
  /** CAECollisionAudioEntity::ReportBulletHit: the struck collider, the hit point and asin(-dir·normal) in degrees. */
  onBulletHit?:(hit:RAPIER.RayColliderIntersection,point:Vec3,angle:number)=>void;
+ /** A seated ped has no enabled collider of its own; its transferred contact still uses SURFACE_PED. */
+ onPedBulletHit?:(point:Vec3,angle:number)=>void;
  /** DoBulletImpact / CBulletInfo::Update with a player ped creator; the world checks ENTITY_TYPE_BUILDING. */
  onPlayerBulletImpact?:(collider:number)=>void;
  onSound?:(event:import('../assets/nativeCombatAudio').CombatSound,weapon:number,position:Vec3,source?:'player'|'npc'|'aircraft'|'stealth')=>void;
