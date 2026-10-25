@@ -13741,3 +13741,14 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   without a CJ driver is not a criminal damage event. Existing handheld/sniper
   calls retain their source semantics. Full mounted FX, spread, barrel and kill
   attribution parity remain open. [Exact source rules](research/AIRCRAFT_WEAPONS.md).
+
+## Aircraft gun hard points (October 25, 2026)
+
+- Ordinary aircraft gun traces now use the model gun dummy or captured native
+  hard point, including the Hunter's underslung gun and Rustler's cycling wing
+  position. World origins include one timestep of creator velocity. Scripted
+  Hunter firing keeps its separate native offset.
+- Captured constants/descriptors, transform/cycle units and live original armed
+  models verify the positions. PC dummy precedence is preserved where the mobile
+  branch differs. Second-barrel behavior, attached FX and retail comparison
+  remain open. [Exact source, capture and scope](research/PLANE_GUN_POSITIONS.md).

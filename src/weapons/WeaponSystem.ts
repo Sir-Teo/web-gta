@@ -1,4 +1,5 @@
 import {hunterGunOrigin,vehicleGunReady,type HunterGunMatrix} from '../simulation/nativeHunterGun';
+import {planeGunPosition} from '../simulation/nativePlaneGunPosition';
 import {PLANE_GUN_SHAKE,ROCKET_SHAKE} from '../engine/nativePadShakes';
 import {THROW_START_CLIP,THROW_CLIP,THROW_UP_CLIP,THROW_FORCE_PER_COUNTER,throwClip,throwFireTime,throwFiresNow,throwButtonCounter,type ThrowClip} from './nativeThrowProjectile';
 import {Vector3,Quaternion} from 'three';
@@ -187,6 +188,7 @@ export class WeaponSystem {
  /** CVehicle::m_nGunFiringTime and m_nProjectileWeaponFiringTime: the guns and the ordnance keep their own clocks. */
  private aircraftOrdnanceCooldown=0;
  private vehicleGunTimes=new WeakMap<object,number>();
+ private planeGunCycles=new WeakMap<object,number>();private planeGunStepSeconds=NATIVE_STEP;
  /** The camera's first-person weapon mode (the sniper, rocket or camera view), set by the caller each frame. */
  firstPerson?:FirstPersonMode;
  /** The heat seeker's lock in its camera (CPlayerPedData's HS missile fields), keyed by vehicle body handle. */
@@ -689,12 +691,14 @@ export class WeaponSystem {
   if(rocket)this.onPadShakeDirect?.(240,ROCKET_SHAKE);else if(gunFrequency)this.onPadShakeDirect?.(240,gunFrequency);
   return true;
  }
- /** FirePlaneGuns through the existing fixed forward gun line. Enemy rounds include CJ in the line test and
+ /** FirePlaneGuns through the model's gun dummy or native hard point. Enemy rounds include CJ in the line test and
   * carry their creator through damage; only the player's shots report his crimes or shake his controller. */
  private fireAircraftGun(plane:WorldPlane,byPlayer:boolean){
   const weapon=plane.modelId===476||plane.modelId===447||plane.modelId===464?31:38,q=new Quaternion().copy(plane.body.rotation());
   const direction=new Vector3(0,0,-1).applyQuaternion(q),position=plane.body.translation();
-  const from=new Vector3(0,0,plane.modelId===464?-.45:-Math.min(6,plane.assets.collision!.bounds.radius)).applyQuaternion(q).add(position);
+  const cycle=plane.modelId===476?((this.planeGunCycles.get(plane)??0)+1)%3:0;if(plane.modelId===476)this.planeGunCycles.set(plane,cycle);
+  const [x,y,z]=plane.gunPosition?.(cycle)??planeGunPosition(plane.modelId,cycle),velocity=plane.body.linvel();
+  const from=new Vector3(x,z,-y).applyQuaternion(q).add(position).addScaledVector(new Vector3(velocity.x,velocity.y,velocity.z),this.planeGunStepSeconds);
   this.fireMountedGun(plane.body,from,direction,weapon,byPlayer,undefined,plane.occupied);
  }
  private fireMountedGun(body:RAPIER.RigidBody,from:Vector3,direction:Vector3,weapon:number,byPlayer:boolean,fxOptions?:Parameters<WeaponFxHost['gunshot']>[4],playerDriver=false){
@@ -1381,6 +1385,7 @@ export class WeaponSystem {
   this.lock=vehicle?{handle:vehicle.collider(0).handle,position:{...vehicle.translation()}}:undefined;
  }
   tick(dt:number,camera?:{origin:Vec3;direction:Vec3}){
+   this.planeGunStepSeconds=dt;
    this.aircraftOrdnanceCooldown=Math.max(0,this.aircraftOrdnanceCooldown-dt);
    this.inventory.crouched=this.sim.player.crouched;
    if(camera)this.lockCamera={origin:{...camera.origin},direction:{...camera.direction}};

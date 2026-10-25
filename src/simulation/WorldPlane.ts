@@ -1,4 +1,5 @@
 import {applyScriptVehicleForce,type ScriptVehicleForceBasis} from './nativeScriptVehicleForce';
+import {aircraftGunDummy,planeGunPosition} from './nativePlaneGunPosition';
 import {NativeClumpAlpha} from './nativeClumpAlpha';
 import {bindClumpAlpha} from '../render/nativeClumpAlpha';
 import {NativeMovingComponent,movingComponentSpec,movingComponentPivot,movingComponentCollision,applyMovingCollisionShapes} from './nativeMovingComponent';
@@ -105,6 +106,9 @@ export class WorldPlane {
  get helicopter(){return this.assets.vehicle.type==='heli';}
  /** GetPlaneNumGuns for the flyable models: the Hunter, Seasparrow, Rustler and Hydra carry guns. */
  get armed(){return [425,447,464,476,520].includes(this.modelId);}
+ /** CVehicleModelInfo's gun dummy is immutable model-space data, sampled once before rendering changes frames. */
+ readonly gunDummy?:[number,number,number];
+ gunPosition(cycle=0){return planeGunPosition(this.modelId,cycle,this.gunDummy);}
  /** FireUnguidedMissile: only the Hunter and the Hydra launch rockets. */
  get rocketsArmed(){return this.modelId===425||this.modelId===520;}
  /** GetPlaneOrdnancePosition in native model space (right, forward, up): the Hunter's and the Hydra's first rocket pod. */
@@ -352,6 +356,7 @@ export class WorldPlane {
   requireAsset(PLAYABLE_PLANES[assets.vehicle.id]&&assets.collision&&assets.flyingHandling&&!assets.missingTextures.length,'Unresolved aircraft resources.');
   this.movingComponent=new NativeMovingComponent(assets.vehicle.id);
   this.modelId=assets.vehicle.id;this.name=PLAYABLE_PLANES[this.modelId];
+  this.gunDummy=aircraftGunDummy(assets.model.frames);
   this.handling=prepareHandling(assets.handling,assets.flyingHandling!.handlingId);this.water.buoyancy=this.handling.buoyancy;
   this.physical=installNativeVehicleBody(sim.world,assets.collision!,this.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:0});this.body=this.physical.body;this.car={body:this.body,root:this.root};
   // ProcessColModels never tests a vehicle's triangles against world triangles. As on cars, those contacts can
