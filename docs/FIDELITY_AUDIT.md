@@ -24,6 +24,16 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 | Complete content | Vehicle/weapon/archive counts do not establish playable coverage. | Versioned inventory of campaign, side activities, interiors, UI, customization and special vehicle systems, each with end-to-end evidence. |
 | Runtime reliability | Passing units coexist with browser failures. | Reproductions resolved and regression-tested; sustained traversal, cold launch and resource-lifetime checks. |
 
+## Scripted rear car passengers (October 25, 2026)
+
+- Rear script riders now render and enter seated-head bullet checks at the same
+  native front/back dummy positions used by GetSeatPositionInVehicle. Native
+  seat indices remain distinct, and attachments keep their explicit offsets.
+  [Source and verification scope](research/CAR_PASSENGER_SEATS.md).
+- A live Greenwood check covers all four rendered heads, seat-specific rays,
+  own-car exclusion, shot immunity, nonfatal/fatal damage and transport.
+  Full passenger task and combat parity remains unverified.
+
 ## Decisions on the remaining iOS gaps (October 7, 2026)
 
 The gap pass against the iOS build (Google61/gta3sa.app at 67f70cb7) left six questions that the port's budgets, not

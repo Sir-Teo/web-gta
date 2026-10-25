@@ -84,9 +84,8 @@ function scriptRiderShot(rider:ScriptRider,damage:number,_weapon:number,byPlayer
 const isScriptCar=(v:unknown):v is import('./simulation/WorldCar').WorldCar=>!!v&&typeof (v as {setPedInAsDriver?:unknown}).setPedInAsDriver==='function';
 /** A script vehicle CAutoPilot drives: a car, or a bike, whose rider takes the autopilot's pedals. */
 const isScriptDrivable=(v:unknown):v is import('./simulation/ScriptCarMissions').ScriptDrivable=>isScriptCar(v)||!!v&&typeof (v as {autopilotInput?:unknown}).autopilotInput==='function';
-/** The riders the occupant renderer should draw this frame. The browser's cars carry a seat point on each
- * side, so a driver and a front passenger are drawn where they sit; a script can seat a ped further back and
- * that ped rides unseen until the models carry rear seat points. A rider whose car has gone stops riding. */
+/** The riders the occupant renderer should draw this frame, at their native front or rear seat dummies.
+ * A rider whose car has gone stops riding. */
 /** `driveBy` gives the drive-by clips and gun a leaning rider needs, once the gang drive-bys have loaded them. */
 function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp').NativeAnimation|undefined;gun?:{asset:{model:import('./assets/dff').DffModel;textures:import('./assets/modelTextures').ModelTexture[]}}},
  bikeClip?:(block:string,name:string)=>import('./assets/ifp').NativeAnimation|undefined,nowMs=0){
@@ -133,10 +132,8 @@ function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp'
   }
   // The occupant renderer seats peds in cars; a rider on a script train rides unseen for now.
   if(!isScriptCar(rider.car))continue;
-  // A ped a script attached hangs where it said, in the car's own axes; a seated one sits at the car's own
-  // seat point, and the browser's cars carry one on each side.
-  const seat=rider.offset??rider.car.seat(rider.seat==='driver'?'left':'right');
-  if(!seat||!rider.offset&&typeof rider.seat==='number'&&rider.seat!==0)continue;
+  // Attachments keep their explicit offset; seated riders share GetSeatPositionInVehicle with bullet targeting.
+  const seat=rider.offset??rider.car.seatPosition(rider.seat);
   if(rider.diedInSeat&&!rider.offset){add({key:`script:${rider.car.car.body.handle}:${rider.seat}`,car:rider.car,model:rider.model,local:seat,clip:rider.seat==='driver'?'car_dead_lhs':'car_dead_rhs',seconds:1e6});continue;}
   // A drive-by rider plays GANG_DRIVEBYLHS/RHS on the window it fires from, the gun in its hand.
   const d=rider.driveBy,clipName=d&&`gang_driveby${d.side==='left'?'lhs':'rhs'}`,clip=clipName?driveBy?.clip(clipName):undefined;
@@ -5655,7 +5652,7 @@ async function boot() {
              for(const car of fleet?.cars??[]){if(!car.autopilot||car.occupied||car.driverOut||car.wrecked||policeCars.has(car)||driveby?.covers(car)||emergency?.covers(car))continue;const seat=car.seat('left');if(seat)out.push({car,seat:0,local:seat,kind:'traffic',head:occupants.headOf(`driver:${car.car.body.handle}`)});}
              for(const c of police?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'police',head:occupants.headOf(`police:${c.car.car.body.handle}:${c.seat}`)});
              for(const c of driveby?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'driveby',head:occupants.headOf(`driveby-${c.seat===0?'driver':'shooter'}:${c.car.car.body.handle}`)});
-             // A script's peds in the front seats of its cars (the occupant renderer's two seat points). The shooter's own
+             // A script's peds in every native seat. The shooter's own
              // car is left out by the shot, not here: a drive-by at CJ's car can hit the homies riding with him.
              for(const r of scriptRiders){
               if(r.gone||r.health<=0||r.offset)continue;
@@ -5671,9 +5668,8 @@ async function boot() {
               const onVessel=vesselSeat(r.car,r.seat);
               if(onVessel){const {vessel,local}=onVessel;if(!vessel.wrecked&&!vessel.disposed)add({car:vessel,seat:r.seat==='driver'?0:r.seat+1,local,kind:'script',rider:r,noCriticalHits:r.noCriticalHits,head:occupants.headOf(`script:${vessel.car.body.handle}:${r.seat}`)});continue;}
               if(!isScriptCar(r.car)||r.car.wrecked||r.car.disposed)continue;
-              if(r.seat!=='driver'&&r.seat!==0)continue;
-              const local=r.car.seat(r.seat==='driver'?'left':'right');
-              if(local)add({car:r.car,seat:r.seat==='driver'?0:1,local,kind:'script',rider:r,noCriticalHits:r.noCriticalHits,head:occupants.headOf(`script:${r.car.car.body.handle}:${r.seat}`)});
+              const local=r.car.seatPosition(r.seat);
+              add({car:r.car,seat:r.seat==='driver'?0:r.seat+1,local,kind:'script',rider:r,noCriticalHits:r.noCriticalHits,head:occupants.headOf(`script:${r.car.car.body.handle}:${r.seat}`)});
              }
              return out;};
             // Only a script's rider may sit in a boat or an aircraft; every other seated target is in a car.
