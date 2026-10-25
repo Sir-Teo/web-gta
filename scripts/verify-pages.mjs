@@ -53,10 +53,11 @@ try{
  await expect(page.locator('.flight-instruments')).toBeVisible({timeout:120000});
  // Native aircraft throttle follows the held pedal; releasing W before the climb cuts the engine.
  await page.keyboard.down('KeyW');
- await expect.poll(async()=>Number((await page.locator('.flight-instruments').innerText()).match(/(\d+) km\/h/)?.[1]),{timeout:45000}).toBeGreaterThan(100);
- await page.keyboard.down('ArrowDown');
+ // Rotate with enough airspeed, then release the elevator as in planes.spec.ts. Holding full pitch-up until the
+ // altitude assertion passed sometimes stalled the Rustler at 100 km/h and drove it off the side of the runway.
+ await expect.poll(async()=>Number((await page.locator('.flight-instruments').innerText()).match(/(\d+) km\/h/)?.[1]),{timeout:45000}).toBeGreaterThan(150);
+ await page.keyboard.down('ArrowDown');await page.waitForTimeout(1000);await page.keyboard.up('ArrowDown');
  await expect.poll(async()=>Number((await page.locator('.flight-instruments').innerText()).match(/(\d+) m AGL/)?.[1]),{timeout:20000}).toBeGreaterThan(15);
- await page.keyboard.up('ArrowDown');
  await page.keyboard.up('KeyW');
  await page.keyboard.press('KeyG');await expect(page.locator('.flight-instruments')).toContainText('Gear UP');
  await page.screenshot({path:`artifacts/pages-${remote?'live':'production'}-flight.png`});
