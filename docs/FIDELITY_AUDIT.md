@@ -57,6 +57,17 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
   pose and both street followers. Ordinary-car and passenger-combat regressions
   pass alongside it. Complete native vehicle-task choreography remains unverified.
 
+## Sniper vehicle-occupant transfer (October 25, 2026)
+
+- CBulletInfo's vehicle-to-occupant handoff now reaches the shared head-sphere
+  test before bodywork damage. Sniper crime selection follows its PC handler;
+  head-critical and shot-immunity gates remain active. Stable seat keys extend
+  the browser's existing once-per-bullet rule. [Source and limits](research/SNIPER_VEHICLE_OCCUPANTS.md).
+- The regression fails with the transfer disabled and passes when restored.
+  A live native sniper round damages a noncritical seated mission ped once,
+  with its original 125 damage. Crew hits no longer grant weapon practice.
+  Full penetration, corpse and audio/FX parity remains unverified.
+
 ## Decisions on the remaining iOS gaps (October 7, 2026)
 
 The gap pass against the iOS build (Google61/gta3sa.app at 67f70cb7) left six questions that the port's budgets, not

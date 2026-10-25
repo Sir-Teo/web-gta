@@ -105,7 +105,7 @@ export interface Projectile {id:number;weapon:number;position:Vec3;velocity:Vec3
  elasticity?:number;gassing?:boolean;
  /** The projectile type FireProjectile added, where it differs from the weapon's (an unlocked heat-seeker is a rocket). */
  kind?:string;}
-/** CBulletInfo: a sniper bullet, with the peds it has already hit. */
+/** CBulletInfo: a sniper bullet, with the collider handles and negative occupant keys it has already hit. */
 interface SniperBullet {weapon:number;damage:number;position:Vec3;direction:Vec3;destroyAt:number;passed:Set<number>;}
 interface Hazard {kind:'flame'|'gas';position:Vec3;remaining:number;tick:number;radius:number;}
 /** CShotInfo: native area-effect particles for the flamethrower, spray can and extinguisher. */
@@ -198,6 +198,10 @@ export class WeaponSystem {
  seatedPeds?:()=>readonly SeatedTarget<SeatedVehicle>[];
  private aimSeatKeys=new WeakMap<SeatedVehicle,Map<number,number>>();
  private nextAimSeatKey=-1;
+ private seatKey(target:SeatedTarget<SeatedVehicle>){
+  let seats=this.aimSeatKeys.get(target.car);if(!seats){seats=new Map();this.aimSeatKeys.set(target.car,seats);}
+  let key=seats.get(target.seat);if(key===undefined){key=this.nextAimSeatKey--;seats.set(target.seat,key);}return key;
+ }
  /** Touch lock-on uses the existing authored angular picker, with the native vehicle eligibility gate.
   * Stable negative seat keys cannot alias on-foot Rapier collider handles. Mouse rays do not use this list. */
  automaticAimTargets():AimCandidate[]{
@@ -205,8 +209,7 @@ export class WeaponSystem {
   for(const t of this.seatedPeds?.()??[]){
    if(t.neverTargeted||t.car.occupied||t.car.disposed||t.car.wrecked||t.seat===0&&t.car.driverDead||
     !pedCanBeTargettedVehicleWise(true,{bike:t.bike,pedTargetable:t.car.pedTargetable}))continue;
-   let seats=this.aimSeatKeys.get(t.car);if(!seats){seats=new Map();this.aimSeatKeys.set(t.car,seats);}
-   let handle=seats.get(t.seat);if(handle===undefined){handle=this.nextAimSeatKey--;seats.set(t.seat,handle);}
+   const handle=this.seatKey(t);
    const position=seatedHeadPoint(t);
    targets.push({handle,position:{...position},crew:t.crew});
   }
@@ -214,14 +217,23 @@ export class WeaponSystem {
  }
  /** A seated ped hit through the window: the host applies CPed damage and CTaskComplexDieInCar. */
  onSeatedShot?:(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number)=>'hit'|'killed'|undefined;
+ private damageSeated(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number,sniper=false){
+  const result=this.onSeatedShot?.(target,WeaponSystem.occupantDamage(target,damage,weapon),weapon);
+  if(result){this.hits++;const cop=target.kind==='police';
+   this.onCrime?.(sniper?(cop?CRIME.damageCopCar:CRIME.damageCar):(cop?CRIME.damagedCop:CRIME.damagedPed),`car:${target.car.car.body.handle}`);
+   // DoBulletImpact's weapon practice excludes the player's own group, as the on-foot path does.
+   if(!target.crew)this.onHit?.(weapon);
+  }
+  return result;
+ }
  /** CWeapon::CheckForShootingVehicleOccupant (iOS 0x100498190): with the line's first hit a car (`hitBody`), the
   * nearest of that car's occupants whose head sphere the line enters within `range`, with the entry distance. The
   * shooter's own car (`except`) is never one. */
- seatedHit(source:Vec3,direction:Vec3,range:number,hitBody:unknown,except?:unknown){
+ seatedHit(source:Vec3,direction:Vec3,range:number,hitBody:unknown,except?:unknown,passed?:ReadonlySet<number>){
   // Bodies by handle: Rapier's collider.parent() may hand back a fresh wrapper for the same body.
   const hit=(hitBody as {handle?:number}|undefined)?.handle;if(hit===undefined)return undefined;
   const own=(except as {handle?:number;car?:{body?:{handle:number}}}|undefined);const ownHandle=own?.car?.body?.handle??own?.handle;
-  const targets=(this.seatedPeds?.()??[]).filter(t=>t.canBeShot!==false&&t.car.car.body.handle===hit&&t.car.car.body.handle!==ownHandle);
+  const targets=(this.seatedPeds?.()??[]).filter(t=>t.canBeShot!==false&&t.car.car.body.handle===hit&&t.car.car.body.handle!==ownHandle&&(!passed||!passed.has(this.seatKey(t))));
   const heads=targets.map(t=>{const h=seatedHeadPoint(t);return {x:h.x,y:h.y+OCCUPANT_HEAD_LIFT,z:h.z};});
   const found=occupantHeadHit(source,direction,heads,range);
   return found&&{target:targets[found.index],t:found.t};
@@ -924,7 +936,13 @@ export class WeaponSystem {
    if(Math.abs(next.x)>=3000||Math.abs(next.z)>=3000){this.bullets.splice(i,1);continue;}
    const hit=this.ray(b.position,b.direction,reach,this.sim.playerBody,c=>!b.passed.has(c.handle));
    const tyre=this.tyreHit(b.position,b.direction,hit?.timeOfImpact??reach);
+   const seated=!tyre&&hit&&this.onSeatedShot?this.seatedHit(b.position,b.direction,reach,hit.collider.parent(),this.sim.playerBody,b.passed):undefined;
    if(tyre){const at=add(b.position,b.direction,tyre.t);if(tyre.car.burstTyre(tyre.wheel,true,'player'))this.onHit?.(b.weapon);this.effect('impact',at);}
+   else if(seated){
+    // CBulletInfo::Update calls CheckForShootingVehicleOccupant before switching on the hit entity's type.
+    const point=add(b.position,b.direction,seated.t);b.passed.add(this.seatKey(seated.target));next=point;
+    this.effect('impact',point);this.damageSeated(seated.target,b.damage,b.weapon,true);
+   }
    else if(hit){
     const point=add(b.position,b.direction,hit.timeOfImpact),ped=this.pedestrians()?.targets().some(t=>t.handle===hit.collider.handle);
     this.hitFx(hit,point,8,b.weapon,b.direction,true);
@@ -979,8 +997,7 @@ export class WeaponSystem {
   const seated=this.onSeatedShot&&hit?this.seatedHit(source,direction,reach,hit.collider.parent(),exclude):undefined;
   if(seated){
    const at=add(source,direction,seated.t);this.tracer(source,at,'player',.065);this.fx?.gunshot(source,direction,w.id,false);this.effect('impact',at);
-   const result=this.onSeatedShot!(seated.target,WeaponSystem.occupantDamage(seated.target,info.damage,w.id),w.id);
-   if(result){this.hits++;this.onCrime?.(seated.target.kind==='police'?CRIME.damagedCop:CRIME.damagedPed,`car:${seated.target.car.car.body.handle}`);this.onHit?.(w.id);}
+   this.damageSeated(seated.target,info.damage,w.id);
    return true;
   }
   if(!shotgun){
