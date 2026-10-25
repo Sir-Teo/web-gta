@@ -4,7 +4,7 @@ The browser arsenal exposes all 44 native handheld IDs: 0–18 and 22–46. IDs 
 
 ## Controls and behavior
 
-- Tab opens a searchable arsenal and pauses the world. Select a weapon to equip; refill restores ammunition for every weapon.
+- Backquote opens a searchable arsenal and pauses the world. Select a weapon to equip; refill restores ammunition for every weapon.
 - Right mouse aims, left mouse while aiming or Ctrl fires/uses, R reloads or swings a melee weapon, and the wheel cycles weapons. Automatic weapons continue while fire is held. Reload clips come from each weapon's native animation group (see below); the pose follows the reload timer, freezes on pause and cancels when switching weapons.
 - Pistols, automatic weapons and rifles cast collision rays; shotguns emit separate pellets. Camera aim chooses the target, then a muzzle ray checks nearby obstructions. Shots do not penetrate walls.
 - Melee sweeps a short volume in front of the player. Civilians lose health, fall, recover when alive, and remain down when killed. Nearby civilians flee gunfire and explosions.

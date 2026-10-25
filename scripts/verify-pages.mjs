@@ -11,13 +11,25 @@ const label='San Andreas';
 const browser=await chromium.launch({channel:'chrome'});
 try{
  const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[],failures=[];
+ // Exercise the supported saved-game return to free roam. A new game's INTRO owns the controls and fades while
+ // the smoke test tries to drive, aim and fly; it is covered by the separate opening/mission browser checks.
+ await page.addInitScript(()=>localStorage.setItem('web-gta.progress.v1',JSON.stringify({version:1,money:0,savedLocation:{x:2495,y:-1687,z:13.3,heading:Math.PI,timeMinutes:480}})));
  page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)failures.push(`${r.status()} ${r.url()}`);});
  await page.goto(url,{waitUntil:'domcontentloaded'});
  const play=page.getByRole('button',{name:`Explore ${label}`,exact:true});await expect(play).toBeEnabled({timeout:120000});
  await expect(page.locator('#save, #continue, #import, #export, .radar-wrap')).toHaveCount(0);
  await expect(page.getByRole('link',{name:'Play the driving sandbox'})).toHaveCount(0);
  await expect(page.locator('.scene-choices')).toHaveCount(0);
+ await page.evaluate(()=>{
+  window.__productionOpeningReady=false;
+  const hud=document.querySelector('.game-ui'),observer=new MutationObserver(records=>{
+   if(records.some(r=>(r.oldValue??'').split(' ').includes('screen-faded'))&&!hud.classList.contains('screen-faded')){window.__productionOpeningReady=true;observer.disconnect();}
+  });
+  observer.observe(hud,{attributes:true,attributeFilter:['class'],attributeOldValue:true});
+ });
  await play.click();await expect(page.locator('.menu-backdrop')).not.toBeVisible();
+ await page.waitForFunction(()=>window.__productionOpeningReady,undefined,{timeout:120000});
+ await expect(page.locator('.screen-fade')).toHaveCSS('opacity','0');
  await page.keyboard.press('KeyM');await expect(page.locator('.world-map-panel')).toBeVisible();await expect(page.locator('.map-status')).toContainText('North is up');await page.locator('.world-map-panel canvas').click({position:{x:100,y:100}});await expect(page.locator('.map-status')).toContainText('Waypoint');await page.keyboard.press('KeyM');
  const before=await page.screenshot();await page.keyboard.down('KeyW');await page.waitForTimeout(1500);await page.keyboard.up('KeyW');
  const after=await page.screenshot();expect(before.equals(after)).toBe(false);
@@ -30,14 +42,18 @@ try{
  await page.keyboard.down('Space');await page.waitForTimeout(2500);await page.keyboard.up('Space');await page.keyboard.press('KeyF');
  // The choreographed exit no longer emits the old transient 'On foot' prompt.
  // Fists aim without a crosshair, as in the original: equip the pistol from the arsenal first.
- await page.keyboard.press('Tab');await page.locator('.arsenal [data-weapon="22"]').click();if(await page.locator('.arsenal').isVisible())await page.locator('.arsenal-close').click();await expect(page.locator('.arsenal')).toBeHidden();
+ await page.keyboard.press('Backquote');await page.locator('.arsenal [data-weapon="22"]').click();if(await page.locator('.arsenal').isVisible())await page.locator('.arsenal-close').click();await expect(page.locator('.arsenal')).toBeHidden();
  await page.mouse.move(750,420);await page.mouse.down({button:'right'});await expect(page.locator('.weapon-crosshair')).toBeVisible({timeout:10000});await page.mouse.up({button:'right'});
  await page.keyboard.press('KeyM');await page.getByLabel('Aircraft',{exact:true}).selectOption('476');await page.getByRole('button',{name:'Fly from Verdant Meadows',exact:true}).click();
  await expect(page.locator('.flight-instruments')).toBeVisible({timeout:120000});
- await page.keyboard.down('KeyW');await page.waitForTimeout(6500);await page.keyboard.up('KeyW');await page.keyboard.down('ArrowDown');await page.waitForTimeout(1000);await page.keyboard.up('ArrowDown');
+ // Native aircraft throttle follows the held pedal; releasing W before the climb cuts the engine.
+ await page.keyboard.down('KeyW');
+ await expect.poll(async()=>Number((await page.locator('.flight-instruments').innerText()).match(/(\d+) km\/h/)?.[1]),{timeout:30000}).toBeGreaterThan(70);
+ await page.keyboard.down('ArrowDown');await page.waitForTimeout(1000);await page.keyboard.up('ArrowDown');
  await expect.poll(async()=>Number((await page.locator('.flight-instruments').innerText()).match(/(\d+) m AGL/)?.[1]),{timeout:20000}).toBeGreaterThan(12);
+ await page.keyboard.up('KeyW');
  await page.keyboard.press('KeyG');await expect(page.locator('.flight-instruments')).toContainText('Gear UP');
  await page.screenshot({path:`artifacts/pages-${remote?'live':'production'}-flight.png`});
  expect(errors).toEqual([]);expect(failures).toEqual([]);expect(await page.evaluate(()=>typeof window.__game)).toBe('undefined');
- console.log(JSON.stringify({url,loaded:true,walkingFramesChanged:true,nativeCarEntered:true,nativeMapWaypoint:true,pauseResume:true,aircraftTakeoff:true,landingGear:true,errors,failedRequests:failures}));
+ console.log(JSON.stringify({url,loaded:true,saveResume:true,walkingFramesChanged:true,nativeCarEntered:true,nativeMapWaypoint:true,pauseResume:true,aircraftTakeoff:true,landingGear:true,errors,failedRequests:failures}));
 }finally{await browser.close();await server?.close();}
