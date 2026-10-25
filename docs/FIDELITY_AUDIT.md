@@ -13708,3 +13708,14 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   cover damage, head piece, cover, own-vehicle exclusion and a real cop muzzle.
   Direct animated player bike collision, full reaction/death tasks and retail
   comparison remain open. [Source and scope](research/PLAYER_VEHICLE_SHOTS.md).
+
+## Animated player bike bullet collision (October 25, 2026)
+
+- Incoming foot-NPC, script-drive-by and gang-drive-by shot queries now test
+  CJ's twelve animated body spheres on motorcycles/bicycles. The standing
+  capsule is removed. The nearest body piece wins before vehicle/head transfer,
+  and shotgun pellets accumulate against the same direct victim.
+- Live original BMX/PCJ driver and pillion checks cover body/arm pieces, missed
+  pose gaps, cover, armour, protection and actual cop pistol/shotgun muzzles.
+  Quad eligibility, ordinary on-foot collision, full shooter engagement/tasks
+  and retail traces remain open. [Source and limits](research/PLAYER_VEHICLE_SHOTS.md).

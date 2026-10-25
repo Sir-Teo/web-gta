@@ -1518,7 +1518,7 @@ export class WorldPedestrians {
   trains?:()=>Iterable<PedStriker>;
   /** The body of the bike, boat or aircraft the player rides (his own collider is off while he does), and whether it
    * is a bike, whose rider a bullet can strike. */
-  playerRide?:()=>{body:RAPIER.RigidBody;bike:boolean;canBeShot?:boolean}|undefined;
+  playerRide?:()=>{body:RAPIER.RigidBody;bike:boolean}|undefined;
    /** Popcycle density caps for the current zone and clock (fleet provider; 18/26 fallback). */
    limits?:()=>{civilians:number;total:number}|undefined;
    /** Gang turf at a native point: pedgrp.dat gang index 0–9 with INITIAL strength 0–255. */
@@ -3568,8 +3568,6 @@ export class WorldPedestrians {
    const v=ride?ride.body.linvel():undefined,speed=v?Math.hypot(v.x,v.y,v.z)/50:onFoot?this.sim.player.speed/50:this.playerVehicleSpeed?.()??0;
    return {speed,rangeMultiplier:onFoot?1:3};
   }
-  /** The player's capsule, for a bullet line to try while he rides a bike. */
-  private riderShape?:RAPIER.Capsule;
   /** CTaskSimpleUseGun::AimGun for a ped: an AIMWITHARM weapon (the pistols, the Uzi, the Tec-9) points the arm at the
    * target by IK (PointArm), the fire clip giving only the recoil; the rest turn the torso (PointGunInDirection).
    * Without the arm the one-handed guns were held as their clip leaves them, straight up beside the head. */
@@ -3625,21 +3623,15 @@ export class WorldPedestrians {
     const playerTarget=this.playerTargetAt(aim),endPoint=npcShotEnd(muzzle,aim,weapon.info,p.gunAccuracy,{targetIsPlayer:!!playerTarget,targetSpeed:playerTarget?.speed,rangeMultiplier:playerTarget?.rangeMultiplier});
     const direction=new Vector3(endPoint.x,endPoint.y,endPoint.z).sub(muzzle),lineLength=direction.length();direction.divideScalar(lineLength||1);
     const shot=bulletLine(this.sim.world,muzzle,direction,lineLength,{isShootThrough:this.isShootThrough,excludeCollider:p.collider,excludeBody:p.body});
-    // CWorld::bIncludeBikers, which FireInstantHit sets: the line meets a biker's own collision too. CJ's is off while
-    // he rides, so his capsule on the bike is tried here, short of whatever else the line struck.
-    let riderAt=-1;
-    const playerRide=this.playerRide?.();
-    if(playerRide?.bike&&playerRide.canBeShot!==false&&this.sim.player.health>0)riderAt=(this.riderShape??=new RAPIER.Capsule(.6,.3)).castRay(new RAPIER.Ray(muzzle,direction),this.sim.playerBody.translation(),{x:0,y:0,z:0,w:1},shot?.timeOfImpact??lineLength,true);
-    const riderHit=riderAt>=0;
     // FireInstantHit includes car tyres for every shooter: a wheel sphere before the hit takes the round.
-    const reach=riderHit?riderAt:shot?.timeOfImpact??lineLength,tyre=bulletTyreHit(cars,muzzle,direction,reach);
+    const reach=shot?.timeOfImpact??lineLength,tyre=bulletTyreHit(cars,muzzle,direction,reach);
     const hitPlayer=(damage:number,type:number,piece:number)=>{if(this.damagesPlayer(p,type)){this.sim.damagePlayer(damage,false,{weapon:type,from:{x:muzzle.x,z:muzzle.z},piece,friendly:this.friendlyWithPlayer(p)});this.defendPlayer(p);}};
-    const seated=this.seatedShot?.(muzzle,direction,lineLength,p.body,shot?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre||riderHit,playerHit:hitPlayer});
+    const seated=this.seatedShot?.(muzzle,direction,lineLength,p.body,shot?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre,playerHit:hitPlayer});
     const end=muzzle.clone().addScaledVector(direction,seated?.t??tyre?.t??reach);p.flash=.06;
     // SetUpPelletCol (iOS 0x100499000): a shotgun's pellet lines (eight for the SPAS 12, fifteen otherwise) spread with
     // the distance to what the first line hit, and every pellet on that same victim adds the weapon's damage.
     let pellets=1;
-    if((shot&&!tyre&&!riderHit&&!seated||seated?.direct)&&SHOTGUN_TYPES.has(weapon.info.type)){
+    if((shot&&!tyre&&!seated||seated?.direct)&&SHOTGUN_TYPES.has(weapon.info.type)){
      const depth=Math.max(.05,(seated?.t??reach)*(.05/weapon.info.accuracy)*1.3),right=new Vector3(-direction.z,0,direction.x).normalize(),up=new Vector3().crossVectors(right,direction).normalize();
      for(let i=1;i<shotgunPelletCount(weapon.info.type);i++){
       const o=shotgunPelletOffset(depth),target=end.clone().addScaledVector(right,o.across).addScaledVector(up,o.up);
@@ -3655,7 +3647,7 @@ export class WorldPedestrians {
     this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre||!!seated,{id:`ped:${p.id}`,position:()=>p.health>0||this.people.includes(p)?{...p.actor.player.position,y:p.actor.player.position.y+1}:undefined});this.gunShot({...state.position,y:state.position.y+1},false,p.id,end);
     if(seated)seated.hit(seated.direct?shotDamage:weapon.info.damage,weapon.info.type);
     else if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
-    else if(riderHit||shot?.collider.handle===this.sim.playerCollider.handle)hitPlayer(shotDamage,weapon.info.type,pedPieceAt(this.sim.player.position,this.sim.player.heading,end));
+    else if(shot?.collider.handle===this.sim.playerCollider.handle)hitPlayer(shotDamage,weapon.info.type,pedPieceAt(this.sim.player.position,this.sim.player.heading,end));
     else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer){car.damage(shotDamage,undefined,false,undefined,{weapon:weapon.info.type,byPlayer:false,by:{ped:p}});
      // InflictDamage's random tyre burst: (rand() & 0x7f) under the weapon's chance.
      const chance=aiTyreBurstChance(weapon.info.type);if(chance&&!car.wrecked&&Math.floor(Math.random()*128)<chance)car.burstTyreAt(end);}}else if(!this.damageOtherVehicle(shot.collider,shotDamage,weapon.info.type,p)){const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')&&npcDamageReaches(victim,p,weapon.info.type,true,this.hitPiece(victim,end))){victim.lastDamagedBy={ped:p};this.noteEvent(victim,EVENT.damage);const dealt=this.pedOnPedDamage(victim,p,shotDamage,weapon.info.type);victim.health=healthAfter(victim.health,dealt);if(dealt>0)victim.lastWeaponDamage=weapon.info.type;if(!victim.health)this.onKill?.({id:victim.id,officer:victim.officer,gang:victim.gang,pedType:victim.pedType,recruit:!!victim.follow,byPlayer:false});const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,shotDamage,vfrom,end,false),vfrom);}}}

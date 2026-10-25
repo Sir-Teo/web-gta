@@ -64,8 +64,9 @@ correctly hit the raised arm first; the test preserves that nearest-piece result
 Remaining scope: the native writer of bTestForShotInVehicle is still unidentified.
 The host enables this path for its existing motorcycle/bicycle rider class and
 preserves SET_CHAR_CAN_BE_SHOT_IN_VEHICLE protection. Quad eligibility is left
-on the existing vehicle-occupant path. The player bike capsule and ordinary
-on-foot collision/classification are still approximations. Full stationary
+on the existing vehicle-occupant path. CJ's bike capsule has since been replaced
+by the [same animated sphere query](PLAYER_VEHICLE_SHOTS.md); ordinary on-foot
+collision/classification is still approximate. Full stationary
 leave-and-die tasks, biker knock-off/death transitions, weapon-event/stat/crime
 parity and original-game comparison remain open. These traces use the last
 sampled rendered skeleton; they do not establish complete native combat parity.
