@@ -1,6 +1,6 @@
 import {chromium,expect} from '@playwright/test';
 import {preview} from 'vite';
-import {mkdir} from 'node:fs/promises';
+import {mkdir,writeFile} from 'node:fs/promises';
 const remote=process.argv[2];
 const region=process.env.GTA_PLAY_AREA;
 const server=remote?undefined:await preview({base:'/web-gta/',preview:{host:'127.0.0.1',port:5190,strictPort:true}});
@@ -10,7 +10,7 @@ const grove=area==='grove-street';
 const label='San Andreas';
 const executablePath=process.env.PW_CHROMIUM_EXECUTABLE;
 const browser=await chromium.launch(executablePath?{executablePath}:{channel:'chrome'});
-let page;
+let page;const flightSamples=[];
 try{
  page=await browser.newPage({viewport:{width:1440,height:900}});const errors=[],failures=[];
  // Exercise the supported saved-game return to free roam. A new game's INTRO owns the controls and fades while
@@ -53,13 +53,14 @@ try{
  await expect(page.locator('.flight-instruments')).toBeVisible({timeout:120000});
  // Native aircraft throttle follows the held pedal; releasing W before the climb cuts the engine.
  await page.keyboard.down('KeyW');
- // FlyingControl's form lift can take it off before 150 km/h. Accept that flight, or rotate with enough runway
- // speed and release the elevator as in planes.spec.ts. A speed-only wait could reject a plane already 19 m up.
- const flight=async()=>{const text=await page.locator('.flight-instruments').innerText();return {speed:Number(text.match(/(\d+) km\/h/)?.[1]),altitude:Number(text.match(/(\d+) m AGL/)?.[1])};};
- await expect.poll(async()=>{const f=await flight();return f.speed>150||f.altitude>15;},{timeout:45000}).toBe(true);
+ // Rotate the Rustler at 100 km/h, or accept a natural climb already above 15 m. Waiting for 150 left it below
+ // 120 km/h in a low hop until it hit the boneyard; the live plane spec also pulls up after about 6.5 s of throttle.
+ // Release after the same one-second elevator pulse and require an actual climb before accepting the flight.
+ const flight=async()=>{const text=await page.locator('.flight-instruments').innerText(),sample={wall:Date.now(),speed:Number(text.match(/(\d+) km\/h/)?.[1]),altitude:Number(text.match(/(\d+) m AGL/)?.[1])};flightSamples.push(sample);return sample;};
+ await expect.poll(async()=>{const f=await flight();return f.speed>100||f.altitude>15;},{timeout:45000}).toBe(true);
  const takeoffMode=(await flight()).altitude>15?'natural':'rotation';
  if(takeoffMode==='rotation'){await page.keyboard.down('ArrowDown');await page.waitForTimeout(1000);await page.keyboard.up('ArrowDown');}
- await expect.poll(async()=>Number((await page.locator('.flight-instruments').innerText()).match(/(\d+) m AGL/)?.[1]),{timeout:20000}).toBeGreaterThan(15);
+ await expect.poll(async()=>(await flight()).altitude,{timeout:20000}).toBeGreaterThan(15);
  await page.keyboard.up('KeyW');
  await page.keyboard.press('KeyG');await expect(page.locator('.flight-instruments')).toContainText('Gear UP');
  await page.screenshot({path:`artifacts/pages-${remote?'live':'production'}-flight.png`});
@@ -68,4 +69,4 @@ try{
 }catch(error){
  if(page){await mkdir('artifacts',{recursive:true});await page.screenshot({path:`artifacts/pages-${remote?'live':'production'}-failure.png`}).catch(()=>{});console.error(JSON.stringify({flight:await page.locator('.flight-instruments').textContent({timeout:1000}).catch(()=>null)}));}
  throw error;
-}finally{await browser.close();await server?.close();}
+}finally{if(flightSamples.length){await mkdir('artifacts',{recursive:true});await writeFile(`artifacts/pages-${remote?'live':'production'}-flight-samples.json`,JSON.stringify(flightSamples,null,2));}await browser.close();await server?.close();}
