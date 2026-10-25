@@ -24,6 +24,10 @@ The thirteen motorcycle and bicycle front forks also follow their native rake
 axes with interpolated steering ([source and live model checks](BIKE_STEERING.md)).
 Handlebar hand tasks and complete suspension articulation remain separate work.
 
+All three bicycles now layer their original bunny-hop clip over the rider while
+charging and releasing, with crank ownership and a fade back to the riding pose
+([timing, descriptor evidence and limits](BICYCLE_HOP_POSES.md)).
+
 Stationary quad riders use QUAD_ride in both native ride/still association slots;
 there is no QUAD_still in the shipped block. Scripted quad drivers now remain
 drawn at rest. Seated script offset commands also use the real lean/seat matrix,

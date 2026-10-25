@@ -18,5 +18,5 @@ console.log(JSON.stringify({source:SOURCE,functions:['CBmx::ProcessDrivingAnims'
  notes:['Animation IDs 207/208 are BIKE_PEDAL/BIKE_SPRINT; the selected association phase sets crank = -2pi * currentTime / duration.',
  'Without an active association, crank *= pow(float32(0.97), CTimer::ms_fTimeStep).',
  'Both pedal angles are -crank. Chainset/pedal_r/pedal_l nodes are optional and their matrices use SetRotate(angle, 0, 0), restoring their original translation.',
- 'The bunny-hop association blends the crank towards pi/2; that association and native transition selection are not yet ported by the browser rider controller.'],
+ 'The bunny-hop association blends the crank towards pi/2. The browser integrates that association separately; complete native pedal/sprint transition selection remains unported.'],
  constants,instructions:expected.map(([address,word])=>({address:`0x${address.toString(16)}`,word:`0x${word.toString(16)}`}))},null,2));

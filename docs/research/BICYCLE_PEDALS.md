@@ -38,8 +38,9 @@ interpolation across the phase wrap. Existing fourteen-model wheel checks pass.
 
 The association-selection state machine remains the browser's existing rider
 controller: speed selects pedal/still and throttle advances its clock. Native
-speed-dependent cadence, sprint selection, transition blending, bunny-hop pose
-ownership, hand placement and full suspension geometry remain unported. This
+speed-dependent cadence, sprint selection, transition blending,
+hand placement and full suspension geometry remain unported. Bunny-hop pose
+ownership was subsequently integrated in [the jump association slice](BICYCLE_HOP_POSES.md). This
 change implements the original crank/frame math for the available association;
 it does not establish complete bicycle animation or dynamics parity. Matched
 retail PC captures remain outstanding.

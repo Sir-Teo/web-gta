@@ -13,6 +13,7 @@ import {bindBikeWheelRoll} from '../render/bikeWheelRoll';
 import {bindBikeSteering} from '../render/bikeSteering';
 import {bindBicyclePedals} from '../render/bicyclePedals';
 import {stepBicycleCrank} from './bicycleCrank';
+import {stepBicycleHopPose,type BicycleHopPose} from './bicycleHopPose';
 import {stepBikeWheelRoll,type BikeWheelRoll} from './bikeWheelRoll';
 import {stepWheelAnimation} from './nativeWheelAnimation';
 import {bindNativeCarLod} from '../render/nativeCarLod';
@@ -194,6 +195,7 @@ export class WorldBike {
  rawSteer=0;gasPedal=0;
  /** CBmx::m_fControlJump (0 to 25 steps of charge) and the time left before the hop launches. */
  controlJump=0;hopLaunch?:number;pillion?:{modelRef:number|string};
+ private hopPose?:BicycleHopPose;
  /** The hop button's state last frame: CBmx::ProcessBunnyHop starts a charge on a press (IsLeftShoulder1Pressed), not on a hold. */
  private hopHeld=false;
  /** Engine speed for audio (pedal cadence on bicycles, rpm on motorbikes). */
@@ -372,6 +374,8 @@ export class WorldBike {
   this.wheelStepSeconds=0;
   this.previousSteer=this.steer;
   this.previousCrankAngle=this.crankAngle;
+  // A departed driver's association belongs to that ped, never the next rider of this vehicle.
+  if(!this.occupied){this.hopPose=undefined;this.controlJump=0;this.hopLaunch=undefined;}
   if(this.wheelRoll)this.previousWheelAngles=this.wheelPoses.map(p=>p.rotation);
   this.clumpAlpha.step(dt);
   // ProcessDelayedExplosion, which CBike::ProcessControl runs too, whether or not the body is in the world: a blast's
@@ -400,6 +404,7 @@ export class WorldBike {
   this.rawSteer=rawSteerTowards(this.rawSteer,input.steer,dt);this.steer=this.quad?steerFraction(this.rawSteer):bikeSteerFraction(this.rawSteer);
   if(this.wrecked){this.throttle=0;}
   this.bunnyHop(dt,!!input.hop,input.disabled);
+  if(BMX_MODELS.has(this.modelId))this.hopPose=stepBicycleHopPose(this.hopPose,{charge:this.controlJump,launchRemaining:this.hopLaunch,duration:WorldBike.hopClipSeconds?.(this.modelId),ridden:this.occupied&&!input.disabled},dt);
   if(this.onFire){this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();}else this.burnTimer=0;
   const h=this.assets.handling.values,q=this.body.rotation(),v=this.body.linvel();
   // CAutomobile::ProcessControl for the quad and CBike::ProcessControlInputs for the rest: the player's bike with the
@@ -646,7 +651,7 @@ export class WorldBike {
     this.advanceWheelRoll(dt);
     if(this.pedals&&(this.occupied||WorldBike.hasDriverPed?.(this))){
      const pose=this.riderPose(),duration=pose.idle.endsWith('_pedal')?WorldBike.riderClipSeconds?.(pose.block,pose.idle):undefined;
-     this.crankAngle=stepBicycleCrank(this.crankAngle,dt*50,duration&&duration>0?{seconds:pose.time,duration}:undefined);
+     this.crankAngle=stepBicycleCrank(this.crankAngle,dt*50,duration&&duration>0?{seconds:pose.time,duration}:undefined,this.hopPose?.amount);
     }
    }
   }
@@ -865,7 +870,7 @@ export class WorldBike {
   // aQuadAnimations maps both BIKE_RIDE and BIKE_STILL to QUAD_ride; quad.ifp has no QUAD_still.
   const idle=this.quad?`${clipPrefix}_ride`:speed>.5?(bicycle?`${clipPrefix}_pedal`:`${clipPrefix}_ride`):`${clipPrefix}_still`;
   const lean=this.quad?this.riderLean:this.lean,amount=bikeRiderLean(lean,this.assets.bike.fullAnimLean),right=this.quad?lean>0:this.steer>0;
-  return {block:prefix,seat:this.seat(),time:this.rideTime,idle:prefix?idle.toLowerCase():idle,passenger:`${clipPrefix}_${bicycle?'ride':'passenger'}`.toLowerCase(),overlay:amount>.05?{clip:`${clipPrefix}_${right?'right':'left'}`.toLowerCase(),amount}:undefined};
+  return {block:prefix,seat:this.seat(),time:this.rideTime,idle:prefix?idle.toLowerCase():idle,passenger:`${clipPrefix}_${bicycle?'ride':'passenger'}`.toLowerCase(),overlay:amount>.05?{clip:`${clipPrefix}_${right?'right':'left'}`.toLowerCase(),amount}:undefined,hop:bicycle&&this.hopPose?{clip:`${clipPrefix}_bunnyhop`,seconds:this.hopPose.seconds,amount:this.hopPose.amount}:undefined};
  }
  /** SetupLightingForEntity's multiplier, GetLightingFromCol(true) × 0.95 + 0.05: the object ambient's mean with a
   * contact brightness of 0.5 stands in (this vehicle keeps no contact lighting). */

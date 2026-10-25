@@ -13646,3 +13646,15 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   selection/cadence controller remains approximate; sprint and bunny-hop
   association blending remain open.
   [Source and verification scope](research/BICYCLE_PEDALS.md).
+
+## Bicycle bunny-hop rider associations (October 25, 2026)
+
+- The native bunny-hop clip now follows the physical charge/release timer,
+  blends over CJ's riding pose and fades away after launch. Its association
+  owns the crank while active. Departure clears it before another rider boards.
+- PC ProcessBunnyHop establishes the timing and rates. The pinned executable
+  supplies the missing descriptor entries, including finish-auto-remove.
+  Units, all three original bicycle models and the live touch button validate
+  charge, release, freeze, jump, fade and remount. Existing launch dynamics and
+  the iOS-derived cooldown remain outside this rendering change.
+  [Source, descriptor capture and scope](research/BICYCLE_HOP_POSES.md).

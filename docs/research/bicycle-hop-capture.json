@@ -1,0 +1,97 @@
+{
+  "source": {
+    "url": "https://raw.githubusercontent.com/Google61/gta3sa.app/67f70cb72eb207aeca650ea9e8c10b0e7dda166a/gta3sa",
+    "bytes": 14226544,
+    "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78"
+  },
+  "function": "CBmx::ProcessBunnyHop",
+  "pcReference": "https://github.com/gta-reversed/gta-reversed/blob/4281f82d8af83e14935ac84a69dfd1ceebb9f256/source/game_sa/Entity/Vehicle/Bmx.cpp",
+  "notes": [
+    "BIKE_BUNNYHOP (206) blends in at 8/s. A non-player driver cancels at -8/s.",
+    "Held: currentTime = 0.2 * controlJump / 25. Release: currentTime = (0.2-currentTime)/0.2 * (duration-0.2) + 0.2; playback speed is 1.5.",
+    "Native descriptor flags for 206 are 0x1018: FINISH_AUTO_REMOVE | PARTIAL | SECONDARY_TASK_ANIM. The pinned PC CAnimBlendAssociation::UpdateTime sets finish-auto-remove blend delta to -4/s.",
+    "The adjacent pedal/sprint descriptors (207/208) are 0x1032. The reversed PC descriptor array currently omits these three trailing entries; the executable supplies the evidence."
+  ],
+  "constants": {
+    "chargeSeconds": 0.20000000298023224,
+    "negativeChargeSeconds": -0.20000000298023224,
+    "releaseSpeed": 1.5,
+    "blendIn": 8,
+    "cancelBlendOut": -8,
+    "finishBlendOut": -4
+  },
+  "associationFlags": [
+    206,
+    4120,
+    207,
+    4146,
+    208,
+    4146
+  ],
+  "instructions": [
+    {
+      "address": "0x10045994c",
+      "word": "0x528019c2"
+    },
+    {
+      "address": "0x100459948",
+      "word": "0x1e241000"
+    },
+    {
+      "address": "0x100459950",
+      "word": "0x97f38f23"
+    },
+    {
+      "address": "0x100459ae8",
+      "word": "0xbd4a0d02"
+    },
+    {
+      "address": "0x100459aec",
+      "word": "0x1e220800"
+    },
+    {
+      "address": "0x100459af0",
+      "word": "0x1e211800"
+    },
+    {
+      "address": "0x100459b14",
+      "word": "0xbd4a0d20"
+    },
+    {
+      "address": "0x100459b20",
+      "word": "0x1e213801"
+    },
+    {
+      "address": "0x100459b24",
+      "word": "0x1e201821"
+    },
+    {
+      "address": "0x100459b34",
+      "word": "0xbd490d03"
+    },
+    {
+      "address": "0x100459b3c",
+      "word": "0x1e220821"
+    },
+    {
+      "address": "0x100459b40",
+      "word": "0x1e202820"
+    },
+    {
+      "address": "0x100459b50",
+      "word": "0x320a1fe9"
+    },
+    {
+      "address": "0x100459b54",
+      "word": "0xb9003e89"
+    },
+    {
+      "address": "0x100459994",
+      "word": "0x52b82008"
+    },
+    {
+      "address": "0x100459998",
+      "word": "0xb9003688"
+    }
+  ]
+}
