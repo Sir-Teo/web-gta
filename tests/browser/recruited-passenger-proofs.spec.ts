@@ -22,9 +22,9 @@ test('a follower retains bullet protection through boarding, seated wounds and e
   if(!ray)throw Error('No exposed recruit head');const fx=w.fx.effects,old=fx.blood;let blood:any[]=[];fx.blood=function(...args:any[]){blood.push({count:args[2],health:rider.keep.health});return old.apply(this,args);};
   const rows:any[]=[];
   try{
-   for(const c of [{name:'physical NPC',proof:true,only:true,byPlayer:false,accepted:false},{name:'physical player',proof:true,only:true,byPlayer:true,accepted:false},{name:'only-player NPC',proof:false,only:true,byPlayer:false,accepted:false},{name:'only-player player',proof:false,only:true,byPlayer:true,accepted:true},{name:'exposed vested head',proof:false,only:false,byPlayer:false,accepted:true}]){
+   for(const c of [{name:'physical NPC',proof:true,only:true,byPlayer:false,playerDriver:false,accepted:false},{name:'physical remote',proof:true,only:true,byPlayer:true,playerDriver:false,accepted:false},{name:'only-player NPC',proof:false,only:true,byPlayer:false,playerDriver:false,accepted:false},{name:'only-player remote',proof:false,only:true,byPlayer:true,playerDriver:false,accepted:false},{name:'only-player driven vehicle',proof:false,only:true,byPlayer:true,playerDriver:true,accepted:true},{name:'exposed vested head',proof:false,only:false,byPlayer:false,playerDriver:false,accepted:true}]){
     rider.keep.proofs.bullet=c.proof;rider.keep.onlyDamagedByPlayer=c.only;const before=rider.keep.health,carBefore=v.health;blood=[];
-    rows.push({...c,before,fired:fireMountedAt(g,ray.source,ray.direction,RAPIER,c.byPlayer),after:rider.keep.health,carDamage:carBefore-v.health,blood:[...blood]});
+    rows.push({...c,before,fired:fireMountedAt(g,ray.source,ray.direction,RAPIER,c.byPlayer,c.playerDriver),after:rider.keep.health,carDamage:carBefore-v.health,blood:[...blood]});
    }
    rider.keep.proofs.bullet=true;rider.keep.onlyDamagedByPlayer=true;return {rows,health:rider.keep.health};
   }finally{fx.blood=old;}

@@ -1,6 +1,7 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import {physicalCanBeDamaged} from '../combat/nativePhysicalProofs';
 import {bulletProofVestStops,type BulletDamageProtection} from '../ped/bulletProofs';
+import type {ShotCreator} from '../weapons/WeaponSystem';
 import {nativeCarSeatPose} from '../vehicle/nativeSeatPosition';
 import {NativeDrivingAnims} from './nativeDrivingAnims';
 import {Vector3} from 'three';
@@ -93,7 +94,7 @@ export class CarEntry {
    /** The group's drive-by on a threat (CTaskAllocatorKillThreatsDriveby), and on whom. */
    driveBy?:import('./scriptDriveBy').ScriptDriveBy;groupDriveBy?:string;diedInSeat?:boolean}[]=[];
   /** Report a fatal shot once, while the recruit's identity and group membership are still available. */
-  onPassengerKilled?:(rider:CarEntry['passengers'][number],byPlayer:boolean)=>void;
+  onPassengerKilled?:(rider:CarEntry['passengers'][number],byPlayer:boolean,creator?:ShotCreator)=>void;
   /** Street population for boarding and ejection (wired by the host). */
   crowd?:PassengerCrowd;
   private prevSeated=false;
@@ -186,20 +187,23 @@ export class CarEntry {
    });
   }
   /** CheckForShootingVehicleOccupant transfers the hit to the recruit's retained pedestrian health. */
-  passengerShot(car:WorldCar,seat:number,damage:number,byPlayer=true,headshot=false,hit?:{weapon:number;piece:number}):'hit'|'killed'|undefined{
+  passengerShot(car:WorldCar,seat:number,damage:number,byPlayer=true,headshot=false,hit?:{weapon:number;piece:number;creator?:ShotCreator}):'hit'|'killed'|undefined{
    const target=this.passengerTargets().find(t=>t.car===car&&t.seat===seat);if(!target)return undefined;
    const rider=target.rider,keep=rider.keep as ({health?:number;defendMult?:number}&BulletDamageProtection)|undefined,weapon=hit?.weapon??22,piece=hit?.piece??9;
+   const creator=hit?.creator,playerPed=creator?creator==='ped':byPlayer,playerSource=creator?creator!=='remote':byPlayer;
    // AffectsPed precedes damage and forced head death. The physical proofs, only-player flag and vest remain
    // properties of the same recruit throughout boarding, the ride and the pedestrian rebuilt on exit.
-   if(!physicalCanBeDamaged(keep?.proofs,weapon)||!byPlayer&&keep?.onlyDamagedByPlayer||bulletProofVestStops(keep??{},weapon,piece))return undefined;
+   if(!physicalCanBeDamaged(keep?.proofs,weapon)||!playerSource&&keep?.onlyDamagedByPlayer||bulletProofVestStops(keep??{},weapon,piece))return undefined;
    // AccountForPedDamageStats: retain the on-foot weakness and the player's friendly-fire reduction. A forced
    // instant-hit head death bypasses both, as ComputeWillForceDeath does for the same pedestrian on foot.
-   const scaled=damage*(keep?.defendMult??1),applied=byPlayer&&rider.follow?Math.min(scaled*Math.fround(.1),12.5):scaled;
+   // AccountForPedDamageStats checks the raw creator's ped type for group scaling. A vehicle's CJ driver can
+   // satisfy AffectsPed's only-player test without making the vehicle itself a player-ped damage calculator.
+   const scaled=damage*(keep?.defendMult??1),applied=playerPed&&rider.follow?Math.min(scaled*Math.fround(.1),12.5):scaled;
    const health=headshot?0:Math.max(0,(keep?.health??100)-applied);
    rider.keep={...(rider.keep as object|undefined),health};
    if(health>0)return 'hit';
    rider.diedInSeat=true;rider.driveBy=undefined;rider.groupDriveBy=undefined;
-   this.onPassengerKilled?.(rider,byPlayer);
+   if(creator)this.onPassengerKilled?.(rider,playerPed,creator);else this.onPassengerKilled?.(rider,playerPed);
    // CTaskComplexDieInCar: a passenger steps out to die only if the car can be stepped out of now; otherwise he
    // stays dead in his seat, even after the leader leaves. The exit itself uses the existing authored door placement.
    if(car.canStepOut()&&this.crowd){

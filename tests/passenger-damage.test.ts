@@ -86,3 +86,13 @@ test.each([{piece:3,weapon:22,blocked:true},{piece:4,weapon:34,blocked:true},{pi
  const {entry,car,rider,killed}=fixture();rider.keep={...rider.keep,bulletProofVest:true} as any;
  expect(entry.passengerShot(car,2,10,false,false,c)).toBe(c.blocked?undefined:'hit');expect(rider.keep.health).toBe(c.blocked?75:65);expect(killed).not.toHaveBeenCalled();
 });
+
+test.each([{creator:'ped',after:72.5},{creator:'vehicle',after:50},{creator:'remote',after:75}] as const)('only-player protection and friendly damage use the appropriate %s source',c=>{
+ const {entry,car,rider}=fixture();rider.keep={...rider.keep,onlyDamagedByPlayer:true} as any;
+ expect(entry.passengerShot(car,2,25,true,false,{weapon:22,piece:9,creator:c.creator})).toBe(c.creator==='remote'?undefined:'hit');expect(rider.keep.health).toBeCloseTo(c.after,5);
+});
+test.each(['ped','vehicle','remote'] as const)('a fatal seated %s source retains its creator for kill accounting',creator=>{
+ const {entry,car,rider,killed}=fixture();
+ expect(entry.passengerShot(car,2,1000,true,true,{weapon:22,piece:9,creator})).toBe('killed');expect(rider.keep.health).toBe(0);
+ expect(killed).toHaveBeenCalledExactlyOnceWith(rider,creator==='ped',creator);expect(entry.passengerShot(car,2,1000,true,true,{weapon:22,piece:9,creator})).toBeUndefined();expect(killed).toHaveBeenCalledOnce();
+});

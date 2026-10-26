@@ -26,7 +26,7 @@ function fixture(piece=3,remote=false){
 test.each([3,5,9])('a player-driven mounted gun hits occupant piece %s with vehicle crime attribution and no practice',piece=>{
  const f=fixture(piece);try{
   const base=f.weapons.inventory.info(38)!.damage;expect(f.fire()).toBe(true);
-  expect(f.seated).toHaveBeenCalledExactlyOnceWith(f.target,piece===9?Math.max(1000,base):base,38,piece);
+  expect(f.seated).toHaveBeenCalledExactlyOnceWith(f.target,piece===9?Math.max(1000,base):base,38,piece,'vehicle');
   expect(f.crime.mock.calls).toEqual([[CRIME.damageCar,'script-ped:7',true,false]]);
   expect(f.practice).not.toHaveBeenCalled();expect(f.incoming).not.toHaveBeenCalled();expect(f.damage).not.toHaveBeenCalled();
   expect(f.bulletHit.mock.calls[0][0]).toMatchObject({ped:{head:piece===9,dead:piece===9}});expect(f.bulletHit.mock.calls[0][1]).toBe(8);
@@ -37,7 +37,7 @@ test('a mounted hit on a cop queues the cop crime without the immediate pedestri
  const f=fixture();try{f.target.pedType='COP';f.fire();expect(f.crime.mock.calls).toEqual([[CRIME.damageCopCar,'script-ped:7',true,false]]);}finally{f.dispose();}
 });
 test('an RC-mounted gun still hits but a vehicle without CJ as its driver is not a criminal event source',()=>{
- const f=fixture(3,true);try{f.fire();expect(f.seated).toHaveBeenCalledOnce();expect(f.crime).not.toHaveBeenCalled();expect(f.practice).not.toHaveBeenCalled();}finally{f.dispose();}
+ const f=fixture(3,true);try{f.fire();expect(f.seated).toHaveBeenCalledExactlyOnceWith(f.target,f.weapons.inventory.info(38)!.damage,38,3,'remote');expect(f.crime).not.toHaveBeenCalled();expect(f.practice).not.toHaveBeenCalled();}finally{f.dispose();}
 });
 test.each([false,true])('an active drive-by occupant queues a mounted crime only when killed=%s',killed=>{
  const f=fixture();try{f.target.activeDriveBy=true;f.seated.mockReturnValue(killed?'killed':'hit');f.fire();expect(f.crime).toHaveBeenCalledTimes(killed?1:0);}finally{f.dispose();}

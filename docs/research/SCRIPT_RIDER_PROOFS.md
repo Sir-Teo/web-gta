@@ -32,6 +32,8 @@ then clear the flag and fire again.
 This closes physical proof handling for the mission-rider bullet adapter.
 The later [recruited-passenger fix](RECRUITED_PASSENGER_PROOFS.md) retains and
 applies proof/vest state for the follower boarding path.
+The [creator fix](SEATED_BULLET_CREATORS.md) also keeps remote vehicles from
+bypassing only-player protection through the player-attributed mounted path.
 Complete damage/armour/force-death
 calculation, exact source/group identities, other damage entry points, and
 matched retail captures remain separate work.

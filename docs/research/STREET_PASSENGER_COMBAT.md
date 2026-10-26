@@ -8,7 +8,10 @@ mission riders, leaving recruits stored by CarEntry immune while riding.
 Boarding retains health, the pedestrian's defense multiplier, critical-hit and
 targeting flags, weapons, identity and member slot. Noncritical damage follows
 the existing on-foot AccountForPedDamageStats rules (iOS `0x10028a070`), including
-the player's reduced damage to followers. A critical instant-hit headshot
+the player ped's reduced damage to followers. The later
+[creator fix](SEATED_BULLET_CREATORS.md) keeps vehicle rounds outside that
+group reduction and distinguishes protection and recruit kill accounting.
+A critical instant-hit headshot
 bypasses these reductions. Wounds survive the return to the street.
 
 Foot NPCs, including police, and gang-car shooters now ask the same

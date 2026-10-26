@@ -113,6 +113,18 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
   flag changes, exposed heads, vehicle health and restored protection. Complete
   damage/armour/force-death, source/group and matched retail parity remain open.
 
+## Seated bullet creator distinctions (October 26, 2026)
+
+- Seated callbacks retain player-ped, CJ-driven vehicle and remote creator
+  metadata. Remote sources cannot satisfy only-player protection; the retained
+  follower damage reduction applies to player-ped creators. Recruit kill
+  accounting uses the separate player-ped/player-vehicle/nonplayer branches.
+  [PC sources, mobile scaling evidence and scope](research/SEATED_BULLET_CREATORS.md).
+- Units and live adapters compare protected health, accepted blood, source
+  propagation, respect, kill and recruit counters, including repeated fatal
+  calls. Complete native calculator, mission-rider kill stats, opaque NPC/group
+  identities and matched PC captures remain open.
+
 ## Scripted rear car passengers (October 25, 2026)
 
 - Rear script riders now render and enter seated-head bullet checks at the same

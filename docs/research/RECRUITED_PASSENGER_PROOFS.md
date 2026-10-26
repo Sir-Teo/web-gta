@@ -38,7 +38,9 @@ follower's health and flags. Passenger death/exit and drive-by regressions
 exercise the existing task and death behavior alongside it.
 
 This covers the existing recruited-passenger bullet entry and its retained
-state. Full native damage/armour/force-death calculation, exact creator/group
+state. The later [creator fix](SEATED_BULLET_CREATORS.md) separates player-ped,
+CJ-driven vehicle and remote protection, damage and recruit kill accounting.
+Full native damage/armour/force-death calculation, opaque creator/group
 identities, other damage paths, lighting and matched retail captures remain
 open. Recruited followers currently ride car seats; direct bike pieces are
 covered by the separate mission-rider path.
