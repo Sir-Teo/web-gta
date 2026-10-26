@@ -209,13 +209,13 @@ export class WorldBoat {
   const check=this.enterCheck();if(check)return check;
   return this.finishEnter();
  }
- /** CBoat::ProcessControl's propeller (0x6F1770, reversed in gta-reversed): with CJ at the helm it eases towards the pedal's
+ /** CBoat::ProcessControl's propeller (0x6F1770, reversed in gta-reversed): player and physics-controlled boats ease towards the pedal's
   * speed, CPlane's PLANE_STD_PROP_SPEED 0.18 at rest, up to PLANE_MAX_PROP_SPEED 0.34 on the gas and down to 0.05 on
-  * full reverse, at PLANE_ROC_PROP_SPEED 0.01 a frame (five times that with a pedal down); an empty boat's slows by
+  * full reverse, at PLANE_ROC_PROP_SPEED 0.01 a frame (five times that with a pedal down); other statuses decay by
   * 0.95 a frame. The four constants are exe-only (0x8D33CC to 0x8D33D8); two gta-reversed forks record them. */
  private stepPropeller(dt:number){
   const MIN=.05,STD=.18,MAX=.34,ROC=.01,timeStep=dt*50;
-  if(!this.occupied||this.wrecked){if(this.engineSpeed>0)this.engineSpeed*=Math.pow(.95,dt*30);return;}
+  if(this.wrecked||!this.occupied&&!this.pilot?.physics){if(this.engineSpeed>0)this.engineSpeed*=Math.pow(.95,dt*30);return;}
   const gas=this.gasPedal,rate=gas!==0?ROC*5:ROC;
   // The Skimmer (a CBoat in the original) idles at the standard speed; a boat's prop stops with the pedal up.
   const target=gas===0?(this.modelId===460?STD:0):gas<0?(STD-MIN)*gas+STD:(MAX-STD)*gas+STD;

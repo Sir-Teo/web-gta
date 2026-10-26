@@ -711,3 +711,12 @@ test('a ped killed by a fall crunches: sound 29 and one gore splat, not again wh
  e.pedCrunch(ped,{x:0,y:4,z:0});expect(crunch().sort()).toEqual(['crunch','splat']);
  e.pedCrunch(ped,{x:0,y:4,z:0});expect(crunch()).toHaveLength(2);
 });
+
+test('a scripted boat starts its native engine loop and BOAT_STOP ends it without CJ aboard',async()=>{
+ const [{WorldBoat},{worldBoatAudioInput}]=await Promise.all([import('../src/simulation/WorldBoat'),import('../src/audio/native/worldVehicleAudio')]);
+ const b:any=Object.assign(Object.create(WorldBoat.prototype),{modelId:452,occupied:false,wrecked:false,health:1000,engineSpeed:0,inWater:true,gasPedal:0,brakePedal:0,rawSteer:0,steerAngle:0,throttle:0,steer:0,brake:false,handling:{values:{steeringLock:30}},body:{translation:()=>({x:0,y:0,z:0}),rotation:()=>({x:0,y:0,z:0,w:1}),linvel:()=>({x:0,y:0,z:0})}});
+ b.tellBoatToGoToCoors(0,100,0);const e=engine();await flush();
+ for(let i=0;i<45;i++){b.controlInputs(1/30);b.stepPropeller(1/30);await frames(e,b,452,()=>worldBoatAudioInput(b,true),1);}
+ const audio=e.vehicle(b,452)!;expect(b.occupied).toBe(false);expect(b.engineSpeed).toBeGreaterThan(.3);expect(audio.engineSounds[2]?.inUse).toBe(true);expect(audio.currentDummyEngineFrequency).toBeGreaterThan(.9);
+ b.boatStop();await frames(e,b,452,()=>worldBoatAudioInput(b,true),8);expect(audio.engineSounds[2]?.inUse).not.toBe(true);
+});

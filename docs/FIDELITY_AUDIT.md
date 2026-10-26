@@ -11850,8 +11850,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   makes it STATUS_PLAYER again. A boat on its way steps beyond 250 m, as a piloted heli does. WUZI2's two boats sat at
   their first point for good; a Reefer told to go 80 m behind it turns, holds about its cruise speed and arrives.
   - A wrecked boat is STATUS_WRECKED, which the autopilot never drives.
-  - Not ported: SteerAICarWithPhysics' temp actions before the mission (reversing out when stuck), CCarAI::UpdateCarAI,
-    and the boat's engine sound under the autopilot (the engine is still on exactly while CJ is at the helm).
+  - Not ported: SteerAICarWithPhysics' temp actions before the mission (reversing out when stuck) and CCarAI::UpdateCarAI.
+    The propeller/audio occupancy gap is subsequently repaired with [script boat engine lifecycle checks](research/BOAT_PILOT_ENGINE_AUDIO.md).
 - A script rider's TASK_DRIVE_BY at a ped the script then deletes stops shooting at it; it threw "Script ped handle
   names nothing" every frame in the drive-by step (SWEET4 deletes its Ballas under Sweet's drive-by). Natively the
   task's target is a registered reference, which the deletion clears.
@@ -14412,3 +14412,26 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Full camera/corona, engine/alarm/override, bumper and original damage-status
   behavior remain separate compatibility work.
   [Native branches, actual materials, checks and scope](research/CAR_LAMP_ACTIVATION.md).
+
+## Script boat engine speed and audio (October 26, 2026)
+
+- Physics-controlled script boats now enter the existing native propeller
+  update without requiring CJ aboard. The audio adapter passes physics status
+  and the pilot's engine flag, retaining wrecked/player precedence and separate
+  pad inputs. Stopped physics boats still approach the pedal target, while
+  their engine flag silences only the engine loops.
+- Twelve new adapter/propeller checks expose six failures; a real native
+  audio-engine integration also exposes zero propeller speed before repair.
+  All 66 focused checks, 6,260 unit tests (51 skipped), build and final
+  TypeScript validation pass.
+- Real SCM create/navigation/stop/restart commands drive a loaded Speeder
+  through five live states. Native bank 21 and engine sound type 2 start and
+  stop with its flag while CJ remains outside; propeller speed rises/falls and
+  hull-skimming sound survives engine stop. The player-driven engine/skimming
+  regression passes too, without page errors.
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and gear with no page errors, failed
+  requests or inspection hook.
+- Exact PC flight/dynamics captures, AI temporary actions, all engine ownership
+  transitions and retained propeller arithmetic/cadence remain separate work.
+  [Source, script transitions and real sound lifecycle](research/BOAT_PILOT_ENGINE_AUDIO.md).
