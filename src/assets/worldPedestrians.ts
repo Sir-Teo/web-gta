@@ -145,5 +145,5 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  };
  // CPopulation::IsSunbather: the BEACH_GUY and BEACH_GIRL pedstats.
  const sunbather=(name:string)=>/^STAT_BEACH_(GUY|GIRL)$/i.test(pedIde.get(name.toLowerCase())?.stat??'');
- return {pedModelName,pedModelId,buysDrugs,sunbather,models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,walkcycleLocomotion,modelNames,onFoot,gangs:pedGroups.gangs,dealers:pedGroups.dealers,popcycleGroups,hasModel,canDrive,decisionMakers,acquaintances,armedWith,animations,scriptAnimation,stealth,gangClips,attractorClips,...worldPaths(source)};
+ return {pedModelName,pedModelId,pedModelStats:statsFor,buysDrugs,sunbather,models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,walkcycleLocomotion,modelNames,onFoot,gangs:pedGroups.gangs,dealers:pedGroups.dealers,popcycleGroups,hasModel,canDrive,decisionMakers,acquaintances,armedWith,animations,scriptAnimation,stealth,gangClips,attractorClips,...worldPaths(source)};
 }

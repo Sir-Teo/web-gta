@@ -14008,3 +14008,18 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   blood. The full suite has 5,690 passing tests and 51 skipped. Complete source
   identity, other ambient crews and native task/retail parity remain open.
   [Source, lifecycle repair and checks](research/GANG_SEATED_KILLS.md).
+
+## Traffic-driver bullet deaths and model metadata (October 26, 2026)
+
+- Traffic drivers use the drawn model's native weakness and ped type, with
+  float32 damage arithmetic preserving the exact-one-HP survival boundary.
+  Forced instant-hit head death remains separate from the original factor.
+- The first accepted fatal hit reports its mapped creator immediately. Coast,
+  exit, drag-out and later vehicle destruction retain the accounting marker.
+  Dead occupants cannot take the live vehicle-fire flee bridge.
+- Generated traffic drivers pass actual pistol/mounted-weapon trials for all
+  three mapped creators: immediate counters, repeated contacts and delayed
+  bodies agree. The full suite has 5,712 passing tests and 51 skipped; the build
+  passes. Complete source identity, NPC-to-ambient seat routing and native
+  task/retail parity remain open.
+  [Native metadata, source and checks](research/TRAFFIC_SEATED_KILLS.md).

@@ -9,6 +9,8 @@ export const PLAYER_ATTACK_MULT = 3.0;
 
 /** ComputeWillKillPed's ordinary branch (PC 0x4B3210): below one HP is a death, while exactly one survives. */
 export function healthAfter(health:number,damage:number){const remaining=health-damage;return remaining<1?0:remaining;}
+/** The same branch with native float field/arithmetic rounding, for damage entries that supply a float32 factor. */
+export function healthAfterFloat32(health:number,damage:number){const remaining=Math.fround(Math.fround(health)-Math.fround(damage));return remaining<1?0:remaining;}
 
 /** AccountForPedArmour, inlined in iOS ComputeDamageResponse (0x100289d30–0x100289dc4):
  * spend the stat-scaled factor before ComputeWillKillPed. Drowning (53) and falls (54) bypass it.

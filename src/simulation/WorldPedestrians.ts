@@ -1897,6 +1897,9 @@ export class WorldPedestrians {
   const c=this.catalog??await this.catalogLoad;if(!c)return undefined;
   return typeof modelRef==='number'?c.modelStats[modelRef%Math.max(1,c.modelStats.length)]:c.characterStats(modelRef);
  }
+ /** peds.ide/pedstats metadata for a drawn traffic model, without requesting its DFF again. Numeric models here
+  * index the shared packaged civilian roster, as VehicleOccupants.driverModel does. */
+ pedModelStats(model:number|string){const c=this.catalog;return !c?undefined:typeof model==='number'?c.modelStats[model%Math.max(1,c.modelStats.length)]:c.pedModelStats(model);}
  /** CPopulation::AddPed (0x612710) through a script's CREATE_CHAR: the model loaded, the ped stood where the
   * script says and flagged PED_MISSION, so the population manager leaves it alone until the script lets go.
   * Resolves to nothing when the model cannot be loaded, which is the handle the script then finds empty. */
