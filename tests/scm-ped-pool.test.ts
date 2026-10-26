@@ -2,7 +2,7 @@ import {describe,expect,test} from 'vitest';
 import {ScmPedPool,type ScmPedPoolHost} from '../src/simulation/ScmPedPool';
 
 /** A ped the fake browser holds, with everything the script can say about one. */
-interface FakePed {id:number;position:{x:number;y:number;z:number};heading:number;health:number;accuracy:number;shootingRate?:number;
+interface FakePed {id:number;position:{x:number;y:number;z:number};heading:number;health:number;armour?:number;accuracy:number;shootingRate?:number;
  invulnerable:boolean;proofs:string[];alive:boolean;scripted:boolean;animGroup?:string;weapon?:{type:number;ammo:number};kept?:unknown}
 /** A host whose spawning finishes only when the test says so, which is what the browser's really does. */
 function pool(options:{fails?:boolean}={}){
@@ -34,6 +34,8 @@ function pool(options:{fails?:boolean}={}){
   headingOf:ped=>ped.heading,
   healthOf:ped=>ped.health,
   setHealth:(ped,health)=>{ped.health=health;},
+  armourOf:ped=>ped.armour??0,
+  setArmour:(ped,armour)=>{ped.armour=armour;},
   kill:ped=>{ped.health=0;},
   setAccuracy:(ped,accuracy)=>{ped.accuracy=accuracy;},
   setShootingRate:(ped,rate)=>{ped.shootingRate=rate;},
@@ -51,6 +53,14 @@ function pool(options:{fails?:boolean}={}){
 }
 
 describe('the peds a script creates before the browser can load them',()=>{
+ test('armour assigned before loading reads live losses and survives both vehicle rebuilds',async()=>{
+  const {pool:peds,settle}=pool(),h=peds.create(4,'MALE01',{x:1,y:2,z:3});
+  peds.setArmour(h,75);expect(peds.armourOf(h)).toBe(75);await settle();
+  expect(peds.entity(h)?.armour).toBe(75);peds.entity(h)!.armour=31;
+  expect(peds.armourOf(h)).toBe(31);peds.warpIntoCar(h,9,'driver');await settle();
+  expect(peds.entity(h)?.armour).toBe(31);peds.setArmour(h,45);
+  peds.detachFromCar(h,{x:3,y:2,z:1});await settle();expect(peds.entity(h)?.armour).toBe(45);
+ });
  test('the handle comes back at once and the ped follows',async()=>{
   const {pool:peds,settle,spawned}=pool();
   const handle=peds.create(4,'MALE01',{x:10,y:20,z:3});

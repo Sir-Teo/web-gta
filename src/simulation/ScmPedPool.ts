@@ -25,6 +25,8 @@ export interface ScmPedPoolHost<Ped>{
  headingOf(ped:Ped):number;
  healthOf(ped:Ped):number;
  setHealth(ped:Ped,health:number):void;
+ armourOf?(ped:Ped):number|undefined;
+ setArmour?(ped:Ped,armour:number):void;
  kill(ped:Ped):void;
  setAccuracy(ped:Ped,accuracy:number):void;
  /** CPed::m_nWeaponShootingRate. */
@@ -159,8 +161,8 @@ export class ScmPedPool<Ped>{
   return count;
  }
  /** CPed::m_fArmour of a script ped: 0 until a script gives it some. */
- armourOf(handle:number){return this.word(handle).armour??0;}
- setArmour(handle:number,armour:number){this.word(handle).armour=armour;}
+ armourOf(handle:number){const said=this.word(handle);return this.pool.read(handle,ped=>this.host.armourOf?.(ped)??said.armour??0,()=>said.armour??0);}
+ setArmour(handle:number,armour:number){this.word(handle).armour=armour;this.pool.apply(handle,ped=>this.host.setArmour?.(ped,armour));}
  private word(handle:number){const said=this.said.get(handle);requireAsset(said,'Script ped handle names nothing.');return said!;}
  exists(handle:number){return this.pool.exists(handle);}
  /** The browser's own ped, once it has built one. */
@@ -227,11 +229,13 @@ export class ScmPedPool<Ped>{
   const health=this.pool.read(handle,ped=>this.host.healthOf(ped),()=>said.health);
   said.health=health;
   said.dead=health<=0;
+  said.armour=this.armourOf(handle);
   const carried=this.pool.read(handle,ped=>this.host.carried?.(ped),()=>undefined);
   this.pool.replace(handle,()=>spawn().then(ped=>{
    if(ped===undefined)return ped;
    if(carried!==undefined)this.host.carry?.(ped,carried);
    this.host.setHealth(ped,said.dead?0:said.health);
+   if(said.armour!==undefined)this.host.setArmour?.(ped,said.armour);
    if(said.accuracy!==undefined)this.host.setAccuracy(ped,said.accuracy);
    if(said.shootingRate!==undefined)this.host.setShootingRate?.(ped,said.shootingRate);
    if(said.invulnerable!==undefined)this.host.setInvulnerable(ped,said.invulnerable);

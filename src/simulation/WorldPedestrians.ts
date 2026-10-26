@@ -50,7 +50,7 @@ import {playerCollisionWithPedResponse} from '../ped/nativePlayerBump';
 import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, MELEE_SWING_CLIPS, attackLineDistance, fightingStyleCombo, meleeAttackFalls } from './nativeMelee';
 import { nextChainIndex, resolveStrike, chainCooldown, inStrikeCone } from '../combat/meleeChain';
 import { decideDamageResponse, applyDamageResponse } from '../ped/brain';
-import { playerPunchDamage, scaleBlow, npcPunchDamage,healthAfter } from '../ped/damage';
+import { playerPunchDamage, scaleBlow, npcPunchDamage,healthAfter,spendPedArmour } from '../ped/damage';
 export {healthAfter} from '../ped/damage';
 import {bulletProofVestStops,isInstantHitGun,type BulletDamageProtection} from '../ped/bulletProofs';
 export {bulletProofVestStops,isInstantHitGun} from '../ped/bulletProofs';
@@ -276,7 +276,7 @@ export interface Pedestrian {
  money:number;
  id:number;deadTime:number; officer:boolean;arrest:number;
  /** CTaskComplexWanderCop's retry time (this.clock) after a pursuit it could not take up. */
- pursuitRetry?:number;gun?:ReturnType<typeof modelObject>; health:number; actor:Pick<Simulation,'player'>; body:RAPIER.RigidBody; collider:RAPIER.Collider;
+ pursuitRetry?:number;gun?:ReturnType<typeof modelObject>; health:number;armour?:number; actor:Pick<Simulation,'player'>; body:RAPIER.RigidBody; collider:RAPIER.Collider;
  controller:RAPIER.KinematicCharacterController; view:NativeCharacter; target:PathNode; previousNode?:PathNode;
  /** The decision maker's answer to the last ped this one was about to walk into (event 13). */
  walkIntoDecision?:{ped:Pedestrian;avoid:boolean};
@@ -514,8 +514,8 @@ export function pedPieceAt(feet:{x:number;y:number;z:number},heading:number,poin
 }
 export const pedProofedAgainst=(p:{proofs?:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean}},kind:DamageKind)=>
  kind==='spray'?false:!!p.proofs?.[kind];
-/** CCopPed: every cop has 100 health, and CPed::SetArmour gives SWAT 50 and the FBI and army 100. Browser peds have
- * no armour of their own, so a cop's armour is folded into its health. */
+/** CCopPed: every cop has 100 health, and CPed::SetArmour gives SWAT 50 and the FBI and army 100. Ambient cop
+ * spawning still folds that initial armour into health; explicitly assigned script armour is separate. */
 export function copHealth(model:string){const m=model.toLowerCase();return 100+(m==='swat'?50:m==='fbi'||m==='army'?100:0);}
 /** CAttractorScanner stand-in (unreversed): how far and how often a wanderer looks for attractors. */
 const ATTRACTOR_SCAN_RANGE=3,ATTRACTOR_SCAN_SECONDS=1;
@@ -542,7 +542,7 @@ const PED_BOUND_RADIUS=1;
 /** Heights above the feet of the stand-in ped hit spheres (see hideNearCamera). */
 const HIT_SPHERE_HEIGHTS=[.25,.6,.95,1.3,1.6];
 /** What a ped carries into a car and out again as CJ's passenger. */
-interface PassengerKeep extends BulletDamageProtection {weapon:Pedestrian['weapon'];health:number;id?:number;pedType?:string;gang?:number;gangClips:boolean;defendMult?:number;noCriticalHits?:boolean;neverTargeted?:boolean;canBeShotInVehicle?:boolean;/** The follower's member slot, kept while it rides. */slot?:number}
+interface PassengerKeep extends BulletDamageProtection {weapon:Pedestrian['weapon'];health:number;armour?:number;id?:number;pedType?:string;gang?:number;gangClips:boolean;defendMult?:number;noCriticalHits?:boolean;neverTargeted?:boolean;canBeShotInVehicle?:boolean;/** The follower's member slot, kept while it rides. */slot?:number}
 /** CTaskComplexWalkRoundBuildingAttempt's state: the route, the point it walks round to (m_targetPos, native) and the
  * ped or player it follows there (m_targetEntity), its move state, and which sub-task runs: the first one (scratch
  * head walking, hit wall running), look about, following the route, or the stand or hit wall it gives up with. */
@@ -894,13 +894,16 @@ export class WorldPedestrians {
     // iOS CPedDamageResponseCalculator::AccountForPedDamageStats (0x10028a070): any weapon's damage times the victim's
     // pedstats defend weakness (a melee blow's is in playerPunchDamage); then the player's own blow on a member of his
     // group, short of a flamethrower or a blast, is cut to a tenth and to 12.5 at most.
-    let applied=megaPunch||headshot?p.health:base*(kind==='melee'?playerPunchDamage(1,p.defendMult):p.defendMult);
+    let applied=base*(kind==='melee'?playerPunchDamage(1,p.defendMult):p.defendMult);
     const weaponType=hit?.weapon??(kind==='explosion'?WEAPON.explosion:undefined);
-    if(!megaPunch&&!headshot&&byPlayer&&p.follow&&weaponType!==WEAPON.flamethrower&&weaponType!==WEAPON.explosion)applied=Math.min(applied*FRIENDLY_DAMAGE_FACTOR,FRIENDLY_DAMAGE_CAP);
-    p.health=healthAfter(p.health,applied);
+    if(byPlayer&&p.follow&&weaponType!==WEAPON.flamethrower&&weaponType!==WEAPON.explosion)applied=Math.min(applied*FRIENDLY_DAMAGE_FACTOR,FRIENDLY_DAMAGE_CAP);
+    const response=spendPedArmour(applied,p.armour,weaponType),beforeHealth=p.health;
+    p.armour=response.armour;
+    p.health=megaPunch||headshot?0:healthAfter(p.health,response.damageHealth);
+    applied=beforeHealth-p.health;
     const q=p.actor.player.position,from={x:q.x-direction.x,z:q.z-direction.z};
     const weapon=hit?.weapon??(kind==='melee'?WEAPON.unarmed:kind==='explosion'?WEAPON.explosion:kind==='spray'?WEAPON.spraycan:WEAPON.pistol);
-    if(applied>0)p.lastWeaponDamage=weapon;
+    if(applied+response.damageArmour>0)p.lastWeaponDamage=weapon;
     // A recruit the player shoots or strikes with a weapon leaves his group, as one he punches does; the damage response
     // below then answers the player as it would a stranger's (CDarkel asks IsMember first, so a kill still counts him).
     const wasRecruit=!!p.follow;
@@ -912,7 +915,7 @@ export class WorldPedestrians {
     // CTaskSimpleBeHit plays FIGHT_HIT_1 + move from the attacker's combo group.
     const hitClip=fight&&fight.move<=2?fight.hits?.[fight.move]:undefined;
     if(hitClip&&!p.view.hasReaction(hitClip.name.toLowerCase()))p.view.installReactions({[hitClip.name.toLowerCase()]:hitClip});
-    const reaction=this.damageReaction(p,weapon,applied,from,hit?.point,byPlayer,fight,hit?.pistolWhip,hit?.piece);
+    const reaction=this.damageReaction(p,weapon,applied,from,hit?.point,byPlayer,fight,hit?.pistolWhip,hit?.piece,response.damageArmour);
     if(p.health>0&&kind==='explosion'){
      const knockout=computeDeathAnim({weapon:WEAPON.explosion,pedPiece:PED_PIECE.torso,direction:browserLocalDirection(p.actor.player.heading,q.x-from.x,q.z-from.z),health:0,damageArmour:0,damageHealth:applied,victim:{player:false,inVehicle:false,moveState:PEDMOVE.still},source:{ped:true,player:true}});
      // An explosion's ApplyMoveForce sets the push; other blows keep the authored strength.
@@ -945,14 +948,14 @@ export class WorldPedestrians {
   return speed<.1?PEDMOVE.still:speed<(p.walkSpeed+p.runSpeed)/2?PEDMOVE.walk:speed<(p.runSpeed+p.sprintSpeed)/2?PEDMOVE.run:PEDMOVE.sprint;
  }
  /** CEventDamage::ComputeAnim for a pedestrian struck from `from`. */
- private damageReaction(p:Pedestrian,weapon:number,damage:number,from:{x:number;z:number},point:{x:number;y:number;z:number}|undefined,attackerIsPlayer:boolean,fight?:MeleeFight,pistolWhip=false,piece?:number):DamageAnimResult{
+ private damageReaction(p:Pedestrian,weapon:number,damage:number,from:{x:number;z:number},point:{x:number;y:number;z:number}|undefined,attackerIsPlayer:boolean,fight?:MeleeFight,pistolWhip=false,piece?:number,damageArmour=0):DamageAnimResult{
   const q=p.actor.player.position;
   // The attacker's CTaskSimpleFight: combo set UNARMED_1 or a weapon set (4 and above) and
   // its current move (0–2 the attacks, 3 the ground attack, 4 the moving attack). IsComboSet
   // is a retail stub; it is taken as the combo's final move, so the third hit floors the victim.
   const sourceFight=fight&&{comboSet:4,currentMove:fight.move,comboActive:fight.move===2,hitComboActive:false,hitClip:(move:number)=>fight.hits?.[move]?.name.toLowerCase()??`hita_${move+1}`,group:fight.group??'melee_1'};
   const result=computeDamageEventAnim({weapon,pedPiece:piece??(point?this.hitPiece(p,point):fight?PED_PIECE.torso:this.hitPiece(p,point)),direction:weapon===WEAPON.explosion?browserLocalDirection(p.actor.player.heading,q.x-from.x,q.z-from.z):browserLocalDirection(p.actor.player.heading,from.x-q.x,from.z-q.z),
-   health:p.health,damageArmour:0,damageHealth:damage,
+   health:p.health,damageArmour,damageHealth:damage,
    victim:{player:false,inVehicle:false,taskRefusesAbort:this.fallRefusesDamage(p),moveState:this.moveState(p),upperBodyOnly:!!p.flags?.upperBodyDamageAnimsOnly,fallingOrGettingUp:p.down>0,headBelowRoot:this.headBelowRoot(p),lyingOnFront:isFrontClip(p.fallClip)},
    source:{ped:true,player:attackerIsPlayer,adrenaline:attackerIsPlayer&&this.sim.player.adrenaline>0,fight:sourceFight,pistolWhip:pistolWhip?{group:'melee_1',clip:'hita_2'}:undefined},megaPunch:megaPunchBlow(weapon),previousAnimId:p.damageAnimId,nextRandom:()=>this.damageRandom.next()});
   p.damageAnimId=result.id;return result;
@@ -1867,7 +1870,7 @@ export class WorldPedestrians {
   const i=this.people.findIndex(p=>p.id===id);if(i<0)return undefined;
   const [p]=this.people.splice(i,1);this.remove(p);
   // The same ped rides and gets out: CPed keeps his weapons, health and gang in the car.
-  const keep:PassengerKeep={weapon:p.weapon,health:p.health,id:p.id,pedType:pedTypeName(p),gang:p.gang,gangClips:p.gang!==undefined,slot:p.follow?p.followSlot:undefined,
+  const keep:PassengerKeep={weapon:p.weapon,health:p.health,armour:p.armour,id:p.id,pedType:pedTypeName(p),gang:p.gang,gangClips:p.gang!==undefined,slot:p.follow?p.followSlot:undefined,
    defendMult:p.defendMult,noCriticalHits:p.noCriticalHits,neverTargeted:p.neverTargeted,canBeShotInVehicle:p.flags?.canBeShotInVehicle,
    proofs:p.proofs&&{...p.proofs},onlyDamagedByPlayer:p.onlyDamagedByPlayer,bulletProofVest:p.bulletProofVest};
   return {modelRef:p.modelRef,follow:p.follow,gang:p.gang,keep};
@@ -1951,10 +1954,12 @@ export class WorldPedestrians {
   // AccountForPedDamageStats always applies victim weakness. A known ped source also supplies mission-group
   // membership; opaque script/vehicle sources cannot establish that relationship yet.
   const dealt=shooter?this.pedOnPedDamage(victim,shooter,damage,weapon):damage*victim.defendMult;
-  victim.health=healthAfter(victim.health,dealt);if(dealt>0)victim.lastWeaponDamage=weapon;
+  const response=spendPedArmour(dealt,victim.armour,weapon),beforeHealth=victim.health;
+  victim.armour=response.armour;victim.health=healthAfter(victim.health,response.damageHealth);
+  if(beforeHealth-victim.health+response.damageArmour>0)victim.lastWeaponDamage=weapon;
   if(!victim.health)this.onKill?.({id:victim.id,...pedTypeInfo(victim),recruit:!!victim.follow,byPlayer:false});
   const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};
-  this.applyReaction(victim,this.damageReaction(victim,weapon,damage,vfrom,end,false,undefined,false,piece),vfrom);
+  this.applyReaction(victim,this.damageReaction(victim,weapon,beforeHealth-victim.health,vfrom,end,false,undefined,false,piece,response.damageArmour),vfrom);
   return true;
  }
  giveOrder(ped:Pedestrian,order:ScriptedPedOrder){this.giveSequence(ped,[order],false,false);}
@@ -2783,7 +2788,7 @@ export class WorldPedestrians {
   }
   const p=this.people[this.people.length-1];
   p.follow=follow;p.flee=0;
-  if(keep){p.health=keep.health;if(keep.id!==undefined){p.id=keep.id;this.nextId=Math.max(this.nextId,p.id+1);}if(keep.gangClips)p.view.installReactions(catalog.gangClips,true);if(follow)p.followSlot=keep.slot;
+  if(keep){p.health=keep.health;p.armour=keep.armour;if(keep.id!==undefined){p.id=keep.id;this.nextId=Math.max(this.nextId,p.id+1);}if(keep.gangClips)p.view.installReactions(catalog.gangClips,true);if(follow)p.followSlot=keep.slot;
    p.defendMult=keep.defendMult??p.defendMult;p.noCriticalHits=keep.noCriticalHits;p.neverTargeted=keep.neverTargeted;if(keep.pedType!==undefined)p.pedType=keep.pedType;
    p.proofs=keep.proofs&&{...keep.proofs};p.onlyDamagedByPlayer=keep.onlyDamagedByPlayer;p.bulletProofVest=keep.bulletProofVest;
    if(keep.canBeShotInVehicle!==undefined)this.setFlag(p,'canBeShotInVehicle',keep.canBeShotInVehicle);

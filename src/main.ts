@@ -6047,6 +6047,8 @@ async function boot() {
                  scriptPedMatrix:ped=>{const r=asRider(ped);return r&&!r.offset?seatedPedMatrix(r.car,r.seat):undefined;},
                  scriptPedHeadingRate:ped=>asRider(ped)?.headingChange??onFoot(ped)?.headingChange??7.5,
                  scriptPedHealth:ped=>asRider(ped)?.health??onFoot(ped)?.health??0,
+                 scriptPedArmour:ped=>{const p=asRider(ped)??onFoot(ped);return p?p.armour??0:undefined;},
+                 setScriptPedArmour:(ped,armour)=>{const p=asRider(ped)??onFoot(ped);if(p)p.armour=armour;},
                  setScriptPedHealth:(ped,health)=>{const r=asRider(ped);if(r){if(health<=0)scriptRiderDeath(r,gameTimeMs,(file,name)=>pedestrians?.scriptAnimation(file,name)??Promise.resolve(undefined));else r.health=health;}else{const p=onFoot(ped);if(p){if(health<=0)pedestrians?.restoreDeadScriptPed(p);else p.health=health;}}},
                  killScriptPed:ped=>{const r=asRider(ped);if(r)scriptRiderDeath(r,gameTimeMs,(file,name)=>pedestrians?.scriptAnimation(file,name)??Promise.resolve(undefined));else{const p=onFoot(ped);if(p)pedestrians?.restoreDeadScriptPed(p);}},
                  setScriptPedAccuracy:(ped,accuracy)=>{const r=asRider(ped);if(r)r.accuracy=accuracy;else{const p=onFoot(ped);if(p)p.gunAccuracy=accuracy;}},

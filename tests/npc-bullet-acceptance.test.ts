@@ -22,6 +22,17 @@ test('NPC collider recognition and accepted damage remain distinct for proofed v
  expect(f.host.npcBulletHit(12,10,22,{x:0,z:1},{x:0,y:1,z:0},3)).toBe(false);
  expect(f.ped.health).toBe(100);expect(f.host.onKill).not.toHaveBeenCalled();expect(f.host.damageReaction).not.toHaveBeenCalled();
 });
+test('NPC weakness is scaled before armour and the reaction receives health and armour losses',()=>{
+ const f=fixture();f.ped.armour=25;
+ expect(f.hit()).toBe(true);expect(f.ped.health).toBe(100);expect(f.ped.armour).toBe(5);expect(f.ped.lastWeaponDamage).toBe(22);
+ expect(f.host.damageReaction.mock.calls[0][2]).toBe(0);expect(f.host.damageReaction.mock.calls[0][9]).toBe(20);
+ f.hit();expect(f.ped.health).toBe(85);expect(f.ped.armour).toBe(0);
+ expect(f.host.damageReaction.mock.calls[1][2]).toBe(15);expect(f.host.damageReaction.mock.calls[1][9]).toBe(5);
+});
+test('proof and group rejection spend no armour',()=>{
+ const f=fixture();f.ped.armour=50;f.ped.proofs={bullet:true};expect(f.hit()).toBe(false);expect(f.ped.armour).toBe(50);
+ f.ped.proofs=undefined;f.host.sameScriptGroup=()=>true;expect(f.hit({pedType:'CIVFEMALE'})).toBe(false);expect(f.ped.armour).toBe(50);
+});
 test('the mounted-gun damage adapter rejects a living victim only the player may damage',()=>{
  const f=fixture();f.ped.onlyDamagedByPlayer=true;
  expect(f.host.damageCollider(12,10,{x:0,z:1},'bullet',{weapon:38,piece:3,point:{x:0,y:1,z:0},byPlayer:false})).toBe(false);

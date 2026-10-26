@@ -404,6 +404,8 @@ export interface ScmMissionWorld {
  scriptPedMatrix?(ped:unknown):ReturnType<NonNullable<ScmWorldCommands['pedMatrix']>>|undefined;
  scriptPedHealth(ped:unknown):number;
  setScriptPedHealth(ped:unknown,health:number):void;
+ scriptPedArmour?(ped:unknown):number|undefined;
+ setScriptPedArmour?(ped:unknown,armour:number):void;
  killScriptPed(ped:unknown):void;
  setScriptPedAccuracy(ped:unknown,accuracy:number):void;
  /** CPed::m_nWeaponShootingRate, which CTaskSimpleGunControl's bursts and pauses read. */
@@ -3048,8 +3050,7 @@ export class ScmMission {
    // GET_DRIVER_OF_CAR: the player only from the driver's seat; riding as a passenger, the car's own driver or none.
    vehicleDriver:handle=>{const own=this.world.playerPed().vehicle;return handle===PLAYER_VEHICLE_HANDLE?(own&&!own.passenger?PLAYER_PED_HANDLE:-1):this.playerCarHandle()===handle&&!own?.passenger?PLAYER_PED_HANDLE:this.peds.driverOf(handle)??-1;},
    // ADD_ARMOUR_TO_CHAR: m_fArmour plus the amount, up to CPlayerInfo::m_nMaxArmour for the player and 100 for anyone
-   // else (the handler is unreversed; the armour pickup caps the player the same way). Script peds keep the figure,
-   // which the browser's ped damage does not yet spend.
+   // else (the handler is unreversed; the armour pickup caps the player the same way).
    addArmourToPed:(handle,amount)=>{
     if(handle===PLAYER_PED_HANDLE){
      if(!this.world.playerArmour||!this.world.setPlayerArmour)throw new UnsupportedScmCommand(-1,0,'ADD_ARMOUR_TO_CHAR','no host');
@@ -3217,6 +3218,8 @@ export class ScmMission {
    headingOf:ped=>this.world.scriptPedHeading(ped),
    healthOf:ped=>this.world.scriptPedHealth(ped),
    setHealth:(ped,health)=>{this.world.setScriptPedHealth(ped,health);},
+   armourOf:ped=>this.world.scriptPedArmour?.(ped),
+   setArmour:(ped,armour)=>{this.world.setScriptPedArmour?.(ped,armour);},
    kill:ped=>{this.world.killScriptPed(ped);},
    setAccuracy:(ped,accuracy)=>{this.world.setScriptPedAccuracy(ped,accuracy);},
    setShootingRate:(ped,rate)=>{this.world.setScriptPedShootingRate?.(ped,rate);},

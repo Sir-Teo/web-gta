@@ -13922,3 +13922,16 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   cover type precedence, sniper selection, exempt types and CWanted deduplication.
   Complete actor roles, other kill paths and pursuit parity remain open.
   [Source and scope](research/PEDESTRIAN_FIREARM_CRIMES.md).
+
+## Explicit on-foot script armour (October 26, 2026)
+
+- ADD_ARMOUR_TO_CHAR now reaches the live pedestrian, GET_CHAR_ARMOUR reads its
+  remaining armour, and script vehicle rebuilds retain that live value.
+  On-foot accepted damage spends stat-scaled armour before health, retaining
+  drowning/fall bypasses and subsequent forced-death behavior. Damage animation
+  receives both absorbed armour and actual lost health.
+- Pending creation, ordinary/NPC damage and rejection units accompany a live
+  script trial covering ten damage outcomes, a mounted-gun impact and both
+  vehicle transitions. Seated spending, ambient cop starting armour, ongoing
+  fire and matched retail PC traces remain open.
+  [Reference, verification and limits](research/SCRIPT_PED_ARMOUR.md).

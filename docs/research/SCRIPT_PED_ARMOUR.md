@@ -1,0 +1,49 @@
+# Explicit script-ped armour
+
+ADD_ARMOUR_TO_CHAR now updates the live ped rather than a script-only number.
+GET_CHAR_ARMOUR reads the remainder after on-foot damage. The pool retains the
+live value when rebuilding a ped in a vehicle and back on foot, including
+armour assigned while the first body is still loading. Recruited passengers
+also retain the figure through boarding and exit.
+
+## Reference and order
+
+The pinned gta-reversed revision
+`4281f82d8af83e14935ac84a69dfd1ceebb9f256` identifies
+AccountForPedArmour at PC `0x4AD550`. Its implementation still calls the retail
+executable; the unexecuted proposed body is not independent PC evidence.
+The pinned iOS binary (SHA-256
+`9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78`)
+inlines the operation in ComputeDamageResponse at
+`0x100289d30–0x100289dc4`, after AccountForPedDamageStats and before
+ComputeWillKillPed:
+
+1. Drowning (53) and falling (54) bypass armour.
+2. Otherwise subtract the stat-scaled factor from armour, passing only any
+   overflow to the health calculation and recording the absorbed amount.
+3. Forced death and mega punch run afterwards. An already-supported forced
+   headshot still kills, but armour spends the scaled hit amount first.
+
+PC ComputeWillKillPed `0x4B3210` records the actual lost health, including all
+remaining health on death. Both health loss and armour loss now reach the
+on-foot damage-animation calculation, and an armour-only hit records the last
+weapon. Physical proofs, vest rejection and known NPC group rejection run
+before spending armour. Accepted blood remains an impact effect even when
+armour absorbs all damage.
+
+## Verification and limits
+
+Unit checks cover absorption, overflow, equality, bypass weapons, NPC weakness,
+rejected impacts, pending creation and both vehicle rebuilds. A live browser
+trial covers script reads, ordinary hits, weakness, friendly scaling, bypasses,
+proofs, forced headshots, a real mounted-gun impact and vehicle transitions.
+
+The full unit suite passes (5,644 passed, 51 skipped), the build passes, and
+seven live browser checks pass across armour, NPC impacts, native reactions
+and recruited-passenger protections.
+
+This change handles explicitly assigned on-foot armour. Seated damage does not
+yet spend the retained armour. Ambient SWAT/FBI/army starting armour still uses
+the existing combined-health approximation, and ongoing fire uses a separate
+path. Complete PC executable parity, float32 rounding and damage-task coverage
+remain unverified.
