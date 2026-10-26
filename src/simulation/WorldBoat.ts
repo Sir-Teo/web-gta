@@ -263,6 +263,10 @@ export class WorldBoat {
  occupied=false;throttle=0;steer=0;brake=false;waveVolume=0;
  /** bOnWater from the last ProcessBoatControl. */
  private onWater=false;
+ /** ProcessBoatControl's physical submerged flag: buoyancy exceeds its native mass/timestep threshold. */
+ get submergedInWater(){return this.onWater;}
+ /** Actual drawn static-propeller origins, retaining primary/secondary slots when a frame is missing. */
+ propellerPositions(){return this.components?.propellerPositions()??[undefined,undefined];}
  /** m_GasPedal, m_BrakePedal, m_fRawSteerAngle and m_fSteerAngle as CBoat::ProcessControlInputs keeps them. */
  gasPedal=0;brakePedal=0;rawSteer=0;steerAngle=0;
  /** CBoat::m_EngineSpeed, the propeller's speed, which the engine sound follows. */
@@ -338,14 +342,14 @@ export class WorldBoat {
   this.body.setLinvel({x:mx*50,y:mz*50-NATIVE_GRAVITY_MS2*dt,z:-my*50},true);this.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);
  }
  private lastImmersion=0;
- /** m_nBoatFlags.bLockedToXY: set by the constructor and ANCHOR_BOAT, cleared once the player drives (STATUS_PLAYER). */
+ /** m_nBoatFlags.bLockedToXY: set by the constructor and ANCHOR_BOAT, cleared by player or script physics control (STATUS_PLAYER / STATUS_PHYSICS). */
  anchored=true;
  /** m_LockedHeading, taken the first anchored frame (-10000 in the game: unset). */
  private lockedHeading:number|undefined;
  /** CBoat::ProcessControl's tail: an anchored hull loses its speed across the water and is turned back to the
   * heading it was anchored at about its own position; the swell still lifts, pitches and rolls it. */
  private holdAnchor(){
-  if(this.occupied){this.anchored=false;this.lockedHeading=undefined;}
+  if(!this.wrecked&&(this.occupied||this.pilot?.physics)){this.anchored=false;this.lockedHeading=undefined;}
   if(!this.anchored)return;
   const v=this.body.linvel();this.body.setLinvel({x:0,y:v.y,z:0},true);
   const heading=this.heading();

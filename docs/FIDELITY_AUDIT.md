@@ -14462,3 +14462,31 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Marquis door/flap dynamics, propeller particles, complete atomic/LOD/alpha
   pipelines and matched original-PC motion remain separate compatibility work.
   [Native functions, captures, model inventory and scope](research/BOAT_RENDER_COMPONENTS.md).
+
+## Physics boat anchor and propeller-water lifecycle (October 26, 2026)
+
+- STATUS_PHYSICS boats now release their constructor anchor and saved heading
+  alongside player boats. Native engine-off physics status also releases it;
+  wrecked/abandoned hulls retain their branches. This removes the horizontal
+  velocity clamp that could leave a navigating script boat pinned in place.
+- Each supplied static-propeller frame now owns a lazily created boat_prop
+  system, with entity basis, actual frame origin, local particles and copied
+  parent matrix. Native submersion and capped movement-speed constant time
+  drive play/stop/restart independently of engine/occupancy/wrecked flags.
+  Missing/hidden frames retain prerender behavior; ordinary bounds checks
+  and existing FX culling remain. Removal/world disposal kill both slots.
+- Six initial effect checks and two physics-anchor checks expose their gaps.
+  A hierarchy query also exposes cached world matrices and now refreshes the
+  model hierarchy before reading origins. All 191 focused checks, 6,417 unit
+  tests (51 skipped), final build and TypeScript validation pass.
+- Real Speeder physics releases the anchor and moves about 21 metres in three
+  simulated seconds without CJ aboard. Two local native systems emit particles,
+  stop dry, restart wet on the same objects, survive engine stop and fully
+  retire on removal. All scene children/GPU geometries release. All-ten-model
+  rendering and whole-game script engine audio regressions pass too.
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and gear without page errors, failed
+  requests or inspection hook.
+- Full AI status/recovery, campaign routes and matched PC dynamics/water/render
+  captures remain separate work.
+  [Native control gates, actual movement and particle lifecycle](research/BOAT_PROP_WATER_FX.md).

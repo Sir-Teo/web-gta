@@ -37,3 +37,14 @@ test('the player driving lifts the anchor and forgets its heading; ANCHOR_BOAT s
  // Let go and anchored again, it swings back to the heading it held.
  expect(off(h.boat.heading(),start+1)).toBeLessThan(1e-6);
 });
+
+for(const engineOn of [true,false])test(`script physics status releases its anchor with engineOn=${engineOn}`,()=>{
+ const h=hull(new Quaternion());hold(h.boat);h.boat.body.setLinvel({x:3,y:-1,z:2});h.boat.pilot={physics:true,engineOn};hold(h.boat);
+ expect(h.boat.anchored).toBe(false);expect(h.boat.anchorHeading).toBeUndefined();expect(h.velocity()).toEqual({x:3,y:-1,z:2});
+});
+test('a wrecked hull does not inherit the stale script physics anchor exception',()=>{
+ const h=hull(new Quaternion());h.boat.pilot={physics:true,engineOn:true};h.boat.wrecked=true;hold(h.boat);expect(h.boat.anchored).toBe(true);expect(h.velocity()).toEqual({x:0,y:-1,z:0});
+});
+test('a pilot record without physics status does not release an abandoned anchor',()=>{
+ const h=hull(new Quaternion());h.boat.pilot={physics:false,engineOn:true};hold(h.boat);expect(h.boat.anchored).toBe(true);expect(h.velocity()).toEqual({x:0,y:-1,z:0});
+});

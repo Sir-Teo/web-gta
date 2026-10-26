@@ -75,7 +75,10 @@ hold before any navigation command. Normal production smoke passes saved-game
 return, movement, car entry, map/waypoint, pause/resume, Rustler takeoff and
 gear with no page errors, failed requests or development inspection hook.
 
-Marquis door/flap dynamics, propeller particle systems, every original atomic
+Marquis door/flap dynamics, every original atomic
 render callback, full LOD/transparency-pipeline behavior and matched PC motion
 captures remain separate work. These checks establish component transforms,
 material state and lifecycle within the existing renderer.
+
+The [subsequent propeller-water integration](BOAT_PROP_WATER_FX.md) adds the
+owned native effects and corrects script physics anchor release.

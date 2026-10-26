@@ -1,4 +1,4 @@
-import {Mesh,type Material,type Object3D} from 'three';
+import {Mesh,Vector3,type Material,type Object3D} from 'three';
 import {requireAsset} from '../assets/binary';
 /** CBoat::PreRender (PC 0x6F1180, selected iOS 0x10045b230). */
 export const BOAT_PROP_TURN=Math.fround(2*Math.PI),BOAT_PROP_DIVISOR=Math.fround(Math.PI/8);
@@ -31,9 +31,11 @@ export function bindNativeBoatComponents(root:Object3D,model:number){
  // SetComponentAtomicAlpha enables rpGEOMETRYMODULATEMATERIALCOLOR: use the stored native RGB even if
  // the source geometry originally ignored it. Source records and unrelated materials remain untouched.
  for(const group of materials)for(const material of group){const rgb=material.userData.nativeFadeColor,color=(material as Material&{color?:{setRGB(r:number,g:number,b:number):void}}).color;if(rgb&&color)color.setRGB(rgb[0],rgb[1],rgb[2]);}
+ const point=new Vector3();
  let angle=0,scan=0;const radar=model===430||model===453||model===454;
  return {
   opacity:(material:Material)=>opacity.get(material),
+  propellerPositions:()=>{root.updateWorldMatrix(true,true,true);return [nodes.staticProp,nodes.staticProp2].map(node=>{if(!node)return undefined;point.setFromMatrixPosition(node.matrixWorld);return {x:point.x,y:point.y,z:point.z};});},
   snapshot:()=>({angle,scan,nodes:Object.fromEntries(Object.entries(nodes).map(([role,node])=>[role,!!node])),propMaterials:materials.map(m=>m.length)}),
   update(engineSpeed:number,steerAngle:number,seconds:number){
    const state=boatPropellerStep(angle,engineSpeed,Math.fround(seconds*50));angle=state.angle;

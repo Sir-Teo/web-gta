@@ -30,6 +30,16 @@ remain separate work. [Source, transitions and checks](BOAT_PILOT_ENGINE_AUDIO.m
 Native propeller, steering-flap and scan transforms now reach each supplied
 component frame. Captured native alpha combines with vehicle fading, and all
 ten boat models have asset/material/lifetime coverage. The independent
-executable fixture contains 132 cases. Marquis door/flap physics, propeller
-particles and complete render-pipeline comparison remain separate work.
+executable fixture contains 132 cases. Marquis door/flap physics and complete render-pipeline comparison remain
+separate work. Propeller water systems are integrated in the follow-up below.
 [Source, captures, actual inventory and checks](BOAT_RENDER_COMPONENTS.md).
+
+## Physics anchor release and propeller water effects (October 26, 2026)
+
+Known physics-controlled boats now release the constructor anchor and retain
+their scripted horizontal movement, including the engine-off physics branch.
+Real Speeder navigation travels about 21 metres in three simulated seconds.
+Two owned boat_prop systems follow the supplied static propeller origins,
+using the native submersion and movement-speed gates, local particles and copied
+parent matrices. Dry/wet, engine-stop and removal states pass live checks.
+[Source, movement and effect lifecycle evidence](BOAT_PROP_WATER_FX.md).

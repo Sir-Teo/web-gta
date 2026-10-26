@@ -52,3 +52,8 @@ test('the native wrap retains exactly one turn until another positive step',()=>
 test('component rendering enables native material RGB modulation without changing source RGB or other parts',()=>{
  const f=fixture(),rgb=[.2,.4,.6];f.materials[4].userData.nativeFadeColor=rgb;bindNativeBoatComponents(f.root,430).update(.1,0,.02);expect(f.materials[4].color.toArray()).toEqual(rgb);expect(f.materials[1].color.toArray()).toEqual([1,1,1]);expect(rgb).toEqual([.2,.4,.6]);
 });
+
+test('propeller origins retain primary/secondary slots and follow the current model hierarchy',()=>{
+ const f=fixture();f.root.position.set(10,20,30);f.root.rotation.z=Math.PI/2;f.nodes.staticProp2.matrix.setPosition(-1,2,3);const points=f.component.propellerPositions();expect(points[0]!.x).toBeCloseTo(8,12);expect(points[0]!.y).toBeCloseTo(21,12);expect(points[0]!.z).toBe(33);expect(points[1]!.x).toBeCloseTo(8,12);expect(points[1]!.y).toBeCloseTo(19,12);
+ const root=new Group(),secondary=new Group();secondary.name=BOAT_COMPONENT_NAMES.staticProp2;root.add(secondary);expect(bindNativeBoatComponents(root,452).propellerPositions()).toEqual([undefined,{x:0,y:0,z:0}]);
+});
