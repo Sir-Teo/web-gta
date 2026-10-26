@@ -46,9 +46,8 @@ on a motorcycle; all preserve measured vehicle health and emit blood after
 the resulting health and armour are available.
 
 This change handles explicitly assigned armour on walking script peds, mission
-riders and recruited passengers. Ambient SWAT/FBI/army starting armour still
-uses the existing combined-health approximation, and ongoing fire uses a
-separate path. Complete PC executable parity, float32 rounding and damage-task
+riders and recruited passengers. Ambient cop defaults and crew retention are covered in
+[cop armour](COP_ARMOUR.md); ongoing fire uses a separate path. Complete PC executable parity, float32 rounding and damage-task
 coverage remain unverified.
 
 ## Seated spending and retained weakness
@@ -70,6 +69,6 @@ weakness is 1.1. A 125-point ordinary sniper hit therefore removes 137.5 health
 without armour. Earlier seated fixtures incorrectly assumed 1.0. The one-HP
 boundary fixture now starts from the scaled damage plus the intended remainder.
 
-Ambient crew starting armour and their legacy forced-head amount, ongoing fire,
+Ambient gang/traffic legacy forced-head amounts, ongoing fire,
 full native source/group/task coverage, float32 parity and matched retail
 captures remain open.

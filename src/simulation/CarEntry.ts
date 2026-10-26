@@ -2,6 +2,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import {physicalCanBeDamaged} from '../combat/nativePhysicalProofs';
 import {bulletProofVestStops,type BulletDamageProtection} from '../ped/bulletProofs';
 import {healthAfter,spendPedArmour} from '../ped/damage';
+import type {PedVitals} from '../ped/nativeCopVitals';
 import type {ShotCreator} from '../weapons/WeaponSystem';
 import {nativeCarSeatPose} from '../vehicle/nativeSeatPosition';
 import {NativeDrivingAnims} from './nativeDrivingAnims';
@@ -37,7 +38,7 @@ export interface EntryPose {car?:WorldCar;local?:V3;headingOffset?:number;world?
 export interface NpcPose {car:WorldCar;seat:0|1;local:V3;clip:string;seconds:number;who?:LeavingDriver}
 /** The ped in a car's driver's seat as he leaves it, which the host draws on his clip and sets on the street after: the
  * model he was drawn with in the seat, and an officer's gun (a unit's cop stays a cop, CCopPed, once out). */
-export interface LeavingDriver {model:number|string;officer?:{weapon:number;accuracy:number};dead?:boolean}
+export interface LeavingDriver {model:number|string;officer?:{weapon:number;accuracy:number;vitals?:PedVitals};dead?:boolean}
 interface ClipUse {key:string;clip:NativeAnimation;group:number}
 /** CVehicle::ProcessDrivingAnims set selection, shared by cars and aircraft: low, kart, truck, else driving skill with
  * `_slow` at |m_vecMoveSpeed| ≤ 0.4 (`speed` in metres per second). The iOS build (0x100480518, sets at 0x100654260)

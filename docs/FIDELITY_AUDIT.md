@@ -13963,3 +13963,18 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   Native arithmetic is from the pinned mobile executable; independent PC 1.0
   validation and full task/event parity remain open.
   [Exact handler and scope](research/SCRIPT_PED_DAMAGE.md).
+
+## Cop armour and crew wounds (October 26, 2026)
+
+- Ambient officers now start with 100 health and separate native cop-type armour:
+  SWAT 50, FBI/army 100, ordinary cops zero. Police seats spend the original hit
+  factor before forced death; a dead driver's coast reports a corpse contact
+  without spending armour again. Live exits, roadblock placement, returns and
+  drag-out descriptions preserve current health/armour across body changes.
+- Original LAPD/SWAT/FBI/army models pass body, fall, drowning and head checks.
+  An actual dispatched FBI unit retains spent armour through animated exit
+  and return, then a real pistol head shot kills with 25 armour left and no
+  vehicle damage during that impact. The full suite has 5,672 passing tests
+  and 51 skipped. Native source/group/task parity and ambient crew death
+  accounting/reconstruction remain open.
+  [PC constructor, trials and limits](research/COP_ARMOUR.md).

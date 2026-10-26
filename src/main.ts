@@ -1156,7 +1156,7 @@ async function boot() {
   carEntry.onDriverOut=(car,position,heading,lying,who,seat=0)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);const model=who?.model??occupants.driverModel(car),release=()=>carEntry.releaseDragged(car,seat);
    if(!seat&&car.driverDead||who?.dead){if(!seat)car.driverDead=false;pedestrians?.spawnDead(model,position,heading,car.gang,false,car.wrecked);release();return;}
    // A cop dragged out of his car gets up a cop, armed, and goes on as any officer on foot (CCopPed).
-   if(who?.officer&&typeof model==='string'&&pedestrians){void pedestrians.spawnOfficer(model,who.officer.weapon,position,heading,undefined,who.officer.accuracy,false,lying).catch(()=>false).finally(release);return;}
+   if(who?.officer&&typeof model==='string'&&pedestrians){void pedestrians.spawnOfficer(model,who.officer.weapon,position,heading,undefined,who.officer.accuracy,false,lying,who.officer.vitals).catch(()=>false).finally(release);return;}
    pedestrians?.spawnJacked(model,position,heading,car.gang,{position:()=>{const t=car.car.body.translation();return {x:t.x,y:t.y,z:t.z};}},VEHICLE_ANIM_GROUP_TABLES[car.animGroup.id]?.file==='coach',lying,release)||release();};
   carEntry.onJackStart=(car,who)=>pedestrians?.prefetchModel(who?.model??occupants.driverModel(car));
   const law=new WantedSystem(),wantedHud=new WantedHud(hud.element);
@@ -5746,7 +5746,7 @@ async function boot() {
              const forceDeath=piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon),raw=damageFactor??damage;
              if(target.kind==='script')return scriptRiderShot(target.rider as ScriptRider,raw,weapon,creator!=='remote',()=>scriptRiderKilled(target,creator),{forceDeath:damageFactor!==undefined&&forceDeath,friendlyFire:creator==='ped'&&target.crew});
              const car=target.car as ScriptCar;
-             return target.kind==='passenger'?carEntry.passengerShot(car,target.seat,raw,true,forceDeath,{weapon,piece,creator}):target.kind==='police'?police?.crewShot(car,target.seat,damage):target.kind==='driveby'?driveby?.crewShot(car,target.seat,damage):traffic?.driverShot(car,damage);
+             return target.kind==='passenger'?carEntry.passengerShot(car,target.seat,raw,true,forceDeath,{weapon,piece,creator}):target.kind==='police'?police?.crewShot(car,target.seat,raw,weapon,damageFactor!==undefined&&forceDeath):target.kind==='driveby'?driveby?.crewShot(car,target.seat,damage):traffic?.driverShot(car,damage);
             };
             if(driveby)driveby.onCrewDiesOut=(car,model)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading,car.gang,false,car.wrecked))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading(),car.gang,false,car.wrecked);}};
             if(police)police.onCrewDiesOut=(car,model)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading,undefined,false,car.wrecked))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading(),undefined,false,car.wrecked);}};
@@ -5776,7 +5776,7 @@ async function boot() {
             traffic.playerVelocity=()=>{const v=playerVehicleVelocity();if(v)return v;const h=sim.player.heading,s=sim.player.speed/50;return {x:Math.sin(h)*s,y:-Math.cos(h)*s};};
             police.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
             police.camera=()=>{const forward=render.camera.getWorldDirection(render.camera.position.clone());return {position:render.camera.position,forward};};
-            police.spawnOfficer=(model,weapon,position,heading,crew,accuracy,lying)=>{void pedestrians?.spawnOfficer(model,weapon,position,heading,crew,accuracy,false,lying);};
+            police.spawnOfficer=(model,weapon,position,heading,crew,accuracy,lying,vitals)=>{void pedestrians?.spawnOfficer(model,weapon,position,heading,crew,accuracy,false,lying,vitals);};
             police.onUnitDropped=unit=>pedestrians?.releaseCrew(unit);
             police.crew={list:unit=>pedestrians?.footCrew(unit)??[],goTo:(id,point,walk)=>pedestrians?.sendOfficer(id,point,walk),board:id=>pedestrians?.boardOfficer(id)??false};
             // CTaskComplexArrestPed opens the door and waits for the suspect to be out; the arrest itself follows on foot.

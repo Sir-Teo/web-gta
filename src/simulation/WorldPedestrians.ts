@@ -51,6 +51,8 @@ import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, MELEE
 import { nextChainIndex, resolveStrike, chainCooldown, inStrikeCone } from '../combat/meleeChain';
 import { decideDamageResponse, applyDamageResponse } from '../ped/brain';
 import { playerPunchDamage, scaleBlow, npcPunchDamage,healthAfter,spendPedArmour } from '../ped/damage';
+import {copArmour,type PedVitals} from '../ped/nativeCopVitals';
+export {copArmour,copHealth} from '../ped/nativeCopVitals';
 export {healthAfter} from '../ped/damage';
 import {bulletProofVestStops,isInstantHitGun,type BulletDamageProtection} from '../ped/bulletProofs';
 export {bulletProofVestStops,isInstantHitGun} from '../ped/bulletProofs';
@@ -514,9 +516,6 @@ export function pedPieceAt(feet:{x:number;y:number;z:number},heading:number,poin
 }
 export const pedProofedAgainst=(p:{proofs?:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean}},kind:DamageKind)=>
  kind==='spray'?false:!!p.proofs?.[kind];
-/** CCopPed: every cop has 100 health, and CPed::SetArmour gives SWAT 50 and the FBI and army 100. Ambient cop
- * spawning still folds that initial armour into health; explicitly assigned script armour is separate. */
-export function copHealth(model:string){const m=model.toLowerCase();return 100+(m==='swat'?50:m==='fbi'||m==='army'?100:0);}
 /** CAttractorScanner stand-in (unreversed): how far and how often a wanderer looks for attractors. */
 const ATTRACTOR_SCAN_RANGE=3,ATTRACTOR_SCAN_SECONDS=1;
 /** CTaskComplexEnterCar's CTaskComplexGoToCarDoorAndStandStill: PEDMOVE_RUN, a 0.5 target radius, slowing to a walk
@@ -1604,7 +1603,7 @@ export class WorldPedestrians {
   let stick:ReturnType<typeof modelObject>|undefined;const nightstick=o.officer?catalog.nightstick:undefined;
   if(nightstick?.asset){const asset=nightstick.asset;stick=modelObject(asset.model,asset.textures);stick.root.rotation.set(0,0,0);stick.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});stick.root.visible=false;view.hand()?.add(stick.root);}
   if(nightstick?.melee)view.installReactions(Object.fromEntries(nightstick.melee.attacks.map((clip,i)=>[`cop_bat_${i+1}`,clip])));
-  const p:Pedestrian={pedType:o.stats?.pedType,attractScan:Math.random()*ATTRACTOR_SCAN_SECONDS,attractorsTried:new Set(),copScan:0,criminalsAt:0,wanderDir:Math.floor(Math.random()*8),seed:Math.floor(Math.random()*32768),scratch:0,money:pedMoneyCount(Math.random,!!o.stats?.rich),copWeapon:'unarmed',stick,id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?copHealth(String(o.modelRef)):100,actor:{player:{...this.sim.player,tilt:undefined,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,onFire:0,onFireSpeech:0,attackMult:o.stats?.attack??1,decisionMaker:o.stats?.decisionMaker??(o.officer?1:2),statFlags:o.stats?.flags??40,headingChange:o.stats?.headingChange??7.5,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,modelRef:o.modelRef,loiter:!!o.loiter,dealer:!!o.dealer,neededUntil:this.clock+4,alpha:0,fadeOut:false,follow:false,foe:undefined,fightStage:0};
+  const p:Pedestrian={pedType:o.stats?.pedType,attractScan:Math.random()*ATTRACTOR_SCAN_SECONDS,attractorsTried:new Set(),copScan:0,criminalsAt:0,wanderDir:Math.floor(Math.random()*8),seed:Math.floor(Math.random()*32768),scratch:0,money:pedMoneyCount(Math.random,!!o.stats?.rich),copWeapon:'unarmed',stick,id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:100,armour:o.officer?copArmour(String(o.modelRef)):0,actor:{player:{...this.sim.player,tilt:undefined,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,onFire:0,onFireSpeech:0,attackMult:o.stats?.attack??1,decisionMaker:o.stats?.decisionMaker??(o.officer?1:2),statFlags:o.stats?.flags??40,headingChange:o.stats?.headingChange??7.5,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,modelRef:o.modelRef,loiter:!!o.loiter,dealer:!!o.dealer,neededUntil:this.clock+4,alpha:0,fadeOut:false,follow:false,foe:undefined,fightStage:0};
   this.people.push(p);
   // Put a newly loaded clump at its actor before it can participate in native bullet queries. Sampling here does not
   // advance its locomotion clock or consume the street ped's randomized first cycle.
@@ -1818,11 +1817,12 @@ export class WorldPedestrians {
  }
  /** A police crew member stepping out of a cop car (CCopPed type model and weapon); `lying`, one the player dragged
   * out, who lies on the jacked clip's last frame and gets up as any dragged-out driver does, an officer still. */
- async spawnOfficer(model:string,weapon:number,position:{x:number;y:number;z:number},heading:number,crew?:{unit:object;seat:number;roadblock?:boolean},accuracy=60,cullExtraFarAway=false,lying?:{key:string;clip:import('../assets/ifp').NativeAnimation}){
+ async spawnOfficer(model:string,weapon:number,position:{x:number;y:number;z:number},heading:number,crew?:{unit:object;seat:number;roadblock?:boolean},accuracy=60,cullExtraFarAway=false,lying?:{key:string;clip:import('../assets/ifp').NativeAnimation},vitals?:PedVitals){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   const [built,armed]=await Promise.all([catalog.character(model).then(async source=>({source,speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)})),catalog.armedWith(weapon,true)]);
   const node=this.nearestNode(position);if(!node||this.disposed)return false;
   const cop=this.createPed({position,heading,source:built.source,officer:true,node,weapon:armed,speeds:built.speeds,stats:built.stats,gunAccuracy:accuracy,modelRef:model});cop.crew=crew;
+  if(vitals){cop.health=vitals.health;cop.armour=vitals.armour;}
   // CCopPed's constructor sets the shooting rate with the accuracy: 30/60 city, 70/68 SWAT, 60/76 FBI, 80/84 army.
   cop.shootingRate=({60:30,68:70,76:60,84:80} as Record<number,number>)[accuracy]??30;cop.cullExtraFarAway=cullExtraFarAway;
   if(lying)this.layDragged(cop,lying,()=>{});
@@ -1859,7 +1859,7 @@ export class WorldPedestrians {
  /** A police unit's living crew on foot. */
  /** The police dropped this unit: its crew on foot lose the car's protection from the population manager. */
  releaseCrew(unit:object){for(const p of this.people)if(p.crew?.unit===unit)p.crew=undefined;}
- footCrew(unit:object){return this.people.filter(p=>p.crew?.unit===unit&&p.health>0).map(p=>({id:p.id,seat:p.crew!.seat,position:{...p.actor.player.position},down:p.down>0||p.stealth!==undefined}));}
+ footCrew(unit:object){return this.people.filter(p=>p.crew?.unit===unit&&p.health>0).map(p=>({id:p.id,seat:p.crew!.seat,health:p.health,armour:p.armour??0,position:{...p.actor.player.position},down:p.down>0||p.stealth!==undefined}));}
  /** CTaskComplexGoToCarDoorAndStandStill: run to a car door point, walking within 4 units; undefined resumes the pursuit. */
  /** An officer's go-to; with `arrive` (CTaskComplexGoToPointAndStandStill's radius) the task ends on arrival. */
  sendOfficer(id:number,point?:{x:number;z:number},walk=false,arrive?:number){const p=this.people.find(p=>p.id===id);if(p)p.goTo=point&&{...point,walk,arrive};}
