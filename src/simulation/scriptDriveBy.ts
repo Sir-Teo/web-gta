@@ -31,6 +31,7 @@ export interface ScriptDriveByWorld {
  hitPed:(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3,piece?:number,shooter?:NonNullable<Parameters<SeatedShot>[5]>['shooter'])=>boolean;
  /** CEventDamage's raw ped-source guards for CJ, including script/player group membership. */
  canDamagePlayer?:(shooter:NonNullable<Parameters<SeatedShot>[5]>['shooter'],weapon:number)=>boolean;
+ friendlyWithPlayer?:(shooter:NonNullable<Parameters<SeatedShot>[5]>['shooter'])=>boolean;
  bulletLine?:import('../weapons/skinnedPedBulletLine').NpcBulletLine;
  prepareBulletImpact?:import('../weapons/skinnedPedBulletLine').NpcBulletImpact;
  onShot?:(from:Vector3,to:Vector3,weapon:number,hit:boolean)=>void;
@@ -90,7 +91,7 @@ export function stepScriptDriveBy(d:ScriptDriveBy,car:WorldCar,info:NativeWeapon
   world.onShot?.(muzzle,end,info.type,!!shot||!!tyre);
   const finish=shot&&!tyre?world.prepareBulletImpact?.(shot,end,info.type,direction,shooter):undefined;let accepted=false;
   if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
-  else if(shot?.collider.handle===world.sim.playerCollider.handle)accepted=world.canDamagePlayer?.(shooter,info.type)!==false&&world.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z},piece:shot.pedPiece});
+  else if(shot?.collider.handle===world.sim.playerCollider.handle)accepted=world.canDamagePlayer?.(shooter,info.type)!==false&&world.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z},piece:shot.pedPiece,friendly:world.friendlyWithPlayer?.(shooter)});
   else if(shot){
    const hitCar=cars.find(c=>shot.collider.parent()?.handle===c.car.body.handle);
    if(hitCar){pushShotVehicle(hitCar,shot.normal,end,info.type);if(!hitCar.onlyDamagedByPlayer)hitCar.damage(info.damage,undefined,false,undefined,{weapon:info.type});}

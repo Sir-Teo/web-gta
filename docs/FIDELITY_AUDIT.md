@@ -14245,3 +14245,28 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   wrapper. The older claim that it reads STAT_PLAYER's 0.4 row was corrected;
   the retained 0.33 iOS profile and its unresolved PC equivalence are explicit.
   [Evidence, arithmetic and limits](research/PLAYER_DAMAGE.md#player-float-fields-and-one-hp-survival-october-26-2026).
+
+## Accepted drive-by and baton friendship against CJ (October 26, 2026)
+
+- Scripted and ambient gang physical hits, and the shared seated-CJ fallback,
+  now carry source friendship to the existing native player calculator after
+  the source/group acceptance gate. A friendly accepted hit receives the
+  selected iOS tenth/cap rule; raw vehicle creators have no ped friendship.
+- Four new emitter cases fail before repair. Eight expanded cases cover both
+  emitters and ensure rejected hits never look up friendship. The live fixture
+  changes the actual script rider's acquaintance through hate/respect/clear
+  commands, checking real foot/car/bike contacts and native float responses.
+- The same omission in police baton damage is repaired. All three native
+  BBALLBAT stages retain their damage/fall metadata and source guard. Two
+  accepted combo cases fail before repair; four expanded combo cases and all
+  45 focused checks pass afterward.
+- All seven live relationship/protection/baton scenarios pass, retaining exact
+  float responses, body/head blood, contact audio and protected-group rejection.
+  Mounted CJ body/seat regressions pass too, with no page errors. All 6,054
+  unit tests pass (51 skipped).
+- The final build and full production smoke pass, including saved-game return,
+  walking, native car entry, map/waypoint, pause/resume, Rustler takeoff and gear,
+  with no page errors or failed requests.
+- PC AccountForPedDamageStats remains a retail delegate in the inspected
+  source; complete calculator equivalence and raw source/event bookkeeping
+  remain open. [Evidence and scope](research/NPC_PLAYER_DAMAGE_ACCEPTANCE.md#accepted-drive-by-friendship-october-26-2026).
