@@ -50,3 +50,17 @@ test.each([0,1,9])('gang %s seated gunner identifies its native gang on an inter
   expect(unit.shooter.shots).toBe(1);expect(seatedShot).toHaveBeenCalledOnce();expect(seatedShot.mock.calls[0][5]?.shooter).toEqual({pedType:`GANG${gang+1}`});expect(hit).toHaveBeenCalledExactlyOnceWith(info.damage,info.type);
  }finally{sim.dispose();}
 });
+
+test.each(['script','gang'])('the %s muzzle routes native Families and player-group acceptance before wounding CJ',async emitter=>{
+ const {npcPedCanDamagePlayer}=await import('../src/ped/nativeNpcPlayerDamage');
+ for(const mode of ['Families','group']){
+  const sim=new Simulation(),body=sim.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,.5,0));sim.player.position={x:0,y:0,z:-10};sim.playerBody.setTranslation({x:0,y:.9,z:-10},true);sim.playerBody.setNextKinematicTranslation({x:0,y:.9,z:-10});sim.world.step();
+  const shooter={pedType:mode==='Families'?'GANG2':'GANG1'},canDamagePlayer=vi.fn((source:any,weapon:number)=>npcPedCanDamagePlayer(source,weapon,{sameGroup:mode==='group'})),finish=vi.fn(),prepareBulletImpact=()=>finish,bulletLine=()=>({collider:sim.playerCollider,pedPiece:9,timeOfImpact:5,normal:{x:0,y:0,z:1},featureType:RAPIER.FeatureType.Face,featureId:0}),d=newScriptDriveBy({kind:'point',x:0,y:1,z:-10},100,100,true),unit={gang:mode==='Families'?1:0,car:{car:{body}},shooter:{gunState:{time:0,rounds:info.clip,reload:0,active:false},side:'right',shots:0}};
+  try{const before=sim.player.health;for(let i=0;i<90&&!(emitter==='script'?d.shots:unit.shooter.shots);i++){
+    if(emitter==='script')stepScriptDriveBy(d,unit.car as any,info,1,1/30,{sim,cars:()=>[],targetPosition:()=>sim.player.position,hitPed:()=>false,bulletLine,canDamagePlayer,prepareBulletImpact,random:()=>.5},shooter);
+    else (GangDriveBy.prototype as any).stepShooter.call({sim,fleet:{cars:[]},gunCache:{info,reloadSeconds:1},bulletLine,canDamagePlayer,prepareBulletImpact},unit,1/30,sim.player.position);
+   }
+   expect(canDamagePlayer).toHaveBeenCalledOnce();expect(canDamagePlayer.mock.calls[0][0]).toEqual(shooter);expect(canDamagePlayer.mock.calls[0][1]).toBe(info.type);expect(sim.player.health).toBe(before);expect(sim.damageEvents).toEqual([]);expect(finish).toHaveBeenCalledExactlyOnceWith(false);
+  }finally{sim.dispose();}
+ }
+});

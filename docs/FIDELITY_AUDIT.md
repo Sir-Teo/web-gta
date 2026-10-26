@@ -14145,3 +14145,23 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   live foot records. Complete damage-source/event identity, retaliation tasks
   and matched PC damage calculation remain open.
   [Native ordering, source scope and verification](research/NPC_BULLET_IMPACTS.md#drive-by-source-identity-and-on-foot-contact-ordering-october-26-2026).
+
+## NPC ped-source protection when damaging CJ (October 26, 2026)
+
+- The player acceptance rule now resolves actual PED_TYPE_GANG2 before the
+  native grenade-and-higher weapon boundary and known KillPedOnFoot target.
+  Known player-group membership includes script riders/peds without the street
+  follow flag. Raw vehicle creators retain their separate native behavior.
+- Scripted and ambient drive-bys consult the same rule for physical CJ hits;
+  the shared seated-player bridge does so for car and exposed-bike contacts.
+  The foot adapter uses actual native type instead of a model's gang label.
+- Nine initial foot-adapter cases expose five failures before repair. The
+  build, 41 focused tests and five live checks pass, including mounted
+  physical/seated player regressions. All 5,801 unit tests pass (51 skipped),
+  together with the final build and production smoke. Nine real task shots
+  check on-foot, Greenwood and PCJ-600 contacts: Families and group protections
+  retain audio without wounds/blood; removing membership enables damage and
+  16 post-damage head particles. No page errors occur.
+- Complete native task-tree/damager identity and matched damage calculation
+  remain open; the retained foot kill-task mapping is still the host's.
+  [PC acceptance rules, source distinctions and checks](research/NPC_PLAYER_DAMAGE_ACCEPTANCE.md).

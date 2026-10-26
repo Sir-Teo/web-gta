@@ -33,6 +33,7 @@ import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARG
 import {GO_STRAIGHT_MOVE_STATE_RADIUS,SWAT_ROPE_LENGTH,SWAT_ROPE_NODES,SWAT_ROPE_SECONDS,SWAT_ROPE_SHARE_PER_SECOND,swatRopePoint,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,patrolRouteStart,type ScriptedPedOrder,slideToCoordStep,SLIDE_HEADING_TOLERANCE} from './nativeScriptedPedTasks';
 import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NATIVE_PED_TYPES,NativeAcquaintance,nativePedType,pedTypeName,pedTypeInfo,policeDontCareAboutPedType,sameNonCivilianPedType,type Acquainted} from '../ped/nativeAcquaintance';
 export {pedTypeName,type Acquainted} from '../ped/nativeAcquaintance';
+import {npcPedCanDamagePlayer} from '../ped/nativeNpcPlayerDamage';
 import {characterMovement} from './characterMovement';
 import {ANIM_ID,NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
 import {CANNON_PUSH_RANGE2,waterCannonPedSpeed} from './nativeWaterCannon';
@@ -727,9 +728,7 @@ export class WorldPedestrians {
   * short of an explosion, and none from a Grove Street Families member (PED_TYPE_GANG2) with a grenade or anything
   * above it unless his kill task is on the player. */
  private damagesPlayer(p:Pedestrian,weapon:number){
-  if(p.follow&&weapon!==WEAPON.explosion)return false;
-  if(p.gang===GANG_GROVE&&weapon>=WEAPON.grenade&&!(p.retaliate>0&&!p.foe))return false;
-  return true;
+  return npcPedCanDamagePlayer(p,weapon,{sameGroup:!!p.follow||!!this.inPlayerGroup?.(p),killTaskTargetsPlayer:p.retaliate>0&&!p.foe});
  }
  /** Whether the response to the ped's current event still runs. */
  /** Whether the ped is still carrying out its current event's response: a fight, a flee, the gun-aimed-at reaction,
@@ -2510,6 +2509,8 @@ export class WorldPedestrians {
   const sameGroup=victim.follow&&damager.follow||!!victim.party&&victim.party===damager.party||!!this.sameScriptGroup?.(victim,damager);
   return sameGroup?Math.min(scaled*FRIENDLY_DAMAGE_FACTOR,FRIENDLY_DAMAGE_CAP):scaled;
  }
+ /** The known player group, including script members without the street follow flag. */
+ inPlayerGroup?:(source:Acquainted&{follow?:boolean})=>boolean;
  /** CPedGroups::AreInSameGroup for two of a script's peds (its groups are the mission's). */
  sameScriptGroup?:(a:object,b:object)=>boolean;
  /** CPedIntelligence::IsFriendlyWith (iOS 0x10035c58c) between the player and a ped, either way round: one respects or

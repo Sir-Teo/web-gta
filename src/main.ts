@@ -251,7 +251,8 @@ import {HUD_COLOURS} from './ui/nativeHudColours';
 import {PICKUP_TYPE} from './assets/scmPickups';
 import {Arsenal} from './weapons/Arsenal';
 import {WorldTraffic} from './simulation/WorldTraffic';
-import {WorldPedestrians,pedTypeName,setCharacterAnim,isInstantHitGun,type Pedestrian} from './simulation/WorldPedestrians';
+import {WorldPedestrians,pedTypeName,setCharacterAnim,isInstantHitGun,type Pedestrian,type Acquainted} from './simulation/WorldPedestrians';
+import {npcPedCanDamagePlayer} from './ped/nativeNpcPlayerDamage';
 import {WALK_ROUND_PAD,walkRoundCar} from './ped/nativeWalkRoundCar';
 import {PlayerScriptTasks} from './simulation/playerScriptTasks';
 import {PlayerPhone} from './simulation/PlayerPhone';
@@ -676,6 +677,10 @@ async function boot() {
    const rider=asRider(target.rider);if(!rider)return;
    pedestrians?.onKill?.({id:mission?.peds.handleOf(rider)??-1,...pedTypeInfo(rider),recruit:!!target.crew,byPlayer:creator==='ped',byPlayerVehicle:creator==='vehicle'});
   };
+  const npcInPlayerGroup=(source:(Acquainted&{follow?:boolean})|undefined)=>{
+   if(!source)return false;if(source.follow)return true;
+   const m=mission,handle=m?.peds.handleOf(source);return handle!==undefined&&!!m&&[...m.groups.values()].some(g=>g.isMember(1)&&g.isMember(handle));
+  };
   /** What a script's drive-by rider fires at and through: the player, the cars, the peds, and where its target is. */
   const scriptDriveByWorld:ScriptDriveByWorld={sim,cars:()=>fleet?.cars??[],random:Math.random,
    targetPosition:target=>{
@@ -686,6 +691,7 @@ async function boot() {
     const at=target.kind==='ped'?world?.pedExists?.(target.handle)?world.pedPosition?.(target.handle):undefined:mission&&mission.vehicles.exists(target.handle)?mission.vehicles.positionOf(target.handle):undefined;
     return at&&{x:at.x,y:at.z-(target.kind==='ped'?PED_ORIGIN_HEIGHT:0),z:-at.y};
    },
+   canDamagePlayer:(source,weapon)=>npcPedCanDamagePlayer(source,weapon,{sameGroup:npcInPlayerGroup(source)}),
    hitPed:(collider,damage,weapon,direction,end,piece,shooter)=>!!pedestrians?.npcBulletHit(collider,damage,weapon,direction,end,piece,shooter),
    bulletLine:(from,direction,range,body)=>weapons.npcBulletLine(from,direction,range,body),
    prepareBulletImpact:(...args)=>weapons.prepareNpcBulletImpact(...args),
@@ -705,7 +711,7 @@ async function boot() {
      const normal=playerDirect?.normal??(head?point.clone().sub(new Vector3(head.x,head.y+OCCUPANT_HEAD_LIFT,head.z)).normalize():undefined);
      if(!normal)return undefined;
      return {t:playerHit.t,direct:!!playerDirect,victim:sim.player,hit:(damage,weapon)=>weapons.hitNpcSeatedBullet('player',{point,normal,direction,piece},weapon,()=>{
-      const accepted=first?.playerHit?first.playerHit(damage,weapon,piece):sim.damagePlayer(damage,false,{weapon,from:{x:from.x,z:from.z},piece});
+      const accepted=first?.playerHit?first.playerHit(damage,weapon,piece):scriptDriveByWorld.canDamagePlayer?.(first?.shooter,weapon)!==false&&sim.damagePlayer(damage,false,{weapon,from:{x:from.x,z:from.z},piece});
       return accepted?(sim.player.health<=0?'killed':'hit'):undefined;
      })};
     }
@@ -5597,7 +5603,7 @@ async function boot() {
           // player's group costing 2 respect (STAT_RECRUITED_GANG_MEMBERS_KILLED), and a gangster's friendly or enemy count.
           pedestrians.onKill=victim=>{if(victim.byPlayerVehicle)mission?.runtime.game.stats.increment(121,1);
            else if(!victim.byPlayer){const stats=mission?.runtime.game.stats;if(stats){if(victim.recruit){stats.decrement(68,2);stats.increment(163,1);}stats.increment(120,1);if(victim.gang!==undefined)stats.increment(victim.gang===1?240:239,1);}}if(victim.byPlayer&&sim.playerCollider.isEnabled())gangWars?.addKillToProvocation(victim.gang);if(victim.byPlayer&&pedTypeAtLeastDealer(victim.pedType))playerKilledADealer(worldZones,{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y});if(victim.byPlayer)registerKillByPlayer(victim);};
-          pedestrians.seatedShot=scriptDriveByWorld.seatedShot;
+          pedestrians.seatedShot=scriptDriveByWorld.seatedShot;pedestrians.inPlayerGroup=npcInPlayerGroup;
           carEntry.onPassengerKilled=(rider,byPlayer,creator)=>pedestrians?.onKill?.({id:(rider.keep as {id?:number}|undefined)?.id??-1,officer:false,gang:rider.gang,recruit:rider.follow,byPlayer,byPlayerVehicle:creator==='vehicle'});
           const speechSeed=(position:{x:number;z:number})=>Math.abs(Math.floor(position.x*13+position.z*7));
           pedestrians.playerVehicleVelocity=()=>{const b=worldCar?.occupied?worldCar.car.body:fleet?.occupiedBike?.body??fleet?.occupiedBoat?.body??fleet?.occupiedPlane?.body;if(!b)return undefined;const v=b.linvel();return {x:v.x,y:v.y,z:v.z};};
@@ -5791,7 +5797,7 @@ async function boot() {
             void import('./simulation/GangDriveBy').then(({GangDriveBy})=>{
              if(!alive||!fleet||driveby)return;driveby=new GangDriveBy(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
              driveby.seatedShot=scriptDriveByWorld.seatedShot;
-             driveby.bulletLine=scriptDriveByWorld.bulletLine;driveby.hitPed=scriptDriveByWorld.hitPed;
+             driveby.bulletLine=scriptDriveByWorld.bulletLine;driveby.hitPed=scriptDriveByWorld.hitPed;driveby.canDamagePlayer=scriptDriveByWorld.canDamagePlayer;
              driveby.prepareBulletImpact=scriptDriveByWorld.prepareBulletImpact;
              driveby.onCrewKilled=(_car,_seat,gang,creator)=>pedestrians?.onKill?.({id:-1,officer:false,pedType:`GANG${gang+1}`,gang,byPlayer:creator==='ped',byPlayerVehicle:creator==='vehicle'});
              driveby.onCrewDiesOut=(car,model,corpse)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading,car.gang,false,car.wrecked,corpse))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading(),car.gang,false,car.wrecked,corpse);}};

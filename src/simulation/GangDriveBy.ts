@@ -54,6 +54,7 @@ export class GangDriveBy {
   seatedShot?:import('../vehicle/nativeDieInCar').SeatedShot;
   bulletLine?:import('../weapons/skinnedPedBulletLine').NpcBulletLine;
   hitPed?:import('./scriptDriveBy').ScriptDriveByWorld['hitPed'];
+  canDamagePlayer?:import('./scriptDriveBy').ScriptDriveByWorld['canDamagePlayer'];
   prepareBulletImpact?:import('../weapons/skinnedPedBulletLine').NpcBulletImpact;
   canSpawn:(point:{x:number;y:number;z:number},radius:number)=>boolean=()=>true;
   /** Rival turf with INITIAL strength, shared with the street population. */
@@ -240,7 +241,7 @@ export class GangDriveBy {
     const finish=shot&&!tyre&&!seated?this.prepareBulletImpact?.(shot,end,info.type,direction,shooter):undefined;let accepted=false;
     if(seated)seated.hit(info.damage,info.type);
     else if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
-    else if(shot?.collider.handle===this.sim.playerCollider.handle)accepted=this.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z},piece:shot.pedPiece});
+    else if(shot?.collider.handle===this.sim.playerCollider.handle)accepted=this.canDamagePlayer?.(shooter,info.type)!==false&&this.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z},piece:shot.pedPiece});
     else if(shot&&targetBody&&shot.collider.parent()?.handle===targetBody.handle){pushShotVehicle(playerCar!,shot.normal,end,info.type);playerCar!.damage(info.damage,undefined,false,undefined,{weapon:info.type,by:{ped:s}});}
     else if(shot)accepted=this.hitPed?.(shot.collider.handle,info.damage,info.type,{x:direction.x,z:direction.z},end,shot.pedPiece,shooter)??false;
     finish?.(accepted);
