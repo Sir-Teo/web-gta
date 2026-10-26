@@ -7271,7 +7271,10 @@ async function boot() {
                 // the raw m_fHealth += value, is a retail stub; the port keeps health within the maximum, as the HUD
                 // bar does, and the rest goes to fat through STAT_CALORIES.
                 {const game=mission.runtime.game;game.stats.onUpdateMessage=displayStatUpdate;
+                 progression.bindTrainingStats(game.stats);
                  sim.playerLungCapacity=()=>nativeLungCapacity(game.stats.get(225),game.stats.get(22));
+                 // MAIN initializes once: restore its saved stat capacity before initializing player breath.
+                 sim.resetPlayerBreath();
                  // CPlayerInfo::m_nMoney is the one purse the HUD shows and the score commands move.
                  game.bindMoney({get:()=>sim.money,set:v=>{sim.money=v;}});
                  if(shoppingText)game.shopping.load(shoppingText);registerStreamedScripts();game.stats.player={health:()=>sim.player.health,maxHealth:()=>game.playerInfo.maxHealth,addHealth:addPlayerHealth,ateEnough:()=>{hunger.hoursDidntEat=0;}};

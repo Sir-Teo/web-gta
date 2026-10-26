@@ -51,3 +51,11 @@ Dry land and idle treading pause the counters. Controlled ordinary-frame
 awards reach current breath capacity and the stat-update HUD without
 refilling breath; foot-running training is suppressed while swimming.
 [Executable captures, live controls and remaining physiology limits](SWIMMING_STAT_TRAINING.md).
+
+## Saved training (October 26, 2026)
+
+Earned stamina and lung capacity now survive the browser's ordinary save and
+reload path. The restored stats initialize breath and HUD capacity, and old
+saves retain native initial defaults. Training counters start fresh after
+reload, following the native save ownership.
+[Format compatibility, validation and real reload check](TRAINING_STAT_PERSISTENCE.md).

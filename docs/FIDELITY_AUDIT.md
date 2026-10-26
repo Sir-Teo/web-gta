@@ -14740,3 +14740,34 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Normal production smoke passes saved-game return, movement, car entry,
   map/waypoint, pause/resume, takeoff and landing gear without page errors,
   failed requests or a development inspection hook.
+
+## Saved stamina and lung-capacity gains (October 26, 2026)
+
+- Earned stamina and lung capacity now survive ordinary browser saves and
+  reloads. Both bind to the actual script stat store, so natural awards,
+  SET/INCREMENT_STAT, breath capacity and the save use the same values.
+  The one-time world/script initialization resets breath to restored capacity;
+  later gains retain current breath.
+- CStats::Save/Load (PC 0x5D3B40/0x5D3BF0) serialize float stamina and integer
+  lungs in their native stat arrays; swimming training counters are separate
+  statics absent from that save list. This browser-save subset retains the
+  values and starts fresh counters after reload, without claiming full native
+  save or mission-runtime coverage.
+- The optional version-1 fields accept finite float32 stamina and signed-int32
+  lungs, including valid negative/above-1,000 script values. Invalid fields
+  retain independent defaults; older saves and fresh New Game keep native
+  initial values. Saving before script binding retains loaded training.
+  Existing save bounds, revision conflicts, failures and unchanged-write
+  suppression retain their checks.
+- Thirteen new tests cover these paths; ten expose the original loss. All 199
+  focused checks and 7,267 unit tests pass (51 skipped). The live browser uses
+  actual stat increments and ordinary pagehide/reload, restores stamina 150
+  and lungs 50, starts with breath 1,300, updates the HUD maximum and hides its
+  full bar on land. The ordinary swimming-training regression passes with
+  the new binding. There are no page errors.
+  [Save ownership, compatibility and real reload evidence](research/TRAINING_STAT_PERSISTENCE.md).
+- Final TypeScript validation and the production build pass.
+- Normal production smoke returns from an older version-1 save without the
+  new fields and passes movement, car entry, map/waypoint, pause/resume,
+  takeoff and landing gear with no page errors, failed requests or
+  development inspection hook.

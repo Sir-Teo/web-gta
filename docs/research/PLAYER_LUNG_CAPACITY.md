@@ -82,5 +82,6 @@ failed requests or a development inspection hook.
 This change establishes the represented selected-executable modifier and
 its host integration. Natural swimming stat training is integrated in the
 [follow-up](SWIMMING_STAT_TRAINING.md). Matched original-PC captures,
-complete stat persistence, native animation blending and complete
+complete stat persistence beyond the
+[saved stamina/lung subset](TRAINING_STAT_PERSISTENCE.md), native animation blending and complete
 swim/drowning event behavior remain separate work.

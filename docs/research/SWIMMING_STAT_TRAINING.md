@@ -85,4 +85,6 @@ failed requests or a development inspection hook.
 This verifies controlled game wiring and the represented native counter
 routine. It does not establish uninterrupted multi-minute original-PC swim
 trials, animation-manager readiness/blend parity, the delegated physiology
-routine, complete stat persistence or full swim-task equivalence.
+routine or full swim-task equivalence. The following
+[persistence change](TRAINING_STAT_PERSISTENCE.md) saves earned stamina/lung
+values; complete native stat/save coverage remains separate work.
