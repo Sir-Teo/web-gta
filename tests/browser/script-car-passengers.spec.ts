@@ -34,7 +34,7 @@ test('scripted rear passengers render, follow the car and receive seat-specific 
   {seat:3,local:result.back},
  ]);
  expect(result.hits).toEqual([0,1,2,3].map(seat=>({seat,hit:true,ownExcluded:true})));
- expect(result.proof).toBe(true);expect(result.damage).toBe('hit');expect(result.after).toBe(result.before-25);
+ expect(result.proof).toBe(true);expect(result.damage).toBe('hit');expect(result.after).toBe(result.before-25*1.1);
  await expect.poll(()=>page.evaluate(({car,riders,heads})=>{
   const g=(window as any).__game,v=g.missionForProfiling().vehicles.entity(car);
   return riders.every((_,i)=>{const p=g.occupants().headOf(`script:${v.car.body.handle}:${i===0?'driver':i-1}`);return p&&Math.abs(p.x-heads[i].x-3)<.01;});

@@ -227,7 +227,9 @@ export class WeaponSystem {
   return targets;
  }
  /** A seated ped hit through the window: the host applies CPed damage and CTaskComplexDieInCar. */
- onSeatedShot?:(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number,piece?:number,creator?:ShotCreator)=>'hit'|'killed'|undefined;
+ /** damage retains the legacy head-death amount for ambient crews; damageFactor is the weapon amount before
+  * forced death, so a retained CPed can spend armour and apply weakness before its death calculation. */
+ onSeatedShot?:(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number,piece?:number,creator?:ShotCreator,damageFactor?:number)=>'hit'|'killed'|undefined;
  /** Enemy mounted guns share the NPC world/tyre/occupant query, including CJ with his physical collider off. */
  npcSeatedShot?:SeatedShot;
  /** DoBulletImpact and CBulletInfo report contact sound only for a normal facing against the normalized shot. */
@@ -245,7 +247,7 @@ export class WeaponSystem {
   return result;
  }
  private damageSeated(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number,sniper=false,piece=9,creator:ShotCreator='ped'){
-  const result=this.onSeatedShot?.(target,WeaponSystem.occupantDamage(target,damage,weapon,piece),weapon,piece,creator);
+  const result=this.onSeatedShot?.(target,WeaponSystem.occupantDamage(target,damage,weapon,piece),weapon,piece,creator,damage);
   if(result){this.hits++;const cop=target.kind==='police'||target.pedType?.toUpperCase()==='COP',victim=target.crimeVictim??`seat:${this.seatKey(target)}`,dontCare=policeDontCareAboutPedType(target.pedType);
    // GenerateDamageEvent reports DAMAGED_PED, DoBulletImpact adds DAMAGE_CAR (CBulletInfo has a cop variant),
    // and CEventDamage queues its weapon/type-specific criminal event. The immediate calls have no cop variant otherwise.

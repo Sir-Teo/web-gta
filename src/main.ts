@@ -718,7 +718,8 @@ async function boot() {
      const health=target.kind==='script'?(target.rider as ScriptRider).health:(target.rider as {keep?:{health?:number}}).keep?.health??100;
      const sameGroup=!!first?.shooter&&(!!first.shooter.follow&&!!target.crew||!!pedestrians?.sameScriptGroup?.(first.shooter,target.rider as object));
      if(sameGroup&&health>0&&weapon!==51)return undefined;
-     return target.kind==='passenger'?carEntry.passengerShot(target.car as ScriptCar,target.seat,damage,false,piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon),{weapon,piece}):scriptRiderShot(target.rider as ScriptRider,WeaponSystem.occupantDamage(target,damage,weapon,piece),weapon,false,()=>scriptRiderKilled(target));
+     const forceDeath=piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon);
+     return target.kind==='passenger'?carEntry.passengerShot(target.car as ScriptCar,target.seat,damage,false,forceDeath,{weapon,piece}):scriptRiderShot(target.rider as ScriptRider,damage,weapon,false,()=>scriptRiderKilled(target),{forceDeath});
     })};
    },
    onShot:(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');}};
@@ -5740,7 +5741,12 @@ async function boot() {
              }
              return out;};
             // Only a script's rider may sit in a boat or an aircraft; every other seated target is in a car.
-            weapons.onSeatedShot=(target,damage,weapon,piece=9,creator='ped')=>{if(target.kind==='script')return scriptRiderShot(target.rider as ScriptRider,damage,weapon,creator!=='remote',()=>scriptRiderKilled(target,creator));const car=target.car as ScriptCar;return target.kind==='passenger'?carEntry.passengerShot(car,target.seat,damage,true,piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon),{weapon,piece,creator}):target.kind==='police'?police?.crewShot(car,target.seat,damage):target.kind==='driveby'?driveby?.crewShot(car,target.seat,damage):traffic?.driverShot(car,damage);};
+            weapons.onSeatedShot=(target,damage,weapon,piece=9,creator='ped',damageFactor)=>{
+             const forceDeath=piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon),raw=damageFactor??damage;
+             if(target.kind==='script')return scriptRiderShot(target.rider as ScriptRider,raw,weapon,creator!=='remote',()=>scriptRiderKilled(target,creator),{forceDeath:damageFactor!==undefined&&forceDeath,friendlyFire:creator==='ped'&&target.crew});
+             const car=target.car as ScriptCar;
+             return target.kind==='passenger'?carEntry.passengerShot(car,target.seat,raw,true,forceDeath,{weapon,piece,creator}):target.kind==='police'?police?.crewShot(car,target.seat,damage):target.kind==='driveby'?driveby?.crewShot(car,target.seat,damage):traffic?.driverShot(car,damage);
+            };
             if(driveby)driveby.onCrewDiesOut=(car,model)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading,car.gang,false,car.wrecked))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading(),car.gang,false,car.wrecked);}};
             if(police)police.onCrewDiesOut=(car,model)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading,undefined,false,car.wrecked))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading(),undefined,false,car.wrecked);}};
             // CTaskComplexLeaveCarAndFlee (a tyre shot out, R_Weak.ped): CTaskComplexLeaveCar without waiting for the car to
@@ -5995,13 +6001,15 @@ async function boot() {
                  spawnScriptRandomPedInCar:async(car,seat)=>{
                   const target=car as ScriptCar|undefined;
                   if(!target||target.disposed)return undefined;
-                  const rider:ScriptRider={rider:true,model:occupants.driverModel(target),car:target,seat,
+                  const model=occupants.driverModel(target),defendMult=(await pedestrians?.scriptPedModelStats(model))?.defend??1;
+                  if(target.disposed)return undefined;
+                  const rider:ScriptRider={rider:true,model,defendMult,car:target,seat,
                    health:100,heading:target.heading(),accuracy:60,invulnerable:false,gone:false};
                   scriptRiders.add(rider);
                   return rider;
                  },
                  spawnScriptPedOnCar:async(pedType,id,car,offset,turret)=>{
-                  const model=await pedestrians?.scriptPedModel(id)??id;
+                  const model=await pedestrians?.scriptPedModel(id)??id,defendMult=(await pedestrians?.scriptPedModelStats(model))?.defend??1;
                   const target=car as ScriptCar|undefined;
                   if(!target||target.disposed)return undefined;
                   // CPed::PositionAttachedPed (unreversed in gta-reversed; iOS 0x10032c59c): the ped stands at the offset in
@@ -6010,16 +6018,16 @@ async function boot() {
                   // CTaskSimpleStandStill's idle_stance, the stand-still task every ped is made with (AttachPedToEntity
                   // 0x10032c398 gives no task or clip).
                   const headingChange=await pedestrians?.scriptPedModelHeadingRate(model)??7.5;
-                  const rider:ScriptRider={rider:true,model,car:target,seat:0,offset:{...offset},headingChange,health:100,pedType:NATIVE_PED_TYPES[pedType],
+                  const rider:ScriptRider={rider:true,model,defendMult,car:target,seat:0,offset:{...offset},headingChange,health:100,pedType:NATIVE_PED_TYPES[pedType],
                    heading:target.heading(),accuracy:60,invulnerable:false,gone:false,...(turret!==undefined?{stand:true,facing:turret*Math.PI/2}:{})};
                   scriptRiders.add(rider);
                   return rider;
                  },
                  spawnScriptPedInCar:async(pedType,id,car,seat)=>{
-                  const model=await pedestrians?.scriptPedModel(id)??id;
+                  const model=await pedestrians?.scriptPedModel(id)??id,defendMult=(await pedestrians?.scriptPedModelStats(model))?.defend??1;
                   const target=car as ScriptCar|undefined;
                   if(!target||target.disposed)return undefined;
-                  const rider:ScriptRider={rider:true,model,car:target,seat,health:100,heading:target.heading(),
+                  const rider:ScriptRider={rider:true,model,defendMult,car:target,seat,health:100,heading:target.heading(),
                    accuracy:60,invulnerable:false,gone:false,pedType:NATIVE_PED_TYPES[pedType]};
                   scriptRiders.add(rider);
                   return rider;
@@ -6229,12 +6237,13 @@ async function boot() {
                  // CLEAR_ALL_CHAR_RELATIONSHIPS empties one acquaintance, which is the list it names.
                  clearScriptPedRelationships:(ped,relationship)=>{const p=onFoot(ped)??asRider(ped);if(p&&pedestrians)pedestrians.acquaintanceOf(p).clear(relationship);},
                  // What CPed keeps whichever body the browser builds it as: read off the old as it gets in or out of a car.
-                 scriptPedCarried:ped=>{const p=onFoot(ped)??asRider(ped);return p&&{pedType:pedTypeName(p),headingChange:p.headingChange,acquaintance:p.acquaintance,decisionMaker:p.decisionMaker,noCriticalHits:p.noCriticalHits,neverTargeted:p.neverTargeted,canBeShotInVehicle:asRider(ped)?.canBeShotInVehicle??onFoot(ped)?.flags?.canBeShotInVehicle,renderScorched:p.renderScorched,ranges:p.ranges&&{...p.ranges}};},
+                 scriptPedCarried:ped=>{const p=onFoot(ped)??asRider(ped);return p&&{pedType:pedTypeName(p),defendMult:p.defendMult,headingChange:p.headingChange,acquaintance:p.acquaintance,decisionMaker:p.decisionMaker,noCriticalHits:p.noCriticalHits,neverTargeted:p.neverTargeted,canBeShotInVehicle:asRider(ped)?.canBeShotInVehicle??onFoot(ped)?.flags?.canBeShotInVehicle,renderScorched:p.renderScorched,ranges:p.ranges&&{...p.ranges}};},
                  carryScriptPed:(ped,carried)=>{
-                  const kept=carried as {headingChange?:number;pedType?:string;acquaintance?:NativeAcquaintance;decisionMaker?:number;noCriticalHits?:boolean;neverTargeted?:boolean;canBeShotInVehicle?:boolean;renderScorched?:boolean;ranges?:ScriptRider['ranges']};
-                  const r=asRider(ped);if(r){r.headingChange=kept.headingChange??r.headingChange;r.pedType=kept.pedType??r.pedType;r.acquaintance=kept.acquaintance;r.decisionMaker=kept.decisionMaker;r.noCriticalHits=kept.noCriticalHits;r.neverTargeted=kept.neverTargeted;r.canBeShotInVehicle=kept.canBeShotInVehicle;r.renderScorched=kept.renderScorched;r.ranges=kept.ranges;return;}
+                  const kept=carried as {defendMult?:number;headingChange?:number;pedType?:string;acquaintance?:NativeAcquaintance;decisionMaker?:number;noCriticalHits?:boolean;neverTargeted?:boolean;canBeShotInVehicle?:boolean;renderScorched?:boolean;ranges?:ScriptRider['ranges']};
+                  const r=asRider(ped);if(r){r.defendMult=kept.defendMult??r.defendMult;r.headingChange=kept.headingChange??r.headingChange;r.pedType=kept.pedType??r.pedType;r.acquaintance=kept.acquaintance;r.decisionMaker=kept.decisionMaker;r.noCriticalHits=kept.noCriticalHits;r.neverTargeted=kept.neverTargeted;r.canBeShotInVehicle=kept.canBeShotInVehicle;r.renderScorched=kept.renderScorched;r.ranges=kept.ranges;return;}
                   // A body on foot keeps the ped type its model gives it, as one the script made on foot has.
                   const p=onFoot(ped);if(!p)return;
+                  if(kept.defendMult!==undefined)p.defendMult=kept.defendMult;
                   if(kept.headingChange!==undefined)p.headingChange=kept.headingChange;
                   if(kept.acquaintance)p.acquaintance=kept.acquaintance;
                   if(kept.decisionMaker!==undefined)p.decisionMaker=kept.decisionMaker;

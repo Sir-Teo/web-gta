@@ -62,6 +62,17 @@ test('ordinary player damage keeps friendly-fire scaling and weakness, while a c
  expect(entry.passengerShot(car,2,1000,true)).toBe('hit');expect((rider.keep as any).health).toBeCloseTo(57.5,5);
  expect(entry.passengerShot(car,2,1,true,true)).toBe('killed');expect((rider.keep as any).health).toBe(0);
 });
+test.each(['ped','vehicle','remote'] as const)('retained recruit armour spends the original %s hit factor before a forced head death',creator=>{
+ const {entry,car,rider,killed}=fixture();rider.keep={...rider.keep,health:5000,armour:100,defendMult:2} as any;
+ expect(entry.passengerShot(car,2,25,true,false,{weapon:22,piece:3,creator})).toBe('hit');
+ expect((rider.keep as any).health).toBe(5000);expect((rider.keep as any).armour).toBeCloseTo(creator==='ped'?95:50,5);
+ expect(entry.passengerShot(car,2,10,true,true,{weapon:22,piece:9,creator})).toBe('killed');
+ expect((rider.keep as any).health).toBe(0);expect((rider.keep as any).armour).toBeCloseTo(creator==='ped'?93:30,5);expect(killed).toHaveBeenCalledOnce();
+});
+test('a recruit proof rejects a hit before retained armour is consumed',()=>{
+ const {entry,car,rider}=fixture();rider.keep={...rider.keep,armour:100,proofs:{bullet:true}} as any;
+ expect(entry.passengerShot(car,2,25,false)).toBeUndefined();expect((rider.keep as any).armour).toBe(100);
+});
 
 test('a dead rider still owns his seat when the leader gets back into the same car',()=>{
  const {entry,car}=fixture();entry.passengerShot(car,2,1000,false);entry.phase=undefined;entry.car=undefined;entry.stepPassengers(0);

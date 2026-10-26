@@ -26,7 +26,7 @@ test('player pistol and flying sniper seated contacts keep native damage, blood 
  }
  writeFileSync('artifacts/player-seated-audio.json',JSON.stringify({results,errors},null,2));
  for(const r of results){
-  expect(r.fired).toBe(true);expect(r.carDamage).toBe(0);expect(r.after).toBe(r.proof?10000:10000-(r.weapon===34?125:25));
+  expect(r.fired).toBe(true);expect(r.carDamage).toBe(0);expect(r.after).toBe(r.proof?10000:10000-(r.weapon===34?125:25)*1.1);
   expect(r.events.map((e:any)=>e.kind)).toEqual(r.weapon===34?['damage','blood','audio']:r.proof?['audio','damage']:['audio','damage','blood']);
   const audio=r.events.find((e:any)=>e.kind==='audio');expect(audio.angle).toBeCloseTo(90,3);expect(audio.health).toBe(r.weapon===34?r.after:10000);
   const blood=r.events.find((e:any)=>e.kind==='blood');if(blood){expect(blood.count).toBe(r.weapon===34||r.piece!==9?8:16);expect(blood.health).toBe(r.after);}

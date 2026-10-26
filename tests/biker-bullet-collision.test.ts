@@ -32,13 +32,13 @@ test.each([3,5,7,9])('an exposed rider piece %s is hit without a vehicle-body co
  const f=fixture(piece);try{
   expect(f.sim.world.castRay(new RAPIER.Ray(f.source,f.direction),10,true)).toBeNull();
   const base=f.weapons.inventory.info()!.damage;expect(f.fire()).toBe(true);
-  expect(f.seated).toHaveBeenCalledExactlyOnceWith(f.target,piece===9?1000:base,22,piece,'ped');expect(f.damage).not.toHaveBeenCalled();
+  expect(f.seated).toHaveBeenCalledExactlyOnceWith(f.target,piece===9?1000:base,22,piece,'ped',base);expect(f.damage).not.toHaveBeenCalled();
  }finally{f.dispose();}
 });
 test('a flying sniper round hits the direct rider once and preserves ordinary body damage',()=>{
  const f=fixture(3,34);try{
   f.weapons.firstPerson='sniper';expect(f.fire()).toBe(true);f.weapons.tick(1/60);f.weapons.tick(1/60);
-  expect(f.seated).toHaveBeenCalledExactlyOnceWith(f.target,125,34,3,'ped');expect(f.damage).not.toHaveBeenCalled();
+  expect(f.seated).toHaveBeenCalledExactlyOnceWith(f.target,125,34,3,'ped',125);expect(f.damage).not.toHaveBeenCalled();
  }finally{f.dispose();}
 });
 test.each(['wall','proof','own','ordinary-car'])('direct rider collision respects %s exclusion',kind=>{

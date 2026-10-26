@@ -13932,6 +13932,20 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   receives both absorbed armour and actual lost health.
 - Pending creation, ordinary/NPC damage and rejection units accompany a live
   script trial covering ten damage outcomes, a mounted-gun impact and both
-  vehicle transitions. Seated spending, ambient cop starting armour, ongoing
-  fire and matched retail PC traces remain open.
+  vehicle transitions. The seated extension below adds spending while riding;
+  ambient cop starting armour, ongoing fire and matched retail PC traces remain open.
   [Reference, verification and limits](research/SCRIPT_PED_ARMOUR.md).
+
+## Seated script armour and model weakness (October 26, 2026)
+
+- Mission riders and recruits spend stat-scaled armour before forced head death,
+  retaining the original bullet factor for absorption. Mission riders load the
+  model defence weakness used on foot and preserve it through vehicle rebuilds.
+  MALE01 now receives its native 1.1 weakness while seated.
+- Fifteen live car/bike/source cases verify full absorption, overflow, friendly
+  scaling, forced death above 1,000 health, resulting blood and unchanged vehicle
+  health during each measured impact. Transition, ordinary death threshold,
+  sniper/audio, group/proof and once-only kill/creator regressions pass. The
+  full suite has 5,652 passing tests and 51 skipped. Ambient crew armour, ongoing
+  fire and complete PC damage/task parity remain open.
+  [Reference and scope](research/SCRIPT_PED_ARMOUR.md#seated-spending-and-retained-weakness).

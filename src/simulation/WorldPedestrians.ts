@@ -1885,9 +1885,12 @@ export class WorldPedestrians {
  }
  /** The pedstats heading rate for an attached scripted model, loaded with the same character catalog. */
  async scriptPedModelHeadingRate(modelRef:number|string){
-  const c=this.catalog??await this.catalogLoad;if(!c)return 7.5;
-  const stats=typeof modelRef==='number'?c.modelStats[modelRef%Math.max(1,c.modelStats.length)]:await c.characterStats(modelRef);
-  return stats?.headingChange??7.5;
+  return (await this.scriptPedModelStats(modelRef))?.headingChange??7.5;
+ }
+ /** The same pedstats used on foot, retained while a script's ped has no walking body. */
+ async scriptPedModelStats(modelRef:number|string){
+  const c=this.catalog??await this.catalogLoad;if(!c)return undefined;
+  return typeof modelRef==='number'?c.modelStats[modelRef%Math.max(1,c.modelStats.length)]:c.characterStats(modelRef);
  }
  /** CPopulation::AddPed (0x612710) through a script's CREATE_CHAR: the model loaded, the ped stood where the
   * script says and flagged PED_MISSION, so the population manager leaves it alone until the script lets go.

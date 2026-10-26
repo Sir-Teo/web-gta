@@ -1,7 +1,7 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import {physicalCanBeDamaged} from '../combat/nativePhysicalProofs';
 import {bulletProofVestStops,type BulletDamageProtection} from '../ped/bulletProofs';
-import {healthAfter} from '../ped/damage';
+import {healthAfter,spendPedArmour} from '../ped/damage';
 import type {ShotCreator} from '../weapons/WeaponSystem';
 import {nativeCarSeatPose} from '../vehicle/nativeSeatPosition';
 import {NativeDrivingAnims} from './nativeDrivingAnims';
@@ -190,18 +190,17 @@ export class CarEntry {
   /** CheckForShootingVehicleOccupant transfers the hit to the recruit's retained pedestrian health. */
   passengerShot(car:WorldCar,seat:number,damage:number,byPlayer=true,headshot=false,hit?:{weapon:number;piece:number;creator?:ShotCreator}):'hit'|'killed'|undefined{
    const target=this.passengerTargets().find(t=>t.car===car&&t.seat===seat);if(!target)return undefined;
-   const rider=target.rider,keep=rider.keep as ({health?:number;defendMult?:number}&BulletDamageProtection)|undefined,weapon=hit?.weapon??22,piece=hit?.piece??9;
+   const rider=target.rider,keep=rider.keep as ({health?:number;armour?:number;defendMult?:number}&BulletDamageProtection)|undefined,weapon=hit?.weapon??22,piece=hit?.piece??9;
    const creator=hit?.creator,playerPed=creator?creator==='ped':byPlayer,playerSource=creator?creator!=='remote':byPlayer;
    // AffectsPed precedes damage and forced head death. The physical proofs, only-player flag and vest remain
    // properties of the same recruit throughout boarding, the ride and the pedestrian rebuilt on exit.
    if(!physicalCanBeDamaged(keep?.proofs,weapon)||!playerSource&&keep?.onlyDamagedByPlayer||bulletProofVestStops(keep??{},weapon,piece))return undefined;
-   // AccountForPedDamageStats: retain the on-foot weakness and the player's friendly-fire reduction. A forced
-   // instant-hit head death bypasses both, as ComputeWillForceDeath does for the same pedestrian on foot.
+   // AccountForPedDamageStats precedes armour, then ComputeWillKillPed applies any forced head death.
    // AccountForPedDamageStats checks the raw creator's ped type for group scaling. A vehicle's CJ driver can
    // satisfy AffectsPed's only-player test without making the vehicle itself a player-ped damage calculator.
-   const scaled=damage*(keep?.defendMult??1),applied=playerPed&&rider.follow?Math.min(scaled*Math.fround(.1),12.5):scaled;
-   const health=headshot?0:healthAfter(keep?.health??100,applied);
-   rider.keep={...(rider.keep as object|undefined),health};
+   const scaled=damage*(keep?.defendMult??1),applied=playerPed&&rider.follow&&weapon!==37&&weapon!==51?Math.min(scaled*Math.fround(.1),12.5):scaled;
+   const response=spendPedArmour(applied,keep?.armour,weapon),health=headshot?0:healthAfter(keep?.health??100,response.damageHealth);
+   rider.keep={...(rider.keep as object|undefined),health,armour:response.armour};
    if(health>0)return 'hit';
    rider.diedInSeat=true;rider.driveBy=undefined;rider.groupDriveBy=undefined;
    if(creator)this.onPassengerKilled?.(rider,playerPed,creator);else this.onPassengerKilled?.(rider,playerPed);
