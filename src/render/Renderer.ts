@@ -60,6 +60,8 @@ export class GameRenderer {
   /** MODE_FIXED after CCamera::TakeControl: the camera sits at a native-script position and looks at the target. */
   /** `roll`: radians about the view, + leaning the top of the view right (CCam::Process_AttachedCam's tilt). */
   fixedCamera?:{position:THREE.Vector3;target:()=>THREE.Vector3;roll?:number;
+    /** Native mode applied with this transform, distinct from a pending script camera request. */
+    nativeMode?:number;
     /** CAMERA_SET_LERP_FOV's field of view while it runs (or persists); 70 otherwise. */
     fov?:number;
     /** The view's up (CCam::Up), for a camera that sets its own: the cutscene's fly-by. */

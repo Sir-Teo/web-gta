@@ -346,6 +346,7 @@ import {CREDITS_IOS_TEXT} from './assets/creditsTable';
 import { NativeGameLogic, STAT_DAYS_PASSED_IN_GAME, GAMELOGIC_STATE_PLAYING, GAMELOGIC_STATE_WASTED, GAMELOGIC_STATE_BUSTED, SKIP_IN_PROGRESS, type GameLogicWorld, type SkipWorld } from './simulation/nativeGameLogic';
 import { LEVEL_COUNTRYSIDE, NativeRestart } from './simulation/nativeRestart';
 import { ScmCameraFade } from './engine/ScmCameraFade';
+import {MODE_FIXED} from './engine/ScmCamera';
 import { NativeBirds } from './world/nativeBirds';
 import { NativeBirdsMesh } from './render/NativeBirds';
 import { MARKER3D, Native3dMarkers, type Marker3dContext } from './world/native3dMarkers';
@@ -4141,6 +4142,9 @@ async function boot() {
           // The touch settings' Auto climb (the port's MOB_ATC, on by default): its check is the pad's left stick pushed
           // forward past half (LeftStickY under -64), the touch stick or a played pad's.
           autoClimb:touchScreen&&touchSettings.autoClimb&&!controlsOff&&!law.arrested&&(input.stick?.y??0)>64/128,exitVehicle:input.down('KeyF')&&!controlsOff&&!law.arrested&&!padSwitchedOff('enterCar'),parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming&&(render.aiming||weapons.inventory.weapon.kind==='melee'&&!sim.player.crouched)?render.yaw+Math.PI:hipGun!==undefined?turnToward(sim.player.heading,render.yaw+Math.PI,step):undefined };
+        // The renderer also uses fixed transforms for attached and fly-by cameras. SetRealMoveAnim's
+        // 0.7 sprint override belongs only to the active native MODE_FIXED, including a stunt camera.
+        controls.cameraMode=render.fixedCamera?.nativeMode;
         // CTaskSimpleSwim player states: Space surfaces, attack dives, sprint selects the crawl while there is energy for
         // it (ControlButtonSprint's HandleSprintEnergy fails once spent, as the on-foot sprint does).
         if(onFoot&&sim.player.health>0&&!law.arrested&&!carEntry.active){
@@ -4644,7 +4648,7 @@ async function boot() {
     sim.playerHeld=!!cutscenes&&cutscenes.state!=='none'||cutsceneHoldUntil>0;
     if(mission&&!flyBy){
      const scripted=mission.scriptCamera();
-     if(scripted){scriptFixedCamera=render.fixedCamera={position:new Vector3(scripted.position.x,scripted.position.y,scripted.position.z),
+     if(scripted){scriptFixedCamera=render.fixedCamera={nativeMode:mission.runtime.game.camera.modeToGoTo,position:new Vector3(scripted.position.x,scripted.position.y,scripted.position.z),
       target:()=>new Vector3(scripted.target.x,scripted.target.y,scripted.target.z),roll:'roll' in scripted?scripted.roll:undefined,fov:'fov' in scripted?scripted.fov:undefined};}
      else if(scriptFixedCamera&&render.fixedCamera===scriptFixedCamera){render.fixedCamera=undefined;scriptFixedCamera=undefined;}
     }
@@ -5875,7 +5879,7 @@ async function boot() {
               if(Array.isArray(data.stuntJumps)){
                 stuntJumps=new StuntJumps(data.stuntJumps,{
                   // CTimer::SetTimeScale and TheCamera.TakeControl(vehicle, MODE_FIXED, JUMPCUT).
-                  onStart:jump=>{stuntCamera=render.fixedCamera={position:new Vector3(jump.camera[0],jump.camera[2],-jump.camera[1]),target:()=>{const t=([...(fleet?.cars??[])].find(c=>c.occupied)?.car.body??(worldCar?.occupied?worldCar.car.body:undefined)??fleet?.occupiedBike?.body)?.translation()??sim.player.position;return new Vector3(t.x,t.y,t.z);}};},
+                  onStart:jump=>{stuntCamera=render.fixedCamera={nativeMode:MODE_FIXED,position:new Vector3(jump.camera[0],jump.camera[2],-jump.camera[1]),target:()=>{const t=([...(fleet?.cars??[])].find(c=>c.occupied)?.car.body??(worldCar?.occupied?worldCar.car.body:undefined)??fleet?.occupiedBike?.body)?.translation()??sim.player.position;return new Vector3(t.x,t.y,t.z);}};},
                   onFound:()=>{mission?.runtime.game.stats.increment(144,1);},onDone:()=>{mission?.runtime.game.stats.increment(145,1);},
                   // RestoreWithJumpCut only hands back the camera the jump took, not a script's that came since.
                   onEnd:()=>{if(render.fixedCamera===stuntCamera)render.fixedCamera=undefined;stuntCamera=undefined;},

@@ -14860,3 +14860,24 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Production smoke passes saved-game return, movement, car entry,
   map/waypoint, pause/resume, takeoff and landing gear with no page errors or
   failed requests.
+
+## Active camera mode for sprint playback (October 26, 2026)
+
+- The host now forwards the mode applied with the active camera transform
+  to the movement associations. MODE_FIXED uses the captured 0.7 playback;
+  attached and entity-follow transforms retain their own modes. A pending
+  script request does not change animation before its camera is applied.
+  The existing stunt camera declares MODE_FIXED with its transform.
+- The browser first reproduced ordinary speed 1 after a fixed camera had
+  visibly taken control. After the repair, follow mode 4 plays at 1, fixed
+  mode 15 plays at float32 0.7, attached mode 47 plays at 1 despite its fixed
+  renderer transform, and restoring returns to follow mode 4 at 1. Energy
+  keeps spending while the fixed camera slows playback.
+- All 147 focused animation/controller/camera checks pass (one existing
+  skip), as do the new browser check and existing script-camera regression.
+  TypeScript, production build and production smoke pass; saved-game return,
+  movement, car entry, map/waypoint, pause/resume, takeoff and landing gear
+  have no page errors or failed requests. The complete 8,068-test unit run
+  preceded this small camera-mode plumbing change. Stunt-camera integration
+  is wired through its existing owner; a new stunt playthrough is not claimed.
+  [Active configuration and camera transition evidence](research/GROUND_SPRINT_PLAYBACK.md#active-fixed-camera-integration).

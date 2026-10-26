@@ -3,6 +3,7 @@ import {PED_HIT_NODES,type PedHitSphere} from '../combat/nativePedHitSpheres';
 import {HEAD_EFFECTOR_OFFSET,LOOK_AT_SPEED,applyQuat,limitHead,moveHeadToTarget,slerpQuat,startLookAt,stepLookAt,type LookAtTask,type Quat} from '../simulation/nativeIkLookAt';
 import {playerMoveBlend} from '../animation/playerMoveBlend';
 import {nativeButtonSprintResult,SPRINT_MODE} from '../simulation/nativePlayerSprint';
+import {MODE_FIXED} from '../engine/ScmCamera';
 import {bindPlayerShoulders} from '../animation/playerShoulders';
 import { nativeAmbientState } from '../assets/nativeMaterial';
 import {setNativeScorched} from '../assets/nativeScorched';
@@ -667,7 +668,7 @@ export class NativeCharacter {
       const looped = LOOPED_MOVES.has(segment.clip), d = clip.motion.between(segment.from, segment.wrapped ? segment.to + clip.duration : segment.to, this.basis, looped);
       x += d.x * segment.blend; z += d.z * segment.blend;
     }
-    anims.setRealMoveAnim(this.moveBlend, !!controls.sprint && runnable && !controls.walk,{buttonSpeed});
+    anims.setRealMoveAnim(this.moveBlend, !!controls.sprint && runnable && !controls.walk,{buttonSpeed,fixedCamera:controls.cameraMode===MODE_FIXED});
     this.seconds += dt; this.motionTransition.reset();
     // A run stop zeroes m_headingRate until it ends.
     return { ...controls, sprint: anims.moveState === 'sprint', facing: anims.headingLocked ? sim.player.heading : controls.facing, animationMotionSpace: this.motionSpace, animationMotion: { x, z } };

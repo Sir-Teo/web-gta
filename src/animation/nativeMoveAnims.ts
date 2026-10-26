@@ -17,7 +17,7 @@
  * - Ground sprint playback follows selected iOS SetRealMoveAnim (0x10035eaa4): max(1, ground button result),
  *   or 0.7 in MODE_FIXED. Synchronised phase uses duration / playback speed, as RpAnimBlendClumpUpdateAnimations does.
  * Not reproduced: the tired idle (IDLE_tired, a partial clip), adrenaline's animation/time-scale lifecycle and
- * full SetRealMoveAnim equivalence. The host currently supplies ordinary-camera sprint playback. */
+ * full SetRealMoveAnim equivalence. The host supplies the mode applied with the active camera transform. */
 
 import {nativeButtonSprintResult,SPRINT_MODE} from '../simulation/nativePlayerSprint';
 

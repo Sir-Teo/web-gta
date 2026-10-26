@@ -43,6 +43,8 @@ export interface Controls { x: number; y: number; sprint: boolean; walk?: boolea
   sprintInput?:boolean;sprintJustPressed?:boolean;
   /** Ground-task eligibility, separate from the controller's native player-data flag. */
   sprintDisabled?:boolean;playerSprintDisabled?:boolean;
+  /** Active native camera mode, when the host owns a scripted/stunt camera. SetRealMoveAnim reads MODE_FIXED. */
+  cameraMode?:number;
   /** CPad::GetJump (held) and CPad::GetExitVehicle (held), read by CTaskSimpleClimb. `jump` is the press. */
   jumpHeld?: boolean; exitVehicle?: boolean;
   /** The mobile ports' Auto Climb: the stick pushed forward past half climbs on as jumpHeld does (ClimbPad). */

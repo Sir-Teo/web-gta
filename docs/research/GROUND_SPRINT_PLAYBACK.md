@@ -53,10 +53,12 @@ stop and ordinary speed checks remain in place.
 
 ## Scope
 
-The pure movement-association adapter covers the captured fixed-camera
-playback override. The game host currently supplies ordinary-camera
-playback; native camera-mode ownership is separate work. Adrenaline's
-animation/time-scale lifecycle, tired partial idle, the complete movement
+The movement-association adapter covers the captured fixed-camera playback
+override. The host carries the native mode with the camera transform when
+it is applied. Script MODE_FIXED and the existing stunt camera supply mode
+15; attached and entity-follow transforms retain their own modes, and
+cutscene fly-by transforms do not inherit a prior fixed-camera mode.
+Adrenaline's animation/time-scale lifecycle, tired partial idle, the complete movement
 association manager and fallback single-role rigs remain separate work.
 This change does not claim full SetRealMoveAnim equivalence.
 
@@ -92,3 +94,28 @@ also passes with playback integrated.
 Production smoke passes saved-game return, walking, car entry, map/waypoint,
 pause/resume, aircraft takeoff and landing gear with no page errors or failed
 requests (`artifacts/ground-sprint-playback-production.log`).
+
+## Active fixed-camera integration
+
+The host now forwards the active camera configuration's native mode through
+Controls to the movement associations. A generic renderer `fixedCamera`
+transform also represents attached, entity-follow and cutscene cameras, so
+its presence alone cannot select the 0.7 override. The applied configuration
+carries `nativeMode`; pending script `modeToGoTo` changes take effect when
+their new camera configuration is applied. Restoring the camera removes that
+configuration and the sprint association returns to its ordinary result.
+
+The new browser check first reproduced speed 1 after a script fixed camera
+had visibly taken control, where the independent capture requires float32
+0.7. The change uses the existing captured formula and does not change the
+pad controller or its resource debit. Existing stunt-camera creation also
+declares MODE_FIXED; its wider task/vehicle lifecycle is unchanged.
+
+All 147 focused animation/controller/camera checks pass (one existing skip).
+The live check passes ordinary follow mode 4, active fixed mode 15 at
+0.699999988079071, attached mode 47 at 1 despite a renderer-fixed transform,
+and restored follow mode 4 at 1. Sprint energy continues spending in fixed
+mode. The existing script-camera regression also passes. TypeScript,
+production build and production smoke pass with no page errors or failed
+requests. Logs use `artifacts/fixed-camera-sprint-*`; the complete 8,068-test
+unit run belongs to the preceding ground-playback checkpoint.
