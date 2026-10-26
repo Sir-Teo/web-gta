@@ -10,7 +10,7 @@ const grove=area==='grove-street';
 const label='San Andreas';
 const executablePath=process.env.PW_CHROMIUM_EXECUTABLE;
 const browser=await chromium.launch(executablePath?{executablePath}:{channel:'chrome'});
-let page;const flightSamples=[];
+let page;const flightSamples=[],flightStages=[];
 try{
  page=await browser.newPage({viewport:{width:1440,height:900}});const errors=[],failures=[];
  // Exercise the supported saved-game return to free roam. A new game's INTRO owns the controls and fades while
@@ -58,14 +58,32 @@ try{
  // Release after a short measured climb: an existing hop above 5 m must not cancel rotation immediately.
  // Use measured AGL rather than a wall-time pulse, which can end while streaming holds the simulation.
  let latestFlight;
- const flight=async()=>{const text=await page.locator('.flight-instruments').innerText(),sample={wall:Date.now(),speed:Number(text.match(/(\d+) km\/h/)?.[1]),altitude:Number(text.match(/(\d+) m AGL/)?.[1])};flightSamples.push(sample);latestFlight=sample;return sample;};
+ const flight=async()=>{
+  // Read both visible HUD fields together; the game clock advances one minute per simulated second.
+  const hud=await page.evaluate(()=>({flight:document.querySelector('.flight-instruments')?.textContent??'',clock:document.querySelector('.game-time')?.textContent??''}));
+  const clock=hud.clock.match(/(\d+):(\d+)/),speed=hud.flight.match(/(\d+) km\/h/),altitude=hud.flight.match(/(\d+) m AGL/);
+  if(!clock||!speed||!altitude)throw new Error(`Flight HUD is incomplete: ${JSON.stringify(hud)}`);
+  const sample={wall:Date.now(),minute:Number(clock[1])*60+Number(clock[2]),speed:Number(speed[1]),altitude:Number(altitude[1])};flightSamples.push(sample);latestFlight=sample;return sample;
+ };
+ // Slow render frames cap simulation catch-up. A production trace took 40 wall seconds for 11.5 simulated seconds.
+ // Bound each stage by the visible game clock and retain a wall deadline for a frozen or stalled page.
+ const flightStage=async(name,seconds,wallMs,ready)=>{
+  const startWall=Date.now();let startMinute;
+  while(Date.now()-startWall<wallMs){
+   const sample=await flight();startMinute??=sample.minute;const elapsed=(sample.minute-startMinute+1440)%1440;
+   if(elapsed>seconds)throw new Error(`${name} exceeded ${seconds} simulated seconds: ${JSON.stringify(sample)}`);
+   if(await ready(sample)){flightStages.push({name,gameSeconds:elapsed,wallMs:Date.now()-startWall});return;}
+   await page.waitForTimeout(100);
+  }
+  throw new Error(`${name} exceeded ${wallMs} wall milliseconds: ${JSON.stringify(latestFlight)}`);
+ };
  // Control decisions need a regular cadence: Playwright's default backoff reaches one second, enough to travel
  // another 28 metres at rotation speed. Use the sample that crossed the threshold instead of reading again.
- await expect.poll(async()=>{const f=await flight();return f.speed>115||f.altitude>15;},{timeout:45000,intervals:[100]}).toBe(true);
+ await flightStage('rotation speed',15,90000,f=>f.speed>115||f.altitude>15);
  const takeoffMode=latestFlight.altitude>15?'natural':'rotation',releaseAltitude=Math.max(5,latestFlight.altitude+3);
  if(takeoffMode==='rotation')await page.keyboard.down('ArrowDown');
  let elevatorHeld=takeoffMode==='rotation';
- try{await expect.poll(async()=>{const f=await flight();if(elevatorHeld&&f.altitude>=releaseAltitude){await page.keyboard.up('ArrowDown');elevatorHeld=false;}return f.altitude;},{timeout:20000,intervals:[100]}).toBeGreaterThan(15);}
+ try{await flightStage('climb',10,60000,async f=>{if(elevatorHeld&&f.altitude>=releaseAltitude){await page.keyboard.up('ArrowDown');elevatorHeld=false;}return f.altitude>15;});}
  finally{if(takeoffMode==='rotation')await page.keyboard.up('ArrowDown');}
  // Below 30 m, native ProcessControlInputs lowers fully retracted gear when throttle is released.
  // Keep climb power through the gear check so Gear UP is a stable state, not a one-frame transition.
@@ -73,7 +91,7 @@ try{
  await page.screenshot({path:`artifacts/pages-${remote?'live':'production'}-flight.png`});
  await page.keyboard.up('KeyW');
  expect(errors).toEqual([]);expect(failures).toEqual([]);expect(await page.evaluate(()=>typeof window.__game)).toBe('undefined');
- console.log(JSON.stringify({url,loaded:true,saveResume:true,walkingFramesChanged:true,nativeCarEntered:true,nativeMapWaypoint:true,pauseResume:true,aircraftTakeoff:true,takeoffMode,landingGear:true,errors,failedRequests:failures}));
+ console.log(JSON.stringify({url,loaded:true,saveResume:true,walkingFramesChanged:true,nativeCarEntered:true,nativeMapWaypoint:true,pauseResume:true,aircraftTakeoff:true,takeoffMode,landingGear:true,flightStages,errors,failedRequests:failures}));
 }catch(error){
  if(page){await mkdir('artifacts',{recursive:true});await page.screenshot({path:`artifacts/pages-${remote?'live':'production'}-failure.png`}).catch(()=>{});console.error(JSON.stringify({flight:await page.locator('.flight-instruments').textContent({timeout:1000}).catch(()=>null)}));}
  throw error;

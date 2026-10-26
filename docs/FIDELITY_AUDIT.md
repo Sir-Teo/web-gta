@@ -14369,9 +14369,24 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - The six-case melee precision/recruitment regression and all three real
   drive-by family/group protection scenarios pass, without page errors.
 - All 6,239 unit tests pass (51 skipped), followed by the final build.
-  Production smoke reaches flight, but two unchanged Rustler pilot runs fail
-  its acceleration/climb gates. Flight remains an unresolved regression;
-  neither run is counted as passing production coverage.
+  Two initial production runs fail the pilot's wall-time flight gates; the
+  follow-up clock-budget repair below passes the normal production bundle.
 - Complete native group events, ownership/removal behavior and matched PC
   damage calculation remain separate compatibility work.
   [Source, actual membership transitions and checks](research/PLAYER_GROUP_COMBAT_CONTEXT.md).
+
+## Production flight smoke uses the game clock (October 26, 2026)
+
+- Two production failures and isolated dev/optimized telemetry expose a
+  wall-time budget mismatch: fixed simulation catch-up runs in slow motion
+  under software rendering. The diagnostic optimized trace covers 11.47
+  simulated seconds in 40.14 wall seconds with no holds or subsystem faults.
+- The smoke samples visible flight/clock text together and budgets 15 game
+  seconds for acceleration and ten for climb, retaining 90/60-second wall
+  deadlines for stalls. Speed, altitude, elevator release and gear assertions
+  remain; aircraft physics and controls are unchanged.
+- The normal production bundle passes saved-game return, movement, car entry,
+  map/waypoint, pause, takeoff and gear with no page errors, failed requests or
+  inspection hook. Acceleration takes seven game seconds / 51.99 wall seconds,
+  exceeding the old 45-second gate; climb takes two / 11.80 seconds.
+  [Timing evidence, budgets and limits](research/PRODUCTION_FLIGHT_CLOCK.md).

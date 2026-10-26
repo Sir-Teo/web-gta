@@ -75,9 +75,10 @@ All six cases pass without page errors:
 The existing six-case player-melee precision/armour/recruitment regression also
 passes, with exact one-HP survivors and native responses intact.
 
-The final production smoke reaches saved-game return, walking, car entry, map,
-pause/resume and flight loading, but two runs fail the unchanged Rustler pilot:
-one waits below the 115 km/h / 15 m gate, and another reaches the speed gate
-but not the required climb. Both flight traces are retained in ignored
-artifacts. Production flight is an unresolved regression, not a passing check
-for this checkpoint; this repair changes no flight code.
+Two initial production runs reached flight but exceeded the unchanged pilot's
+wall-time acceleration/climb limits. A [follow-up smoke repair](PRODUCTION_FLIGHT_CLOCK.md)
+uses the visible game clock with separate wall deadlines. The normal-bundle
+run then passes saved-game return, movement, car entry, map, pause, takeoff and
+gear with no page errors, failed requests or development inspection hook.
+Its successful seven-game-second acceleration takes 52 wall seconds, beyond
+the previous 45-second limit. Aircraft code is unchanged.
