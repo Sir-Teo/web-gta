@@ -1,0 +1,1447 @@
+{
+  "source": "Pinned iOS arm64 machine code executed with Unicorn 2.1.4; RNG stub samples 0..7; nonplayer ped source",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "function": "0x10028a4b0",
+  "cases": [
+    {
+      "stance": "foot",
+      "weapon": 22,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 22,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 1,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 23,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 23,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 1,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 24,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 24,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 1,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 25,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 25,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 1,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 26,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 26,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 1,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 27,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 27,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 1,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 28,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 28,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 1,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 29,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 29,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 1,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 30,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 30,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 1,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 31,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 31,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 1,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 32,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 32,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 1,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 33,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 33,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 255,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 34,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 34,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 255,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 38,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 38,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 1,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 52,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 52,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 1,
+      "randomCalls": 1
+    },
+    {
+      "stance": "foot",
+      "weapon": 22,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 22,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 23,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 23,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 24,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 24,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 25,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 25,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 26,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 26,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 27,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 27,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 28,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 28,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 29,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 29,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 30,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 30,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 31,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 31,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 32,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 32,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 33,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 33,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 34,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 34,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 38,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 38,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 52,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "foot",
+      "weapon": 52,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 22,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 22,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 23,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 23,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 24,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 24,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 25,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 25,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 26,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 26,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 27,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 27,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 28,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 28,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 29,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 29,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 30,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 30,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 31,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 31,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 32,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 32,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 33,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 33,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 34,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 34,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 38,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 38,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 52,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 52,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 22,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 22,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 23,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 23,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 24,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 24,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 25,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 25,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 26,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 26,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 27,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 27,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 28,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 28,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 29,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 29,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 30,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 30,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 31,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 31,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 32,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 32,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 33,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 33,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 34,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 34,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 38,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 38,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 52,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player",
+      "weapon": 52,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 22,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 22,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 23,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 23,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 24,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 24,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 25,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 25,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 26,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 26,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 27,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 27,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 28,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 28,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 29,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 29,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 30,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 30,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 31,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 31,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 32,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 32,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 33,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 33,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 34,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 34,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 38,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 38,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 52,
+      "piece": 3,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 52,
+      "piece": 9,
+      "noCritical": false,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 22,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 22,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 23,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 23,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 24,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 24,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 25,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 25,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 26,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 26,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 27,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 27,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 28,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 28,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 29,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 29,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 30,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 30,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 31,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 31,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 32,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 32,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 33,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 33,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 34,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 34,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 38,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 38,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 52,
+      "piece": 3,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    },
+    {
+      "stance": "player2",
+      "weapon": 52,
+      "piece": 9,
+      "noCritical": true,
+      "forceMask": 0,
+      "randomCalls": 0
+    }
+  ]
+}

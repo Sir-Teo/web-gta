@@ -34,6 +34,7 @@ import {GO_STRAIGHT_MOVE_STATE_RADIUS,SWAT_ROPE_LENGTH,SWAT_ROPE_NODES,SWAT_ROPE
 import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NATIVE_PED_TYPES,NativeAcquaintance,nativePedType,pedTypeName,pedTypeInfo,policeDontCareAboutPedType,sameNonCivilianPedType,type Acquainted} from '../ped/nativeAcquaintance';
 export {pedTypeName,type Acquainted} from '../ped/nativeAcquaintance';
 import {npcPedCanDamagePlayer} from '../ped/nativeNpcPlayerDamage';
+import {npcFootBulletCritical} from '../ped/nativeNpcCritical';
 import {characterMovement} from './characterMovement';
 import {ANIM_ID,NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
 import {CANNON_PUSH_RANGE2,waterCannonPedSpeed} from './nativeWaterCannon';
@@ -1975,7 +1976,7 @@ export class WorldPedestrians {
   // metadata; external ped context currently supplies type/group acceptance, not a complete event source.
   const dealt=shooter?this.pedOnPedDamage(victim,shooter,damage,weapon):damage*victim.defendMult;
   const response=spendPedArmour(dealt,victim.armour,weapon),beforeHealth=victim.health;
-  victim.armour=response.armour;victim.health=healthAfter(victim.health,response.damageHealth);
+  victim.armour=response.armour;victim.health=npcFootBulletCritical(victim,weapon,piece??this.hitPiece(victim,end))?0:healthAfter(victim.health,response.damageHealth);
   if(beforeHealth-victim.health+response.damageArmour>0)victim.lastWeaponDamage=weapon;
   if(!victim.health)this.onKill?.({id:victim.id,...pedTypeInfo(victim),recruit:!!victim.follow,byPlayer:false});
   const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};

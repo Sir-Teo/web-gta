@@ -8,7 +8,7 @@ import {WorldFx} from '../src/simulation/fx/WorldFx';
 beforeAll(async()=>RAPIER.init());
 function fixture(){
  const sim=new Simulation(),body=sim.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,1,-5)),collider=sim.world.createCollider(RAPIER.ColliderDesc.capsule(.6,.3),body),order:string[]=[],blood=vi.fn(),surface=vi.fn();sim.world.step();
- const ped={id:3,health:100,defendMult:1,pedType:'CIVMALE',body,collider,actor:{player:{position:{x:0,y:0,z:-5},heading:0}},view:{reactionPlayedOut:false,reactionName:'ko_shot_front',hasReaction:()=>false}} as any;
+ const ped={id:3,health:100,defendMult:1,noCriticalHits:true,pedType:'CIVMALE',body,collider,actor:{player:{position:{x:0,y:0,z:-5},heading:0}},view:{reactionPlayedOut:false,reactionName:'ko_shot_front',hasReaction:()=>false}} as any;
  const crowd=Object.assign(Object.create(WorldPedestrians.prototype),{people:[ped],hitPiece:()=>3,applyReaction:vi.fn(),damageReaction:vi.fn(()=>({})),onKill:vi.fn()}),weapons=new WeaponSystem(sim,()=>crowd,()=>undefined);
  weapons.fx={ready:true,gunshot(){},areaEffect(){},explosion(){},bulletHit(hit,amount){order.push(hit.ped?'blood':'surface');WorldFx.prototype.bulletHit.call({effects:{blood,bulletImpact:surface},collisionSources:()=>undefined} as any,hit,amount);}};
  weapons.onBulletHit=()=>order.push('audio');const object=vi.fn(()=>order.push('object'));weapons.onObjectShot=object;

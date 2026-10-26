@@ -14165,3 +14165,25 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Complete native task-tree/damager identity and matched damage calculation
   remain open; the retained foot kill-task mapping is still the host's.
   [PC acceptance rules, source distinctions and checks](research/NPC_PLAYER_DAMAGE_ACCEPTANCE.md).
+
+## Nonplayer-source critical firearm hits on foot (October 26, 2026)
+
+- Accepted ordinary NPC bullets now apply the native firearm critical decision
+  after armour. Ordinary gun heads force death on zero low-three-bit RNG;
+  rifles skip that draw, critical-disabled targets keep ordinary wounds,
+  body contacts consume the appropriate draw and player types reject forced
+  head death in this branch.
+- PC ComputeWillForceDeath remains a retail delegate. The selected iOS arm64
+  function was executed independently for 5,760 controlled inputs; 180 compact
+  standing/player captures match the helper, including RNG call counts. A
+  binary-hash-checked regeneration script is included without the executable.
+- Twenty-five host tests expose sixteen failures before repair. The build,
+  251 focused checks and three live tests pass. Real COP muzzles check selected
+  pistol critical/noncritical, rifle, no-critical and body contacts with
+  5,000 HP and armour; two fatal shots count once even after corpse contacts.
+  Existing NPC blood/proof/type and mounted CJ checks pass without page errors.
+- All 6,006 unit tests pass (51 skipped), including the saved native captures,
+  together with the final build and full production smoke.
+- The PC CRT stream, player-creator aim flags, non-firearm force rules, legacy
+  vehicle-to-foot entries and matched PC traces remain open.
+  [Native execution, scope and checks](research/NPC_CRITICAL_HEADS.md).
