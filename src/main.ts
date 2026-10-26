@@ -1152,12 +1152,12 @@ async function boot() {
    // A drive-by shooter has no exit of his own: the entry plays it, after ComputePedEnteredVehicleResponse's 300 to
    // 600 ms as the crews wait, and he stands up a gang member by the door.
    const shooter=driveby?.crewLeave(car);
-   if(shooter)carEntry.evictPassenger(car,{model:shooter.model},(position,heading)=>{pedestrians?.spawnJacked(shooter.model,position,heading,shooter.gang,{position:()=>{const t=car.car.body.translation();return {x:t.x,y:t.y,z:t.z};}});},pedEnteredVehicleLeaveDelay(Math.floor(Math.random()*65536)));};
+   if(shooter)carEntry.evictPassenger(car,{model:shooter.model,vitals:shooter.vitals},(position,heading)=>{pedestrians?.spawnJacked(shooter.model,position,heading,shooter.gang,{position:()=>{const t=car.car.body.translation();return {x:t.x,y:t.y,z:t.z};}},false,undefined,undefined,shooter.vitals);},pedEnteredVehicleLeaveDelay(Math.floor(Math.random()*65536)));};
   carEntry.onDriverOut=(car,position,heading,lying,who,seat=0)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);const model=who?.model??occupants.driverModel(car),release=()=>carEntry.releaseDragged(car,seat);
-   if(!seat&&car.driverDead||who?.dead){if(!seat)car.driverDead=false;pedestrians?.spawnDead(model,position,heading,car.gang,false,car.wrecked,{armour:who?.officer?.vitals?.armour,accounted:who?.deathAccounted});release();return;}
+   if(!seat&&car.driverDead||who?.dead){if(!seat)car.driverDead=false;pedestrians?.spawnDead(model,position,heading,car.gang,false,car.wrecked,{armour:who?.vitals?.armour??who?.officer?.vitals?.armour,accounted:who?.deathAccounted});release();return;}
    // A cop dragged out of his car gets up a cop, armed, and goes on as any officer on foot (CCopPed).
    if(who?.officer&&typeof model==='string'&&pedestrians){void pedestrians.spawnOfficer(model,who.officer.weapon,position,heading,undefined,who.officer.accuracy,false,lying,who.officer.vitals).catch(()=>false).finally(release);return;}
-   pedestrians?.spawnJacked(model,position,heading,car.gang,{position:()=>{const t=car.car.body.translation();return {x:t.x,y:t.y,z:t.z};}},VEHICLE_ANIM_GROUP_TABLES[car.animGroup.id]?.file==='coach',lying,release)||release();};
+   pedestrians?.spawnJacked(model,position,heading,car.gang,{position:()=>{const t=car.car.body.translation();return {x:t.x,y:t.y,z:t.z};}},VEHICLE_ANIM_GROUP_TABLES[car.animGroup.id]?.file==='coach',lying,release,who?.vitals)||release();};
   carEntry.onJackStart=(car,who)=>pedestrians?.prefetchModel(who?.model??occupants.driverModel(car));
   const law=new WantedSystem(),wantedHud=new WantedHud(hud.element);
   // CGameLogic::Update drives the wasted and busted sequences over the native
@@ -5704,13 +5704,13 @@ async function boot() {
             traffic.noSpawn=()=>gangWars?.dontCreateCivilians()??false;
             // CEventVehicleOnFire: the random driver's decision is TASK_COMPLEX_LEAVE_CAR_AND_FLEE (R_Norm/R_Tough/R_Weak.ped),
             // CTaskComplexLeaveAnyCar then CTaskComplexSmartFleeEntity 15 units from the car.
-            traffic.onFire=car=>{const at=car.car.body.translation();carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnFleeing(occupants.driverModel(car),position,heading,car.gang,{from:{x:at.x,z:at.z},safe:15}));pedestrians?.vehicleOnFire({x:at.x,z:at.z});};
+            traffic.onFire=car=>{const at=car.car.body.translation(),vitals=traffic?.driverOf(car)?.vitals;carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnFleeing(occupants.driverModel(car),position,heading,car.gang,{from:{x:at.x,z:at.z},safe:15},vitals));pedestrians?.vehicleOnFire({x:at.x,z:at.z});};
             // CEventVehicleDamageCollision from the player's car: the driver's decision maker draws nothing, a flee-scene
             // drive or CTaskComplexRoadRage (R_Norm/R_Tough/R_Weak.ped rows for event 73).
             traffic.driverModel=car=>occupants.driverModel(car);traffic.driverStats=car=>pedestrians?.pedModelStats(occupants.driverModel(car));
             traffic.onDriverKilled=(car,creator)=>pedestrians?.onKill?.({id:-1,...pedTypeInfo({pedType:car.gang!==undefined?`GANG${car.gang+1}`:pedestrians?.pedModelStats(occupants.driverModel(car))?.pedType??'CIVMALE'}),byPlayer:creator==='ped',byPlayerVehicle:creator==='vehicle'});
             traffic.driverDecisionMaker=car=>pedestrians?.decisionMakerOf(occupants.driverModel(car));traffic.playerOnMission=()=>!!mission?.playerOnAMission();if(pedestrians)pedestrians.onGunShot=(from,silent,byPlayer)=>traffic?.gunShot(from,silent,byPlayer);
-            traffic.onRoadRage=car=>carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnRoadRage(occupants.driverModel(car),position,heading,car.gang));
+            traffic.onRoadRage=car=>{const vitals=traffic?.driverOf(car)?.vitals;return carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnRoadRage(occupants.driverModel(car),position,heading,car.gang,vitals));};
             // CTaskComplexDieInCar: the shot driver leaves and dies once the car rests, or dies in his seat while it rolls.
             traffic.onDriverDiesOut=(car,corpse)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(occupants.driverModel(car),position,heading,car.gang,false,car.wrecked,corpse)))traffic?.onDriverDied?.(car,corpse);};
             traffic.onDriverDeadInSeat=car=>occupants.markDeadInSeat(car);
@@ -5756,7 +5756,7 @@ async function boot() {
             // slow, then CTaskComplexSmartFleePoint 60 units from where the driver was, for good.
             // CEventVehicleDied: a car blown up with its driver aboard leaves him dead at the seat.
             traffic.onDriverDied=(car,corpse)=>{const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(occupants.driverModel(car),{x:w.x,y:w.y,z:w.z},car.heading(),car.gang,false,car.wrecked,corpse);};
-            traffic.onLeaveCarAndFlee=car=>{const at=car.car.body.translation();carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnFleeing(occupants.driverModel(car),position,heading,car.gang,{from:{x:at.x,z:at.z},safe:60}));};
+            traffic.onLeaveCarAndFlee=car=>{const at=car.car.body.translation(),vitals=traffic?.driverOf(car)?.vitals;carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnFleeing(occupants.driverModel(car),position,heading,car.gang,{from:{x:at.x,z:at.z},safe:60},vitals));};
             fleet.canChangePopulation=(point,radius)=>populationOutsideView(render.camera,point,radius);
             // Sounding sirens own the lane: pursuit units plus the player's siren.
             traffic.sirens=()=>{

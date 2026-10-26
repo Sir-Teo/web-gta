@@ -10,7 +10,7 @@ test.each(['ped','vehicle','remote'] as const)('a traffic %s hit applies weaknes
  const {car,driver,host,killed}=fixture();expect(host.driverShot(car,25,false,creator)).toBe('hit');expect(driver.health).toBe(4972.5);expect(killed).not.toHaveBeenCalled();
  expect(host.driverShot(car,25,true,creator)).toBe('killed');expect(killed).toHaveBeenCalledExactlyOnceWith(car,creator);
  expect(host.driverShot(car,1000,true,creator)).toBe('killed');expect(host.driverShot(car,1000,true,creator)).toBe('killed');expect(killed).toHaveBeenCalledOnce();
- expect(host.driverOf(car)).toEqual({model:'MALE01',dead:true,deathAccounted:true});expect(driver.dying).toEqual({at:7000});
+ expect(host.driverOf(car)).toEqual({model:'MALE01',vitals:{health:0,armour:0},dead:true,deathAccounted:true});expect(driver.dying).toEqual({at:7000});
 });
 test.each(['occupied','out','wrecked','no autopilot','dead','fled','raged','zero health'])('a %s driver entry reports no new kill',kind=>{
  const {car,driver,host,killed}=fixture();if(kind==='occupied')car.occupied=true;if(kind==='out')car.driverOut=true;if(kind==='wrecked')car.wrecked=true;if(kind==='no autopilot')car.autopilot=undefined;if(kind==='dead')driver.dead=true;if(kind==='fled')driver.fled=true;if(kind==='raged')driver.raged=true;if(kind==='zero health')driver.health=0;

@@ -91,9 +91,9 @@ export class GangDriveBy {
   /** Cars this manager drives (excluded from the civilian driver poses). */
   covers(car:WorldCar){return this.units.some(u=>u.car===car);}
   /** The gang member at the wheel of an attack car, for the ped the player drags out or who leaves it. */
-  driverOf(car:WorldCar){const u=this.units.find(u=>u.car===car);return u&&{model:u.driver,dead:!!u.driverDead||u.driverHealth<=0,deathAccounted:!!u.deathAccounted?.[0]};}
+  driverOf(car:WorldCar){const u=this.units.find(u=>u.car===car);return u&&{model:u.driver,vitals:{health:u.driverHealth,armour:0},dead:!!u.driverDead||u.driverHealth<=0,deathAccounted:!!u.deathAccounted?.[0]};}
   /** The shooter in the front passenger seat (ComputeSlowJackedPed for the right front door), alive or dead. */
-  frontPassengerOf(car:WorldCar){const u=this.units.find(u=>u.car===car);return u&&!u.shooterGone?{model:u.shooter.model,dead:!!u.shooterDead,deathAccounted:!!u.deathAccounted?.[1]}:undefined;}
+  frontPassengerOf(car:WorldCar){const u=this.units.find(u=>u.car===car);return u&&!u.shooterGone?{model:u.shooter.model,vitals:{health:u.shooterHealth,armour:0},dead:!!u.shooterDead,deathAccounted:!!u.deathAccounted?.[1]}:undefined;}
   /** The player is dragging the shooter out: he fires no more, and the car entry draws him. */
   dragPassenger(car:WorldCar){const u=this.units.find(u=>u.car===car);if(u){u.shooterGone=true;u.shooter.gunState.active=false;}}
   /** MakeUndraggedPassengerPedsLeaveCar (unreversed; AUTHORED as for the police crews): the living shooter leaves the
@@ -101,7 +101,7 @@ export class GangDriveBy {
    * left as before. */
   crewLeave(car:WorldCar){
    const u=this.units.find(u=>u.car===car);if(!u||u.shooterGone||u.shooterDead)return undefined;
-   u.shooterGone=true;u.shooter.gunState.active=false;return {model:u.shooter.model,gang:u.gang};
+   u.shooterGone=true;u.shooter.gunState.active=false;return {model:u.shooter.model,gang:u.gang,vitals:{health:u.shooterHealth,armour:0}};
   }
   /** CTaskComplexLeaveCarAndDie for a shot driver once the car rests: the host plays his exit and lays him dead. */
   onCrewDiesOut?:(car:WorldCar,model:string,corpse?:{armour:number;accounted:boolean})=>void;

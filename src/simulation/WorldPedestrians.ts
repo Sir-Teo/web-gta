@@ -1644,8 +1644,8 @@ export class WorldPedestrians {
   /** A driver dragged out or leaving a car becomes a street ped that flees (the usual decision-maker response to EVENT_DRAGGED_OUT_CAR). */
   /** A driver put out of his car. `flee` is CTaskComplexSmartFleeEntity from the car (its stopped position, `safe`
    * units); without it the ped runs 8 s from the jacking. */
-  spawnFleeing(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number,flee?:{from:{x:number;z:number};safe:number}){
-  return this.spawnFromCar(modelRef,position,heading,gang,8,p=>this.fleeCar(p,flee));
+  spawnFleeing(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number,flee?:{from:{x:number;z:number};safe:number},vitals?:PedVitals){
+  return this.spawnFromCar(modelRef,position,heading,gang,8,p=>this.fleeCar(p,flee),vitals);
  }
  /** CGangWars::CreateDefendingGroup's ped spawn (and the host's authored CreateAttackWave): `count` gangsters of
   * `gang` in a ring 2 to 5 units round the path node nearest `center` (browser space), each on a kill task at the
@@ -1744,12 +1744,12 @@ export class WorldPedestrians {
  /** Start streaming a driver's model while he is still being pulled out, so the ped he becomes is there the frame
   * the clip ends. */
  prefetchModel(modelRef:number|string){if(typeof modelRef==='string')void this.catalog?.character(modelRef).catch(()=>{});}
- spawnJacked(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang:number|undefined,car:{position:()=>{x:number;y:number;z:number}},coach=false,lying?:{key:string;clip:import('../assets/ifp').NativeAnimation},onCreated?:()=>void){
+ spawnJacked(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang:number|undefined,car:{position:()=>{x:number;y:number;z:number}},coach=false,lying?:{key:string;clip:import('../assets/ifp').NativeAnimation},onCreated?:()=>void,vitals?:PedVitals){
   return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{
    onCreated?.();
    // His response (flee, or come back for the car) once he is on his feet.
    this.layDragged(p,lying,()=>this.jackedResponse(p,modelRef,car,coach));
-  });
+  },vitals);
  }
  /** CTaskComplexCarSlowBeDraggedOutAndStandUp: the victim lies where CAR_jackedLHS leaves him, on the clip's last
   * frame, then CTaskSimpleGetUp (GETUP_FRONT, the jacked clips being ANIMATION_IS_FRONT) stands him up before `then`.
@@ -1773,8 +1773,8 @@ export class WorldPedestrians {
  /** CTaskComplexRoadRage after the driver's CTaskComplexLeaveCar: the ped turns to face the player, shakes a fist and
   * comes for him (CTaskComplexKillPedOnFoot after a 20 s seek). Authored: the bat, golf club or shovel half the
   * ragers draw and a gangster's pistol are not modelled; the fight is unarmed. */
- spawnRoadRage(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number){
-  return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{p.loiter=true;p.rage={phase:'face',time:0};});
+ spawnRoadRage(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number,vitals?:PedVitals){
+  return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{p.loiter=true;p.rage={phase:'face',time:0};},vitals);
  }
  /** The pedstats default decision maker of a driver's model (0 gang member, 1 cop, 2 normal, 3 tough, 4 weak), once
   * its stats are loaded; a roster name is fetched on first ask. */
@@ -1796,19 +1796,21 @@ export class WorldPedestrians {
   const at=p.actor.player.position,center={x:at.x,y:at.y+.3,z:at.z};p.body.setTranslation(center,true);p.body.setNextKinematicTranslation(center);
   p.view.playReaction('ko_shot_front',Infinity);
  }
- private spawnFromCar(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang:number|undefined,flee:number,after:(p:Pedestrian)=>void){
+ private spawnFromCar(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang:number|undefined,flee:number,after:(p:Pedestrian)=>void,vitals?:PedVitals){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   // The ped who leaves a car is the one who sat in it, whichever roster his model came from: a packaged-roster driver
   // (the occupants' fallback before the zone roster streamed) swapped for a zone resident here turned the man CJ
   // dragged out into somebody else as he landed.
   const node=this.nearestNode(position);if(!node)return false;
+  // CarSetPedOut/CarSetPedSlowDraggedOut retain the same CPed. Restore its wounds before callbacks or reactions.
+  const ready=(p:Pedestrian)=>{if(vitals){p.health=vitals.health;p.armour=vitals.armour;}after(p);};
   if(typeof modelRef==='string'){
    // A zone roster driver keeps his model when dragged out (the ped catalog has it resident already).
-   void Promise.all([catalog.character(modelRef),catalog.characterSpeeds(modelRef),catalog.characterStats(modelRef)]).then(([source,speeds,stats])=>{if(!this.disposed)after(this.createPed({position,heading,source,officer:false,node,flee,speed:speeds.walk,speeds,stats,modelRef,gang}));}).catch(()=>{});
+   void Promise.all([catalog.character(modelRef),catalog.characterSpeeds(modelRef),catalog.characterStats(modelRef)]).then(([source,speeds,stats])=>{if(!this.disposed)ready(this.createPed({position,heading,source,officer:false,node,flee,speed:speeds.walk,speeds,stats,modelRef,gang}));}).catch(()=>{});
    return true;
   }
   const modelIndex=modelRef;
-  after(this.createPed({position,heading,source:catalog.models[modelIndex%catalog.models.length],officer:false,node,flee,speeds:catalog.modelSpeeds[modelIndex%catalog.models.length],stats:catalog.modelStats[modelIndex%catalog.models.length],modelRef:modelIndex%catalog.models.length,gang}));return true;
+  ready(this.createPed({position,heading,source:catalog.models[modelIndex%catalog.models.length],officer:false,node,flee,speeds:catalog.modelSpeeds[modelIndex%catalog.models.length],stats:catalog.modelStats[modelIndex%catalog.models.length],modelRef:modelIndex%catalog.models.length,gang}));return true;
  }
  private fleeCar(p:Pedestrian|undefined,flee?:{from:{x:number;z:number};safe:number}){
   if(!p||!flee)return;

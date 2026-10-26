@@ -119,7 +119,7 @@ export class WorldTraffic {
   onDriverKilled?:(car:WorldCar,creator:ShotCreator)=>void;
   driverModel?:(car:WorldCar)=>number|string;
   driverStats?:(car:WorldCar)=>{defend:number}|undefined;
-  driverOf(car:WorldCar){const d=this.drivers.find(d=>d.car===car&&!d.gone);return d&&{model:this.driverModel?.(car)??'MALE01',dead:d.health<=0||!!d.dead,deathAccounted:!!d.deathAccounted};}
+  driverOf(car:WorldCar){const d=this.drivers.find(d=>d.car===car&&!d.gone);return d&&{model:this.driverModel?.(car)??'MALE01',vitals:{health:d.health,armour:0},dead:d.health<=0||!!d.dead,deathAccounted:!!d.deathAccounted};}
   private driverVehicleDied(driver:Driver,aboard:boolean){
    if(aboard&&!driver.raged&&!driver.fled&&!driver.fired)this.onDriverDied?.(driver.car,{armour:0,accounted:!!driver.deathAccounted});
   }

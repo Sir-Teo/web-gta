@@ -14054,3 +14054,18 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   The build and all 5,729 unit tests pass (51 skipped); the full rerun follows
   an isolated pass of a cutscene decoder that timed out during build overlap.
   [Lifecycle, native release and checks](research/GANG_WAVE_ASYNC_OWNERSHIP.md).
+
+## Surviving traffic and gang wounds through exits (October 26, 2026)
+
+- Generic exit descriptions now carry current vitals for traffic drivers and
+  gang drivers/gunners. The host forwards them through drag-out, delayed crew
+  exit, traffic fire/flee and road-rage reconstruction. The shared foot-body
+  path restores wounds before callbacks and reactions, without new damage.
+- Named-model and roster-index tests expose nine failures before the fix;
+  52 focused checks now pass. Three live door-entry cases preserve the
+  traffic driver's 72.5 HP and each gang occupant's 75/60 HP from either door.
+  A burning driver retains his model and 75 HP at the 15-unit flee handoff.
+  The build and all 5,741 unit tests pass (51 skipped), as do the existing
+  fire-exit, counted dead-cop jack and fatal-driver coast checks. Other CPed
+  fields and emergency seated damage remain open.
+  [Native drag-out contract, handoffs and checks](research/OCCUPANT_EXIT_VITALS.md).
