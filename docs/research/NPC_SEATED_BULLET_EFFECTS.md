@@ -41,6 +41,8 @@ physical proof flags in this bullet adapter.
 
 The [recruited-passenger fix](RECRUITED_PASSENGER_PROOFS.md) retains and applies
 the follower path's physical proofs, only-player flag and vest.
+The [foot-shooter type gate](NPC_SEATED_PED_TYPES.md) runs the known NPC ped-type
+exclusion before damage and impact audio.
 
 Full damage calculator and force-death parity, NPC damage to ambient
 traffic/police/drive-by crews, same-type and

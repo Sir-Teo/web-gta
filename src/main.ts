@@ -283,7 +283,7 @@ import {SceneRegionFollower} from './assets/sceneRegionFollower';
 import {readSurfaceMovementFlags,steepSlopeRefusesJump,surfaceBlocksSprint} from './simulation/nativeSurfaceMovement';
 import {rapierClimbWorld} from './simulation/climbProbe';
 import {WEAPON_FLAG,nativeWeaponInfo,weaponUsedWithoutAmmo} from './weapons/weaponData';
-import {ACQUAINTANCE_HATE,NATIVE_PED_TYPES,nativePedType,pedTypeInfo,type NativeAcquaintance} from './ped/nativeAcquaintance';
+import {ACQUAINTANCE_HATE,NATIVE_PED_TYPES,nativePedType,pedTypeInfo,sameNonCivilianPedType,type NativeAcquaintance} from './ped/nativeAcquaintance';
 import {ACQUAINTANCE_RAISED_SECONDS,ACQUAINTANCE_SCAN_SECONDS,THREAT_DRIVE_BY_FREQUENCY,answersHateWithDriveBy,closestHated,senseRange,threatDriveByRange} from './simulation/nativeRiderThreat';
 import {ScmDecisionMakers} from './engine/ScmDecisionMakers';
 import {firstPersonMode} from './weapons/nativeFirstPerson';
@@ -710,6 +710,9 @@ async function boot() {
     }
     if(!seated||seated.target.kind!=='script'&&seated.target.kind!=='passenger')return undefined;
     const target=seated.target,piece=direct?.piece??9,point=new Vector3(from.x,from.y,from.z).addScaledVector(direction,seated.t),center=seatedHeadPoint(target);
+    // The native same-type gate precedes impact audio and GenerateDamageEvent. Keep the recognized contact so
+    // the excluded pedestrian does not turn the round back into a hit on his vehicle or someone behind him.
+    if(first?.shooter&&sameNonCivilianPedType({pedType:target.pedType},first.shooter))return {t:seated.t,direct:!!direct,victim:target.rider,hit:()=>undefined};
     const normal=direct?.normal??point.clone().sub(new Vector3(center.x,center.y+OCCUPANT_HEAD_LIFT,center.z)).normalize();
     return {t:seated.t,direct:!!direct,victim:target.rider,hit:(damage,weapon)=>weapons.hitNpcSeatedBullet(target,{point,normal,direction,piece},weapon,()=>target.kind==='passenger'?carEntry.passengerShot(target.car as ScriptCar,target.seat,damage,false,piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon),{weapon,piece}):scriptRiderShot(target.rider as ScriptRider,WeaponSystem.occupantDamage(target,damage,weapon,piece),weapon,false,()=>scriptRiderKilled(target)))};
    },

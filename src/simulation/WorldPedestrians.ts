@@ -31,7 +31,7 @@ import {WalkRoundBuildingRoute,buildingCollisionFacing,type V3 as NativeV3} from
 import {followersToRemove} from '../ped/nativePedGroup';
 import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARGET_TOLERANCE,cornerMoveRatio,cornerSlowing,planFollowNodeRoute,type CornerSlowing,type NodeRouteOptions} from './nativeFollowNodeRoute';
 import {GO_STRAIGHT_MOVE_STATE_RADIUS,SWAT_ROPE_LENGTH,SWAT_ROPE_NODES,SWAT_ROPE_SECONDS,SWAT_ROPE_SHARE_PER_SECOND,swatRopePoint,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,patrolRouteStart,type ScriptedPedOrder,slideToCoordStep,SLIDE_HEADING_TOLERANCE} from './nativeScriptedPedTasks';
-import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NATIVE_PED_TYPES,NativeAcquaintance,nativePedType,pedTypeName,pedTypeInfo,policeDontCareAboutPedType,type Acquainted} from '../ped/nativeAcquaintance';
+import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NATIVE_PED_TYPES,NativeAcquaintance,nativePedType,pedTypeName,pedTypeInfo,policeDontCareAboutPedType,sameNonCivilianPedType,type Acquainted} from '../ped/nativeAcquaintance';
 export {pedTypeName,type Acquainted} from '../ped/nativeAcquaintance';
 import {characterMovement} from './characterMovement';
 import {ANIM_ID,NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
@@ -494,7 +494,6 @@ export const healthAfter=(health:number,damage:number)=>health-damage<1?0:health
 /** Whether a street ped's blow or bullet reaches another ped. CEventDamage::AffectsPed: an invulnerable ped
  * (SET_CHAR_ONLY_DAMAGED_BY_PLAYER) takes nothing but drowning and blasts from anyone else while alive; and
  * CWeapon::DoBulletImpact: a bullet leaves a ped of the shooter's own ped type alone unless that is a civilian. */
-function sameNonCivilianPedType(victim:Acquainted,shooter:Acquainted){const mine=nativePedType(pedTypeName(victim)),theirs=nativePedType(pedTypeName(shooter));return mine!==undefined&&mine===theirs&&mine!==4&&mine!==5;}
 export function npcDamageReaches(victim:{onlyDamagedByPlayer?:boolean;bulletProofVest?:boolean;health:number}&Acquainted,shooter:Acquainted,weapon:number,bullet:boolean,piece?:number){
  if(victim.onlyDamagedByPlayer&&weapon!==WEAPON.drowning&&weapon!==WEAPON.explosion&&victim.health>0)return false;
  if(bulletProofVestStops(victim,weapon,piece))return false;
@@ -3656,7 +3655,7 @@ export class WorldPedestrians {
     // FireInstantHit includes car tyres for every shooter: a wheel sphere before the hit takes the round.
     const reach=shot?.timeOfImpact??lineLength,tyre=bulletTyreHit(cars,muzzle,direction,reach);
     const hitPlayer=(damage:number,type:number,piece:number)=>{if(!this.damagesPlayer(p,type))return false;const accepted=this.sim.damagePlayer(damage,false,{weapon:type,from:{x:muzzle.x,z:muzzle.z},piece,friendly:this.friendlyWithPlayer(p)});this.defendPlayer(p);return accepted;};
-    const seated=this.seatedShot?.(muzzle,direction,lineLength,p.body,shot?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre,playerHit:hitPlayer});
+    const seated=this.seatedShot?.(muzzle,direction,lineLength,p.body,shot?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre,playerHit:hitPlayer,shooter:p});
     const end=muzzle.clone().addScaledVector(direction,seated?.t??tyre?.t??reach);p.flash=.06;
     // SetUpPelletCol (iOS 0x100499000): a shotgun's pellet lines (eight for the SPAS 12, fifteen otherwise) spread with
     // the distance to what the first line hit, and every pellet on that same victim adds the weapon's damage.
@@ -3668,7 +3667,7 @@ export class WorldPedestrians {
       const dir=target.sub(muzzle),length=dir.length();dir.divideScalar(length||1);
       const pellet=this.bulletLine(muzzle,dir,length+.5,{isShootThrough:this.isShootThrough,excludeCollider:p.collider,excludeBody:p.body});
       if(seated?.direct){
-       const stop=pellet?.timeOfImpact??length+.5,pelletTyre=bulletTyreHit(cars,muzzle,dir,stop),rider=this.seatedShot?.(muzzle,dir,length+.5,p.body,pellet?.collider.parent(),{distance:pelletTyre?.t??stop,tyre:!!pelletTyre});
+       const stop=pellet?.timeOfImpact??length+.5,pelletTyre=bulletTyreHit(cars,muzzle,dir,stop),rider=this.seatedShot?.(muzzle,dir,length+.5,p.body,pellet?.collider.parent(),{distance:pelletTyre?.t??stop,tyre:!!pelletTyre,shooter:p});
        if(rider?.direct&&rider.victim===seated.victim)pellets++;
       }else if(pellet?.collider.handle===shot?.collider.handle)pellets++;
      }

@@ -22,6 +22,11 @@ export function pedTypeInfo(p:Acquainted&{officer?:boolean;gang?:number}){
  const pedType=pedTypeName(p),type=nativePedType(pedType);
  return {pedType,officer:pedType===undefined?!!p.officer:type===6,gang:pedType===undefined?p.gang:type!==undefined&&type>=7&&type<=16?type-7:undefined};
 }
+/** DoBulletImpact's nonplayer-ped exclusion: equal native types spare one another except CIVMALE/CIVFEMALE. */
+export function sameNonCivilianPedType(victim:Acquainted,shooter:Acquainted){
+ const mine=nativePedType(pedTypeName(victim)),theirs=nativePedType(pedTypeName(shooter));
+ return mine!==undefined&&mine===theirs&&mine!==4&&mine!==5;
+}
 /** CPedType::PoliceDontCareAboutCrimesAgainstPedType (PC 0x608A40). */
 export function policeDontCareAboutPedType(name:string|undefined){const type=nativePedType(name);return type!==undefined&&(type>=7&&type<=16||type===17||type===20);}
 export class NativeAcquaintance{

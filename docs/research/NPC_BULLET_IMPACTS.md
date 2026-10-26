@@ -55,6 +55,8 @@ completion and a moved gunflash under stale bone world matrices.
 
 The later [seated-impact adapter](NPC_SEATED_BULLET_EFFECTS.md) adds effects for
 the shared CJ, mission-rider and recruited-passenger route.
+The [seated type gate](NPC_SEATED_PED_TYPES.md) also retains known foot-shooter
+identity across that handoff.
 
 Remaining scope includes complete NPC critical
 death/calculator/task behavior, creator/group identity for opaque drive-by

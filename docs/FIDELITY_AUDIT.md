@@ -136,6 +136,18 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
   death state, basic kill/respect counters and repeats. Full Darkel/event timing,
   other death entries, damage calculator and matched PC parity remain open.
 
+## Seated NPC ped-type exclusion (October 26, 2026)
+
+- Foot bullets carry their actual shooter into the seated bridge. Equal
+  noncivilian ped types reject damage and impact effects before application;
+  the recognized contact still stops the round. Script types override models,
+  and NPC vehicle-mounted creators retain their separate path.
+  [PC source and scope](research/NPC_SEATED_PED_TYPES.md).
+- A live officer muzzle verifies COP/CIVMALE occupants in original civilian/cop
+  models, health, contact audio, blood and unchanged car health; the mounted
+  creator check and existing seated/kill regressions pass. Complete opaque NPC
+  identity/group rules, damage calculation and matched PC parity remain open.
+
 ## Scripted rear car passengers (October 25, 2026)
 
 - Rear script riders now render and enter seated-head bullet checks at the same
