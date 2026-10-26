@@ -14706,3 +14706,37 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Normal production smoke passes saved-game return, movement, car entry,
   map/waypoint, pause/resume, takeoff and landing gear without page errors,
   failed requests or a development inspection hook.
+
+## Natural swimming stat training (October 26, 2026)
+
+- Moving surface swimming now trains stamina, while underwater swimming
+  trains both stamina and lung capacity. Separate native counters retain
+  partial training out of the water and during idle treading. Their strict
+  old-counter thresholds, unsigned storage and truncated float milliseconds
+  follow the selected executable. Foot running/sprint training is suppressed
+  while the swim task is active.
+- The independent harness executes selected iOS CStats::UpdateStatsWhenSwimming
+  (0x100265a34) using the packaged AR_STATS.DAT. Its PC body at 0x55C990 remains
+  a retail delegate; the PC ProcessSwimAnims caller is reversed. Ninety-six
+  captured cases cover both flags, exact/exceeded thresholds, separate
+  counters, fractional frames, capped gains and negative-energy fat reactions.
+  All match, regeneration is byte-identical, all 108 focused checks pass,
+  and all 7,254 unit tests pass (51 skipped). Final TypeScript validation and
+  the production build pass too.
+- The live fixture seeds counters beyond their original thresholds and lets
+  ordinary game frames award the gains. Underwater stamina 100→150 and lungs
+  0→50 raise breath capacity 1,150→1,300 without refilling breath. Dry land
+  and idle treading pause training. Keyboard surface swimming then raises
+  stamina to 200, retains lungs 50 and the partial underwater counter, and
+  gives capacity 1,375. The native stat-update HUD is visible, no foot-running
+  training leaks through swimming, and no page errors occur. The prior live
+  breath/recovery/HUD regression passes too.
+- External UpdateFatAndMuscleStats, CheckForStatsMessage and stat-message
+  routine calls are explicitly logged capture stubs. The separate delegated
+  physiology body is not implemented here. Controlled awards do not establish
+  uninterrupted multi-minute PC trials, full animation-manager readiness or
+  complete persistence/task equivalence.
+  [Native counters, actual awards and scope](research/SWIMMING_STAT_TRAINING.md).
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and landing gear without page errors,
+  failed requests or a development inspection hook.

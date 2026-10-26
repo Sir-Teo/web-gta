@@ -29,7 +29,7 @@ import {NativeHunger} from './simulation/nativeHunger';
 import {turnToward} from './simulation/nativePlayerLocomotion';
 import {NativeParachuteTimer,WEAPON_PARACHUTE} from './simulation/nativeParachuteTimer';
 import {sphereTouchingVehicle} from './vehicle/sphereTouchingVehicle';
-import {NativeStatReactions,readActionReactionStats,STAT_BIKE_SKILL} from './simulation/nativeStatReactions';
+import {NativeStatReactions,readActionReactionStats,STAT_BIKE_SKILL,swimTrainingActive} from './simulation/nativeStatReactions';
 import {STAT_CALORIES,STAT_COST_OF_PROPERTY_DAMAGED,STAT_PROGRESS_MADE,ScmStats} from './engine/ScmGameState';
 import {NativeShinyTexts} from './render/NativeShinyTexts';
 import {pedSignalQuad,type ShinyQuad} from './world/nativeShinyTexts';
@@ -3894,8 +3894,8 @@ async function boot() {
         {const game=mission?.runtime.game;
          if(game&&statReactions&&sim.player.health>0){
           const bike=fleet?.occupiedBike,onFoot=!worldCar?.occupied&&!fleet?.occupied&&!bike&&!fleet?.occupiedBoat&&!fleet?.occupiedPlane&&!playerPassenger;
-          if(statFrameDue&&onFoot&&sim.footMove==='sprint')statReactions.sprinting(1000/30);
-          else if(statFrameDue&&onFoot&&sim.footMove==='run')statReactions.running(1000/30);
+          if(statFrameDue&&onFoot&&!sim.player.swimming&&sim.footMove==='sprint')statReactions.sprinting(1000/30);
+          else if(statFrameDue&&onFoot&&!sim.player.swimming&&sim.footMove==='run')statReactions.running(1000/30);
           // CBike counts four wheel contact points.
           if(statFrameDue&&bike?.motorbike){const v=bike.body.linvel();statReactions.onMotorBike(1000/30,Math.hypot(v.x,v.y,v.z)/50,bike.airborne?0:4);}
          }
@@ -4146,6 +4146,8 @@ async function boot() {
           const splash=updatePlayerSwim(sim.player,{moveMag:Math.max(0,axes.y),sprint:(input.down('ShiftLeft')||input.down('ShiftRight'))&&!sim.player.sprintExhausted,jump:jumpPressed,dive:key||mouseFires&&mouse||click,underwaterStroke:render.nativeCharacter?.swimUnderAssociation(),lungCapacity:sim.playerLungCapacity(),drownsInWater:sim.playerDrownsInWater},swimWater,step,carEntry.clips.peek('swim','Swim_Dive_Under')?.duration);
           // CEventDamage::AffectsPed turns WEAPON_DROWNING away from a ped that does not drown.
           if(splash.damage>0&&sim.playerDrownsInWater)sim.damagePlayer(splash.damage,true,{weapon:WEAPON.drowning});
+          // ProcessSwimAnims trains moving surface swimmers and underwater swimmers, once a game frame.
+          if(statFrameDue&&sim.player.health>0&&swimTrainingActive(sim.player.swimming,sim.player.swimBlend,sim.player.swimState))statReactions?.swimming(50/30,sim.player.swimState===SWIM.underwaterSprinting,sim.player.swimState===SWIM.sprinting);
           controls={...controls,swimWater,jump:sim.player.swimming?false:controls.jump};
           swimJumpoutSeconds=sim.player.swimming&&sim.player.swimState===SWIM.backToSurface?(swimJumpoutSeconds??0)+step:undefined;
         }

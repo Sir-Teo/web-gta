@@ -40,5 +40,14 @@ The selected executable's mode-8 stat modifier now supplies initial/reset
 breath, dry/vehicle/swim recovery and HUD scaling. Initial stats give 1,150;
 maximized lung and stamina stats give 4,000. Stat changes retain current
 breath. Sixty-three independent captures and live underwater/recovery/HUD
-checks cover the change. Natural swimming stat training remains separate.
+checks cover the change. Natural swimming stat training is integrated in the follow-up below.
 [Captured modifier, reset caller and integration](PLAYER_LUNG_CAPACITY.md).
+
+## Natural swimming training (October 26, 2026)
+
+Moving surface swimming now trains stamina, and underwater swimming trains
+both stamina and lung capacity through separate captured native counters.
+Dry land and idle treading pause the counters. Controlled ordinary-frame
+awards reach current breath capacity and the stat-update HUD without
+refilling breath; foot-running training is suppressed while swimming.
+[Executable captures, live controls and remaining physiology limits](SWIMMING_STAT_TRAINING.md).

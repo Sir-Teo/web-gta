@@ -80,6 +80,7 @@ map/waypoint, pause/resume, takeoff and landing gear without page errors,
 failed requests or a development inspection hook.
 
 This change establishes the represented selected-executable modifier and
-its host integration. Matched original-PC captures, natural swimming stat
-training, complete stat persistence, native animation blending and complete
+its host integration. Natural swimming stat training is integrated in the
+[follow-up](SWIMMING_STAT_TRAINING.md). Matched original-PC captures,
+complete stat persistence, native animation blending and complete
 swim/drowning event behavior remain separate work.
