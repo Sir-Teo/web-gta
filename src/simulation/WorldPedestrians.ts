@@ -52,7 +52,7 @@ import {playerCollisionWithPedResponse} from '../ped/nativePlayerBump';
 import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, MELEE_SWING_CLIPS, attackLineDistance, fightingStyleCombo, meleeAttackFalls } from './nativeMelee';
 import { nextChainIndex, resolveStrike, chainCooldown, inStrikeCone } from '../combat/meleeChain';
 import { decideDamageResponse, applyDamageResponse } from '../ped/brain';
-import { playerPunchDamage, scaleBlow, npcPunchDamage,healthAfter,spendPedArmour } from '../ped/damage';
+import { playerPunchDamage, scaleBlow, npcPunchDamage,healthAfter,healthAfterFloat32,pedDamageFactor,spendPedArmour,spendPedArmourFloat32 } from '../ped/damage';
 import {copArmour,type PedVitals} from '../ped/nativeCopVitals';
 export {copArmour,copHealth} from '../ped/nativeCopVitals';
 export {healthAfter} from '../ped/damage';
@@ -895,12 +895,12 @@ export class WorldPedestrians {
     // iOS CPedDamageResponseCalculator::AccountForPedDamageStats (0x10028a070): any weapon's damage times the victim's
     // pedstats defend weakness (a melee blow's is in playerPunchDamage); then the player's own blow on a member of his
     // group, short of a flamethrower or a blast, is cut to a tenth and to 12.5 at most.
-    let applied=base*(kind==='melee'?playerPunchDamage(1,p.defendMult):p.defendMult);
+    let applied=kind==='bullet'?pedDamageFactor(base,p.defendMult):base*(kind==='melee'?playerPunchDamage(1,p.defendMult):p.defendMult);
     const weaponType=hit?.weapon??(kind==='explosion'?WEAPON.explosion:undefined);
-    if(byPlayer&&p.follow&&weaponType!==WEAPON.flamethrower&&weaponType!==WEAPON.explosion)applied=Math.min(applied*FRIENDLY_DAMAGE_FACTOR,FRIENDLY_DAMAGE_CAP);
-    const response=spendPedArmour(applied,p.armour,weaponType),beforeHealth=p.health;
+    if(byPlayer&&p.follow&&weaponType!==WEAPON.flamethrower&&weaponType!==WEAPON.explosion)applied=Math.min(kind==='bullet'?Math.fround(applied*Math.fround(FRIENDLY_DAMAGE_FACTOR)):applied*FRIENDLY_DAMAGE_FACTOR,FRIENDLY_DAMAGE_CAP);
+    const response=(kind==='bullet'?spendPedArmourFloat32:spendPedArmour)(applied,p.armour,weaponType),beforeHealth=p.health;
     p.armour=response.armour;
-    p.health=megaPunch||headshot?0:healthAfter(p.health,response.damageHealth);
+    p.health=megaPunch||headshot?0:(kind==='bullet'?healthAfterFloat32:healthAfter)(p.health,response.damageHealth);
     applied=beforeHealth-p.health;
     const q=p.actor.player.position,from={x:q.x-direction.x,z:q.z-direction.z};
     const weapon=hit?.weapon??(kind==='melee'?WEAPON.unarmed:kind==='explosion'?WEAPON.explosion:kind==='spray'?WEAPON.spraycan:WEAPON.pistol);
@@ -1974,9 +1974,9 @@ export class WorldPedestrians {
   if(shooter)this.noteEvent(victim,EVENT.damage);
   // AccountForPedDamageStats always applies victim weakness. Known foot sources retain their event/damager
   // metadata; external ped context currently supplies type/group acceptance, not a complete event source.
-  const dealt=shooter?this.pedOnPedDamage(victim,shooter,damage,weapon):damage*victim.defendMult;
-  const response=spendPedArmour(dealt,victim.armour,weapon),beforeHealth=victim.health;
-  victim.armour=response.armour;victim.health=npcFootBulletCritical(victim,weapon,piece??this.hitPiece(victim,end))?0:healthAfter(victim.health,response.damageHealth);
+  const dealt=shooter?this.pedOnPedDamage(victim,shooter,damage,weapon):pedDamageFactor(damage,victim.defendMult);
+  const response=spendPedArmourFloat32(dealt,victim.armour,weapon),beforeHealth=victim.health;
+  victim.armour=response.armour;victim.health=npcFootBulletCritical(victim,weapon,piece??this.hitPiece(victim,end))?0:healthAfterFloat32(victim.health,response.damageHealth);
   if(beforeHealth-victim.health+response.damageArmour>0)victim.lastWeaponDamage=weapon;
   if(!victim.health)this.onKill?.({id:victim.id,...pedTypeInfo(victim),recruit:!!victim.follow,byPlayer:false});
   const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};
@@ -2505,10 +2505,10 @@ export class WorldPedestrians {
   * weakness, then for a mission ped hit by a member of its own group (short of a flamethrower or a blast) a tenth,
   * 12.5 at most. */
  private pedOnPedDamage(victim:Pedestrian,damager:Pedestrian,damage:number,weapon:number){
-  const scaled=damage*victim.defendMult;
+  const scaled=pedDamageFactor(damage,victim.defendMult);
   if(!victim.mission||weapon===WEAPON.flamethrower||weapon===WEAPON.explosion)return scaled;
   const sameGroup=victim.follow&&damager.follow||!!victim.party&&victim.party===damager.party||!!this.sameScriptGroup?.(victim,damager);
-  return sameGroup?Math.min(scaled*FRIENDLY_DAMAGE_FACTOR,FRIENDLY_DAMAGE_CAP):scaled;
+  return sameGroup?Math.min(Math.fround(scaled*Math.fround(FRIENDLY_DAMAGE_FACTOR)),FRIENDLY_DAMAGE_CAP):scaled;
  }
  /** The known player group, including script members without the street follow flag. */
  inPlayerGroup?:(source:Acquainted&{follow?:boolean})=>boolean;

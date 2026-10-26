@@ -14187,3 +14187,20 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - The PC CRT stream, player-creator aim flags, non-firearm force rules, legacy
   vehicle-to-foot entries and matched PC traces remain open.
   [Native execution, scope and checks](research/NPC_CRITICAL_HEADS.md).
+
+## Native float fields in foot-ped bullet damage (October 26, 2026)
+
+- Bullet damage now rounds native input fields, weakness multiplication,
+  armour subtraction and health remainder to float32. This repairs a concrete
+  exact-one-HP kill: 28.5 minus a 25-damage hit at weakness 1.1 previously left
+  a double remainder just below one. Native factor 27.5 leaves exactly one.
+- NPC accepted bullet calculation and player/nonplayer physical bullet entries
+  use the native fields, including player friendly scaling. Non-bullet generic
+  entries retain their existing behavior.
+- Six initial integration checks expose all six failures before repair;
+  thirteen precision cases and 72 focused checks pass. The build and twelve
+  real pistol/NPC/mounted-gun shots pass, including post-frame one-HP survival,
+  partial armour, exact armour and genuine below-one death. The critical-head
+  live regression passes too, with no page errors. All 6,019 unit tests pass
+  (51 skipped), together with the final build and production smoke.
+  [Native math, boundaries and checks](research/PED_BULLET_FLOAT_FIELDS.md).

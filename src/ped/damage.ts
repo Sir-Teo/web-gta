@@ -20,6 +20,14 @@ export function spendPedArmour(damage:number,armour=0,weapon?:number){
  return {armour:armour-absorbed,damageHealth:damage-absorbed,damageArmour:absorbed};
 }
 
+/** AccountForPedDamageStats's native float input fields and multiply. */
+export function pedDamageFactor(damage:number,defend:number){return Math.fround(Math.fround(damage)*Math.fround(defend));}
+/** AccountForPedArmour's float fields and subtractions for native calculator entries. */
+export function spendPedArmourFloat32(damage:number,armour=0,weapon?:number){
+ const response=spendPedArmour(Math.fround(damage),Math.fround(armour),weapon);
+ return {armour:Math.fround(response.armour),damageHealth:Math.fround(response.damageHealth),damageArmour:Math.fround(response.damageArmour)};
+}
+
 /** DAMAGE_CHAR (0851), iOS 0x1001fea44 / 0x1001fee30: direct float fields, optional armour,
  * no damage stats/proofs or one-HP calculator boundary. Negative amounts also follow the native subtraction. */
 export function scriptPedDamage(health:number,armour:number,amount:number,damageArmour:boolean){
