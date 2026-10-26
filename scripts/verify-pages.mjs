@@ -55,21 +55,23 @@ try{
  await page.keyboard.down('KeyW');
  // Rotate the Rustler at 115 km/h, or accept a natural climb already above 15 m. Waiting for 150 left it below
  // 120 km/h in a low hop until it hit the boneyard. At 100 the first climb can run out of airspeed at 15 m.
- // Release the elevator once clearly airborne: holding full pitch through the climb over-rotates and stalls.
+ // Release after a short measured climb: an existing hop above 5 m must not cancel rotation immediately.
  // Use measured AGL rather than a wall-time pulse, which can end while streaming holds the simulation.
  let latestFlight;
  const flight=async()=>{const text=await page.locator('.flight-instruments').innerText(),sample={wall:Date.now(),speed:Number(text.match(/(\d+) km\/h/)?.[1]),altitude:Number(text.match(/(\d+) m AGL/)?.[1])};flightSamples.push(sample);latestFlight=sample;return sample;};
  // Control decisions need a regular cadence: Playwright's default backoff reaches one second, enough to travel
  // another 28 metres at rotation speed. Use the sample that crossed the threshold instead of reading again.
  await expect.poll(async()=>{const f=await flight();return f.speed>115||f.altitude>15;},{timeout:45000,intervals:[100]}).toBe(true);
- const takeoffMode=latestFlight.altitude>15?'natural':'rotation';
+ const takeoffMode=latestFlight.altitude>15?'natural':'rotation',releaseAltitude=Math.max(5,latestFlight.altitude+3);
  if(takeoffMode==='rotation')await page.keyboard.down('ArrowDown');
  let elevatorHeld=takeoffMode==='rotation';
- try{await expect.poll(async()=>{const f=await flight();if(elevatorHeld&&f.altitude>=5){await page.keyboard.up('ArrowDown');elevatorHeld=false;}return f.altitude;},{timeout:20000,intervals:[100]}).toBeGreaterThan(15);}
+ try{await expect.poll(async()=>{const f=await flight();if(elevatorHeld&&f.altitude>=releaseAltitude){await page.keyboard.up('ArrowDown');elevatorHeld=false;}return f.altitude;},{timeout:20000,intervals:[100]}).toBeGreaterThan(15);}
  finally{if(takeoffMode==='rotation')await page.keyboard.up('ArrowDown');}
- await page.keyboard.up('KeyW');
+ // Below 30 m, native ProcessControlInputs lowers fully retracted gear when throttle is released.
+ // Keep climb power through the gear check so Gear UP is a stable state, not a one-frame transition.
  await page.keyboard.press('KeyG');await expect(page.locator('.flight-instruments')).toContainText('Gear UP');
  await page.screenshot({path:`artifacts/pages-${remote?'live':'production'}-flight.png`});
+ await page.keyboard.up('KeyW');
  expect(errors).toEqual([]);expect(failures).toEqual([]);expect(await page.evaluate(()=>typeof window.__game)).toBe('undefined');
  console.log(JSON.stringify({url,loaded:true,saveResume:true,walkingFramesChanged:true,nativeCarEntered:true,nativeMapWaypoint:true,pauseResume:true,aircraftTakeoff:true,takeoffMode,landingGear:true,errors,failedRequests:failures}));
 }catch(error){

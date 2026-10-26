@@ -81,3 +81,25 @@ artifacts/aircraft-rotation-margin-production.json; the original and 5 m-release
 failures remain in artifacts/npc-ambient-seats-flight-failure.* and
 artifacts/aircraft-release-5m-failure.json. These trials do not establish matched
 retail PC flight dynamics or resolve all aircraft/streaming behavior.
+
+### Gear-check throttle follow-up (October 26, 2026)
+
+A later production run cleared takeoff and reached 21 m AGL, but its gear check
+failed with throttle at zero. The failure capture briefly showed Gear UP
+afterward. Native ProcessControlInputs (`0x100469930`, already used by
+WorldPlane.stepGear) automatically lowers fully retracted gear within 30 units
+of the ground when acceleration is released. The verifier released W before
+pressing G, making Gear UP a transient state. It now keeps climb power through
+the gear check and screenshot, then releases W. The native gear algorithm,
+transition timing, altitude/speed thresholds and aircraft dynamics are unchanged.
+The failure HUD and samples remain in artifacts/player-float-gear-failure*.
+
+A subsequent run rotated at 116 km/h while already in a 12 m hop. Releasing
+as soon as AGL was at least 5 m cancelled that rotation immediately, and the
+climb peaked at 15 m. The release target is now max(5, rotation AGL + 3), so an
+existing hop still receives a short measured pull. The original greater-than-
+15-m requirement and 20-second deadline are retained. Production passes with
+this relative-climb release and throttle held through gear retraction, without
+page errors or failed requests. Verified samples are retained in
+artifacts/player-float-production-verified.json; the initial-hop failure remains
+in artifacts/player-float-takeoff-115-failure.*.
