@@ -52,7 +52,7 @@ import {playerCollisionWithPedResponse} from '../ped/nativePlayerBump';
 import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, MELEE_SWING_CLIPS, attackLineDistance, fightingStyleCombo, meleeAttackFalls } from './nativeMelee';
 import { nextChainIndex, resolveStrike, chainCooldown, inStrikeCone } from '../combat/meleeChain';
 import { decideDamageResponse, applyDamageResponse } from '../ped/brain';
-import { playerPunchDamage, scaleBlow, npcPunchDamage,healthAfter,healthAfterFloat32,pedDamageFactor,spendPedArmour,spendPedArmourFloat32 } from '../ped/damage';
+import { playerPunchDamage, npcPunchDamage,healthAfter,healthAfterFloat32,pedDamageFactor,spendPedArmour,spendPedArmourFloat32 } from '../ped/damage';
 import {copArmour,type PedVitals} from '../ped/nativeCopVitals';
 export {copArmour,copHealth} from '../ped/nativeCopVitals';
 export {healthAfter} from '../ped/damage';
@@ -3054,12 +3054,17 @@ export class WorldPedestrians {
    * CEventDamage::ComputeAnim with the attacker's fight move, and the victim answers the attacker. */
   private strikeFoe(p:Pedestrian,foe:Pedestrian,stage:0|1|2,damage:number){
    if(pedProofedAgainst(foe,'melee')||!npcDamageReaches(foe,p,WEAPON.unarmed,false))return;
+   // CEventDamage::AffectsPed's group gate also applies to fists; unlike DoBulletImpact, equal ped types alone do not reject a blow.
+   const sourceType=nativePedType(pedTypeName(p));
+   if(sourceType!==0&&sourceType!==1&&(p.follow&&foe.follow||this.sameScriptGroup?.(foe,p)))return;
    foe.lastDamagedBy={ped:p};
-   const applied=megaPunchBlow(WEAPON.unarmed)?foe.health:scaleBlow(damage,p.attackMult,foe.defendMult);foe.health=healthAfter(foe.health,applied);
-   if(applied>0)foe.lastWeaponDamage=WEAPON.unarmed;
+   const dealt=pedDamageFactor(pedDamageFactor(damage,p.attackMult),foe.defendMult),response=spendPedArmourFloat32(dealt,foe.armour,WEAPON.unarmed),before=Math.fround(foe.health);
+   foe.armour=response.armour;foe.health=megaPunchBlow(WEAPON.unarmed)?0:healthAfterFloat32(before,response.damageHealth);
+   const applied=foe.health===0?before:response.damageHealth;
+   if(applied+response.damageArmour>0)foe.lastWeaponDamage=WEAPON.unarmed;
    this.onMeleeHit?.({...foe.actor.player.position},false);
    const q=p.actor.player.position,from={x:q.x,z:q.z};
-   const reaction=this.damageReaction(foe,WEAPON.unarmed,applied,from,undefined,false,{move:stage});
+   const reaction=this.damageReaction(foe,WEAPON.unarmed,applied,from,undefined,false,{move:stage},false,undefined,response.damageArmour);
    if(!this.applyReaction(foe,reaction,from)&&foe.health>0)foe.stagger=.5;
    // CTaskSimpleBeHit: hit from the front by a ped that is not the player, the victim turns to face the attacker.
    if(foe.health>0){const fq=foe.actor.player.position,ax=q.x-fq.x,az=q.z-fq.z,facing=Math.atan2(ax,az),diff=Math.atan2(Math.sin(facing-foe.actor.player.heading),Math.cos(facing-foe.actor.player.heading));if(Math.abs(diff)<=Math.PI/4)foe.actor.player.heading=facing;}

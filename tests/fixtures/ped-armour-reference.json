@@ -1,0 +1,970 @@
+{
+  "source": "Pinned iOS arm64 instructions executed with Unicorn 2.1.4; NPC victim; FindPlayerPed returns null",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "region": [
+    "0x100289d30",
+    "0x100289dc8"
+  ],
+  "cases": [
+    {
+      "weapon": 0,
+      "damage": 0,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 0,
+      "damage": 0,
+      "armour": 1,
+      "remainingArmour": 1.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 0,
+      "damage": 0,
+      "armour": 27,
+      "remainingArmour": 27.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 0,
+      "damage": 0,
+      "armour": 40,
+      "remainingArmour": 40.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 0,
+      "damage": 0.1,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 0.10000000149011612,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 0,
+      "damage": 0.1,
+      "armour": 1,
+      "remainingArmour": 0.8999999761581421,
+      "damageHealth": 0.0,
+      "damageArmour": 0.10000000149011612
+    },
+    {
+      "weapon": 0,
+      "damage": 0.1,
+      "armour": 27,
+      "remainingArmour": 26.899999618530273,
+      "damageHealth": 0.0,
+      "damageArmour": 0.10000000149011612
+    },
+    {
+      "weapon": 0,
+      "damage": 0.1,
+      "armour": 40,
+      "remainingArmour": 39.900001525878906,
+      "damageHealth": 0.0,
+      "damageArmour": 0.10000000149011612
+    },
+    {
+      "weapon": 0,
+      "damage": 6.6,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 6.599999904632568,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 0,
+      "damage": 6.6,
+      "armour": 1,
+      "remainingArmour": 0.0,
+      "damageHealth": 5.599999904632568,
+      "damageArmour": 1.0
+    },
+    {
+      "weapon": 0,
+      "damage": 6.6,
+      "armour": 27,
+      "remainingArmour": 20.399999618530273,
+      "damageHealth": 0.0,
+      "damageArmour": 6.599999904632568
+    },
+    {
+      "weapon": 0,
+      "damage": 6.6,
+      "armour": 40,
+      "remainingArmour": 33.400001525878906,
+      "damageHealth": 0.0,
+      "damageArmour": 6.599999904632568
+    },
+    {
+      "weapon": 0,
+      "damage": 27.5,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 27.5,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 0,
+      "damage": 27.5,
+      "armour": 1,
+      "remainingArmour": 0.0,
+      "damageHealth": 26.5,
+      "damageArmour": 1.0
+    },
+    {
+      "weapon": 0,
+      "damage": 27.5,
+      "armour": 27,
+      "remainingArmour": 0.0,
+      "damageHealth": 0.5,
+      "damageArmour": 27.0
+    },
+    {
+      "weapon": 0,
+      "damage": 27.5,
+      "armour": 40,
+      "remainingArmour": 12.5,
+      "damageHealth": 0.0,
+      "damageArmour": 27.5
+    },
+    {
+      "weapon": 0,
+      "damage": 41,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 41.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 0,
+      "damage": 41,
+      "armour": 1,
+      "remainingArmour": 0.0,
+      "damageHealth": 40.0,
+      "damageArmour": 1.0
+    },
+    {
+      "weapon": 0,
+      "damage": 41,
+      "armour": 27,
+      "remainingArmour": 0.0,
+      "damageHealth": 14.0,
+      "damageArmour": 27.0
+    },
+    {
+      "weapon": 0,
+      "damage": 41,
+      "armour": 40,
+      "remainingArmour": 0.0,
+      "damageHealth": 1.0,
+      "damageArmour": 40.0
+    },
+    {
+      "weapon": 1,
+      "damage": 0,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 1,
+      "damage": 0,
+      "armour": 1,
+      "remainingArmour": 1.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 1,
+      "damage": 0,
+      "armour": 27,
+      "remainingArmour": 27.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 1,
+      "damage": 0,
+      "armour": 40,
+      "remainingArmour": 40.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 1,
+      "damage": 0.1,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 0.10000000149011612,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 1,
+      "damage": 0.1,
+      "armour": 1,
+      "remainingArmour": 0.8999999761581421,
+      "damageHealth": 0.0,
+      "damageArmour": 0.10000000149011612
+    },
+    {
+      "weapon": 1,
+      "damage": 0.1,
+      "armour": 27,
+      "remainingArmour": 26.899999618530273,
+      "damageHealth": 0.0,
+      "damageArmour": 0.10000000149011612
+    },
+    {
+      "weapon": 1,
+      "damage": 0.1,
+      "armour": 40,
+      "remainingArmour": 39.900001525878906,
+      "damageHealth": 0.0,
+      "damageArmour": 0.10000000149011612
+    },
+    {
+      "weapon": 1,
+      "damage": 6.6,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 6.599999904632568,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 1,
+      "damage": 6.6,
+      "armour": 1,
+      "remainingArmour": 0.0,
+      "damageHealth": 5.599999904632568,
+      "damageArmour": 1.0
+    },
+    {
+      "weapon": 1,
+      "damage": 6.6,
+      "armour": 27,
+      "remainingArmour": 20.399999618530273,
+      "damageHealth": 0.0,
+      "damageArmour": 6.599999904632568
+    },
+    {
+      "weapon": 1,
+      "damage": 6.6,
+      "armour": 40,
+      "remainingArmour": 33.400001525878906,
+      "damageHealth": 0.0,
+      "damageArmour": 6.599999904632568
+    },
+    {
+      "weapon": 1,
+      "damage": 27.5,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 27.5,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 1,
+      "damage": 27.5,
+      "armour": 1,
+      "remainingArmour": 0.0,
+      "damageHealth": 26.5,
+      "damageArmour": 1.0
+    },
+    {
+      "weapon": 1,
+      "damage": 27.5,
+      "armour": 27,
+      "remainingArmour": 0.0,
+      "damageHealth": 0.5,
+      "damageArmour": 27.0
+    },
+    {
+      "weapon": 1,
+      "damage": 27.5,
+      "armour": 40,
+      "remainingArmour": 12.5,
+      "damageHealth": 0.0,
+      "damageArmour": 27.5
+    },
+    {
+      "weapon": 1,
+      "damage": 41,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 41.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 1,
+      "damage": 41,
+      "armour": 1,
+      "remainingArmour": 0.0,
+      "damageHealth": 40.0,
+      "damageArmour": 1.0
+    },
+    {
+      "weapon": 1,
+      "damage": 41,
+      "armour": 27,
+      "remainingArmour": 0.0,
+      "damageHealth": 14.0,
+      "damageArmour": 27.0
+    },
+    {
+      "weapon": 1,
+      "damage": 41,
+      "armour": 40,
+      "remainingArmour": 0.0,
+      "damageHealth": 1.0,
+      "damageArmour": 40.0
+    },
+    {
+      "weapon": 3,
+      "damage": 0,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 3,
+      "damage": 0,
+      "armour": 1,
+      "remainingArmour": 1.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 3,
+      "damage": 0,
+      "armour": 27,
+      "remainingArmour": 27.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 3,
+      "damage": 0,
+      "armour": 40,
+      "remainingArmour": 40.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 3,
+      "damage": 0.1,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 0.10000000149011612,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 3,
+      "damage": 0.1,
+      "armour": 1,
+      "remainingArmour": 0.8999999761581421,
+      "damageHealth": 0.0,
+      "damageArmour": 0.10000000149011612
+    },
+    {
+      "weapon": 3,
+      "damage": 0.1,
+      "armour": 27,
+      "remainingArmour": 26.899999618530273,
+      "damageHealth": 0.0,
+      "damageArmour": 0.10000000149011612
+    },
+    {
+      "weapon": 3,
+      "damage": 0.1,
+      "armour": 40,
+      "remainingArmour": 39.900001525878906,
+      "damageHealth": 0.0,
+      "damageArmour": 0.10000000149011612
+    },
+    {
+      "weapon": 3,
+      "damage": 6.6,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 6.599999904632568,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 3,
+      "damage": 6.6,
+      "armour": 1,
+      "remainingArmour": 0.0,
+      "damageHealth": 5.599999904632568,
+      "damageArmour": 1.0
+    },
+    {
+      "weapon": 3,
+      "damage": 6.6,
+      "armour": 27,
+      "remainingArmour": 20.399999618530273,
+      "damageHealth": 0.0,
+      "damageArmour": 6.599999904632568
+    },
+    {
+      "weapon": 3,
+      "damage": 6.6,
+      "armour": 40,
+      "remainingArmour": 33.400001525878906,
+      "damageHealth": 0.0,
+      "damageArmour": 6.599999904632568
+    },
+    {
+      "weapon": 3,
+      "damage": 27.5,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 27.5,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 3,
+      "damage": 27.5,
+      "armour": 1,
+      "remainingArmour": 0.0,
+      "damageHealth": 26.5,
+      "damageArmour": 1.0
+    },
+    {
+      "weapon": 3,
+      "damage": 27.5,
+      "armour": 27,
+      "remainingArmour": 0.0,
+      "damageHealth": 0.5,
+      "damageArmour": 27.0
+    },
+    {
+      "weapon": 3,
+      "damage": 27.5,
+      "armour": 40,
+      "remainingArmour": 12.5,
+      "damageHealth": 0.0,
+      "damageArmour": 27.5
+    },
+    {
+      "weapon": 3,
+      "damage": 41,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 41.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 3,
+      "damage": 41,
+      "armour": 1,
+      "remainingArmour": 0.0,
+      "damageHealth": 40.0,
+      "damageArmour": 1.0
+    },
+    {
+      "weapon": 3,
+      "damage": 41,
+      "armour": 27,
+      "remainingArmour": 0.0,
+      "damageHealth": 14.0,
+      "damageArmour": 27.0
+    },
+    {
+      "weapon": 3,
+      "damage": 41,
+      "armour": 40,
+      "remainingArmour": 0.0,
+      "damageHealth": 1.0,
+      "damageArmour": 40.0
+    },
+    {
+      "weapon": 22,
+      "damage": 0,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 22,
+      "damage": 0,
+      "armour": 1,
+      "remainingArmour": 1.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 22,
+      "damage": 0,
+      "armour": 27,
+      "remainingArmour": 27.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 22,
+      "damage": 0,
+      "armour": 40,
+      "remainingArmour": 40.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 22,
+      "damage": 0.1,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 0.10000000149011612,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 22,
+      "damage": 0.1,
+      "armour": 1,
+      "remainingArmour": 0.8999999761581421,
+      "damageHealth": 0.0,
+      "damageArmour": 0.10000000149011612
+    },
+    {
+      "weapon": 22,
+      "damage": 0.1,
+      "armour": 27,
+      "remainingArmour": 26.899999618530273,
+      "damageHealth": 0.0,
+      "damageArmour": 0.10000000149011612
+    },
+    {
+      "weapon": 22,
+      "damage": 0.1,
+      "armour": 40,
+      "remainingArmour": 39.900001525878906,
+      "damageHealth": 0.0,
+      "damageArmour": 0.10000000149011612
+    },
+    {
+      "weapon": 22,
+      "damage": 6.6,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 6.599999904632568,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 22,
+      "damage": 6.6,
+      "armour": 1,
+      "remainingArmour": 0.0,
+      "damageHealth": 5.599999904632568,
+      "damageArmour": 1.0
+    },
+    {
+      "weapon": 22,
+      "damage": 6.6,
+      "armour": 27,
+      "remainingArmour": 20.399999618530273,
+      "damageHealth": 0.0,
+      "damageArmour": 6.599999904632568
+    },
+    {
+      "weapon": 22,
+      "damage": 6.6,
+      "armour": 40,
+      "remainingArmour": 33.400001525878906,
+      "damageHealth": 0.0,
+      "damageArmour": 6.599999904632568
+    },
+    {
+      "weapon": 22,
+      "damage": 27.5,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 27.5,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 22,
+      "damage": 27.5,
+      "armour": 1,
+      "remainingArmour": 0.0,
+      "damageHealth": 26.5,
+      "damageArmour": 1.0
+    },
+    {
+      "weapon": 22,
+      "damage": 27.5,
+      "armour": 27,
+      "remainingArmour": 0.0,
+      "damageHealth": 0.5,
+      "damageArmour": 27.0
+    },
+    {
+      "weapon": 22,
+      "damage": 27.5,
+      "armour": 40,
+      "remainingArmour": 12.5,
+      "damageHealth": 0.0,
+      "damageArmour": 27.5
+    },
+    {
+      "weapon": 22,
+      "damage": 41,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 41.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 22,
+      "damage": 41,
+      "armour": 1,
+      "remainingArmour": 0.0,
+      "damageHealth": 40.0,
+      "damageArmour": 1.0
+    },
+    {
+      "weapon": 22,
+      "damage": 41,
+      "armour": 27,
+      "remainingArmour": 0.0,
+      "damageHealth": 14.0,
+      "damageArmour": 27.0
+    },
+    {
+      "weapon": 22,
+      "damage": 41,
+      "armour": 40,
+      "remainingArmour": 0.0,
+      "damageHealth": 1.0,
+      "damageArmour": 40.0
+    },
+    {
+      "weapon": 53,
+      "damage": 0,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 0,
+      "armour": 1,
+      "remainingArmour": 1.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 0,
+      "armour": 27,
+      "remainingArmour": 27.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 0,
+      "armour": 40,
+      "remainingArmour": 40.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 0.1,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 0.10000000149011612,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 0.1,
+      "armour": 1,
+      "remainingArmour": 1.0,
+      "damageHealth": 0.10000000149011612,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 0.1,
+      "armour": 27,
+      "remainingArmour": 27.0,
+      "damageHealth": 0.10000000149011612,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 0.1,
+      "armour": 40,
+      "remainingArmour": 40.0,
+      "damageHealth": 0.10000000149011612,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 6.6,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 6.599999904632568,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 6.6,
+      "armour": 1,
+      "remainingArmour": 1.0,
+      "damageHealth": 6.599999904632568,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 6.6,
+      "armour": 27,
+      "remainingArmour": 27.0,
+      "damageHealth": 6.599999904632568,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 6.6,
+      "armour": 40,
+      "remainingArmour": 40.0,
+      "damageHealth": 6.599999904632568,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 27.5,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 27.5,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 27.5,
+      "armour": 1,
+      "remainingArmour": 1.0,
+      "damageHealth": 27.5,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 27.5,
+      "armour": 27,
+      "remainingArmour": 27.0,
+      "damageHealth": 27.5,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 27.5,
+      "armour": 40,
+      "remainingArmour": 40.0,
+      "damageHealth": 27.5,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 41,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 41.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 41,
+      "armour": 1,
+      "remainingArmour": 1.0,
+      "damageHealth": 41.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 41,
+      "armour": 27,
+      "remainingArmour": 27.0,
+      "damageHealth": 41.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 53,
+      "damage": 41,
+      "armour": 40,
+      "remainingArmour": 40.0,
+      "damageHealth": 41.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 0,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 0,
+      "armour": 1,
+      "remainingArmour": 1.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 0,
+      "armour": 27,
+      "remainingArmour": 27.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 0,
+      "armour": 40,
+      "remainingArmour": 40.0,
+      "damageHealth": 0.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 0.1,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 0.10000000149011612,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 0.1,
+      "armour": 1,
+      "remainingArmour": 1.0,
+      "damageHealth": 0.10000000149011612,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 0.1,
+      "armour": 27,
+      "remainingArmour": 27.0,
+      "damageHealth": 0.10000000149011612,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 0.1,
+      "armour": 40,
+      "remainingArmour": 40.0,
+      "damageHealth": 0.10000000149011612,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 6.6,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 6.599999904632568,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 6.6,
+      "armour": 1,
+      "remainingArmour": 1.0,
+      "damageHealth": 6.599999904632568,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 6.6,
+      "armour": 27,
+      "remainingArmour": 27.0,
+      "damageHealth": 6.599999904632568,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 6.6,
+      "armour": 40,
+      "remainingArmour": 40.0,
+      "damageHealth": 6.599999904632568,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 27.5,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 27.5,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 27.5,
+      "armour": 1,
+      "remainingArmour": 1.0,
+      "damageHealth": 27.5,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 27.5,
+      "armour": 27,
+      "remainingArmour": 27.0,
+      "damageHealth": 27.5,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 27.5,
+      "armour": 40,
+      "remainingArmour": 40.0,
+      "damageHealth": 27.5,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 41,
+      "armour": 0,
+      "remainingArmour": 0.0,
+      "damageHealth": 41.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 41,
+      "armour": 1,
+      "remainingArmour": 1.0,
+      "damageHealth": 41.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 41,
+      "armour": 27,
+      "remainingArmour": 27.0,
+      "damageHealth": 41.0,
+      "damageArmour": 0.0
+    },
+    {
+      "weapon": 54,
+      "damage": 41,
+      "armour": 40,
+      "remainingArmour": 40.0,
+      "damageHealth": 41.0,
+      "damageArmour": 0.0
+    }
+  ]
+}

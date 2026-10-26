@@ -14270,3 +14270,30 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - PC AccountForPedDamageStats remains a retail delegate in the inspected
   source; complete calculator equivalence and raw source/event bookkeeping
   remain open. [Evidence and scope](research/NPC_PLAYER_DAMAGE_ACCEPTANCE.md#accepted-drive-by-friendship-october-26-2026).
+
+## NPC fist armour and float response (October 26, 2026)
+
+- On-foot NPC fist blows now spend native float armour before health, retain
+  exact-one survivors and pass the native health/armour response to animation.
+  Mega punch spends the ordinary armour factor before forcing death. Known
+  nonplayer groupmates are rejected before damage; equal ped type alone does
+  not reject melee, and native player-source exceptions remain.
+- Independent execution of the pinned iOS armour instructions supplies 120
+  saved captures. Five initial host cases, two group cases and one attack-field
+  rounding case expose eight failures across the staged repair. All 135 new
+  cases and 180 focused checks pass, together with the build.
+- The native MALE01 kickboxing fixture passes exact-one survival with and
+  without partial armour, full absorption, script-group rejection and genuine
+  below-one death. All twelve accepted blows retain their move and native
+  damage/armour response, with one fatal callback and post-frame health checks.
+  The police baton live regression passes too, without page errors.
+- The player mouse combo/ground-kick regression passes twice after the
+  fixture stops serializing the whole world between native chain inputs and
+  removes duplicate reads. Its saved trace retains actual inputs, queued
+  strikes and move timing. All 6,189 unit tests pass (51 skipped).
+- The final build and full production smoke pass, including saved-game return,
+  walking, native car entry, map/waypoint, pause/resume, Rustler takeoff and gear,
+  with no page errors or failed requests.
+- Player melee, armed NPC-to-NPC melee, complete task cadence, other generic
+  damage classes and matched retail PC traces remain separate work.
+  [Native captures, arithmetic, checks and scope](research/NPC_MELEE_ARMOUR.md).
