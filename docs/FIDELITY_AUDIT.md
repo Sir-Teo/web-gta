@@ -14490,3 +14490,33 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Full AI status/recovery, campaign routes and matched PC dynamics/water/render
   captures remain separate work.
   [Native control gates, actual movement and particle lifecycle](research/BOAT_PROP_WATER_FX.md).
+
+## Marquis boom hinge (October 26, 2026)
+
+- The actual Marquis boat_flap_left frame now uses CBoat's render-time CDoor
+  motion: point-speed acceleration, tilted gravity, .98 boat damping, ±.5
+  angular speed cap, ±PI/10 limits and unequal stop rebounds. Its current
+  attachment position survives basis replacement. Other boats and missing
+  optional frames retain their component behavior.
+- The selected executable initializes native Z, while the published constructor
+  names Y. The adapter follows the selected instructions and records the
+  discrepancy. Current point speed includes the handling COM offset; the
+  previous-speed expression deliberately uses the frame offset as CDoor does.
+- An optional Unicorn harness captures both native constructor branches and
+  120 integration cases from the pinned executable. All match exactly and
+  regenerate byte-identically. Point-speed/matrix/trigonometric inputs are
+  source-contract checked rather than presented as independently captured.
+- All 431 focused checks and 6,689 unit tests pass (51 skipped), as does the
+  final TypeScript/build validation. An existing aggregate cutscene inventory
+  exceeded its 15-second deadline under the full run; its unchanged assertions
+  now run as 147 individually timed package cases and all pass under full load.
+- Actual painted/textured Marquis browser renders match small movement and
+  both native stops, including ±PI/2 hull headings, zero-timestep inertia,
+  hidden-frame behavior and full scene/GPU cleanup. All-ten-model rendering
+  and propeller-water regressions pass.
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and landing gear without page errors,
+  failed requests or development inspection hook.
+- Native PC motion captures, original friction accumulators, complete atomic
+  callbacks and LOD/transparency behavior remain separate work.
+  [Sources, captured regions and integration boundaries](research/BOAT_MARQUIS_FLAP.md).

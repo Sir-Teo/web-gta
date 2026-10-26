@@ -43,3 +43,11 @@ Two owned boat_prop systems follow the supplied static propeller origins,
 using the native submersion and movement-speed gates, local particles and copied
 parent matrices. Dry/wet, engine-stop and removal states pass live checks.
 [Source, movement and effect lifecycle evidence](BOAT_PROP_WATER_FX.md).
+
+## Marquis boom (October 26, 2026)
+
+The Marquis's supplied boat_flap_left frame now uses the native boat-specific
+CDoor acceleration, damping, limit rebounds and render cadence. The selected
+executable initializes native Z, contrary to the transcription's Y. Exact
+integration captures and the actual painted model verify small motion, both
+stops, coordinate conversion and cleanup. [Sources and limits](BOAT_MARQUIS_FLAP.md).

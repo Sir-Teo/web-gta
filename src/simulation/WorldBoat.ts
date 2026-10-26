@@ -2,6 +2,7 @@ import {applyScriptVehicleForce,type ScriptVehicleForceBasis} from './nativeScri
 import {NativeClumpAlpha} from './nativeClumpAlpha';
 import {bindClumpAlpha} from '../render/nativeClumpAlpha';
 import {bindNativeBoatComponents} from '../render/nativeBoatComponents';
+import type {BoatFlapMotion} from './nativeBoatFlap';
 import {bindNativeCarDirt} from '../render/nativeCarDirt';
 import {NativeCarReflection} from '../assets/nativeCarEnvMap';
 import {randomSeed} from './nativeVehicleLights';
@@ -364,7 +365,11 @@ export class WorldBoat {
  update(alpha:number){
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
   const seconds=this.componentSeconds;this.componentSeconds=0;
-  if(this.root.visible&&this.components){this.components.update(this.engineSpeed,this.steerAngle,seconds);this.alphaBinding(this.clumpAlpha.value/255);}
+  if(this.root.visible&&this.components){this.components.update(this.engineSpeed,this.steerAngle,seconds,this.components.needsMotion?this.componentMotion():undefined);this.alphaBinding(this.clumpAlpha.value/255);}
+ }
+ private componentMotion():BoatFlapMotion{
+  const f=Math.fround,native=(v:{x:number;y:number;z:number},scale=1):NativeVec=>[f(v.x*scale),f(-v.z*scale),f(v.y*scale)],axis=(x:number,y:number,z:number)=>native(new Vector3(x,y,z).applyQuaternion(this.root.quaternion)),h=this.handling.values;
+  return {axes:{right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0)},moveSpeed:native(this.body.linvel(),1/50),turnSpeed:native(this.body.angvel(),1/50),centerOfMass:[f(h.centerOfMassX),f(h.centerOfMassY),f(h.centerOfMassZ)]};
  }
  /** Pin the embarked player to the hull; true when a blast must spawn. */
  afterStep(){

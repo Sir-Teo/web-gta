@@ -9,7 +9,7 @@ for(const [i,r] of reference.cases.entries())test(`pinned executable propeller c
 });
 test('boat frame roles match the executable descriptor names and node identities',()=>{
  const descriptors=new Map(reference.descriptors.map(d=>[d.name,d.node]));
- expect(Object.values(BOAT_COMPONENT_NAMES).map(name=>descriptors.get(name))).toEqual([1,3,6,7,8,9,10,11]);
+ expect(Object.values(BOAT_COMPONENT_NAMES).map(name=>descriptors.get(name))).toEqual([1,3,6,7,8,9,10,11,4]);
 });
 function fixture(model=430){
  const root=new Group(),materials:MeshBasicMaterial[]=[],nodes:Record<string,Group>={};

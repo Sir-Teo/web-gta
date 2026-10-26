@@ -18,7 +18,7 @@ test('all native boat models bind and animate their rudders, propellers and scan
      const running={state:boat.components.snapshot(),parts:parts(boat)};if(model===430){renderer.render(scene,camera);images.running=renderer.domElement.toDataURL();}
      boat.setClumpAlpha(128);boat.update(1);const faded={state:boat.components.snapshot(),parts:parts(boat)};if(model===430){renderer.render(scene,camera);images.faded=renderer.domElement.toDataURL();}
      boat.setClumpAlpha(255);boat.engineSpeed=0;boat.steerAngle=0;boat.update(1);const idle={state:boat.components.snapshot(),parts:parts(boat)};
-     rows.push({model,running,faded,idle});
+     rows.push({model,frameNames:assets.model.frames.map((f:any)=>f.name),running,faded,idle});
     }finally{boat.dispose();}
    }
   }finally{sim.dispose();}
