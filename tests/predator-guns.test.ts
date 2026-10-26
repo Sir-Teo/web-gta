@@ -37,7 +37,7 @@ test('twenty twin volleys exhaust one clip and impose the original strict future
 test('fixed rounds damage a vehicle anonymously with MICRO_UZI and no per-ped gun attack metadata',()=>{
  const f=setup(),random=vi.spyOn(Math,'random').mockReturnValue(128/32768),damage=vi.fn(()=>false);try{
   const target=f.sim.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(2,1,-20));f.sim.world.createCollider(RAPIER.ColliderDesc.cuboid(.5,.5,1),target);f.fleet.cars.push({car:{body:target},health:1000,wrecked:false,assets:{collision:{bounds:{radius:2}}},damage});f.sim.world.step();
-  f.weapons.fireBoatFixedGuns(f.boat,true,true,false,151);expect(damage).toHaveBeenCalledTimes(1);expect(damage).toHaveBeenCalledWith(15,undefined,false,undefined,{weapon:28,byPlayer:false});expect(f.crime).not.toHaveBeenCalled();
+  f.weapons.fireBoatFixedGuns(f.boat,true,true,false,151);expect(damage).toHaveBeenCalledTimes(1);expect(damage).toHaveBeenCalledWith(15,undefined,false,undefined,{weapon:28,byPlayer:false,by:null});expect(f.crime).not.toHaveBeenCalled();
  }finally{random.mockRestore();f.dispose();}
 });
 test('anonymous rounds reach CJ with the native drive-by damage type and trace the actual stopping point',()=>{

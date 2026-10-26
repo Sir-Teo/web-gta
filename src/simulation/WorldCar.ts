@@ -424,7 +424,7 @@ export class WorldCar {
   * health one for one (the player's own car takes 0.95 of it, 0.42 once progress reaches 100%), plus
   * CAutomobile::VehicleDamage's component progression for the hit COL piece. Returns true only when the car is
   * wrecked. */
- damage(amount:number,collider?:number,explosive=false,shotDir?:{x:number;y:number;z:number},options:{kind?:Exclude<CarDamageKind,'explosion'>;byPlayer?:boolean;weapon?:number;by?:CarDamager;point?:{x:number;y:number;z:number}}={}){
+ damage(amount:number,collider?:number,explosive=false,shotDir?:{x:number;y:number;z:number},options:{kind?:Exclude<CarDamageKind,'explosion'>;byPlayer?:boolean;weapon?:number;by?:CarDamager|null;point?:{x:number;y:number;z:number}}={}){
   const kind:CarDamageKind=explosive?'explosion':options.kind??'bullet';
   if(this.wrecked||carRefusesDamage(this,kind)||options.weapon!==undefined&&!physicalCanBeDamaged(this.proofs,options.weapon))return false;
   // CVehicle::CanVehicleBeDamaged: a car only the player may damage (bInvulnerable) refuses anyone else's harm, and the

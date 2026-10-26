@@ -122,7 +122,7 @@ export class WorldPlane {
   * - aircraftWeaponDamageScale applies;
   * - a blast (WEAPON_EXPLOSION) that destroys the aircraft leaves it on the bomb timer.
   * Without a weapon (a crash, the burn-out, the water) it is taken as given, and the aircraft goes up at once. */
- damage(amount:number,weapon?:number,byPlayer?:boolean,by?:VehicleDamager){
+ damage(amount:number,weapon?:number,byPlayer?:boolean,by?:VehicleDamager|null){
   if(this.health<=0||this.canBeDamaged===false)return false;
   if(weapon!==undefined){
    if(vehicleRefusesWeaponDamage(this,weapon,byPlayer))return false;

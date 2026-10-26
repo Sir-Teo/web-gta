@@ -89,6 +89,9 @@ Vehicle hits carry type 28 with byPlayer false, preserving proof/only-player
 eligibility and avoiding player destruction credit. No held-weapon ammo,
 player crime/skill credit or ordinary gunshot/blood FX is added.
 
+The [subsequent explicit-null source fix](ANONYMOUS_VEHICLE_SOURCE.md) also
+preserves prior vehicle damage history when these anonymous rounds land.
+
 ## Checks and boundaries
 
 Focused checks cover captures, native timing/clip boundaries, twin origins,

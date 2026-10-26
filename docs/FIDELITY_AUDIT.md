@@ -14622,3 +14622,30 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Original start-point lighting, full material flags, exact sector/seated
   behavior and matched original-PC captures remain separate work.
   [Source, water windows, safe classification and native playback](research/INSTANT_ROUND_AUDIO.md).
+
+## Explicit null attacker history for vehicles (October 26, 2026)
+
+- Anonymous FireOneInstantHitRound vehicle hits now carry an explicit null
+  attacker alongside non-player eligibility. Cars, bikes, boats and aircraft
+  preserve the prior damager reference while recording the new accepted weapon.
+  Unknown non-player callers and known entity replacements retain their paths.
+- The existing pinned executable storage captures show the null-source skip.
+  Seventeen new checks expose the prior conflation; null, unknown and known
+  sources, proofs/player-only/dead targets and actual round routing are covered
+  across the four hosts. All 657 focused checks and 6,937 unit tests pass
+  (51 skipped), including existing damage/bomb attribution regressions. Final
+  TypeScript/build validation passes.
+- The live SCM fixture first causes real player damage, then an anonymous hull
+  round. Health decreases and weapon 28 is stored while the exact old reference
+  and HAS_CAR_BEEN_DAMAGED_BY_CHAR result stay intact. Gun gates, native audio,
+  protected hull and water-window checks continue to pass without page errors.
+- A full run caught an unrelated 5-second camera-test deadline. The unchanged
+  file passes in isolation. Its helper decoded all original MAIN/mission blocks
+  for each lookup; one shared decoded catalog now supplies fresh script-memory
+  copies to the same six behavioral checks, without increasing their timeout.
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and landing gear without page errors,
+  failed requests or a development inspection hook.
+- Complete native reference lifetime, source identity for other damage paths
+  and matched original-PC InflictDamage captures remain separate work.
+  [Captured storage and live history-query behavior](research/ANONYMOUS_VEHICLE_SOURCE.md).

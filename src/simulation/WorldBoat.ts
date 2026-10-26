@@ -79,7 +79,7 @@ export class WorldBoat {
   *   otherwise takes playerVehicleDamage's share;
   * - only health left is taken. Damage that takes the last of it destroys the vehicle and returns true. A blast's
   *   victim waits on the bomb timer; anything else blows it up at once (BlowUpCar). */
- damage(amount:number,_collider?:number,explosive=false,_shotDir?:unknown,options:{kind?:'bullet'|'fire'|'melee';byPlayer?:boolean;weapon?:number;by?:VehicleDamager}={}){
+ damage(amount:number,_collider?:number,explosive=false,_shotDir?:unknown,options:{kind?:'bullet'|'fire'|'melee';byPlayer?:boolean;weapon?:number;by?:VehicleDamager|null}={}){
   const weapon=options.weapon??(explosive?51:options.kind==='fire'?37:options.kind==='melee'?0:22);
   if(this.wrecked||vehicleRefusesWeaponDamage(this,weapon,options.byPlayer))return false;
   recordVehicleDamage(this,options.weapon??(explosive?51:options.kind==='fire'?37:-1),options.byPlayer,options.by);

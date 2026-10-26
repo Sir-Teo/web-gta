@@ -75,3 +75,10 @@ Predator and SCM anonymous rounds now report native facing-surface and water
 contact sounds, including rejected wounds. The real collision backend plays
 flesh/water/metal samples; the original endpoint height gates the water probe.
 [Source, resource safety and live sample checks](INSTANT_ROUND_AUDIO.md).
+
+## Anonymous attacker history (October 26, 2026)
+
+Anonymous rounds now preserve the vehicle's prior damager reference while
+storing the new weapon and applying normal non-player gates. The live SCM
+damaged-by-player query stays true after an earlier CJ hit followed by an
+anonymous hull round. [Native storage and cross-vehicle checks](ANONYMOUS_VEHICLE_SOURCE.md).

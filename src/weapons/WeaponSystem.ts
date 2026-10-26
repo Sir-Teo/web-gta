@@ -370,9 +370,9 @@ export class WeaponSystem {
    if(crowd?.instantHitRound?.(hit.collider.handle,intensity,{x:direction.x,z:direction.z},end,hit.pedPiece)){ped=true;return;}
    const fleet=this.fleet(),body=hit.collider.parent()?.handle;
    const car=[...fleet?.cars??[]].find(c=>c.car.body.handle===body);
-   if(car){vehicle=true;car.damage(intensity,undefined,false,undefined,{weapon:28,byPlayer:false});this.releaseExplosions();return;}
-   for(const target of [...fleet?.boats??[],...fleet?.bikes??[]])if(target.body.handle===body){vehicle=true;target.damage(intensity,undefined,false,undefined,{weapon:28,byPlayer:false});return;}
-   const plane=[...fleet?.planes??[]].find(p=>p.body.handle===body);if(plane){vehicle=true;if(plane.damage(intensity,28,false)&&!plane.bombTimerMs)this.explode(plane.body.translation(),EXPLOSION_TYPE.aircraft,plane,false);return;}
+   if(car){vehicle=true;car.damage(intensity,undefined,false,undefined,{weapon:28,byPlayer:false,by:null});this.releaseExplosions();return;}
+   for(const target of [...fleet?.boats??[],...fleet?.bikes??[]])if(target.body.handle===body){vehicle=true;target.damage(intensity,undefined,false,undefined,{weapon:28,byPlayer:false,by:null});return;}
+   const plane=[...fleet?.planes??[]].find(p=>p.body.handle===body);if(plane){vehicle=true;if(plane.damage(intensity,28,false,null)&&!plane.bombTimerMs)this.explode(plane.body.translation(),EXPLOSION_TYPE.aircraft,plane,false);return;}
    vehicle=[...fleet?.trains??[]].some(t=>t.body.handle===body);
    if(!crowd?.instantHitRound)ped=!!crowd?.damageCollider(hit.collider.handle,intensity,direction,'bullet',{weapon:52,point:end,piece:hit.pedPiece,noSource:true,byPlayer:false});
   }finally{
