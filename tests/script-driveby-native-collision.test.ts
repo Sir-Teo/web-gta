@@ -33,3 +33,20 @@ test.each([false,true])('gang-car rounds propagate native collision pieces to an
   else{expect(hitPed).toHaveBeenCalledOnce();expect(hitPed.mock.calls[0][5]).toBe(5);expect(sim.damageEvents).toEqual([]);}
  }finally{sim.dispose();}
 });
+
+test('script drive-by seat contacts retain the actual shooter and script type override',()=>{
+ const sim=new Simulation(),body=sim.world.createRigidBody(RAPIER.RigidBodyDesc.fixed()),shooter={pedType:'CIVMALE',scriptPedType:7,follow:true},hit=vi.fn();
+ const seatedShot=vi.fn<NonNullable<ScriptDriveByWorld['seatedShot']>>(()=>({t:4,victim:'seat',hit}));
+ const world:ScriptDriveByWorld={sim,cars:()=>[],targetPosition:()=>({x:0,y:1,z:-10}),hitPed:()=>false,bulletLine:()=>null,seatedShot,random:()=>.5},d=newScriptDriveBy({kind:'point',x:0,y:1,z:-10},100,100,true);
+ try{for(let i=0;i<90&&!d.shots;i++)stepScriptDriveBy(d,{car:{body}} as any,info,1,1/30,world,shooter);
+  expect(d.shots).toBe(1);expect(seatedShot).toHaveBeenCalledOnce();expect(seatedShot.mock.calls[0][5]?.shooter).toBe(shooter);expect(hit).toHaveBeenCalledExactlyOnceWith(info.damage,info.type);
+ }finally{sim.dispose();}
+});
+
+test.each([0,1,9])('gang %s seated gunner identifies its native gang on an intervening seat contact',gang=>{
+ const sim=new Simulation(),body=sim.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,.5,0));sim.player.position={x:0,y:0,z:-10};sim.playerBody.setTranslation({x:0,y:.9,z:-10},true);sim.playerBody.setNextKinematicTranslation({x:0,y:.9,z:-10});sim.world.step();
+ const hit=vi.fn(),seatedShot=vi.fn<NonNullable<ScriptDriveByWorld['seatedShot']>>(()=>({t:4,victim:'seat',hit})),host={sim,fleet:{cars:[]},gunCache:{info,reloadSeconds:1},bulletLine:()=>null,seatedShot},unit={gang,car:{car:{body}},shooter:{gunState:{time:0,rounds:info.clip,reload:0,active:false},side:'right',shots:0}};
+ try{for(let i=0;i<90&&!unit.shooter.shots;i++)(GangDriveBy.prototype as any).stepShooter.call(host,unit,1/30,sim.player.position);
+  expect(unit.shooter.shots).toBe(1);expect(seatedShot).toHaveBeenCalledOnce();expect(seatedShot.mock.calls[0][5]?.shooter).toEqual({pedType:`GANG${gang+1}`});expect(hit).toHaveBeenCalledExactlyOnceWith(info.damage,info.type);
+ }finally{sim.dispose();}
+});

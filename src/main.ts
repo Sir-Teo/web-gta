@@ -689,7 +689,7 @@ async function boot() {
    hitPed:(collider,damage,weapon,direction,end,piece)=>!!pedestrians?.npcBulletHit(collider,damage,weapon,direction,end,piece),
    bulletLine:(from,direction,range,body)=>weapons.npcBulletLine(from,direction,range,body),
    prepareBulletImpact:(...args)=>weapons.prepareNpcBulletImpact(...args),
-   // A mission rider or street recruit seated in the vehicle the NPC's muzzle line reaches.
+   // The occupant of the vehicle the NPC's muzzle line reaches, or an exposed biker.
    seatedShot:(from,direction,range,own,hitBody,first)=>{
     const direct=weapons.bikerHit(from,direction,first?.distance??range,own);
     // CheckForShootingVehicleOccupant also reaches CJ: his physical collider is disabled while he rides.
@@ -709,18 +709,19 @@ async function boot() {
       return accepted?(sim.player.health<=0?'killed':'hit'):undefined;
      })};
     }
-    if(!seated||seated.target.kind!=='script'&&seated.target.kind!=='passenger')return undefined;
+    if(!seated)return undefined;
     const target=seated.target,piece=direct?.piece??9,point=new Vector3(from.x,from.y,from.z).addScaledVector(direction,seated.t),center=seatedHeadPoint(target);
+    // Native ambient crews have no script rider object; keep a stable per-seat contact identity for repeated rays.
+    const victim=target.rider??`${target.kind}:${target.car.car.body.handle}:${target.seat}`;
     // The native same-type gate precedes impact audio and GenerateDamageEvent. Keep the recognized contact so
     // the excluded pedestrian does not turn the round back into a hit on his vehicle or someone behind him.
-    if(first?.shooter&&sameNonCivilianPedType({pedType:target.pedType},first.shooter))return {t:seated.t,direct:!!direct,victim:target.rider,hit:()=>undefined};
+    if(first?.shooter&&sameNonCivilianPedType({pedType:target.pedType},first.shooter))return {t:seated.t,direct:!!direct,victim,hit:()=>undefined};
     const normal=direct?.normal??point.clone().sub(new Vector3(center.x,center.y+OCCUPANT_HEAD_LIFT,center.z)).normalize();
-    return {t:seated.t,direct:!!direct,victim:target.rider,hit:(damage,weapon)=>weapons.hitNpcSeatedBullet(target,{point,normal,direction,piece},weapon,()=>{
-     const health=target.kind==='script'?(target.rider as ScriptRider).health:(target.rider as {keep?:{health?:number}}).keep?.health??100;
-     const sameGroup=!!first?.shooter&&(!!first.shooter.follow&&!!target.crew||!!pedestrians?.sameScriptGroup?.(first.shooter,target.rider as object));
-     if(sameGroup&&health>0&&weapon!==51)return undefined;
+    return {t:seated.t,direct:!!direct,victim,hit:(damage,weapon)=>weapons.hitNpcSeatedBullet(target,{point,normal,direction,piece},weapon,()=>{
+     const sameGroup=!!target.rider&&!!first?.shooter&&(!!first.shooter.follow&&!!target.crew||!!pedestrians?.sameScriptGroup?.(first.shooter,target.rider as object));
+     if(sameGroup){const health=target.kind==='script'?(target.rider as ScriptRider).health:(target.rider as {keep?:{health?:number}}).keep?.health??100;if(health>0&&weapon!==51)return undefined;}
      const forceDeath=piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon);
-     return target.kind==='passenger'?carEntry.passengerShot(target.car as ScriptCar,target.seat,damage,false,forceDeath,{weapon,piece}):scriptRiderShot(target.rider as ScriptRider,damage,weapon,false,()=>scriptRiderKilled(target),{forceDeath});
+     return target.kind==='passenger'?carEntry.passengerShot(target.car as ScriptCar,target.seat,damage,false,forceDeath,{weapon,piece}):target.kind==='script'?scriptRiderShot(target.rider as ScriptRider,damage,weapon,false,()=>scriptRiderKilled(target),{forceDeath}):weapons.onSeatedShot?.(target,WeaponSystem.occupantDamage(target,damage,weapon,piece),weapon,piece,'remote',damage);
     })};
    },
    onShot:(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');}};
@@ -4090,8 +4091,8 @@ async function boot() {
         guard('traffic.beforeStep',()=>traffic?.beforeStep(step));guard('scriptCars.step',()=>{scriptCars.step(step,sim.player.position);if(mission)scriptCars.pathAreas(sim.player.position);});guard('searchlights',()=>{searchlightBeams=mission?mission.stepSearchlights(step*30,searchlightLineOfSight):[];});guard('police.beforeStep',()=>police?.beforeStep(step,worldCar?.occupied&&!worldCar.disposed?worldCar:undefined));guard('emergency.update',()=>emergency?.update(step));guard('driveby.beforeStep',()=>driveby?.beforeStep(step,worldCar?.occupied?worldCar:undefined));
         guard('groupDriveBys',()=>groupThreatDriveBys(step));
         guard('riderThreats',()=>riderThreatDriveBys(step));
-        guard('scriptDriveBys',()=>{const gun=driveby?.gun;if(!gun)return;for(const rider of scriptRiders)if(rider.driveBy&&!rider.gone&&rider.health>0&&!rider.car.wrecked)stepScriptDriveBy(rider.driveBy,rider.car,gun.info,gun.reloadSeconds,step,scriptDriveByWorld);
-          if(carEntry.seated&&carEntry.car&&!carEntry.car.wrecked)for(const p of carEntry.passengers)if(!p.diedInSeat&&p.driveBy)stepScriptDriveBy(p.driveBy,carEntry.car,gun.info,gun.reloadSeconds,step,scriptDriveByWorld);});
+        guard('scriptDriveBys',()=>{const gun=driveby?.gun;if(!gun)return;for(const rider of scriptRiders)if(rider.driveBy&&!rider.gone&&rider.health>0&&!rider.car.wrecked)stepScriptDriveBy(rider.driveBy,rider.car,gun.info,gun.reloadSeconds,step,scriptDriveByWorld,rider);
+          if(carEntry.seated&&carEntry.car&&!carEntry.car.wrecked)for(const p of carEntry.passengers)if(!p.diedInSeat&&p.driveBy)stepScriptDriveBy(p.driveBy,carEntry.car,gun.info,gun.reloadSeconds,step,scriptDriveByWorld,{...(p.keep as {pedType?:string}|undefined),follow:p.follow});});
         frameProfile.stepTraffic+=performance.now()-tTraffic;const tPeds=performance.now();
         guard('pedestrians.beforeStep',()=>pedestrians?.beforeStep(step,fleet?.cars??[]));
         frameProfile.stepPeds+=performance.now()-tPeds;
@@ -5721,7 +5722,7 @@ async function boot() {
             weapons.seatedPeds=(bikesOnly=false)=>{const out:import('./weapons/WeaponSystem').SeatedTarget<import('./weapons/WeaponSystem').SeatedVehicle>[]=[];
              if(!bikesOnly){const policeCars=new Set(police?.units.map(u=>u.car));
              for(const car of fleet?.cars??[]){if(!car.autopilot||car.occupied||car.driverOut||car.wrecked||policeCars.has(car)||driveby?.covers(car)||emergency?.covers(car))continue;const seat=car.seat('left');if(seat)out.push({car,seat:0,local:seat,kind:'traffic',pedType:car.gang!==undefined?`GANG${car.gang+1}`:pedestrians?.pedModelStats(occupants.driverModel(car))?.pedType,head:occupants.headOf(`driver:${car.car.body.handle}`)});}
-             for(const c of police?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,headingOffset:c.headingOffset,kind:'police',head:occupants.headOf(`police:${c.car.car.body.handle}:${c.seat}`)});
+             for(const c of police?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,headingOffset:c.headingOffset,kind:'police',pedType:'COP',head:occupants.headOf(`police:${c.car.car.body.handle}:${c.seat}`)});
              for(const c of emergency?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'emergency',pedType:c.pedType,head:occupants.headOf(`emergency:${c.car.car.body.handle}:${c.seat}`)});
              for(const c of driveby?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'driveby',activeDriveBy:c.seat===1,pedType:c.car.gang!==undefined?`GANG${c.car.gang+1}`:undefined,head:occupants.headOf(`driveby-${c.seat===0?'driver':'shooter'}:${c.car.car.body.handle}`)});
              for(const c of carEntry.passengerTargets()){const keep=c.rider.keep as {id?:number;pedType?:string;noCriticalHits?:boolean;neverTargeted?:boolean;canBeShotInVehicle?:boolean}|undefined;out.push({car:c.car,seat:c.seat,local:c.local,headingOffset:c.headingOffset,kind:'passenger',rider:c.rider,crew:c.rider.follow,activeDriveBy:!!c.rider.driveBy,crimeVictim:keep?.id!==undefined?`ped:${keep.id}`:undefined,pedType:keep?.pedType??(c.rider.gang!==undefined?`GANG${c.rider.gang+1}`:undefined),noCriticalHits:keep?.noCriticalHits,neverTargeted:keep?.neverTargeted,canBeShot:keep?.canBeShotInVehicle,head:occupants.headOf(`passenger:${c.car.car.body.handle}:${c.seat}`)});}

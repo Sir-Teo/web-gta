@@ -51,7 +51,7 @@ export function newScriptDriveBy(target:DriveByTarget,radius:number,fireRate:num
  return {target,radius,fireRate,side:rightSide?'right':'left',gun:{time:0,rounds:-1,reload:0,active:false},seconds:0,shots:0,firing:false};
 }
 /** One frame of the drive-by from `car`. */
-export function stepScriptDriveBy(d:ScriptDriveBy,car:WorldCar,info:NativeWeaponInfo,reloadSeconds:number,dt:number,world:ScriptDriveByWorld){
+export function stepScriptDriveBy(d:ScriptDriveBy,car:WorldCar,info:NativeWeaponInfo,reloadSeconds:number,dt:number,world:ScriptDriveByWorld,shooter?:NonNullable<Parameters<SeatedShot>[5]>['shooter']){
  d.seconds+=dt;
  if(d.gun.rounds<0)d.gun.rounds=info.clip;
  const target=world.targetPosition(d.target);if(!target)return;
@@ -78,7 +78,7 @@ export function stepScriptDriveBy(d:ScriptDriveBy,car:WorldCar,info:NativeWeapon
   const cars=[...world.cars()].filter(c=>c!==car);
   const reach=shot?.timeOfImpact??lineLength,tyre=bulletTyreHit(cars,muzzle,direction,reach);
   // A line whose first hit is a car may hand the hit on to one of its occupants, along the whole line.
-  const seated=world.seatedShot?.(muzzle,direction,lineLength,car,shot?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre});
+  const seated=world.seatedShot?.(muzzle,direction,lineLength,car,shot?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre,shooter});
   if(seated&&seated.t<=lineLength){
    const at=muzzle.clone().addScaledVector(direction,seated.t);d.shots++;world.onShot?.(muzzle,at,info.type,true);seated.hit(info.damage,info.type);
    if(d.gun.active&&d.gun.time<oldTime)d.aimPoint={...aim};

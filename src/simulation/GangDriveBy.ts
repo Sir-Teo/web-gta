@@ -233,7 +233,7 @@ export class GangDriveBy {
     const shot:import('../weapons/skinnedPedBulletLine').PedBulletIntersection|null|undefined=this.bulletLine?this.bulletLine(muzzle,direction,lineLength,car.car.body):this.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),lineLength,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
     // FireInstantHit includes car tyres for every shooter, the gang car's own excepted.
     const reach=shot?.timeOfImpact??lineLength,tyre=bulletTyreHit([...this.fleet.cars].filter(c=>c!==car),muzzle,direction,reach);
-    const seated=this.seatedShot?.(muzzle,direction,lineLength,car,shot?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre});
+    const seated=this.seatedShot?.(muzzle,direction,lineLength,car,shot?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre,shooter:{pedType:`GANG${u.gang+1}`}});
     const end=muzzle.clone().addScaledVector(direction,seated?.t??tyre?.t??reach);s.shots++;
     this.onShot?.(muzzle,end,info.type,!!shot||!!tyre||!!seated);
     const finish=shot&&!tyre&&!seated?this.prepareBulletImpact?.(shot,end,info.type,direction):undefined;let accepted=false;

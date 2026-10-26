@@ -37,3 +37,12 @@ reference for known script/player groups inside damage acceptance.
 Opaque script/gang shooter identities, complete NPC same-group rules,
 full damage/armour/critical-death calculation, ambient-crew NPC damage,
 native contact lighting and matched PC captures remain open.
+
+## Ambient-seat and seated-shooter follow-up (October 26, 2026)
+
+The shared bridge now accepts ambient traffic, police, gang and emergency
+seats as well. Police targets carry COP; gang gunners carry their unit's type;
+script drive-bys retain the actual rider record and recruits retain their type
+and follow status. The new normal-frame task trial checks both an excluded
+equal-gang contact and an accepted different-gang contact on the same driver.
+[Routing, evidence and remaining source/task limits](NPC_AMBIENT_SEATS.md).

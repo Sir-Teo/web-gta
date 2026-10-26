@@ -14088,3 +14088,25 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - NPC-to-ambient seated routing, full surviving-hit personality responses,
   non-bullet emergency deaths and complete native source/task parity remain
   open. [Source, body ownership and checks](research/EMERGENCY_SEATED_DAMAGE.md).
+
+## NPC bullets reaching ambient vehicle seats (October 26, 2026)
+
+- The shared NPC bridge now retains recognized traffic, police, gang and
+  emergency seat contacts and invokes their existing damage/accounting
+  handlers. A seat without a script actor has a stable contact identity and
+  does not enter script-group lookups or dereference a missing rider.
+- Police targets supply COP; ambient gang gunners and scripted/recruited
+  drive-bys supply their actual native ped type. Equal noncivilian contacts
+  remain blocked before pedestrian audio/damage, while vehicle-mounted
+  creators retain their native source distinction.
+- Real LAPD1 muzzle trials cover all four roles at 5,000 HP, including blocked
+  COP contact and accepted mounted damage. Fatal hits spare vehicle health,
+  register kills by others immediately once and give no player credit. A
+  real-frame TASK_DRIVE_BY trial reaches the same gang driver twice: equal
+  type preserves 5,000 HP and different type kills him. Each round records its
+  actual seat intersection with centered native random spread draws.
+- The build, 65 focused checks and all 5,773 unit tests pass (51 skipped).
+  Existing CJ, mission-rider, group, proof and bullet-effect regressions pass.
+  Full source identity, NPC nonfatal response tasks, non-bullet deaths and
+  matched retail traces remain open.
+  [Reference, contact ownership and checks](research/NPC_AMBIENT_SEATS.md).
