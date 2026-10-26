@@ -8,9 +8,10 @@ import { PED_ORIGIN_HEIGHT, pedFloatDepth, swimResistance, swimRotationTowardSur
 import { NativeJetPack } from './nativeJetPack';
 import {beginPlayerBreathFrame,handlePlayerBreath} from './playerBreath';
 import {DEFAULT_LUNG_CAPACITY} from './nativeLungCapacity';
-import {DEFAULT_LANDING_MODIFIER} from './nativeLanding';
+import {DEFAULT_BODY_MOVEMENT_MODIFIER} from './nativeBodyMovement';
+import {nativeJumpStatLaunch} from './nativePlayerJump';
 import {controlNativeSprint,handleNativeSprintEnergy,nativeButtonSprintResult,DEFAULT_SPRINT_CAPACITY,SPRINT_MODE,type SprintMode} from './nativePlayerSprint';
-import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, nativeJumpGroundSpeed, NATIVE_BLEND_WALK, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY, NATIVE_JUMP_MIN_FORWARD_SPEED, NATIVE_PED_AIR_RESISTANCE, NATIVE_BLEND_RUN_FULL } from './nativePlayerLocomotion';
+import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, NATIVE_BLEND_WALK, NATIVE_JUMP_GRAVITY, NATIVE_JUMP_MIN_FORWARD_SPEED, NATIVE_PED_AIR_RESISTANCE, NATIVE_BLEND_RUN_FULL } from './nativePlayerLocomotion';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { PED_SOLVER_GROUPS } from './solverGroups';
 import { physicalCanBeDamaged, type PhysicalProofs } from '../combat/nativePhysicalProofs';
@@ -155,8 +156,8 @@ export class Simulation {
   beginPlayerBreathFrame(dt:number){beginPlayerBreathFrame(this.player,dt*50,this.playerLungCapacity());}
   /** CStats::GetFatAndMuscleModifier(STAT_MOD_AIR_IN_LUNG); the live host supplies current SCM stats. */
   playerLungCapacity=()=>DEFAULT_LUNG_CAPACITY;
-  /** CStats mode 2, read once when CTaskSimpleLand first updates the player. */
-  playerLandingModifier=()=>DEFAULT_LANDING_MODIFIER;
+  /** CStats mode 2. Jump animation start, physical launch and landing each read current body stats. */
+  playerBodyMovementModifier=()=>DEFAULT_BODY_MOVEMENT_MODIFIER;
   /** CPlayerPed::ResetPlayerBreath (PC 0x60A8A0, selected iOS 0x100366508). */
   resetPlayerBreath(){this.player.breath=this.playerLungCapacity();this.player.requireHandleBreath=false;this.player.drownClock=0;}
   /** CStats mode 7, supplied from current stamina stat 22 by the live host. */
@@ -587,10 +588,11 @@ export class Simulation {
         launched = true;
         // CTaskSimpleJump::StartLaunchAnim: m_fAimingRotation = m_fCurrentRotation, so no turn carries on after landing.
         this.turnTarget = undefined;
-        // CTaskSimpleJump::Launch: the mega jump cheat multiplies the player's jump force by 10.
-        this.player.verticalSpeed = NATIVE_JUMP_VERTICAL_VELOCITY * (CHEATS.isActive('megaJump') ? 10 : 1);
+        // Launch reads body stats again when the launch clip finishes; its animation speed was latched earlier.
+        const jump=nativeJumpStatLaunch({...(controls.moveAssociations??this.moveAssociations(sprinting)),modifier:this.playerBodyMovementModifier(),megaJump:CHEATS.isActive('megaJump'),climbJump:blocked==='climbJump'});
+        this.player.verticalSpeed=jump.upVelocity*50;
         // The ground speed goes along the heading; a climb jump goes straight up.
-        const speed = blocked === 'climbJump' ? 0 : nativeJumpGroundSpeed(controls.moveAssociations ?? this.moveAssociations(sprinting)) * 50;
+        const speed=jump.forwardSpeed*50;
         this.player.jumpMomentum = { x: Math.sin(this.player.heading) * speed, z: Math.cos(this.player.heading) * speed };
         // Off m_standingOnEntity the jump keeps that entity's move speed on top (not a climb jump's straight rise).
         const carry = blocked === 'climbJump' ? undefined : this.carrySpeed();

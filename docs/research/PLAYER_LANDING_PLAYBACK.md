@@ -95,6 +95,8 @@ Production smoke passes saved-game return, movement, car entry,
 map/waypoint, pause/resume, aircraft takeoff and landing gear with no page
 errors or failed requests (`artifacts/player-landing-production.log`).
 
-Body-stat save ownership, launch/air task playback modifiers, full animation
+The [later jump port](PLAYER_JUMP_BODY_STATS.md) applies the same body
+modifier to launch playback and physical impulse at their own call sites.
+Body-stat save ownership, remaining air-task behavior, full animation
 manager timing/blending, tired partial idle and matched original-PC captures
 remain separate work.

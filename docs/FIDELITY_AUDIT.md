@@ -14916,3 +14916,44 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Production smoke passes saved-game return, movement, car entry,
   map/waypoint, pause/resume, aircraft takeoff and landing gear with no page
   errors or failed requests.
+
+## Captured body stats at jump start and physical launch (October 26, 2026)
+
+- Native-coordinate launch clips now read and latch body modifier 2 at
+  entry. Physical launch reads current stats again when the clip finishes,
+  scales both the association forward band and player force, and uses the
+  actual float32 reciprocal-mass operation. Landing retains its separate
+  contact-time read. The shared provider and stat computation serve all
+  three call sites; NPC launch clips without player data retain speed 1.
+- The independent harness executes complete selected StartLaunchAnim and
+  Launch plus actual CStats and ApplyMoveForce instructions. Ten start and
+  258 force profiles cover body stats, association presence/blend, mega jump,
+  climb jumps and NPC force levels. Lookup/world/animation queries and exact
+  heading-zero trig are declared logged stubs. All captured calculations
+  match exactly and regenerate byte-identically. Fourteen initial failures
+  exposed the float32 0.22−0.17 coefficient versus decimal 0.05 substitution.
+- Nine launch checks exposed the missing player playback/provider read;
+  six physical-player checks exposed the missing body impulse. Their repaired
+  paths verify retained playback and captured upward/association-forward
+  velocity in real Simulation steps. All 580 focused checks pass (one
+  existing skip), including the existing landing/movement checks.
+- Real Space-key jumps retain initial playback 0.8 and 1.0052632093429565
+  across 15 and 12 launch updates while stats change. At physical launch,
+  current stats produce captured upward speeds after gravity of
+  5.770050043861072 and 4.523809681336085, and requested horizontal speeds
+  of 5.026316270232201 and 4.000000283122063. Real scenery reduces the second
+  post-collision speed; the check observes the actual request before collision
+  and verifies the resulting motion separately. All four browser checks pass,
+  including landing-stat, dry-jump and airborne aim/fire regressions, with
+  no page errors.
+- The PC source and selected mobile binary differ in target-speed squaring
+  in the velocity-retention branch. This change isolates shared stat/force
+  arithmetic with zero initial velocity and climb-jump profiles. Full
+  retention/carry, general trig, world queries, task/animation management,
+  bloody-footprint FX and original-PC matching remain separate work.
+  [Native calls, coefficients, force conversion and live observations](research/PLAYER_JUMP_BODY_STATS.md).
+- All 8,560 unit tests pass (51 skipped), as do TypeScript validation and the
+  production build.
+- Production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and landing gear with no page errors or
+  failed requests.

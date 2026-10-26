@@ -19,7 +19,7 @@ import {evaluateCarPosition} from './simulation/nativeCarChoice';
 import {statUpdateBar,statNameKey} from './ui/nativeStatUpdate';
 import {nativeLungCapacity} from './simulation/nativeLungCapacity';
 import {nativeSprintCapacity,SPRINT_MODE} from './simulation/nativePlayerSprint';
-import {nativeLandingStatModifier} from './simulation/nativeLanding';
+import {nativeBodyMovementModifier} from './simulation/nativeBodyMovement';
 import {FALLEN_LAMPPOST_SOLVER_GROUPS} from './simulation/solverGroups';
 import {carRollsOverProp} from './simulation/vehiclePropContacts';
 import {controlNameOf,controlNaming,controlsNamedIn,gxtHudText,gxtText,insertNumbers,loadedText,setControlNaming,setTouchText,useTouchControlNames} from './assets/gxt';
@@ -7282,7 +7282,7 @@ async function boot() {
                  progression.bindTrainingStats(game.stats);
                  sim.playerLungCapacity=()=>nativeLungCapacity(game.stats.get(225),game.stats.get(22));
                  sim.playerSprintCapacity=()=>nativeSprintCapacity(game.stats.get(22));
-                 sim.playerLandingModifier=()=>nativeLandingStatModifier(game.stats.get(21),game.stats.get(23));
+                 sim.playerBodyMovementModifier=()=>nativeBodyMovementModifier(game.stats.get(21),game.stats.get(23));
                  sim.resetSprintEnergy();
                  // MAIN initializes once: restore its saved stat capacity before initializing player breath.
                  sim.resetPlayerBreath();

@@ -360,6 +360,7 @@ export class NativeCharacter {
   get jumping() { return launchAction(this.action) || airborneAction(this.action) || landingAction(this.action); }
   private lastGroundAction: Action = 'idle';
   private landingSpeed = 1;
+  private launchSpeed = 1;
   private swimPlaybackSpeed = 1;
   /** Actual current browser stroke weight/rate for the breath task. The
    * browser's captured-pose transition is not yet native association blending. */
@@ -548,7 +549,7 @@ export class NativeCharacter {
   /** A ride ends (CTaskSimpleCarSetPedOut leaves the ped standing): the move blend ratio does not carry over from the
    * run up to the car, which would walk him on after the door closes. */
   resetLocomotion(){this.moveBlend=0;this.lastGroundAction='idle';this.moveAnims?.reset();}
-  step(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>&Partial<Pick<Simulation,'previewPlayerSprint'|'playerLandingModifier'>>): Controls {
+  step(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>&Partial<Pick<Simulation,'previewPlayerSprint'|'playerBodyMovementModifier'>>): Controls {
     const originalControls=controls;
     controls={...controls,sprintInput:controls.sprintInput??controls.sprint};
     // BlendAnimation(aim, 8) on AIM, blend delta -8 on release, -4 when a weapon without bMoveAim lowers on the move.
@@ -606,7 +607,8 @@ export class NativeCharacter {
     // start their cycles again from frame 0, so the stride after a landing always begins at the top.
     if (landingAction(this.action) && !landingAction(action) && this.moveAnims) for (const clip of ['walk', 'run', 'sprint'] as const) { const a = this.moveAnims.assocs.get(clip); if (a) a.time = 0; }
     if (action !== this.action) {
-      this.landingSpeed=landingAction(action)&&this.motionSpace==='actor'?nativeLandingPlayback({initialSpeed:1,modifier:sim.playerLandingModifier?.()??1,sprintState:this.lastGroundAction==='sprint',sprintHeld:!!(controls.sprintInput??controls.sprint),isPlayer:!!sim.playerLandingModifier}):1;
+      this.launchSpeed=launchAction(action)&&this.motionSpace==='actor'?Math.fround(sim.playerBodyMovementModifier?.()??1):1;
+      this.landingSpeed=landingAction(action)&&this.motionSpace==='actor'?nativeLandingPlayback({initialSpeed:1,modifier:sim.playerBodyMovementModifier?.()??1,sprintState:this.lastGroundAction==='sprint',sprintHeld:!!(controls.sprintInput??controls.sprint),isPlayer:!!sim.playerBodyMovementModifier}):1;
       this.samplePose(this.seconds, this.transitionTime);
       const fastLandingTransition = this.motionSpace === 'actor' && (landingAction(action) || this.action === 'landingMoving' && this.seconds >= this.active.duration);
       this.transition.capture(); this.transitionDuration = fastLandingTransition ? .01 : TRANSITION_SECONDS; this.poseGeneration++; this.transitionTime = 0; this.motionTransition.begin();
@@ -631,7 +633,7 @@ export class NativeCharacter {
       return { ...controls, jump: true, moveAssociations: this.launchAssociations() };
     }
     if (landingAction(action) || launchAction(action)) {
-      this.seconds = Math.min(this.active.duration, this.seconds + dt * (landingAction(action) ? this.landingSpeed : 1)); this.motionTransition.reset();
+      this.seconds = Math.min(this.active.duration, this.seconds + dt * (landingAction(action) ? this.landingSpeed : this.launchSpeed)); this.motionTransition.reset();
       if (landingAction(action) && this.landingFootContacts) this.landingFootContacts = ([['right', .1], ['left', .2]] as const).filter(([,time]) => this.previous < time && this.seconds >= time).map(([foot]) => foot);
       this.basis.makeRotationY(this.headingOffset).multiply(this.active.parent);
       // JUMP_launch and the landing clips extract their forward root motion (ANIMATION_CAN_EXTRACT_VELOCITY).
@@ -972,7 +974,7 @@ export class NativeCharacter {
   }
   /** The current locomotion action, as snapshot().action gives it, without building the snapshot. */
   get currentAction(){return this.action === 'move' ? this.moveAction() : this.action;}
-  snapshot() { return { motionGroup:this.playerMotionGroup,vehicleClip:this.vehicleClip??null,reload:this.weaponReload??null,reaction:this.reaction?.name??null, gun:this.gunAnims?{cmd:{...this.gunAnims.cmd},lowered:this.gunAimLowered,poses:this.gunAnims.poses().map(a=>({clip:a.clip,blend:+a.blend.toFixed(3),playing:a.playing,speed:+a.speed.toFixed(3)}))}:null, playbackSpeed:landingAction(this.action)?this.landingSpeed:1, moveBlend:this.moveBlend, playerBody:!!this.shoulders, bodySwaps:this.bodySwaps, transition: this.transitionTime / this.transitionDuration, action: this.action === 'move' ? this.moveAction() : this.action, moves: this.moveAnims ? [...this.moveAnims.assocs.values()].map(a => ({ clip: a.clip, blend: a.blend, time: a.time, speed:a.speed })) : null, seconds: this.seconds, visible: this.root.visible }; }
+  snapshot() { return { motionGroup:this.playerMotionGroup,vehicleClip:this.vehicleClip??null,reload:this.weaponReload??null,reaction:this.reaction?.name??null, gun:this.gunAnims?{cmd:{...this.gunAnims.cmd},lowered:this.gunAimLowered,poses:this.gunAnims.poses().map(a=>({clip:a.clip,blend:+a.blend.toFixed(3),playing:a.playing,speed:+a.speed.toFixed(3)}))}:null, playbackSpeed:landingAction(this.action)?this.landingSpeed:launchAction(this.action)?this.launchSpeed:1, moveBlend:this.moveBlend, playerBody:!!this.shoulders, bodySwaps:this.bodySwaps, transition: this.transitionTime / this.transitionDuration, action: this.action === 'move' ? this.moveAction() : this.action, moves: this.moveAnims ? [...this.moveAnims.assocs.values()].map(a => ({ clip: a.clip, blend: a.blend, time: a.time, speed:a.speed })) : null, seconds: this.seconds, visible: this.root.visible }; }
   /** The gait the movement associations show, by name. */
   private moveAction(): Action { const a = this.moveAnims!; if (a.assocs.has('runStop') || a.assocs.has('runStopR')) return 'runStop'; if (a.assocs.has('walkStart')) return 'walkStart'; const w = (c: MoveClip) => a.assocs.get(c)?.blend ?? 0; return w('sprint') > .5 ? 'sprint' : w('run') > w('walk') && w('run') > w('idle') ? 'run' : w('walk') > w('idle') ? 'walk' : 'idle'; }
   dispose() { this.setThermal(false);this.heatMaterial.dispose();this.root.removeFromParent(); this.owner.dispose(); }

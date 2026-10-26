@@ -13,7 +13,7 @@ test('real jumps latch captured body-stat landing playback through later stat ch
   c.step=function(this:any,dt:number,controls:any,sim:any){
    const result=t.original.call(this,dt,controls,sim),s=this.snapshot();
    if(t.stage&&/^landing/.test(s.action)){
-    t.rows.push({dt,action:s.action,speed:s.playbackSpeed,seconds:s.seconds,fat:stats.get(21),muscle:stats.get(23),modifier:sim.playerLandingModifier(),grounded:sim.player.grounded});
+    t.rows.push({dt,action:s.action,speed:s.playbackSpeed,seconds:s.seconds,fat:stats.get(21),muscle:stats.get(23),modifier:sim.playerBodyMovementModifier(),grounded:sim.player.grounded});
     if(!t.changed){t.changed=true;stats.set(21,t.nextFat);stats.set(23,t.nextMuscle);}
    }else if(t.stage&&t.rows.length)t.complete=true;
    return result;

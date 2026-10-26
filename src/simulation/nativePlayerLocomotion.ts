@@ -1,4 +1,6 @@
 import { NATIVE_WALK_SPEED, NATIVE_RUN_SPEED, NATIVE_SPRINT_SPEED } from './Simulation';
+import {nativeJumpStatLaunch} from './nativePlayerJump';
+export {nativeJumpGroundSpeed} from './nativePlayerJump';
 
 /** Native on-foot blend model from the pinned gta-reversed sources.
  *
@@ -29,20 +31,13 @@ export const NATIVE_BLEND_RUN_FULL = 2;
 /** 0.07 blend units per 1/50 s TimeStep. */
 export const NATIVE_BLEND_SLEW_PER_SECOND = 0.07 * 50;
 /** CTaskSimpleJump::Launch: ApplyMoveForce(0, 0, 8.5) on the 70-unit ped mass, 0.121 units per frame, in m/s. */
-export const NATIVE_JUMP_VERTICAL_VELOCITY = 8.5 / 70 * 50;
+export const NATIVE_JUMP_VERTICAL_VELOCITY = nativeJumpStatLaunch({modifier:1}).upVelocity*50;
 /** CPhysical::ApplyGravity: 0.008 units per frame², in m/s². */
 export const NATIVE_JUMP_GRAVITY = 0.008 * 50 * 50;
 /** CPed's m_fAirResistance: CPhysical::ApplyAirResistance scales the move speed by (1 − |v| / 175)^TimeStep. */
 export const NATIVE_PED_AIR_RESISTANCE = 1 / 175;
 /** CTaskSimpleInAir keeps a rising jump moving forward at 0.05 units per frame for its first 1000 ms. */
 export const NATIVE_JUMP_MIN_FORWARD_SPEED = .05 * 50;
-/** Launch's ground speed in units per frame from the move associations' blends: SPRINT's when it plays, else RUN's. */
-export function nativeJumpGroundSpeed(associations: { run?: number; sprint?: number }): number {
-  if (associations.sprint !== undefined) return .17 + (.22 - .17) * associations.sprint;
-  if (associations.run !== undefined) return .1 + (.17 - .1) * associations.run;
-  return .1;
-}
-
 /** PlayerControlZelda's pedMoveBlendRatio: the stick's deflection (0-1 here, 0-128 on the pad) over 60, and no more
  * than 1 with the walk button held. Sprinting does not change it. */
 export function targetMoveBlend(length: number, walking: boolean, _sprinting = false): number {

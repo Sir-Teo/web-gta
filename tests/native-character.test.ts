@@ -9,7 +9,8 @@ import {Matrix4,Object3D,Vector3} from 'three';
 import {readPlayerBaseBody,PLAYER_CLASSIC_FILES} from '../src/assets/readPlayerBaseBody';
 import {playerShoulderMatrix} from '../src/animation/playerShoulders';
 import { Simulation } from '../src/simulation/Simulation';
-import {nativeLandingStatModifier,DEFAULT_LANDING_MODIFIER} from '../src/simulation/nativeLanding';
+import {nativeBodyMovementModifier,DEFAULT_BODY_MOVEMENT_MODIFIER} from '../src/simulation/nativeBodyMovement';
+import jumpReference from './fixtures/player-jump-stats-reference.json';
 let sim: Simulation, character: NativeCharacter;
 beforeAll(async () => RAPIER.init()); afterEach(() => { character?.dispose(); sim?.dispose();character=undefined!;sim=undefined!; });
 const source = (): CharacterSource => ({model:readDff(new Uint8Array(readFileSync('tests/fixtures/dragonff-skin.dff'))),textures:[],clip:readIfp(new Uint8Array(readFileSync('tests/fixtures/animation-rig.ifp'))).animations[0],track:0});
@@ -390,7 +391,7 @@ for(const mode of ['run','sprint','released'] as const)test(`native landing spee
  const moving={...controls,sprint:mode!=='run'};
  character.step(.7,moving,sim);sim.player.grounded=false;sim.playerInAir=true;character.step(.1,moving,sim);sim.player.grounded=true;
  const contact={...moving,sprint:mode==='sprint'};
- const result=character.step(.1,contact,sim),speed=Math.fround((mode==='sprint'?2:1)*DEFAULT_LANDING_MODIFIER);
+ const result=character.step(.1,contact,sim),speed=Math.fround((mode==='sprint'?2:1)*DEFAULT_BODY_MOVEMENT_MODIFIER);
  expect(character.snapshot()).toMatchObject({action:'landing',playbackSpeed:speed,seconds:.1*speed});
  expect(Math.hypot(result.animationMotion!.x,result.animationMotion!.z)).toBeCloseTo(.05*speed);
  const end=character.step(3,{...contact,sprint:!contact.sprint},sim);
@@ -399,11 +400,22 @@ for(const mode of ['run','sprint','released'] as const)test(`native landing spee
  character.step(.1,{...controls,y:0},sim);expect(character.snapshot()).toMatchObject({action:'idle',playbackSpeed:1});
 });
 
+for(const [i,row] of jumpReference.starts.entries())test(`captured launch playback starts and stays latched ${i}`,()=>{
+ setup();character.dispose();const data=source(),v=row.input;
+ character=new NativeCharacter({...data,convention:'san-andreas-ped',launch:{clip:data.clip,track:0},airborne:{clip:data.clip,track:0}});
+ let calls=0,modifier=nativeBodyMovementModifier(v.fat,v.muscle);sim.playerBodyMovementModifier=()=>{calls++;return modifier;};
+ const actor=v.player?sim:{player:sim.player};character.step(.05,{...controls,jump:true},actor);
+ expect(character.snapshot()).toMatchObject({action:'launch',playbackSpeed:row.speed,seconds:.05*row.speed});
+ modifier=modifier===DEFAULT_BODY_MOVEMENT_MODIFIER?nativeBodyMovementModifier(1000,1000):DEFAULT_BODY_MOVEMENT_MODIFIER;
+ character.step(.05,{...controls,jump:false},actor);
+ expect(character.snapshot()).toMatchObject({action:'launch',playbackSpeed:row.speed,seconds:.1*row.speed});expect(calls).toBe(v.player?1:0);
+});
+
 for(const mode of ['stats','exhausted','released','npc'] as const)test(`landing captures stat speed and physical input at contact: ${mode}`,()=>{
  setup();character.dispose();const data=source();
  character=new NativeCharacter({...data,convention:'san-andreas-ped',run:{clip:data.clip,track:0},sprint:{clip:data.clip,track:0},airborne:{clip:data.clip,track:0},landing:{clip:data.clip,track:0}});
- let modifier=nativeLandingStatModifier(1000,1000),calls=0;
- (sim as any).playerLandingModifier=()=>{calls++;return modifier;};
+ let modifier=nativeBodyMovementModifier(1000,1000),calls=0;
+ (sim as any).playerBodyMovementModifier=()=>{calls++;return modifier;};
  const actor=mode==='npc'?{player:sim.player}:sim,input={...controls,sprint:mode!=='stats'};
  character.step(.7,input,actor);sim.player.grounded=false;sim.playerInAir=true;character.step(.1,input,actor);sim.player.grounded=true;
  if(mode==='exhausted'){sim.player.stamina=-150;sim.player.sprintButtonSpeed=0;sim.player.sprintExhausted=true;}
@@ -413,7 +425,7 @@ for(const mode of ['stats','exhausted','released','npc'] as const)test(`landing 
  const expected=mode==='npc'?1:Math.fround((mode==='exhausted'?2:1)*modifier);
  expect(character.snapshot()).toMatchObject({action:'landing',playbackSpeed:expected,seconds:.05*expected});
  expect(calls).toBe(mode==='npc'?0:1);
- modifier=nativeLandingStatModifier(0,0);character.step(.05,{...contact,sprint:!contact.sprint},actor);
+ modifier=nativeBodyMovementModifier(0,0);character.step(.05,{...contact,sprint:!contact.sprint},actor);
  expect(character.snapshot().playbackSpeed).toBe(expected);expect(calls).toBe(mode==='npc'?0:1);
 });
 
@@ -474,7 +486,7 @@ for(const sprint of [false,true])test(`native landing foot contacts follow sourc
  character=new NativeCharacter({...data,convention:'san-andreas-ped',run:{clip:data.clip,track:0},sprint:{clip:data.clip,track:0},airborne:{clip:data.clip,track:0},landing:{clip:data.clip,track:0}});
  const input={...controls,sprint};character.step(.7,input,sim);
  sim.player.grounded=false;sim.playerInAir=true;character.step(.01,input,sim);expect(character.landingFootContacts).toEqual([]);
- sim.player.grounded=true;const speed=Math.fround((sprint?2:1)*DEFAULT_LANDING_MODIFIER);
+ sim.player.grounded=true;const speed=Math.fround((sprint?2:1)*DEFAULT_BODY_MOVEMENT_MODIFIER);
  character.step(.099/speed,input,sim);expect(character.landingFootContacts).toEqual([]);
  character.step(.002/speed,input,sim);expect(character.landingFootContacts).toEqual(['right']);
  character.update(sim,.5);character.update(sim,1);expect(character.landingFootContacts).toEqual(['right']);
