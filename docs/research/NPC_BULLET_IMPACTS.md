@@ -65,3 +65,62 @@ death/calculator/task behavior, creator/group identity for opaque drive-by
 sources, native contact brightness and matched retail captures. The existing
 host corpse animation gates and broader event/task limits remain documented
 separately.
+
+## Drive-by source identity and on-foot contact ordering (October 26, 2026)
+
+The later ambient-seat routing retained scripted/ambient gang gunner types for
+seat contacts, but their ordinary foot-victim adapter still discarded that
+context. A matching noncivilian could consequently be wounded by a drive-by
+that the native DoBulletImpact excludes. Foot use-gun damage already rejected
+those types, but its shared impact preparation still emitted contact audio
+before that rejection.
+
+NpcBulletImpact now accepts the optional actual ped source. Scripted drive-bys,
+ambient gang gunners and foot use-gun paths forward it to preparation. The
+pedestrian impact description exposes its resolved native type; impact
+preparation rejects an equal noncivilian before audio or effects. The native
+civilian exceptions and the separate mounted-vehicle creator path remain.
+
+Script/gang drive-by physical damage also forwards the source to npcBulletHit.
+A shared acceptance predicate applies the same-type exclusion to live and dead
+victims, then rejects known live groupmates except explosion. Script membership
+uses the actual rider object, while street recruits retain follow status. The
+group gate remains inside damage acceptance, after contact audio, and does
+not suppress a corpse contact merely because it used to share a group.
+
+This context establishes type/group acceptance. External riders are not cast
+into live on-foot Pedestrian records: full damage-source/event identity,
+retaliation tasks and native damager bookkeeping remain separate work. Known
+foot sources keep their existing event/damage metadata. Accepted external hits
+continue to apply victim weakness, armour, proofs and nonplayer accounting
+through the existing damage adapter.
+
+Pinned source ordering: CWeapon::DoBulletImpact PC `0x73B550` checks equal ped
+types before DoBulletHitFx/GenerateDamageEvent; CEventDamage::AffectsPed PC
+`0x4B35A0` supplies the live nonplayer-group rejection, after dead-victim
+GenerateDamageEvent acceptance. These are the same pinned references above.
+
+Fourteen initial focused cases expose nine failures before the fix; a fifteenth
+checks external group identity on corpses. They cover both source
+and victim type overrides, equal noncivilian/civilian contacts, live groups,
+proofs, mounted creators and corpse ordering. Collision fixtures check that
+both physical damage and effects receive the same source from real scripted
+and ambient gunner routines.
+
+The real-frame task trial records three head contacts on the same scripted
+on-foot ped: equal gang type is silent at 5,000 HP; different-gang script
+membership permits audio but no wound; removing membership enables 22 damage,
+then 16 head blood particles at 4,978 HP. Centered native random spread draws
+make each ray deterministic and are restored at its first source trace.
+The existing nine-case NPC muzzle trial now explicitly checks silent COP-to-COP
+contact. That trial, CJ mounted-hit acceptance, script drive-by completion,
+foot/car/bike group membership and seated type/vehicle-creator checks all pass.
+
+Validation: all 5,788 unit tests pass (51 skipped), as do 54 focused checks and
+six live regression cases. The first full run found a stale exact-object
+assertion in the skinned arm-piece test after impact descriptions gained ped
+type. It now checks the head/dead fields that test owns; its damage, reaction
+piece, critical-head and vest checks remain. The corrected full rerun passes.
+The final build and full production smoke also pass, including saved-game
+return, walking, native car entry, map/waypoint, pause/resume, Rustler takeoff
+and landing gear, with no page errors or failed requests.

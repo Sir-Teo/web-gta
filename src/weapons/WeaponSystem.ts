@@ -4,7 +4,7 @@ import {PLANE_GUN_SHAKE,ROCKET_SHAKE} from '../engine/nativePadShakes';
 import {THROW_START_CLIP,THROW_CLIP,THROW_UP_CLIP,THROW_FORCE_PER_COUNTER,throwClip,throwFireTime,throwFiresNow,throwButtonCounter,type ThrowClip} from './nativeThrowProjectile';
 import {Vector3,Quaternion} from 'three';
 import {pedSphereHit,type PedHitSphere} from '../combat/nativePedHitSpheres';
-import {policeDontCareAboutPedType} from '../ped/nativeAcquaintance';
+import {policeDontCareAboutPedType,sameNonCivilianPedType,type Acquainted} from '../ped/nativeAcquaintance';
 import {OCCUPANT_HEAD_LIFT,occupantHeadHit,type SeatedShot} from '../vehicle/nativeDieInCar';
 import {isInstantHitGun,pedPieceAt} from '../simulation/WorldPedestrians';
 import {pedCanBeTargettedVehicleWise} from '../ped/nativeVehicleTargeting';
@@ -1054,7 +1054,11 @@ export class WeaponSystem {
  /** Notify a bullet impact, drawing non-ped surfaces at once. Ped blood is returned for emission after damage:
   * DoBulletImpact requires GenerateDamageEvent to accept it and samples the resulting health; CBulletInfo always
   * emits eight blood particles. Keep object/audio notifications before damage. */
- prepareNpcBulletImpact(hit:PedBulletIntersection,point:Vec3,weapon:number,direction:Vec3){return this.hitFx(hit,point,8,weapon,direction,{byPlayer:false,deferObjectDamage:true,strictAcceptance:true});}
+ prepareNpcBulletImpact(hit:PedBulletIntersection,point:Vec3,weapon:number,direction:Vec3,shooter?:Acquainted){
+  // DoBulletImpact's ped-type exclusion precedes audio, not just GenerateDamageEvent and its blood result.
+  if(shooter){const victim=this.pedestrians()?.bulletImpact?.(hit.collider.handle,point,hit.pedPiece);if(victim&&sameNonCivilianPedType(victim,shooter))return undefined;}
+  return this.hitFx(hit,point,8,weapon,direction,{byPlayer:false,deferObjectDamage:true,strictAcceptance:true});
+ }
  private hitFx(hit:PedBulletIntersection,point:Vec3,amount:number,weapon:number,direction?:Vec3,options:{sniper?:boolean;byPlayer?:boolean;playerPedCreator?:boolean;deferObjectDamage?:boolean;strictAcceptance?:boolean}={}){
   const handle=hit.collider.handle,sniper=!!options.sniper,byPlayer=options.byPlayer??true,playerPedCreator=options.playerPedCreator??byPlayer;
   if(playerPedCreator)this.onPlayerBulletImpact?.(handle);

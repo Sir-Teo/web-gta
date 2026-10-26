@@ -9,7 +9,7 @@ function fixture(bulletProofVest=false){
 }
 test('a raised native arm piece overrides the old height-based head classification in damage and reactions',()=>{
  const f=fixture();f.hit(5);expect(f.ped.health).toBe(75);expect(f.host.damageReaction.mock.calls[0][8]).toBe(5);expect(f.host.onKill).not.toHaveBeenCalled();
- expect(WorldPedestrians.prototype.bulletImpact.call(f.host,12,{x:0,y:1.6,z:0},5)).toEqual({head:false,dead:false});
+ expect(WorldPedestrians.prototype.bulletImpact.call(f.host,12,{x:0,y:1.6,z:0},5)).toMatchObject({head:false,dead:false});
 });
 test('an actual native head piece retains critical death',()=>{
  const f=fixture();f.hit(9);expect(f.ped.health).toBe(0);expect(f.host.onKill).toHaveBeenCalledOnce();

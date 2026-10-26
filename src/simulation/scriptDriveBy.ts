@@ -28,7 +28,7 @@ export interface ScriptDriveByWorld {
  sim:Simulation;cars:()=>Iterable<WorldCar>;
  /** Where a ped or car target is now, renderer coordinates; nothing once it has gone. */
  targetPosition:(target:DriveByTarget)=>{x:number;y:number;z:number}|undefined;
- hitPed:(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3,piece?:number)=>boolean;
+ hitPed:(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3,piece?:number,shooter?:NonNullable<Parameters<SeatedShot>[5]>['shooter'])=>boolean;
  bulletLine?:import('../weapons/skinnedPedBulletLine').NpcBulletLine;
  prepareBulletImpact?:import('../weapons/skinnedPedBulletLine').NpcBulletImpact;
  onShot?:(from:Vector3,to:Vector3,weapon:number,hit:boolean)=>void;
@@ -86,13 +86,13 @@ export function stepScriptDriveBy(d:ScriptDriveBy,car:WorldCar,info:NativeWeapon
   }
   const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:reach);d.shots++;
   world.onShot?.(muzzle,end,info.type,!!shot||!!tyre);
-  const finish=shot&&!tyre?world.prepareBulletImpact?.(shot,end,info.type,direction):undefined;let accepted=false;
+  const finish=shot&&!tyre?world.prepareBulletImpact?.(shot,end,info.type,direction,shooter):undefined;let accepted=false;
   if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
   else if(shot?.collider.handle===world.sim.playerCollider.handle)accepted=world.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z},piece:shot.pedPiece});
   else if(shot){
    const hitCar=cars.find(c=>shot.collider.parent()?.handle===c.car.body.handle);
    if(hitCar){pushShotVehicle(hitCar,shot.normal,end,info.type);if(!hitCar.onlyDamagedByPlayer)hitCar.damage(info.damage,undefined,false,undefined,{weapon:info.type});}
-   else accepted=world.hitPed(shot.collider.handle,info.damage,info.type,{x:direction.x,z:direction.z},end,shot.pedPiece);
+   else accepted=world.hitPed(shot.collider.handle,info.damage,info.type,{x:direction.x,z:direction.z},end,shot.pedPiece,shooter);
   }
   finish?.(accepted);
  }

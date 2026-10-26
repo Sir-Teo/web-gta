@@ -686,7 +686,7 @@ async function boot() {
     const at=target.kind==='ped'?world?.pedExists?.(target.handle)?world.pedPosition?.(target.handle):undefined:mission&&mission.vehicles.exists(target.handle)?mission.vehicles.positionOf(target.handle):undefined;
     return at&&{x:at.x,y:at.z-(target.kind==='ped'?PED_ORIGIN_HEIGHT:0),z:-at.y};
    },
-   hitPed:(collider,damage,weapon,direction,end,piece)=>!!pedestrians?.npcBulletHit(collider,damage,weapon,direction,end,piece),
+   hitPed:(collider,damage,weapon,direction,end,piece,shooter)=>!!pedestrians?.npcBulletHit(collider,damage,weapon,direction,end,piece,shooter),
    bulletLine:(from,direction,range,body)=>weapons.npcBulletLine(from,direction,range,body),
    prepareBulletImpact:(...args)=>weapons.prepareNpcBulletImpact(...args),
    // The occupant of the vehicle the NPC's muzzle line reaches, or an exposed biker.

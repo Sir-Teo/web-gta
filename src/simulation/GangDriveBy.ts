@@ -233,15 +233,16 @@ export class GangDriveBy {
     const shot:import('../weapons/skinnedPedBulletLine').PedBulletIntersection|null|undefined=this.bulletLine?this.bulletLine(muzzle,direction,lineLength,car.car.body):this.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),lineLength,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
     // FireInstantHit includes car tyres for every shooter, the gang car's own excepted.
     const reach=shot?.timeOfImpact??lineLength,tyre=bulletTyreHit([...this.fleet.cars].filter(c=>c!==car),muzzle,direction,reach);
-    const seated=this.seatedShot?.(muzzle,direction,lineLength,car,shot?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre,shooter:{pedType:`GANG${u.gang+1}`}});
+    const shooter={pedType:`GANG${u.gang+1}`};
+    const seated=this.seatedShot?.(muzzle,direction,lineLength,car,shot?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre,shooter});
     const end=muzzle.clone().addScaledVector(direction,seated?.t??tyre?.t??reach);s.shots++;
     this.onShot?.(muzzle,end,info.type,!!shot||!!tyre||!!seated);
-    const finish=shot&&!tyre&&!seated?this.prepareBulletImpact?.(shot,end,info.type,direction):undefined;let accepted=false;
+    const finish=shot&&!tyre&&!seated?this.prepareBulletImpact?.(shot,end,info.type,direction,shooter):undefined;let accepted=false;
     if(seated)seated.hit(info.damage,info.type);
     else if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
     else if(shot?.collider.handle===this.sim.playerCollider.handle)accepted=this.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z},piece:shot.pedPiece});
     else if(shot&&targetBody&&shot.collider.parent()?.handle===targetBody.handle){pushShotVehicle(playerCar!,shot.normal,end,info.type);playerCar!.damage(info.damage,undefined,false,undefined,{weapon:info.type,by:{ped:s}});}
-    else if(shot)accepted=this.hitPed?.(shot.collider.handle,info.damage,info.type,{x:direction.x,z:direction.z},end,shot.pedPiece)??false;
+    else if(shot)accepted=this.hitPed?.(shot.collider.handle,info.damage,info.type,{x:direction.x,z:direction.z},end,shot.pedPiece,shooter)??false;
     finish?.(accepted);
    }
    if(s.gunState.active&&s.gunState.time<oldTime)s.aimPoint={...aim};

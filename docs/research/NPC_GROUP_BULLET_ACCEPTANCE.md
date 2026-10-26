@@ -37,3 +37,10 @@ bullet entries. Opaque script/gang/vehicle creator identities, full native
 group/task behavior, other damage entries, full damage calculation and matched
 retail PC captures remain open. The exception for explosion does not establish
 coverage of the separate blast pipeline.
+
+The [on-foot drive-by follow-up](NPC_BULLET_IMPACTS.md#drive-by-source-identity-and-on-foot-contact-ordering-october-26-2026)
+now forwards the actual scripted rider and the ambient gang gunner's type to
+physical damage and impact preparation. A real TASK_DRIVE_BY head line checks
+silent equal-type exclusion, audible group rejection and the accepted wound
+once the victim leaves that script group. Full raw source/event and retaliation
+bookkeeping for external riders remains open.

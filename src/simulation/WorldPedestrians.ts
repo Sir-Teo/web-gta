@@ -1128,7 +1128,7 @@ export class WorldPedestrians {
   /** A ped by collider, living or dead, while it is in the world: where a fire on it burns (CFire::ProcessFire). */
   pedPosition(handle:number){const p=this.people.find(q=>q.collider.handle===handle);return p&&{position:{...p.body.translation()},dead:p.health<=0,submerged:this.submerged(p)};}
   /** DoBulletImpact samples the struck piece and the victim's health after GenerateDamageEvent for its blood FX. */
-  bulletImpact(handle:number,point?:{x:number;y:number;z:number},piece?:number){const p=this.people.find(p=>p.collider.handle===handle);return p&&{head:(piece??this.hitPiece(p,point))===PED_PIECE.head,dead:p.health<=0};}
+  bulletImpact(handle:number,point?:{x:number;y:number;z:number},piece?:number){const p=this.people.find(p=>p.collider.handle===handle);return p&&{head:(piece??this.hitPiece(p,point))===PED_PIECE.head,dead:p.health<=0,pedType:pedTypeName(p)};}
   /** Bullet-only native skinned collision. Movement and other physical queries retain their controller shapes. */
   bulletLine(from:{x:number;y:number;z:number},direction:{x:number;y:number;z:number},range:number,options:BulletLineOptions){
    const targets:SkinnedPedBulletTarget[]=this.people.filter(p=>p.body.isEnabled()&&p.collider.isEnabled()&&p.view.hasHitSpheres).map(p=>({body:p.body,collider:p.collider,bounds:()=>p.view.hitBounds(),hitSpheres:()=>p.view.hitSpheres()}));
@@ -1956,21 +1956,24 @@ export class WorldPedestrians {
   this.applyNpcBullet(victim,damage,weapon,direction,end,piece);return true;
  }
  /** GenerateDamageEvent's acceptance, rather than bulletHit's collider recognition, for NPC impact effects. */
- npcBulletHit(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3,piece?:number){
-  const victim=this.people.find(other=>other.collider.handle===collider);return !!victim&&this.applyNpcBullet(victim,damage,weapon,direction,end,piece);
+ npcBulletHit(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3,piece?:number,shooter?:Acquainted&{follow?:boolean}){
+  const victim=this.people.find(other=>other.collider.handle===collider);return !!victim&&!this.npcBulletSourceBlocked(victim,shooter,weapon)&&this.applyNpcBullet(victim,damage,weapon,direction,end,piece);
+ }
+ private npcBulletSourceBlocked(victim:Pedestrian,shooter:(Acquainted&{follow?:boolean})|undefined,weapon:number){
+  if(!shooter)return false;
+  // DoBulletImpact excludes equal noncivilian types even on corpses. AffectsPed's group gate is live-only.
+  if(sameNonCivilianPedType(victim,shooter))return true;
+  return victim.health>0&&weapon!==WEAPON.explosion&&(!!victim.follow&&!!shooter.follow||!!this.sameScriptGroup?.(victim,shooter));
  }
  private applyNpcBullet(victim:Pedestrian,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3,piece?:number,shooter?:Pedestrian){
   // DoBulletImpact's same-type gate precedes GenerateDamageEvent, including for a corpse.
-  if(shooter&&sameNonCivilianPedType(victim,shooter))return false;
+  if(this.npcBulletSourceBlocked(victim,shooter,weapon))return false;
   if(victim.health<=0){this.damageCollider(victim.collider.handle,damage,direction,'bullet',{weapon,point:end,piece,byPlayer:false});return true;}
-  // AffectsPed rejects a live groupmate hit from a nonplayer ped before running the calculator. The calculator's
-  // group scaling remains available for other damage entries; it is not acceptance for these bullet events.
-  if(shooter&&weapon!==WEAPON.explosion&&(victim.follow&&shooter.follow||this.sameScriptGroup?.(victim,shooter)))return false;
   if(pedProofedAgainst(victim,'bullet')||!npcDamageReaches(victim,shooter??{},weapon,true,piece??this.hitPiece(victim,end)))return false;
   victim.lastDamagedBy=shooter?{ped:shooter}:{};
   if(shooter)this.noteEvent(victim,EVENT.damage);
-  // AccountForPedDamageStats always applies victim weakness. A known ped source also supplies mission-group
-  // membership; opaque script/vehicle sources cannot establish that relationship yet.
+  // AccountForPedDamageStats always applies victim weakness. Known foot sources retain their event/damager
+  // metadata; external ped context currently supplies type/group acceptance, not a complete event source.
   const dealt=shooter?this.pedOnPedDamage(victim,shooter,damage,weapon):damage*victim.defendMult;
   const response=spendPedArmour(dealt,victim.armour,weapon),beforeHealth=victim.health;
   victim.armour=response.armour;victim.health=healthAfter(victim.health,response.damageHealth);
@@ -3700,7 +3703,7 @@ export class WorldPedestrians {
     }
     const shotDamage=weapon.info.damage*pellets;
     this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre||!!seated,{id:`ped:${p.id}`,position:()=>p.health>0||this.people.includes(p)?{...p.actor.player.position,y:p.actor.player.position.y+1}:undefined});this.gunShot({...state.position,y:state.position.y+1},false,p.id,end);
-    const finish=shot&&!tyre&&!seated?this.prepareBulletImpact?.(shot,end,weapon.info.type,direction):undefined;let accepted=false;
+    const finish=shot&&!tyre&&!seated?this.prepareBulletImpact?.(shot,end,weapon.info.type,direction,p):undefined;let accepted=false;
     if(seated)seated.hit(seated.direct?shotDamage:weapon.info.damage,weapon.info.type);
     else if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
     else if(shot?.collider.handle===this.sim.playerCollider.handle)accepted=hitPlayer(shotDamage,weapon.info.type,shot.pedPiece??pedPieceAt(this.sim.player.position,this.sim.player.heading,end));

@@ -14123,3 +14123,25 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   passes the surrounding walking/car/map/save/gear checks without errors.
   This changes the authored test pilot; aircraft physics/data remain unchanged.
   [Trace comparison, failed trial and limits](research/PLAYABLE_AIRCRAFT.md#production-takeoff-piloting-follow-up-october-26-2026).
+
+## Drive-by foot-victim source gates and impact order (October 26, 2026)
+
+- Scripted and ambient gang drive-bys now retain source type and known group
+  membership for physical pedestrian hits, as their seated contacts do.
+  Equal noncivilian hits, including corpses, are excluded before impact audio;
+  known live groupmate hits retain audio but reject wounds and blood.
+- Foot use-gun impact preparation now receives the actual shooter too. Native
+  type overrides resolve before the equal-type test; civilian exceptions,
+  proofs, corpse acceptance and mounted-vehicle source behavior are retained.
+- Fourteen initial source/ordering cases expose nine failures before repair;
+  fifteen source cases now pass, with 54 focused tests and the build. A real-frame scripted drive-by reaches
+  the same head three times: equal gang is silent, a different-gang groupmate
+  is audible but unharmed, and removing membership permits 22 damage followed
+  by 16 blood particles. Existing foot/car/bike group and seated type tests pass.
+- All 5,788 unit tests pass (51 skipped), together with six live checks, the
+  final build and full production smoke. The muzzle trial now explicitly
+  requires zero COP-to-COP impact audio.
+- External rider context establishes acceptance, without casting riders into
+  live foot records. Complete damage-source/event identity, retaliation tasks
+  and matched PC damage calculation remain open.
+  [Native ordering, source scope and verification](research/NPC_BULLET_IMPACTS.md#drive-by-source-identity-and-on-foot-contact-ordering-october-26-2026).
