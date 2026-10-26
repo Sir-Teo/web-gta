@@ -14390,3 +14390,25 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   inspection hook. Acceleration takes seven game seconds / 51.99 wall seconds,
   exceeding the old 45-second gate; climb takes two / 11.80 seconds.
   [Timing evidence, budgets and limits](research/PRODUCTION_FLIGHT_CLOCK.md).
+
+## Rear lamp night and pedal activation (October 26, 2026)
+
+- Native rear material slots now select their lit texture for night lighting
+  or accepted pedal braking. Daytime dynamic braking requires a player, active
+  AI or known script driver and excludes handbrake use. Driver lookup runs
+  only for an eligible pedal request; fronts and existing damaged slots retain
+  their inputs. Original maps, RGB/alpha and surface values restore when off.
+- Eight new checks expose six failures before repair; all 22 focused checks,
+  all 6,247 unit tests (51 skipped), the build and final typecheck pass.
+- A loaded Greenwood's two rear slots pass seven live day/pedal/handbrake/
+  night/damage/restoration states, selecting native ambient 5/diffuse 1 when
+  lit. Paintjob coverage passes. A headlight fixture initially fails before
+  lighting during entry; explicit placement beside its loaded car restores
+  keyboard entry and the unchanged beam/road-pool checks. The night image
+  also shows the lit rear texture, without page errors.
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and gear with no page errors, failed
+  requests or inspection hook. Flight stages consume six/two game seconds.
+- Full camera/corona, engine/alarm/override, bumper and original damage-status
+  behavior remain separate compatibility work.
+  [Native branches, actual materials, checks and scope](research/CAR_LAMP_ACTIVATION.md).

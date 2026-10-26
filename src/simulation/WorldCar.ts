@@ -1677,7 +1677,9 @@ export class WorldCar {
  setLighting(worldAmbient:readonly number[]|undefined,objectAmbient:readonly number[]|undefined,sunMultiplier:number,night:number){
   const contact=worldAmbient?nativeContactLightMultiplier(worldAmbient,nativeCarContactBrightness(this.collisionLighting,night)):1;
   this.car.setAmbient(objectAmbient,sunMultiplier*contact,contact);
-  this.car.setLightState(this.input.pedals.brake>0||this.input.pedals.handbrake,this.lightsOn,this.damageState.lights);
+  // DoTailLightEffect: dynamic brake emission requires a driver, pedal pressure and no handbrake.
+  const brake=this.input.pedals.brake>0&&!this.input.pedals.handbrake&&(this.occupied||!!this.autopilot&&!this.driverOut||!!WorldCar.hasDriverPed?.(this));
+  this.car.setLightState(brake,this.lightsOn,this.damageState.lights);
   this.car.setDirtLevel(this.dirtLevel);
   // SetupLightingForEntity's multiplier feeds the car pipeline's reflection strength (gSpecIntensity).
   this.car.setReflection(contact);

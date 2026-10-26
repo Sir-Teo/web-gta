@@ -76,7 +76,7 @@ test('active light switching brightens brake and headlight lamps',()=>{
   expect(colors.leftRear[0]).toBeGreaterThan(2);
   expect(colors.leftFront).toEqual([1,1,1]);
   setCarLightState(targets,{brake:false,headlights:true});
-  expect(colors.leftRear).toEqual([1,1,1]);
+  expect(colors.leftRear[0]).toBeGreaterThan(2);
   expect(colors.rightFront[0]).toBeGreaterThan(1.5);
   // A smashed lamp (eLights: front left 0, front right 1, rear right 2, rear left 3) stays out.
   setCarLightState(targets,{brake:true,headlights:true,broken:[false,true,false,true]});

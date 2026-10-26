@@ -9,8 +9,8 @@ const markers:readonly [NativeCarLightSlot,readonly number[]][]=[
 export function nativeCarLightSlot(rgb:readonly number[]):NativeCarLightSlot|undefined{
  return markers.find(([,color])=>color.every((value,i)=>value===rgb[i]))?.[0];
 }
-/** Active-light switching (SetupLightFlags port): brake pedal brightens the
- * rear lamps, night headlights brighten the fronts; day/idle keeps the shared whitened branch. */
+/** Material slots from SetupLightFlags: accepted pedal braking enables rear lamps;
+ * night lights enable fronts and rears. The off branch keeps the shared whitened RGB. */
 /** `broken`: the damage manager's lights in eLights order (front left, front right, rear right, rear left); a smashed
  * lamp stays unlit (DoVehicleLights has a VEHICLE_LIGHTS_IGNORE_DAMAGE flag, so damage normally puts a lamp out). */
 export interface CarLightState {brake:boolean;headlights:boolean;broken?:readonly boolean[]}
@@ -23,7 +23,7 @@ export const LIGHT_SURFACE={ambient:5,diffuse:1} as const;
 export function setCarLightState(targets:readonly CarLightTarget[],state:CarLightState){
  for(const target of targets){
   const {binding,slot}=target;
-  const lit=!!slot&&!state.broken?.[LIGHT_INDEX[slot]]&&((slot==='leftRear'||slot==='rightRear')?state.brake:state.headlights);
+  const lit=!!slot&&!state.broken?.[LIGHT_INDEX[slot]]&&((slot==='leftRear'||slot==='rightRear')?state.brake||state.headlights:state.headlights);
   // SetEditableMaterialsCB: a lit slot swaps its texture to vehiclelightson128 and takes gLightSurfProps.
   if(target.litMap&&target.unlit){
    const material=binding.material as unknown as {map:unknown;needsUpdate:boolean;userData:{nativeSurface?:{ambient:{value:number};diffuse:{value:number}}}},surface=material.userData.nativeSurface;
@@ -32,7 +32,7 @@ export function setCarLightState(targets:readonly CarLightTarget[],state:CarLigh
    binding.material.color.setRGB(1,1,1);continue;
   }
   if(slot&&state.broken?.[LIGHT_INDEX[slot]]){binding.material.color.setRGB(1,1,1);continue;}
-  if(slot==='leftRear'||slot==='rightRear'){const c:readonly [number,number,number]=state.brake?[2.4,0.3,0.25]:[1,1,1];binding.material.color.setRGB(...c);}
+  if(slot==='leftRear'||slot==='rightRear'){const c:readonly [number,number,number]=lit?[2.4,0.3,0.25]:[1,1,1];binding.material.color.setRGB(...c);}
   else if(slot==='leftFront'||slot==='rightFront'){const c:readonly [number,number,number]=state.headlights?[1.7,1.7,1.6]:[1,1,1];binding.material.color.setRGB(...c);}
  }
 }
