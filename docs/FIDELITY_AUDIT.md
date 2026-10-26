@@ -14204,3 +14204,20 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   live regression passes too, with no page errors. All 6,019 unit tests pass
   (51 skipped), together with the final build and production smoke.
   [Native math, boundaries and checks](research/PED_BULLET_FLOAT_FIELDS.md).
+
+## Native float fields in mission/recruit seats (October 26, 2026)
+
+- Mission rider and retained recruit damage now reuse the native float factor,
+  armour and health operations. Player-friendly scaling rounds its native
+  factor/product too; existing source/proof and critical/exit behavior remain.
+- Fourteen new role-specific tests expose ten failures before repair. Sixty-six
+  focused checks and the build pass. Both live role cases pass four actual NPC
+  muzzle hits plus a group-friendly adapter check each, covering exact one HP,
+  partial/exact armour, below-one death, post-frame health and blood/accounting.
+- Both armour/rebuild and recruit wounded-exit/dead-seat regressions pass.
+  All 6,033 unit tests pass (51 skipped), together with the final build and
+  production smoke.
+- Recruit muzzle selection now checks the full incoming-seat contact including
+  CJ, after the initial fixture accidentally selected the nearer driver. The
+  native contact filter was preserved.
+  [Native math and seated follow-up](research/PED_BULLET_FLOAT_FIELDS.md#seated-mission-riders-and-retained-recruits-october-26-2026).

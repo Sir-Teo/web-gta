@@ -63,3 +63,31 @@ All 6,019 unit tests pass (51 skipped).
 The final build and production smoke also pass, including walking, native car
 entry, saved-game return, map/waypoint, pause/resume, Rustler takeoff and landing
 gear. No page errors or failed requests occur.
+
+## Seated mission riders and retained recruits (October 26, 2026)
+
+The separate scriptRiderShot and CarEntry.passengerShot adapters still had the
+same double-precision factor, armour and ordinary health operations. They now
+reuse pedDamageFactor, spendPedArmourFloat32 and healthAfterFloat32, including
+float32 player-friendly scaling. Their existing proof/source gates, critical
+head override, once-only kill callbacks and corpse/exit ownership remain.
+
+Fourteen role-specific checks expose ten failures before repair, then pass
+with the existing proof, armour and passenger tests (66 focused cases). The
+live fixture checks mission riders and retained native MALE01 recruit records.
+For each role, real NPC muzzles verify one HP, partial armour, exact armour and
+below-one death; a raw-player adapter call checks group-friendly scaling with
+actual script membership or the retained follow flag. It checks car health,
+post-frame health, blood and first-fatal accounting. All ten scenarios pass.
+
+The recruit fixture initially selected a line through CJ's nearer driver head:
+the damage adapter correctly retained that protected contact, leaving the
+recruit unchanged. The fixture now requires the shared incoming-seat query to
+identify the recruit before issuing its actual muzzle shot. No gameplay or
+collision filter was changed to fix that test setup.
+The existing script armour/rebuild and street-recruit wounded-exit/dead-seat
+regressions also pass. No page errors occur in either transition check.
+All 6,033 unit tests pass (51 skipped) with the seated adapters updated.
+The final build and production smoke pass for the seated update, including
+native car entry, walking, saved-game return, map/waypoint, pause/resume,
+Rustler takeoff and landing gear, with no page errors or failed requests.

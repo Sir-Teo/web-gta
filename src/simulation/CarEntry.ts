@@ -1,7 +1,7 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import {physicalCanBeDamaged} from '../combat/nativePhysicalProofs';
 import {bulletProofVestStops,type BulletDamageProtection} from '../ped/bulletProofs';
-import {healthAfter,spendPedArmour} from '../ped/damage';
+import {healthAfterFloat32,pedDamageFactor,spendPedArmourFloat32} from '../ped/damage';
 import type {PedVitals} from '../ped/nativeCopVitals';
 import type {ShotCreator} from '../weapons/WeaponSystem';
 import {nativeCarSeatPose} from '../vehicle/nativeSeatPosition';
@@ -199,8 +199,8 @@ export class CarEntry {
    // AccountForPedDamageStats precedes armour, then ComputeWillKillPed applies any forced head death.
    // AccountForPedDamageStats checks the raw creator's ped type for group scaling. A vehicle's CJ driver can
    // satisfy AffectsPed's only-player test without making the vehicle itself a player-ped damage calculator.
-   const scaled=damage*(keep?.defendMult??1),applied=playerPed&&rider.follow&&weapon!==37&&weapon!==51?Math.min(scaled*Math.fround(.1),12.5):scaled;
-   const response=spendPedArmour(applied,keep?.armour,weapon),health=headshot?0:healthAfter(keep?.health??100,response.damageHealth);
+   const scaled=pedDamageFactor(damage,keep?.defendMult??1),applied=playerPed&&rider.follow&&weapon!==37&&weapon!==51?Math.min(Math.fround(scaled*Math.fround(.1)),12.5):scaled;
+   const response=spendPedArmourFloat32(applied,keep?.armour,weapon),health=headshot?0:healthAfterFloat32(keep?.health??100,response.damageHealth);
    rider.keep={...(rider.keep as object|undefined),health,armour:response.armour};
    if(health>0)return 'hit';
    rider.diedInSeat=true;rider.driveBy=undefined;rider.groupDriveBy=undefined;
