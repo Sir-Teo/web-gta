@@ -1956,6 +1956,12 @@ export class WorldPedestrians {
  /** A round from a shooter the peds do not hold themselves (a script's drive-by rider) meeting a ped's collider: the
   * ped takes it and reacts as it does to one of the peds' own rounds, unless proofed or only the player may hurt it.
   * Whether the collider was a ped's. */
+ /** FireOneInstantHitRound: no creator and no corpse treatment; 52 is not an ordinary instant-hit headshot. */
+ instantHitRound(collider:number,damage:number,direction:{x:number;z:number},end:Vector3,piece?:number){
+  const victim=this.people.find(other=>other.collider.handle===collider);if(!victim)return false;
+  if(victim.health>0)this.applyNpcBullet(victim,damage,52,direction,end,piece);
+  return true;
+ }
  bulletHit(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3,piece?:number){
   const victim=this.people.find(other=>other.collider.handle===collider);if(!victim)return false;
   this.applyNpcBullet(victim,damage,weapon,direction,end,piece);return true;

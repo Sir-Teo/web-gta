@@ -261,6 +261,8 @@ export class WorldBoat {
    if(upZ>-.6&&this.onWater&&move>.05){const p=this.body.translation();addWakePoint(this.wake,{x:p.x,y:-p.z},Math.hypot(v.x,v.y,v.z)/50,this.occupied?31:15);}}
  }
  occupied=false;throttle=0;steer=0;brake=false;waveVolume=0;
+ /** CVehicle::bGunSwitchedOff, independent of SET_PLAYER_CAN_DO_DRIVE_BY. */
+ gunSwitchedOff=false;
  /** bOnWater from the last ProcessBoatControl. */
  private onWater=false;
  /** ProcessBoatControl's physical submerged flag: buoyancy exceeds its native mass/timestep threshold. */

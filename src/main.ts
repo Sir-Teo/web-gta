@@ -4074,6 +4074,7 @@ async function boot() {
           else cannonAudio.clearSplash();
           cannonAudio.service(tip?{x:tip.point.x,y:tip.point.y,z:tip.point.z}:undefined);
          }}
+        if(fleet?.occupiedBoat)weapons.fireBoatFixedGuns(fleet.occupiedBoat,input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire'),render.glance==='none',carGunOff);
         // SET_PLAYER_CAN_DO_DRIVE_BY off leaves the boat's helmsman no drive-by weapon, as it does a car's driver.
         if(fleet?.occupiedBoat&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth){
          const drivebyTrigger=drivebyPulled();
@@ -6281,18 +6282,9 @@ async function boot() {
                  setVisionEffect:(kind,on)=>{weapons.setVisionEffect(kind,on);},
                  forceDeathRestart:()=>{gameLogic.forceDeathRestart(gameTimeMs,gameLogicWorld);},
                  nightVisionActive:()=>weapons.vision==='nightvision',
-                 // FireOneInstantHitRound: the line of sight from start to end, the trace, then a ped not dying takes a
-                 // WEAPON_UZI_DRIVEBY damage event of the intensity and a vehicle InflictDamage by WEAPON_MICRO_UZI (none
-                 // for one only the player may hurt). Its point light at the start and ReportBulletHit are left out.
+                 // Shared FireOneInstantHitRound backend, also used by the Predator's fixed twin guns.
                  fireSingleRound:(from,to,intensity)=>{
-                  const a=new Vector3(from.x,from.z,-from.y),dir=new Vector3(to.x,to.z,-to.y).sub(a),length=dir.length();if(!length)return;dir.divideScalar(length);
-                  const shot=sim.world.castRayAndGetNormal(new RAPIER.Ray(a,dir),length,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS);
-                  const end=a.clone().addScaledVector(dir,shot?.timeOfImpact??length);weapons.singleRound(a,end);
-                  if(!shot)return;
-                  if(shot.collider.handle===sim.playerCollider.handle){if(sim.player.health>0)sim.damagePlayer(intensity,false,{weapon:52,from:{x:a.x,z:a.z}});return;}
-                  const car=[...(fleet?.cars??[])].find(c=>shot.collider.parent()?.handle===c.car.body.handle);
-                  if(car){if(!car.onlyDamagedByPlayer)car.damage(intensity,undefined,false,undefined,{weapon:28});return;}
-                  pedestrians?.bulletHit(shot.collider.handle,intensity,52,{x:dir.x,z:dir.z},end);
+                  weapons.fireInstantHitRound({x:from.x,y:from.z,z:-from.y},{x:to.x,y:to.z,z:-to.y},intensity);
                  },
                  vehicleModelValue:model=>fleet?.modelMonetaryValue(model)??0,
                  setScriptVehicleRoll:(car,roll)=>{

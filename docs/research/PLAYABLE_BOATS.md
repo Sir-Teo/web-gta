@@ -60,3 +60,11 @@ It survives partial repairs and camera movement without gaining car overheat
 smoke or engine particle velocity. Independent branch captures and real-model
 lifecycle renders verify the adapters; native event delivery remains open.
 [Sources, PC/mobile differences and checks](BOAT_FIRE_LIFECYCLE.md).
+
+## Predator fixed twin guns (October 26, 2026)
+
+The Predator's player-controlled fixed guns now use their own captured native
+origins, spread, aiming, 150 ms interval and 20-volley reload state. They fire
+independently of inventory and drive-by permission and retain camera/control
+gates. The shared anonymous round backend also serves FIRE_SINGLE_BULLET.
+[Captured instructions, live input and remaining limits](PREDATOR_FIXED_GUNS.md).

@@ -1,4 +1,5 @@
 import {hunterGunOrigin,vehicleGunReady,type HunterGunMatrix} from '../simulation/nativeHunterGun';
+import {NativeFixedMachineGuns,aimFixedMachineGun,type FixedGunAimTarget} from '../simulation/nativeFixedMachineGuns';
 import {planeGunPosition} from '../simulation/nativePlaneGunPosition';
 import {PLANE_GUN_SHAKE,ROCKET_SHAKE} from '../engine/nativePadShakes';
 import {THROW_START_CLIP,THROW_CLIP,THROW_UP_CLIP,THROW_FORCE_PER_COUNTER,throwClip,throwFireTime,throwFiresNow,throwButtonCounter,type ThrowClip} from './nativeThrowProjectile';
@@ -190,6 +191,8 @@ export class WeaponSystem {
  /** CVehicle::m_nGunFiringTime and m_nProjectileWeaponFiringTime: the guns and the ordnance keep their own clocks. */
  private aircraftOrdnanceCooldown=0;
  private vehicleGunTimes=new WeakMap<object,number>();
+ private fixedBoatGuns=new WeakMap<object,NativeFixedMachineGuns>();
+ fixedGunVolleys=0;
  private planeGunCycles=new WeakMap<object,number>();private planeGunStepSeconds=NATIVE_STEP;
  /** The camera's first-person weapon mode (the sniper, rocket or camera view), set by the caller each frame. */
  firstPerson?:FirstPersonMode;
@@ -350,11 +353,27 @@ export class WeaponSystem {
  }
  /** FIRE_SINGLE_BULLET's FireOneInstantHitRound: CBulletTraces::AddTrace(start, end, 0.02, 750, 150) and no gunshot
   * particles or impact effect. */
- singleRound(from:Vec3,to:Vec3){this.tracer(from,to,'ped',.75);}
+ singleRound(from:Vec3,to:Vec3){this.tracer(from,to,'aircraft',.75);}
+ /** FireOneInstantHitRound: anonymous WEAPON_UZI_DRIVEBY damage to living peds, MICRO_UZI to vehicles.
+  * No held-weapon ammo, player crime/skill credit, gunshot particles or DoBulletImpact blood. */
+ fireInstantHitRound(from:Vec3,to:Vec3,intensity:number){
+  const direction=new Vector3(to.x-from.x,to.y-from.y,to.z-from.z),range=direction.length();if(!(range>0&&Number.isFinite(range)))return;
+  direction.divideScalar(range);const crowd=this.pedestrians(),options={};
+  const hit:PedBulletIntersection|null|undefined=crowd?.bulletLine?crowd.bulletLine(from,direction,range,options):bulletLine(this.sim.world,from,direction,range,options),end=new Vector3(from.x,from.y,from.z).addScaledVector(direction,hit?.timeOfImpact??range);
+  this.singleRound(from,end);if(!hit)return;
+  if(hit.collider.handle===this.sim.playerCollider.handle){if(this.sim.player.health>0)this.sim.damagePlayer(intensity,false,{weapon:52,from});return;}
+  if(crowd?.instantHitRound?.(hit.collider.handle,intensity,{x:direction.x,z:direction.z},end,hit.pedPiece))return;
+  const fleet=this.fleet(),body=hit.collider.parent()?.handle;
+  const car=[...fleet?.cars??[]].find(c=>c.car.body.handle===body);
+  if(car){car.damage(intensity,undefined,false,undefined,{weapon:28,byPlayer:false});this.releaseExplosions();return;}
+  for(const vehicle of [...fleet?.boats??[],...fleet?.bikes??[]])if(vehicle.body.handle===body){vehicle.damage(intensity,undefined,false,undefined,{weapon:28,byPlayer:false});return;}
+  const plane=[...fleet?.planes??[]].find(p=>p.body.handle===body);if(plane){if(plane.damage(intensity,28,false)&&!plane.bombTimerMs)this.explode(plane.body.translation(),EXPLOSION_TYPE.aircraft,plane,false);return;}
+  if(!crowd?.instantHitRound)crowd?.damageCollider(hit.collider.handle,intensity,direction,'bullet',{weapon:52,point:end,piece:hit.pedPiece,noSource:true,byPlayer:false});
+ }
  npcShot(from:Vec3,to:Vec3,weapon=22,hit=true){this.tracer(from,to,'ped',.09);if(hit)this.effect('impact',to);this.fx?.gunshot(from,normalize(add(to,from,-1)),weapon,false);}
  /** Native FX (effects.fxp); the sphere effects remain as the fallback while it loads or when it is unavailable. */
  fx?:WeaponFxHost;
-  constructor(readonly sim:Simulation,private pedestrians:()=>({damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind?:DamageKind,hit?:{weapon?:number;point?:Vec3;piece?:number}):boolean|PedestrianVictim}&Pick<WorldPedestrians,'targets'|'frighten'>&Partial<Pick<WorldPedestrians,'stealthTarget'|'stealthKill'|'gunShot'|'pedPosition'|'bulletLine'|'bulletImpact'|'bodyHandles'|'trainsSkill'>>)|undefined,private fleet:()=>(Pick<WorldFleet,'cars'|'boats'>&Partial<Pick<WorldFleet,'planes'|'bikes'|'useDetonator'>>)|undefined){}
+  constructor(readonly sim:Simulation,private pedestrians:()=>({damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind?:DamageKind,hit?:{weapon?:number;point?:Vec3;piece?:number;noSource?:boolean;byPlayer?:boolean}):boolean|PedestrianVictim}&Pick<WorldPedestrians,'targets'|'frighten'>&Partial<Pick<WorldPedestrians,'stealthTarget'|'stealthKill'|'gunShot'|'pedPosition'|'bulletLine'|'bulletImpact'|'bodyHandles'|'trainsSkill'|'instantHitRound'>>)|undefined,private fleet:()=>(Pick<WorldFleet,'cars'|'boats'>&Partial<Pick<WorldFleet,'planes'|'bikes'|'trains'|'useDetonator'>>)|undefined){}
  installNative(data:NativeWeaponData){this.inventory.installNative(data);}
  get native(){return this.inventory.native;}
  /** CProjectileInfo::RemoveAllProjectiles: every grenade, rocket and satchel in flight or stuck is gone, unexploded. */
@@ -368,7 +387,7 @@ export class WeaponSystem {
   this.projectiles.push({id:this.serial++,weapon:36,position:{...origin},velocity:launchVelocity(kind,forward),fuse:projectileFuse(kind,true),stuck:false,target,kind,owner:-1,forward,byPlayer:false});
   return true;
  }
- snapshot(){return {...this.inventory.snapshot(),throwing:this.throwing,attackButtonCounter:+this.attackButtonCounter.toFixed(3),lastThrowForce:+this.lastThrowForce.toFixed(4),native:!!this.native,ready:this.ready,aircraftShots:this.aircraftShots,hits:this.hits,explosions:this.explosions,projectiles:this.projectiles.length,bullets:this.bullets.length,hazards:this.hazards.length,heatSeek:{target:this.hsLock.marked??null,locked:this.hsLock.locked(this.nowMs)},fires:this.fires.active.length,pedFires:this.fires.active.flatMap(f=>f.target?.kind==='ped'?[f.target.key as number]:[]),areaShots:this.shots.length,shotProbe:this.shots.slice(-3).map(s=>({o:[+s.origin.x.toFixed(2),+s.origin.y.toFixed(2),+s.origin.z.toFixed(2)],v:+Math.hypot(s.velocity.x,s.velocity.y,s.velocity.z).toFixed(2),range:s.range,executed:s.executed,age:+s.age.toFixed(2)})),hand:this.lastHand,lock:this.lock?.handle??null,satchels:this.projectiles.filter(p=>p.weapon===39).length,vision:this.vision,parachute:this.parachute};}
+ snapshot(){return {...this.inventory.snapshot(),throwing:this.throwing,attackButtonCounter:+this.attackButtonCounter.toFixed(3),lastThrowForce:+this.lastThrowForce.toFixed(4),native:!!this.native,ready:this.ready,aircraftShots:this.aircraftShots,fixedGunVolleys:this.fixedGunVolleys,hits:this.hits,explosions:this.explosions,projectiles:this.projectiles.length,bullets:this.bullets.length,hazards:this.hazards.length,heatSeek:{target:this.hsLock.marked??null,locked:this.hsLock.locked(this.nowMs)},fires:this.fires.active.length,pedFires:this.fires.active.flatMap(f=>f.target?.kind==='ped'?[f.target.key as number]:[]),areaShots:this.shots.length,shotProbe:this.shots.slice(-3).map(s=>({o:[+s.origin.x.toFixed(2),+s.origin.y.toFixed(2),+s.origin.z.toFixed(2)],v:+Math.hypot(s.velocity.x,s.velocity.y,s.velocity.z).toFixed(2),range:s.range,executed:s.executed,age:+s.age.toFixed(2)})),hand:this.lastHand,lock:this.lock?.handle??null,satchels:this.projectiles.filter(p=>p.weapon===39).length,vision:this.vision,parachute:this.parachute};}
  /** Every bullet line, as CWeapon's instant-hit fire hands it to CBirds::HandleGunShot. */
  onBulletLine?:(from:Vec3,to:Vec3)=>void;
  /** CBulletTraces::AddTrace for a bullet line: `player` and `ped` shots take the weapon wrapper (0x726AF0), aircraft guns
@@ -726,6 +745,24 @@ export class WeaponSystem {
   const [x,y,z]=plane.gunPosition?.(cycle)??planeGunPosition(plane.modelId,cycle),velocity=plane.body.linvel();
   const from=new Vector3(x,z,-y).applyQuaternion(q).add(position).addScaledVector(new Vector3(velocity.x,velocity.y,velocity.z),this.planeGunStepSeconds);
   this.fireMountedGun(plane.body,from,direction,weapon,byPlayer,undefined,plane.occupied);
+ }
+ /** Player-status Predator guns; independent of the driver's drive-by permission and inventory. */
+ fireBoatFixedGuns(boat:import('../simulation/WorldBoat').WorldBoat,pressed:boolean,forward:boolean,gunOff=false,nowMs=this.nowMs){
+  if(boat.modelId!==430||!boat.occupied||boat.wrecked)return false;
+  let guns=this.fixedBoatGuns.get(boat);if(!guns){guns=new NativeFixedMachineGuns();this.fixedBoatGuns.set(boat,guns);}
+  const native=(v:Vec3):[number,number,number]=>[Math.fround(v.x),Math.fround(-v.z),Math.fround(v.y)];
+  const shots=guns.step(nowMs,pressed,forward,gunOff||boat.gunSwitchedOff,()=>{
+   const q=new Quaternion().copy(boat.body.rotation()),axis=(x:number,y:number,z:number)=>native(new Vector3(x,y,z).applyQuaternion(q));return [...axis(1,0,0),0,...axis(0,0,-1),0,...axis(0,1,0),0,...native(boat.body.translation()),0];
+  },()=>Math.floor(Math.random()*32768),shot=>{
+   // Native order: first spread, aim and hit, then the second barrel's random draws and fresh target query.
+   const position=native(boat.body.translation()),candidates:FixedGunAimTarget[]=[],fleet=this.fleet();
+   const add=(vehicle:{disposed?:boolean;wrecked?:boolean;assets:{collision?:{bounds:{radius:number}}|null}},body:RAPIER.RigidBody)=>{if(vehicle.disposed||!body.isEnabled())return;candidates.push({position:native(body.translation()),radius:vehicle.assets.collision?.bounds.radius??0,scorched:vehicle.wrecked,self:body.handle===boat.body.handle});};
+   for(const car of fleet?.cars??[])add(car,car.car.body);for(const vehicle of [...fleet?.boats??[],...fleet?.bikes??[],...fleet?.planes??[]])add(vehicle,vehicle.body);
+   // Trains occupy the query's 15-entry budget before DoTankDoomAiming rejects their status.
+   for(const train of fleet?.trains??[])if(!train.disposed&&train.body.isEnabled())candidates.push({position:native(train.body.translation()),radius:train.asset.collision?.bounds.radius??0,status:6});
+   const end=aimFixedMachineGun(position,shot.start,shot.end,candidates);this.fireInstantHitRound({x:shot.start[0],y:shot.start[2],z:-shot.start[1]},{x:end[0],y:end[2],z:-end[1]},shot.intensity);
+  });if(!shots.length)return false;
+  this.fixedGunVolleys++;this.onSound?.('fire',31,boat.body.translation(),'aircraft');return true;
  }
  private fireMountedGun(body:RAPIER.RigidBody,from:Vector3,direction:Vector3,weapon:number,byPlayer:boolean,fxOptions?:Parameters<WeaponFxHost['gunshot']>[4],playerDriver=false){
   const info=this.inventory.info(weapon),amount=info?.damage??35,range=info?.weaponRange??400;

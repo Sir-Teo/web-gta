@@ -14553,3 +14553,42 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Native event audience/occupant reactions, matched original-PC captures,
   full status transitions and campaign recovery remain separate work.
   [Native branches, captured regions and profile differences](research/BOAT_FIRE_LIFECYCLE.md).
+
+## Predator fixed twin guns and anonymous rounds (October 26, 2026)
+
+- The player-controlled Predator now fires its fixed twin guns from the
+  existing vehicle fire input, independently of held ammo and drive-by
+  permission. The selected native mechanism supplies two model origins,
+  spread, strict 150 ms volleys, 20-volley clip/reload state and vehicle M4
+  audio. Camera look, disabled controls and the gun switch retain their gates.
+- Separate harnesses execute 46 gun-state/origin/spread cases and 58 native
+  aiming cases. Original transform and line-distance helpers execute too;
+  external pad/RNG/shot/audio calls and the returned vehicle query are explicit
+  stubs. All 104 captured numerical cases match and regenerate identically.
+- The original vehicle-only aim query, 15-entry budget, train/scorch filters,
+  height window, collision-radius test and projected target height are
+  represented. Host candidate order remains distinct from native sectors.
+  Matrix work waits until a volley is due.
+- The two rounds resolve in native order, with the second spread/query after
+  the first hit. Two regression tests expose eager random draws and a stale
+  target retired by the first round; the corrected adapter passes both.
+- A shared FireOneInstantHitRound backend now also serves FIRE_SINGLE_BULLET:
+  animated pedestrian lines, heavy trace, anonymous type-52 living-ped damage
+  and type-28 vehicle damage, armor/proofs and no corpse treatment or player
+  ammo/crime/skill credit. Ordinary gunshot/blood FX are not added.
+- All 167 focused checks and 6,895 unit tests pass (51 skipped), including
+  actual boat protection, NPC floats,
+  fatal attribution, CJ hits and Hunter regressions. Final TypeScript/build
+  validation passes. Live original-model Ctrl
+  fire produces a twin volley with drive-bys disabled, native origins, vehicle
+  audio, unchanged inventory and the expected NPC wound. Side look/disabled
+  controls suppress firing; SCM's shared backend hits the current animated
+  body too. Final ordering rerun passes, with no page errors.
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and landing gear without page errors,
+  failed requests or a development inspection hook.
+- Selected FireFixedMachineGuns/DoTankDoomAiming instructions support this
+  profile; their pinned PC bodies are retail delegates. Full original-PC
+  captures, complete line-test flags, start point lights, surface/water hit
+  audio and exact sector/seated behavior remain separate work.
+  [Native functions, captured calculations and represented scope](research/PREDATOR_FIXED_GUNS.md).
