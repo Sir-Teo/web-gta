@@ -30,6 +30,9 @@ test('known script groups retain the native explosion exception',()=>{
 test('known group membership still rejects a Families kill-task bullet on CJ',()=>{
  expect(reaches({pedType:'GANG2',gang:1,retaliate:1},22,true).accepted).toBe(false);
 });
+test('authoritative removal overrides a stale follow flag for incoming foot-ped damage',()=>{
+ expect(reaches({pedType:'COP',follow:true,retaliate:0},22,false).accepted).toBe(true);
+});
 
 test('raw vehicle creators do not enter the native ped-only gates',async()=>{
  const {npcPedCanDamagePlayer}=await import('../src/ped/nativeNpcPlayerDamage');expect(npcPedCanDamagePlayer(undefined,22,{sameGroup:true})).toBe(true);

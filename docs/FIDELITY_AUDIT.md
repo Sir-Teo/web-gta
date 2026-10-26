@@ -14350,3 +14350,28 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   remains a retail delegate. Existing authored death-contact/nearby reactions,
   full event scheduling and every ownership transition remain separate work.
   [Source, checks and limits](research/SCRIPT_PED_DEATH_REBUILD.md#direct-on-foot-script-death-october-26-2026).
+
+## Combat identity for waiting script group members (October 26, 2026)
+
+- Foot friendly scaling, weapon-practice eligibility and all seven kill
+  callbacks now resolve actual player-group membership, with a street-follow
+  fallback for actors without script identity. The damage entry captures
+  membership before the wound for both scaling and accounting.
+- Known script removal also overrides a stale true follow flag. Main's
+  resolver checks script membership first; the incoming foot-ped guard shares
+  that decision. Follow-task behavior and SCM group ownership remain separate.
+- Twelve initial cases expose eight failures; four additional removal/source
+  cases expose their stale-flag errors. All 255 focused checks and the build pass.
+- Six live cases use the actual stand-still script allocator and member/remove
+  commands. Real player/NPC pistols and a ground kick verify friendly factors,
+  practice exclusion, full damage/practice after removal, native recruited
+  kill/respect deltas and incoming source acceptance with a stale follow flag.
+- The six-case melee precision/recruitment regression and all three real
+  drive-by family/group protection scenarios pass, without page errors.
+- All 6,239 unit tests pass (51 skipped), followed by the final build.
+  Production smoke reaches flight, but two unchanged Rustler pilot runs fail
+  its acceleration/climb gates. Flight remains an unresolved regression;
+  neither run is counted as passing production coverage.
+- Complete native group events, ownership/removal behavior and matched PC
+  damage calculation remain separate compatibility work.
+  [Source, actual membership transitions and checks](research/PLAYER_GROUP_COMBAT_CONTEXT.md).

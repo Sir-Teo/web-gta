@@ -556,6 +556,9 @@ const WALK_ROUND_POINT_RADIUS=.5,WALK_ROUND_STILL_SECONDS=1;
 const BUILDING_PROBE_REACH=.9;
 /** How far under a surface a waiting ped's feet may be and still be set on it when its collision comes in. */
 const WAITING_PED_LIFT_LIMIT=1.5;
+/** Player-group membership survives script allocators that do not follow the leader; unhandled street members retain their flag. */
+function playerGroupMember(world:Pick<WorldPedestrians,'inPlayerGroup'>,ped:Acquainted&{follow?:boolean}){return world.inPlayerGroup?.(ped)??!!ped.follow;}
+
 export class WorldPedestrians {
  private people:Pedestrian[]=[];
  /** A release invalidates model/weapon loads still preparing the old synchronous native wave. */
@@ -729,7 +732,7 @@ export class WorldPedestrians {
   * short of an explosion, and none from a Grove Street Families member (PED_TYPE_GANG2) with a grenade or anything
   * above it unless his kill task is on the player. */
  private damagesPlayer(p:Pedestrian,weapon:number){
-  return npcPedCanDamagePlayer(p,weapon,{sameGroup:!!p.follow||!!this.inPlayerGroup?.(p),killTaskTargetsPlayer:p.retaliate>0&&!p.foe});
+  return npcPedCanDamagePlayer(p,weapon,{sameGroup:playerGroupMember(this,p),killTaskTargetsPlayer:p.retaliate>0&&!p.foe});
  }
  /** Whether the response to the ped's current event still runs. */
  /** Whether the ped is still carrying out its current event's response: a fight, a flee, the gun-aimed-at reaction,
@@ -850,7 +853,7 @@ export class WorldPedestrians {
  }
  snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],playerLook:+(this.playerLook?.blend??0).toFixed(2),attractors:[...this.attractorQueues.values()].reduce((n,q)=>n+q.peds.length,0),queues:[...this.attractorQueues.entries()].map(([key,q])=>({key,peds:[...q.peds]})),attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase,slot:p.attract.slot}:null,look:p.look?+p.look.blend.toFixed(2):null,drowning:!!p.drowning,drowned:!!p.drowned,chase:p.chase?p.chase.target.id:null,attackWave:!!p.attackWave,rage:p.rage?.phase??null,investigate:p.investigate?.phase??null,hangout:p.hangout?.phase??null,party:p.party?p.party.leader.id:null,stealBack:p.stealBack?.phase??null,air:p.air?{vz:+p.air.vz.toFixed(2),clip:p.air.clip??null}:null,landing:p.landing!==undefined,alpha:Math.round(p.alpha),fadeOut:p.fadeOut,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,stare:p.stare?`${p.stare.phase}:${p.stare.remaining.toFixed(1)}`:null,reaction:p.view.reactionName??null,downSeconds:Number.isFinite(p.down)?+p.down.toFixed(2):null,stuckUnderCar:!!p.stuckUnderCar,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',visible:p.view.root.visible}))};}
    /** CWeapon::DoBulletImpact's skill test for a ped, before the damage lands: alive and not in the player's group. */
-   trainsSkill(handle:number){const p=this.people.find(p=>p.collider.handle===handle);return !!p&&p.health>0&&!p.follow;}
+   trainsSkill(handle:number){const p=this.people.find(p=>p.collider.handle===handle);return !!p&&p.health>0&&!playerGroupMember(this,p);}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
    damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};piece?:number;fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number};noSource?:boolean;byPlayer?:boolean},ignoreProofs=false){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p)return false;
@@ -884,6 +887,7 @@ export class WorldPedestrians {
     const byPlayer=!hit?.noSource&&hit?.byPlayer!==false;
     if(byPlayer)p.lastDamagedBy={player:true};
     if(kind==='fire')return this.burn(p,damage,byPlayer);
+    const wasRecruit=playerGroupMember(this,p);
     // Shared pedstats scaling (src/ped/damage.ts); ground finishers share the 25 row.
     const base=kind==='melee'&&p.down>0?25:damage;
     // CPedDamageResponseCalculator::ComputeWillKillPed: the mega punch cheat makes fists, knuckles and the parachute
@@ -898,7 +902,7 @@ export class WorldPedestrians {
     const nativeFields=kind==='bullet'||kind==='melee';
     let applied=nativeFields?pedDamageFactor(kind==='melee'?pedDamageFactor(base,PLAYER_ATTACK_MULT):base,p.defendMult):base*p.defendMult;
     const weaponType=hit?.weapon??(kind==='explosion'?WEAPON.explosion:undefined);
-    if(byPlayer&&p.follow&&weaponType!==WEAPON.flamethrower&&weaponType!==WEAPON.explosion)applied=Math.min(nativeFields?pedDamageFactor(applied,FRIENDLY_DAMAGE_FACTOR):applied*FRIENDLY_DAMAGE_FACTOR,FRIENDLY_DAMAGE_CAP);
+    if(byPlayer&&wasRecruit&&weaponType!==WEAPON.flamethrower&&weaponType!==WEAPON.explosion)applied=Math.min(nativeFields?pedDamageFactor(applied,FRIENDLY_DAMAGE_FACTOR):applied*FRIENDLY_DAMAGE_FACTOR,FRIENDLY_DAMAGE_CAP);
     const response=(nativeFields?spendPedArmourFloat32:spendPedArmour)(applied,p.armour,weaponType),beforeHealth=nativeFields?Math.fround(p.health):p.health;
     p.armour=response.armour;
     p.health=megaPunch||headshot?0:(nativeFields?healthAfterFloat32:healthAfter)(p.health,response.damageHealth);
@@ -907,9 +911,8 @@ export class WorldPedestrians {
     const q=p.actor.player.position,from={x:q.x-direction.x,z:q.z-direction.z};
     const weapon=hit?.weapon??(kind==='melee'?WEAPON.unarmed:kind==='explosion'?WEAPON.explosion:kind==='spray'?WEAPON.spraycan:WEAPON.pistol);
     if(applied+response.damageArmour>0)p.lastWeaponDamage=weapon;
-    // A recruit the player shoots or strikes with a weapon leaves his group, as one he punches does; the damage response
-    // below then answers the player as it would a stranger's (CDarkel asks IsMember first, so a kill still counts him).
-    const wasRecruit=!!p.follow;
+    // Retain the existing immediate follow-field response; SCM owns actual script membership.
+    // Kill accounting uses the membership captured before the wound, independently of this behavior flag.
     if(byPlayer&&p.follow){p.follow=false;p.holdPosition=undefined;p.foe=undefined;}
     // Every hit and death takes CEventDamage::ComputeAnim, melee with the attacker's fight move. Surviving blast
     // victims fall with the knockout clip for the hit direction at the push CWorld::TriggerExplosionSectorList
@@ -1981,7 +1984,7 @@ export class WorldPedestrians {
   victim.armour=response.armour;victim.health=npcFootBulletCritical(victim,weapon,piece??this.hitPiece(victim,end))?0:healthAfterFloat32(victim.health,response.damageHealth);
   const healthResponse=victim.health===0?beforeHealth:response.damageHealth;
   if(healthResponse+response.damageArmour>0)victim.lastWeaponDamage=weapon;
-  if(!victim.health)this.onKill?.({id:victim.id,...pedTypeInfo(victim),recruit:!!victim.follow,byPlayer:false});
+  if(!victim.health)this.onKill?.({id:victim.id,...pedTypeInfo(victim),recruit:playerGroupMember(this,victim),byPlayer:false});
   const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};
   this.applyReaction(victim,this.damageReaction(victim,weapon,healthResponse,vfrom,end,false,undefined,false,piece,response.damageArmour),vfrom);
   return true;
@@ -3070,7 +3073,7 @@ export class WorldPedestrians {
    if(!this.applyReaction(foe,reaction,from)&&foe.health>0)foe.stagger=.5;
    // CTaskSimpleBeHit: hit from the front by a ped that is not the player, the victim turns to face the attacker.
    if(foe.health>0){const fq=foe.actor.player.position,ax=q.x-fq.x,az=q.z-fq.z,facing=Math.atan2(ax,az),diff=Math.atan2(Math.sin(facing-foe.actor.player.heading),Math.cos(facing-foe.actor.player.heading));if(Math.abs(diff)<=Math.PI/4)foe.actor.player.heading=facing;}
-   if(!foe.health){p.foe=undefined;p.retaliate=0;p.fight=undefined;this.onKill?.({id:foe.id,...pedTypeInfo(foe),recruit:!!foe.follow,byPlayer:false});return;}
+   if(!foe.health){p.foe=undefined;p.retaliate=0;p.fight=undefined;this.onKill?.({id:foe.id,...pedTypeInfo(foe),recruit:playerGroupMember(this,foe),byPlayer:false});return;}
    if(!foe.officer){foe.foe=p;foe.retaliate=Math.max(foe.retaliate,4);foe.flee=0;}
   }
   /** SET_SCRIPT_LIMIT_TO_GANG_SIZE (m_nScriptLimitToGangSize, 99 at start) and the player group's
@@ -3254,7 +3257,7 @@ export class WorldPedestrians {
     addCarForce({x:impact.vehicleForce.x+kill.vehicleForce.x,y:impact.vehicleForce.y+kill.vehicleForce.y,z:impact.vehicleForce.z+kill.vehicleForce.z});
     if(kill.crunch&&car)this.onCarCrunch?.(car);
     // RegisterKill's source is the car, not the player ped: his own car only counts STAT_PEOPLE_YOUVE_WASTED.
-    crime();this.onKill?.({id:p.id,...pedTypeInfo(p),recruit:!!p.follow,byPlayer:false,byPlayerVehicle:striker.occupied});
+    crime();this.onKill?.({id:p.id,...pedTypeInfo(p),recruit:playerGroupMember(this,p),byPlayer:false,byPlayerVehicle:striker.occupied});
     return;
    }
    addCarForce(impact.vehicleForce);
@@ -3344,7 +3347,7 @@ export class WorldPedestrians {
     const dontCare=this.policeDontCare(`ped:${target.id}`);this.law?.crime(CRIME.damagedPed,`ped:${target.id}`,dontCare);this.law?.registerCrime(pedTypeInfo(target).officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`,dontCare);
     if(!pedProofedAgainst(target,'melee'))target.health=healthAfter(target.health,playerPunchDamage(s.damage,target.defendMult));
    // CDarkel::RegisterKillByPlayer asks IsMember before the member is let go: whether he was a recruit when hit.
-   const wasRecruit=!!target.follow;
+   const wasRecruit=playerGroupMember(this,target);
    if(target.follow){target.follow=false;target.foe=undefined;}
    if(!target.health)this.onKill?.({id:target.id,...pedTypeInfo(target),recruit:wasRecruit,byPlayer:true});
    if(!target.health){const tq=target.actor.player.position,tfrom={x:tq.x-Math.sin(s.heading),z:tq.z-Math.cos(s.heading)};this.applyReaction(target,this.damageReaction(target,WEAPON.unarmed,s.damage,tfrom,undefined,true),tfrom);}
@@ -3479,7 +3482,7 @@ export class WorldPedestrians {
    if(damage>0)p.lastWeaponDamage=WEAPON.flamethrower;
    if(p.health===0){
     p.onFire=0;p.down=Infinity;p.collider.setShape(new RAPIER.Ball(.3));p.view.playReaction('ko_shot_front',Infinity);
-    this.onKill?.({id:p.id,...pedTypeInfo(p),recruit:!!p.follow,byPlayer});
+    this.onKill?.({id:p.id,...pedTypeInfo(p),recruit:playerGroupMember(this,p),byPlayer});
    }
    return {id:p.id,...pedTypeInfo(p)};
   }
@@ -3830,7 +3833,7 @@ export class WorldPedestrians {
     const damage=this.catalog?.stealth.kill_knife_ped_damage?.duration??2.23;p.stealth+=dt;
     // CTaskSimpleStealthKill::ManageAnim kills through a CEventDamage from the attacker: the kill is the player's, by
     // the knife, like any other he makes.
-    if(p.stealth>=damage){const recruit=!!p.follow;p.lastDamagedBy={player:true};p.lastWeaponDamage=WEAPON.knife;p.health=0;p.down=Infinity;p.collider.setShape(new RAPIER.Ball(.3));p.view.playReaction('kill_knife_ped_die',Infinity);this.deadPedEvent(p);this.onKill?.({id:p.id,...pedTypeInfo(p),recruit,byPlayer:true});}
+    if(p.stealth>=damage){const recruit=playerGroupMember(this,p);p.lastDamagedBy={player:true};p.lastWeaponDamage=WEAPON.knife;p.health=0;p.down=Infinity;p.collider.setShape(new RAPIER.Ball(.3));p.view.playReaction('kill_knife_ped_die',Infinity);this.deadPedEvent(p);this.onKill?.({id:p.id,...pedTypeInfo(p),recruit,byPlayer:true});}
     else{p.view.step(dt,{x:0,y:0,cameraYaw:state.heading,walk:true,sprint:false,jump:false},p.actor);continue;}
    }
    // A ped on a jump task's climb is moved by CTaskSimpleClimb alone.

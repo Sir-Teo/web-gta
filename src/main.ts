@@ -678,8 +678,8 @@ async function boot() {
    pedestrians?.onKill?.({id:mission?.peds.handleOf(rider)??-1,...pedTypeInfo(rider),recruit:!!target.crew,byPlayer:creator==='ped',byPlayerVehicle:creator==='vehicle'});
   };
   const npcInPlayerGroup=(source:(Acquainted&{follow?:boolean})|undefined)=>{
-   if(!source)return false;if(source.follow)return true;
-   const m=mission,handle=m?.peds.handleOf(source);return handle!==undefined&&!!m&&[...m.groups.values()].some(g=>g.isMember(1)&&g.isMember(handle));
+   if(!source)return false;
+   const m=mission,handle=m?.peds.handleOf(source);return handle!==undefined&&m?[...m.groups.values()].some(g=>g.isMember(1)&&g.isMember(handle)):!!source.follow;
   };
   /** What a script's drive-by rider fires at and through: the player, the cars, the peds, and where its target is. */
   const scriptDriveByWorld:ScriptDriveByWorld={sim,cars:()=>fleet?.cars??[],random:Math.random,
