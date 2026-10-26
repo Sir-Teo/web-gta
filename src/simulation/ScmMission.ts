@@ -762,7 +762,7 @@ export interface ScmMissionWorld {
  /** SET_UPSIDEDOWN_CAR_NOT_DAMAGED: autoFlags.bDoesNotGetDamagedUpsideDown. */
  setScriptVehicleUpsideDownNotDamaged?(car:unknown,state:boolean):void;
  setScriptVehicleForwardSpeed(car:unknown,forwardSpeed:number):void;
- damageScriptPed(ped:unknown,amount:number):void;
+ damageScriptPed(ped:unknown,amount:number,damageArmour:boolean):void;
  /* The cars a script creates. The browser builds one only once its model is streamed, so the host is asked to
   * spawn and the pool holds the handle in the meantime; everything the script says before the car arrives is
   * applied when it does. */
@@ -1484,7 +1484,7 @@ export class ScmMission {
    pedIsWaitingForCollision:handle=>handle!==PLAYER_PED_HANDLE&&!!this.world.scriptPedWaitingForCollision?.(this.livePed(handle)),
    // m_bIsStaticWaitingForCollision: a mission car stands static until the world's collision is under it.
    vehicleIsWaitingForWorldCollision:handle=>this.world.scriptVehicleWaitingForCollision?.(this.liveVehicle(handle))??false,
-   damagePed:(handle,amount,damageArmour)=>{if(handle===PLAYER_PED_HANDLE)this.host('damagePlayer','DAMAGE_CHAR')(amount,damageArmour);else this.world.damageScriptPed(this.livePed(handle),amount);},
+   damagePed:(handle,amount,damageArmour)=>{if(handle===PLAYER_PED_HANDLE)this.host('damagePlayer','DAMAGE_CHAR')(amount,damageArmour);else this.world.damageScriptPed(this.livePed(handle),amount,damageArmour);},
    // CPedIntelligence::SetPedDecisionMakerType, and the fields the rest of this batch names.
    // SetCharDecisionMaker (reversed): the ped wears the slot CTheScripts::GetActualScriptThingIndex gives, -1 for none.
    setPedDecisionMaker:(handle,decisionMaker)=>{this.world.setScriptPedDecisionMaker(this.livePed(handle),this.runtime.game.decisionMakers.actualIndex(decisionMaker));},

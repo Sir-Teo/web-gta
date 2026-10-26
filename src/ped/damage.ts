@@ -18,6 +18,18 @@ export function spendPedArmour(damage:number,armour=0,weapon?:number){
  return {armour:armour-absorbed,damageHealth:damage-absorbed,damageArmour:absorbed};
 }
 
+/** DAMAGE_CHAR (0851), iOS 0x1001fea44 / 0x1001fee30: direct float fields, optional armour,
+ * no damage stats/proofs or one-HP calculator boundary. Negative amounts also follow the native subtraction. */
+export function scriptPedDamage(health:number,armour:number,amount:number,damageArmour:boolean){
+ let factor=Math.fround(amount),remainingArmour=Math.fround(armour);
+ if(damageArmour){
+  if(factor>remainingArmour){factor=Math.fround(factor-remainingArmour);remainingArmour=0;}
+  else{remainingArmour=Math.fround(remainingArmour-factor);factor=0;}
+ }
+ const remainingHealth=Math.fround(Math.fround(health)-factor);
+ return {health:remainingHealth>0?remainingHealth:0,armour:remainingArmour};
+}
+
 /** Scale an outgoing blow: base * attackerAttack * victimDefend. */
 export function scaleBlow(base: number, attackerAttack: number, victimDefend: number): number {
   return base * attackerAttack * victimDefend;

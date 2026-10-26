@@ -13949,3 +13949,17 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   full suite has 5,652 passing tests and 51 skipped. Ambient crew armour, ongoing
   fire and complete PC damage/task parity remain open.
   [Reference and scope](research/SCRIPT_PED_ARMOUR.md#seated-spending-and-retained-weakness).
+
+## Direct script damage (October 26, 2026)
+
+- DAMAGE_CHAR now forwards its armour flag to walking and seated NPCs, and CJ
+  uses direct script arithmetic. The command bypasses normal stat/proof/weapon
+  processing, preserves a positive fractional remainder and retains the native
+  negative-amount subtraction behavior. Zero uses the scripted death bridges.
+- A live native-opcode trial checks fifteen outcomes across walking peds,
+  riders and protected CJ, including armour queries, death state, last weapon
+  and unchanged weapon kill counters. Existing reaction, choking and script-kill
+  checks pass; the full suite has 5,663 passing tests and 51 skipped.
+  Native arithmetic is from the pinned mobile executable; independent PC 1.0
+  validation and full task/event parity remain open.
+  [Exact handler and scope](research/SCRIPT_PED_DAMAGE.md).

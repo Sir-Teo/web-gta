@@ -1,5 +1,6 @@
 import {scriptRiderDeath} from './vehicle/scriptRiderDeath';
 import {scriptRiderShot,type ScriptRiderDamageState} from './vehicle/scriptRiderShot';
+import {scriptPedDamage} from './ped/damage';
 import {playerBikeHit,playerSeatHeadHit} from './vehicle/playerSeatShot';
 import {pedReactionMotion} from './animation/pedReactionMotion';
 import {respondToVehicleDeath} from './simulation/nativeVehicleDied';
@@ -6642,7 +6643,16 @@ async function boot() {
                  },
                  // CPed::InflictDamage through the browser's own damage entry, which the ped's proofs answer.
                  playerMouseTargets:ped=>{const p=onFoot(ped);return !!p&&weapons.aiming&&weapons.lock?.handle===p.collider.handle;},
-                 damageScriptPed:(ped,amount)=>{const p=onFoot(ped);if(p)pedestrians?.damageCollider(p.collider.handle,amount,{x:0,z:1});},
+                 damageScriptPed:(ped,amount,damageArmour)=>{
+                  const r=asRider(ped),p=r??onFoot(ped);if(!p)return;
+                  const result=scriptPedDamage(p.health,p.armour??0,amount,damageArmour);p.armour=result.armour;
+                  if(result.health>0)p.health=result.health;
+                  else{
+                   if(r)scriptRiderDeath(r,gameTimeMs,(file,name)=>pedestrians?.scriptAnimation(file,name)??Promise.resolve(undefined));
+                   else pedestrians?.restoreDeadScriptPed(p as import('./simulation/WorldPedestrians').Pedestrian);
+                   p.health=0;
+                  }
+                 },
                  // CCarCtrl::CreateCarForScript through the fleet the browser already drives. The script speaks
                  // native coordinates and degrees clockwise from north; the browser holds renderer coordinates
                  // and the same yaw the player controller uses, which is those degrees in radians plus π.
@@ -6757,7 +6767,7 @@ async function boot() {
                  setPlayerRelationship:(relationship,pedType)=>{pedestrians?.playerAcquaintance.setAs(relationship,1<<pedType);},
                  clearPlayerRelationship:(relationship,pedType)=>{pedestrians?.playerAcquaintance.clearAs(relationship,1<<pedType);},
                  clearPlayerRelationships:relationship=>{pedestrians?.playerAcquaintance.clear(relationship);},
-                 damagePlayer:(amount,damageArmour)=>{sim.damagePlayer(amount,!damageArmour);},
+                 damagePlayer:(amount,damageArmour)=>{sim.damagePlayerFromScript(amount,damageArmour);},
                  setPlayerFrozen:frozen=>{sim.playerFrozen=frozen;},
                  playerInWater:()=>sim.player.swimming,
                  playerInAir:()=>!sim.player.grounded&&!sim.player.swimming,

@@ -1,4 +1,5 @@
 import { CHEATS, megaPunchBlow } from './nativeCheats';
+import {scriptPedDamage} from '../ped/damage';
 import { characterMovement } from './characterMovement';
 import { currentShapeCast } from './currentShapeCast';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from './health';
@@ -350,6 +351,12 @@ export class Simulation {
     if (event && (!event.burning || this.player.health === 0)) this.damageEvents.push({ ...event, armour, health: before - this.player.health, died: this.player.health === 0, inAirTask: !!this.playerInAirTask?.() });
     if (event) { const pain = playerPainContext(event.weapon, amount, this.player.health, !!event.burning); if (pain) this.onPlayerPain?.(pain); }
     return true;
+  }
+  /** DAMAGE_CHAR writes the fields directly; only a zero result queues the existing scripted die bridge. */
+  damagePlayerFromScript(amount:number,damageArmour:boolean){
+    const result=scriptPedDamage(this.player.health,this.player.armour,amount,damageArmour);
+    this.player.armour=result.armour;
+    if(result.health<=0){this.killPlayer();this.player.health=0;}else this.player.health=result.health;
   }
   /** CPed::m_nLastWeaponDamage for the player: -1 until a weapon has taken his health, and after CLEAR_CHAR_LAST_WEAPON_DAMAGE. */
   lastWeaponDamage = -1;
