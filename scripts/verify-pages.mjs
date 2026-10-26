@@ -55,12 +55,13 @@ try{
  await page.keyboard.down('KeyW');
  // Rotate the Rustler at 100 km/h, or accept a natural climb already above 15 m. Waiting for 150 left it below
  // 120 km/h in a low hop until it hit the boneyard; the live plane spec also pulls up after about 6.5 s of throttle.
- // Release after the same one-second elevator pulse and require an actual climb before accepting the flight.
+ // Hold the elevator through the measured climb: a wall-time pulse can end while streaming holds the simulation.
  const flight=async()=>{const text=await page.locator('.flight-instruments').innerText(),sample={wall:Date.now(),speed:Number(text.match(/(\d+) km\/h/)?.[1]),altitude:Number(text.match(/(\d+) m AGL/)?.[1])};flightSamples.push(sample);return sample;};
  await expect.poll(async()=>{const f=await flight();return f.speed>100||f.altitude>15;},{timeout:45000}).toBe(true);
  const takeoffMode=(await flight()).altitude>15?'natural':'rotation';
- if(takeoffMode==='rotation'){await page.keyboard.down('ArrowDown');await page.waitForTimeout(1000);await page.keyboard.up('ArrowDown');}
- await expect.poll(async()=>(await flight()).altitude,{timeout:20000}).toBeGreaterThan(15);
+ if(takeoffMode==='rotation')await page.keyboard.down('ArrowDown');
+ try{await expect.poll(async()=>(await flight()).altitude,{timeout:20000}).toBeGreaterThan(15);}
+ finally{if(takeoffMode==='rotation')await page.keyboard.up('ArrowDown');}
  await page.keyboard.up('KeyW');
  await page.keyboard.press('KeyG');await expect(page.locator('.flight-instruments')).toContainText('Gear UP');
  await page.screenshot({path:`artifacts/pages-${remote?'live':'production'}-flight.png`});
