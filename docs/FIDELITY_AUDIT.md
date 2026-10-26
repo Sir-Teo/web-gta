@@ -11934,8 +11934,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   (anim 120) that comes down at all takes 15. A long fall now kills: 100 m at 0.6+ units a frame is 500.
 - The player's damage is scaled by iOS's 0.33, not STAT_PLAYER's 0.4. iOS CPedDamageResponseCalculator::
   AccountForPedDamageStats (0x10028a070, run first by ComputeDamageResponse 0x100289cc0 for every weapon) multiplies the
-  player's damage factor by a constant 0.33 (0x100593cb0) and another ped's by its pedstats defend weakness; PC reads the
-  0.4 from pedstats.dat for the player too. Armour is skipped for drowning and falls (weapons 53, 54) after it. So CJ
+  player's damage factor by a constant 0.33 (0x100593cb0) and another ped's by its pedstats defend weakness. The PC
+  entry remains a retail delegate; the 0.4 pedstats data row does not independently establish its player branch. Armour is skipped for drowning and falls (weapons 53, 54) after it. So CJ
   takes 0.33 of the landing damage (1e45ef7d) and of a blast's 250: a grenade at his feet costs him 82.5.
   (The bump response still compares pedstats defend weaknesses, where the player's is 0.4.)
 - A ped takes every weapon's damage times its pedstats defend weakness, not only a fist's: iOS
@@ -14221,3 +14221,27 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   CJ, after the initial fixture accidentally selected the nearer driver. The
   native contact filter was preserved.
   [Native math and seated follow-up](research/PED_BULLET_FLOAT_FIELDS.md#seated-mission-riders-and-retained-recruits-october-26-2026).
+
+## Native player damage float fields (October 26, 2026)
+
+- CJ's damage now rounds its native profile, friendly product, armour split,
+  intro1 factor and health remainder to float32. Exact-one survivors no longer
+  incorrectly enter death recovery, and damage events report native float losses.
+- Seven new cases expose six failures before repair. Twenty-five focused checks
+  and the build pass, including existing safety, armour bypass, source/group
+  acceptance and below-one/repeated-hit recovery behavior.
+- Twelve actual mounted hits preserve one HP and exact armour across physical,
+  car-head and biker contacts, with correct loss events, blood and timer state.
+  Families/group regressions pass in all three modes; all six live checks and
+  eleven additional intro/mounted/burning unit regressions pass. All 6,040
+  unit tests pass (51 skipped).
+- PC ComputeWillKillPed reports the remaining factor on survival, independently
+  of quantized HP loss, and pre-hit health on death. Two additional failing
+  cases expose this distinction, including sub-ULP hits. The corrected
+  response passes 38 focused checks, all fifteen expanded mounted contacts
+  and all 6,042 unit tests (51 skipped), followed by the final build and
+  production smoke without page errors or failed requests.
+- The PC multiplier branch is not available in the inspected AccountForPedDamageStats
+  wrapper. The older claim that it reads STAT_PLAYER's 0.4 row was corrected;
+  the retained 0.33 iOS profile and its unresolved PC equivalence are explicit.
+  [Evidence, arithmetic and limits](research/PLAYER_DAMAGE.md#player-float-fields-and-one-hp-survival-october-26-2026).

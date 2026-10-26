@@ -1,5 +1,5 @@
 import { CHEATS, megaPunchBlow } from './nativeCheats';
-import {scriptPedDamage} from '../ped/damage';
+import {healthAfterFloat32,pedDamageFactor,scriptPedDamage,spendPedArmourFloat32} from '../ped/damage';
 import { characterMovement } from './characterMovement';
 import { currentShapeCast } from './currentShapeCast';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from './health';
@@ -34,7 +34,7 @@ export const NATIVE_CROUCH_WALK_SPEED = 3.74;
 const NATIVE_GRAVITY = 0.008;
 /** iOS CPedDamageResponseCalculator::AccountForPedDamageStats (0x10028a070): the player's damage factor times 0.33
  * (0x100593cb0) for every weapon, falls and drownings included, before armour; another ped's by its pedstats defend
- * weakness. PC reads STAT_PLAYER's 0.4 there. */
+ * weakness. PC's entry remains a retail delegate; STAT_PLAYER's 0.4 data row alone does not prove that branch. */
 export const NATIVE_PLAYER_DAMAGE_MULT = Math.fround(0.33);
 
 export interface Controls { x: number; y: number; sprint: boolean; walk?: boolean; jump: boolean;
@@ -331,24 +331,26 @@ export class Simulation {
     // alone (a landing is WEAPON_FALL, collision-proofed); a knockdown blow is still its fist or nightstick.
     if(event&&this.playerProofs&&!physicalCanBeDamaged(this.playerProofs,event.weapon))return false;
     if(event&&event.weapon<47&&this.playerWeaponProof?.())return false;
-    amount *= NATIVE_PLAYER_DAMAGE_MULT;
+    amount = pedDamageFactor(amount,NATIVE_PLAYER_DAMAGE_MULT);
     // AccountForPedDamageStats again (0x10028a114..0x10028a144): from a ped CJ is friendly with, whatever the weapon, a
     // tenth of it and 12.5 at most.
-    if (event?.friendly) amount = Math.min(amount * Math.fround(.1), 12.5);
+    if (event?.friendly) amount = Math.min(pedDamageFactor(amount,.1), 12.5);
     let armour = 0;
-    if (!bypassArmour && this.player.armour > 0) { const absorbed = Math.min(this.player.armour, amount); this.player.armour -= absorbed; amount -= absorbed; armour = absorbed; }
-    if (event && megaPunchBlow(event.weapon)) amount = this.player.health;
+    if (!bypassArmour && this.player.armour > 0) { const response=spendPedArmourFloat32(amount,this.player.armour);this.player.armour=response.armour;amount=response.damageHealth;armour=response.damageArmour; }
+    if (event && megaPunchBlow(event.weapon)) amount = Math.fround(this.player.health);
     // iOS ComputeWillKillPed (0x10028a1b8): while intro1 (Big Smoke) heads the script list, CJ takes 0.77 of every hit
     // the damage calculator sees, a fall or a fire included.
-    if (this.headScriptName?.()?.toLowerCase() === 'intro1') amount *= Math.fround(.77);
+    if (this.headScriptName?.()?.toLowerCase() === 'intro1') amount = pedDamageFactor(amount,.77);
     // ComputeWillKillPed's ordinary branch kills below 1 HP, not just at zero.
     // CPed::m_nLastWeaponDamage: the weapon of a hit that took health (a landing is WEAPON_FALL, a car's knockdown
     // WEAPON_RAMMEDBYCAR), not one armour soaked up.
     if (event && amount > 0) this.lastWeaponDamage = event.weapon;
-    const before=this.player.health,remaining=before-amount;
-    this.player.health = remaining<1?0:remaining;
+    const before=Math.fround(this.player.health);
+    this.player.health = healthAfterFloat32(before,amount);
     if (this.player.health === 0) { this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0; }
-    if (event && (!event.burning || this.player.health === 0)) this.damageEvents.push({ ...event, armour, health: before - this.player.health, died: this.player.health === 0, inAirTask: !!this.playerInAirTask?.() });
+    // ComputeWillKillPed reports the remaining factor on survival, even when float field quantization hides HP loss.
+    // A fatal result reports the stored pre-hit health instead (PC 0x4B3210).
+    if (event && (!event.burning || this.player.health === 0)) this.damageEvents.push({ ...event, armour, health: this.player.health===0?before:amount, died: this.player.health === 0, inAirTask: !!this.playerInAirTask?.() });
     if (event) { const pain = playerPainContext(event.weapon, amount, this.player.health, !!event.burning); if (pain) this.onPlayerPain?.(pain); }
     return true;
   }
