@@ -30,6 +30,8 @@ player/NPC attribution, compare health/blood/vehicle health while protected,
 then clear the flag and fire again.
 
 This closes physical proof handling for the mission-rider bullet adapter.
-Recruited-passenger proof/vest behavior, complete damage/armour/force-death
+The later [recruited-passenger fix](RECRUITED_PASSENGER_PROOFS.md) retains and
+applies proof/vest state for the follower boarding path.
+Complete damage/armour/force-death
 calculation, exact source/group identities, other damage entry points, and
 matched retail captures remain separate work.

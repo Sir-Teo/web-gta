@@ -71,3 +71,18 @@ test('a dead rider still owns his seat when the leader gets back into the same c
  entry.stepPassengers(0);
  expect(entry.passengers.map(p=>p.seat)).toEqual([1,3]);expect(entry.leavingPoses()).toHaveLength(1);
 });
+
+test.each([{byPlayer:false,headshot:false},{byPlayer:true,headshot:false},{byPlayer:false,headshot:true},{byPlayer:true,headshot:true}])('retained bullet proof rejects a seated wound or forced head death (%j)',c=>{
+ const {entry,car,rider,killed}=fixture(),proofs={bullet:true,fire:false,explosion:false,collision:false,melee:false};rider.keep={...rider.keep,proofs} as any;
+ expect(entry.passengerShot(car,2,1000,c.byPlayer,c.headshot,{weapon:38,piece:9})).toBeUndefined();expect(rider.keep.health).toBe(75);expect(rider).not.toHaveProperty('diedInSeat');expect(killed).not.toHaveBeenCalled();
+ proofs.bullet=false;expect(entry.passengerShot(car,2,10,c.byPlayer,false,{weapon:22,piece:9})).toBe('hit');expect(rider.keep.health).toBeCloseTo(c.byPlayer?74:65,5);
+});
+test('a seated only-player recruit rejects NPC rounds but keeps ordinary player friendly-fire scaling',()=>{
+ const {entry,car,rider,killed}=fixture();rider.keep={...rider.keep,onlyDamagedByPlayer:true} as any;
+ expect(entry.passengerShot(car,2,1000,false,true,{weapon:22,piece:9})).toBeUndefined();expect(rider.keep.health).toBe(75);expect(killed).not.toHaveBeenCalled();
+ expect(entry.passengerShot(car,2,10,true,false,{weapon:22,piece:9})).toBe('hit');expect(rider.keep.health).toBeCloseTo(74,5);
+});
+test.each([{piece:3,weapon:22,blocked:true},{piece:4,weapon:34,blocked:true},{piece:5,weapon:22,blocked:false},{piece:9,weapon:22,blocked:false},{piece:3,weapon:51,blocked:false}])('a retained vest only protects native instant-hit torso/ass contacts (%j)',c=>{
+ const {entry,car,rider,killed}=fixture();rider.keep={...rider.keep,bulletProofVest:true} as any;
+ expect(entry.passengerShot(car,2,10,false,false,c)).toBe(c.blocked?undefined:'hit');expect(rider.keep.health).toBe(c.blocked?75:65);expect(killed).not.toHaveBeenCalled();
+});

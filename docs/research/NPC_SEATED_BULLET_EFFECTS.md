@@ -39,8 +39,11 @@ the routing preserves the existing health, collision and death behavior.
 The later [mission-rider proof fix](SCRIPT_RIDER_PROOFS.md) retains and applies
 physical proof flags in this bullet adapter.
 
-Full damage calculator and force-death parity, recruited-passenger physical
-proof/vest handling, NPC damage to ambient traffic/police/drive-by crews, same-type and
+The [recruited-passenger fix](RECRUITED_PASSENGER_PROOFS.md) retains and applies
+the follower path's physical proofs, only-player flag and vest.
+
+Full damage calculator and force-death parity, NPC damage to ambient
+traffic/police/drive-by crews, same-type and
 group identity for opaque creators, contact brightness, localisation, and
 matched retail PC captures remain open. This does not establish full native
 occupant combat or task parity.

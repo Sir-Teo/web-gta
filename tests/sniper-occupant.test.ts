@@ -22,7 +22,7 @@ function fixture(){
 test('a flying sniper bullet transfers the vehicle hit to its occupant before applying body damage',()=>{
  const f=fixture();try{
   expect(f.fire()).toBe(true);expect(f.seated).not.toHaveBeenCalled();f.weapons.tick(1/60);
-  expect(f.seated).toHaveBeenCalledExactlyOnceWith(f.target,125,34);expect(f.damage).not.toHaveBeenCalled();expect(f.practice).toHaveBeenCalledExactlyOnceWith(34);
+  expect(f.seated).toHaveBeenCalledExactlyOnceWith(f.target,125,34,9);expect(f.damage).not.toHaveBeenCalled();expect(f.practice).toHaveBeenCalledExactlyOnceWith(34);
   expect(f.crime).toHaveBeenCalledWith(CRIME.damageCar,expect.stringMatching(/^seat:-\d+$/),false,false);
   expect((f.weapons as any).bullets[0].position.z).toBeCloseTo(-4.8,5);
   // The browser's existing once-per-bullet pedestrian rule includes a live, noncritical occupant too.
@@ -33,7 +33,7 @@ test('a flying sniper bullet transfers the vehicle hit to its occupant before ap
 test('critical sniper occupant hits force death, and cop targets use CBulletInfo’s cop-car crime',()=>{
  const f=fixture();try{
   f.target.noCriticalHits=false;f.target.kind='police';expect(f.fire()).toBe(true);f.weapons.tick(1/60);
-  expect(f.seated).toHaveBeenCalledExactlyOnceWith(f.target,1000,34);expect(f.crime).toHaveBeenCalledWith(CRIME.damageCopCar,expect.stringMatching(/^seat:-\d+$/),false,false);
+  expect(f.seated).toHaveBeenCalledExactlyOnceWith(f.target,1000,34,9);expect(f.crime).toHaveBeenCalledWith(CRIME.damageCopCar,expect.stringMatching(/^seat:-\d+$/),false,false);
  }finally{f.dispose();}
 });
 

@@ -1,4 +1,6 @@
 import RAPIER from '@dimforge/rapier3d-compat';
+import {physicalCanBeDamaged} from '../combat/nativePhysicalProofs';
+import {bulletProofVestStops,type BulletDamageProtection} from '../ped/bulletProofs';
 import {nativeCarSeatPose} from '../vehicle/nativeSeatPosition';
 import {NativeDrivingAnims} from './nativeDrivingAnims';
 import {Vector3} from 'three';
@@ -184,9 +186,12 @@ export class CarEntry {
    });
   }
   /** CheckForShootingVehicleOccupant transfers the hit to the recruit's retained pedestrian health. */
-  passengerShot(car:WorldCar,seat:number,damage:number,byPlayer=true,headshot=false):'hit'|'killed'|undefined{
+  passengerShot(car:WorldCar,seat:number,damage:number,byPlayer=true,headshot=false,hit?:{weapon:number;piece:number}):'hit'|'killed'|undefined{
    const target=this.passengerTargets().find(t=>t.car===car&&t.seat===seat);if(!target)return undefined;
-   const rider=target.rider,keep=rider.keep as {health?:number;defendMult?:number}|undefined;
+   const rider=target.rider,keep=rider.keep as ({health?:number;defendMult?:number}&BulletDamageProtection)|undefined,weapon=hit?.weapon??22,piece=hit?.piece??9;
+   // AffectsPed precedes damage and forced head death. The physical proofs, only-player flag and vest remain
+   // properties of the same recruit throughout boarding, the ride and the pedestrian rebuilt on exit.
+   if(!physicalCanBeDamaged(keep?.proofs,weapon)||!byPlayer&&keep?.onlyDamagedByPlayer||bulletProofVestStops(keep??{},weapon,piece))return undefined;
    // AccountForPedDamageStats: retain the on-foot weakness and the player's friendly-fire reduction. A forced
    // instant-hit head death bypasses both, as ComputeWillForceDeath does for the same pedestrian on foot.
    const scaled=damage*(keep?.defendMult??1),applied=byPlayer&&rider.follow?Math.min(scaled*Math.fround(.1),12.5):scaled;

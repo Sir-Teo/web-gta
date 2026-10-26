@@ -51,6 +51,8 @@ import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, MELEE
 import { nextChainIndex, resolveStrike, chainCooldown, inStrikeCone } from '../combat/meleeChain';
 import { decideDamageResponse, applyDamageResponse } from '../ped/brain';
 import { playerPunchDamage, scaleBlow, npcPunchDamage } from '../ped/damage';
+import {bulletProofVestStops,isInstantHitGun,type BulletDamageProtection} from '../ped/bulletProofs';
+export {bulletProofVestStops,isInstantHitGun} from '../ped/bulletProofs';
 import {ARREST_DOWN_TIME,copCanArrest,policePursuitWeapon,type CopWeapon} from '../police/nativeArrest';
 import {ReactToGunAimedAt,GANG_SEEING_RANGE,gunAimedAtAffects,gunAimedAtResponse} from '../ped/nativeGunAimedAt';
 import {eventSoundLevel} from '../ped/nativeSoundEvents';
@@ -499,15 +501,8 @@ export function npcDamageReaches(victim:{onlyDamagedByPlayer?:boolean;bulletProo
  if(bullet&&sameNonCivilianPedType(victim,shooter))return false;
  return true;
 }
-/** CEventDamage::AffectsPed (0x4AD7B0, reversed; iOS 0x10028acb4): a ped with bHasBulletProofVest is not affected by
- * a WEAPON_FIRE_INSTANT_HIT weapon's hit on PED_PIECE_TORSO or PED_PIECE_ASS. FINALEA gives Big Smoke the vest. */
-export function bulletProofVestStops(victim:{bulletProofVest?:boolean},weapon:number|undefined,piece:number|undefined){
- return !!victim.bulletProofVest&&isInstantHitGun(weapon)&&(piece===PED_PIECE.torso||piece===PED_PIECE.ass);
-}
 /** Browser stand-in for the CPedModelInfo hit spheres a bullet meets (the table is retail data): height above the feet
  * picks head, torso, midsection or legs and the side of the ped picks the limb, for a ped at `feet` facing `heading`. */
-/** The guns whose bullets are instant hits (WEAPON_FIRE_INSTANT_HIT): pistols through sniper rifles, and the minigun. */
-export const isInstantHitGun=(weapon:number|undefined)=>weapon!==undefined&&(weapon>=22&&weapon<=34||weapon===38);
 export function pedPieceAt(feet:{x:number;y:number;z:number},heading:number,point?:{x:number;y:number;z:number}){
  if(!point)return PED_PIECE.torso;
  const height=point.y-feet.y;
@@ -548,7 +543,7 @@ const PED_BOUND_RADIUS=1;
 /** Heights above the feet of the stand-in ped hit spheres (see hideNearCamera). */
 const HIT_SPHERE_HEIGHTS=[.25,.6,.95,1.3,1.6];
 /** What a ped carries into a car and out again as CJ's passenger. */
-interface PassengerKeep {weapon:Pedestrian['weapon'];health:number;id?:number;pedType?:string;gang?:number;gangClips:boolean;defendMult?:number;noCriticalHits?:boolean;neverTargeted?:boolean;canBeShotInVehicle?:boolean;/** The follower's member slot, kept while it rides. */slot?:number}
+interface PassengerKeep extends BulletDamageProtection {weapon:Pedestrian['weapon'];health:number;id?:number;pedType?:string;gang?:number;gangClips:boolean;defendMult?:number;noCriticalHits?:boolean;neverTargeted?:boolean;canBeShotInVehicle?:boolean;/** The follower's member slot, kept while it rides. */slot?:number}
 /** CTaskComplexWalkRoundBuildingAttempt's state: the route, the point it walks round to (m_targetPos, native) and the
  * ped or player it follows there (m_targetEntity), its move state, and which sub-task runs: the first one (scratch
  * head walking, hit wall running), look about, following the route, or the stand or hit wall it gives up with. */
@@ -1874,7 +1869,8 @@ export class WorldPedestrians {
   const [p]=this.people.splice(i,1);this.remove(p);
   // The same ped rides and gets out: CPed keeps his weapons, health and gang in the car.
   const keep:PassengerKeep={weapon:p.weapon,health:p.health,id:p.id,pedType:pedTypeName(p),gang:p.gang,gangClips:p.gang!==undefined,slot:p.follow?p.followSlot:undefined,
-   defendMult:p.defendMult,noCriticalHits:p.noCriticalHits,neverTargeted:p.neverTargeted,canBeShotInVehicle:p.flags?.canBeShotInVehicle};
+   defendMult:p.defendMult,noCriticalHits:p.noCriticalHits,neverTargeted:p.neverTargeted,canBeShotInVehicle:p.flags?.canBeShotInVehicle,
+   proofs:p.proofs&&{...p.proofs},onlyDamagedByPlayer:p.onlyDamagedByPlayer,bulletProofVest:p.bulletProofVest};
   return {modelRef:p.modelRef,follow:p.follow,gang:p.gang,keep};
  }
  /** The model a script ped id stands for: its peds.ide row's name where the depot carries that model, so the
@@ -2787,6 +2783,7 @@ export class WorldPedestrians {
   p.follow=follow;p.flee=0;
   if(keep){p.health=keep.health;if(keep.id!==undefined){p.id=keep.id;this.nextId=Math.max(this.nextId,p.id+1);}if(keep.gangClips)p.view.installReactions(catalog.gangClips,true);if(follow)p.followSlot=keep.slot;
    p.defendMult=keep.defendMult??p.defendMult;p.noCriticalHits=keep.noCriticalHits;p.neverTargeted=keep.neverTargeted;if(keep.pedType!==undefined)p.pedType=keep.pedType;
+   p.proofs=keep.proofs&&{...keep.proofs};p.onlyDamagedByPlayer=keep.onlyDamagedByPlayer;p.bulletProofVest=keep.bulletProofVest;
    if(keep.canBeShotInVehicle!==undefined)this.setFlag(p,'canBeShotInVehicle',keep.canBeShotInVehicle);
   }
   if(p.health<=0){p.money=0;this.restoreDeadScriptPed(p);}
