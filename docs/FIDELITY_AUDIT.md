@@ -14881,3 +14881,38 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   preceded this small camera-mode plumbing change. Stunt-camera integration
   is wired through its existing owner; a new stunt playthrough is not claimed.
   [Active configuration and camera transition evidence](research/GROUND_SPRINT_PLAYBACK.md#active-fixed-camera-integration).
+
+## Captured player landing body modifier and pad input (October 26, 2026)
+
+- Landing playback now multiplies the initial association speed by current
+  fat/muscle modifier 2 on the first player update and keeps that speed for
+  the rest of the landing. The default is 1.0052632093429565; maximum fat and
+  muscle give float32 0.8. SPRINT move state doubles the speed only when the
+  physical sprint button is held, independently of exhaustion or retained
+  button memory. NPC hosts without the player provider retain speed 1.
+- The independent harness executes the complete selected landing ProcessPed
+  (`0x100416148`) and actual stat modifier (`0x100266300`, mode 2). Its 64
+  modifier profiles and 150 first-update landing profiles match exactly and
+  regenerate byte-identically. A second native call changes stats/input and
+  confirms the first-update latch. Fresh/reused associations, players/NPCs,
+  input/state combinations and IDLE_tired's multiplier exception are covered.
+  Declared animation, identity and pad queries are logged stubs; no callback,
+  tilted-ped or complete task/animation manager equivalence is claimed.
+- Four new host checks expose and verify the missing factor, exhausted held
+  input, released input with positive button memory and NPC speed. They also
+  verify one provider read and retained speed after later changes. Three old
+  speed expectations now use the captured default factor while retaining
+  their source-time, integrated travel and latch checks. All 303 focused
+  animation/controller/swim checks pass (one existing skip).
+- Two real Space-key jumps retain the selected factor for all 35 and 28
+  landing updates while current script body stats change to the opposite
+  profile. The new live check and existing dry-land jump/airborne aim/fire
+  regressions pass without page errors. Actual move-state ownership beyond
+  the adapter's prior grounded gait, stat save ownership, launch/air playback,
+  tired partial idle and full original-PC matching remain separate work.
+  [Caller, independent capture, rounding and live latch evidence](research/PLAYER_LANDING_PLAYBACK.md).
+- All 8,286 unit tests pass (51 skipped), as do TypeScript validation and the
+  production build.
+- Production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, aircraft takeoff and landing gear with no page
+  errors or failed requests.

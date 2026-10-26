@@ -9,6 +9,7 @@ import {Matrix4,Object3D,Vector3} from 'three';
 import {readPlayerBaseBody,PLAYER_CLASSIC_FILES} from '../src/assets/readPlayerBaseBody';
 import {playerShoulderMatrix} from '../src/animation/playerShoulders';
 import { Simulation } from '../src/simulation/Simulation';
+import {nativeLandingStatModifier,DEFAULT_LANDING_MODIFIER} from '../src/simulation/nativeLanding';
 let sim: Simulation, character: NativeCharacter;
 beforeAll(async () => RAPIER.init()); afterEach(() => { character?.dispose(); sim?.dispose();character=undefined!;sim=undefined!; });
 const source = (): CharacterSource => ({model:readDff(new Uint8Array(readFileSync('tests/fixtures/dragonff-skin.dff'))),textures:[],clip:readIfp(new Uint8Array(readFileSync('tests/fixtures/animation-rig.ifp'))).animations[0],track:0});
@@ -389,13 +390,31 @@ for(const mode of ['run','sprint','released'] as const)test(`native landing spee
  const moving={...controls,sprint:mode!=='run'};
  character.step(.7,moving,sim);sim.player.grounded=false;sim.playerInAir=true;character.step(.1,moving,sim);sim.player.grounded=true;
  const contact={...moving,sprint:mode==='sprint'};
- const result=character.step(.1,contact,sim),speed=mode==='sprint'?2:1;
+ const result=character.step(.1,contact,sim),speed=Math.fround((mode==='sprint'?2:1)*DEFAULT_LANDING_MODIFIER);
  expect(character.snapshot()).toMatchObject({action:'landing',playbackSpeed:speed,seconds:.1*speed});
  expect(Math.hypot(result.animationMotion!.x,result.animationMotion!.z)).toBeCloseTo(.05*speed);
  const end=character.step(3,{...contact,sprint:!contact.sprint},sim);
  expect(character.snapshot()).toMatchObject({playbackSpeed:speed,seconds:2});
  expect(Math.hypot(result.animationMotion!.x+end.animationMotion!.x,result.animationMotion!.z+end.animationMotion!.z)).toBeCloseTo(1);
  character.step(.1,{...controls,y:0},sim);expect(character.snapshot()).toMatchObject({action:'idle',playbackSpeed:1});
+});
+
+for(const mode of ['stats','exhausted','released','npc'] as const)test(`landing captures stat speed and physical input at contact: ${mode}`,()=>{
+ setup();character.dispose();const data=source();
+ character=new NativeCharacter({...data,convention:'san-andreas-ped',run:{clip:data.clip,track:0},sprint:{clip:data.clip,track:0},airborne:{clip:data.clip,track:0},landing:{clip:data.clip,track:0}});
+ let modifier=nativeLandingStatModifier(1000,1000),calls=0;
+ (sim as any).playerLandingModifier=()=>{calls++;return modifier;};
+ const actor=mode==='npc'?{player:sim.player}:sim,input={...controls,sprint:mode!=='stats'};
+ character.step(.7,input,actor);sim.player.grounded=false;sim.playerInAir=true;character.step(.1,input,actor);sim.player.grounded=true;
+ if(mode==='exhausted'){sim.player.stamina=-150;sim.player.sprintButtonSpeed=0;sim.player.sprintExhausted=true;}
+ if(mode==='released')sim.player.sprintButtonSpeed=8;
+ const contact={...input,sprint:mode!=='stats'&&mode!=='released'};
+ character.step(.05,contact,actor);
+ const expected=mode==='npc'?1:Math.fround((mode==='exhausted'?2:1)*modifier);
+ expect(character.snapshot()).toMatchObject({action:'landing',playbackSpeed:expected,seconds:.05*expected});
+ expect(calls).toBe(mode==='npc'?0:1);
+ modifier=nativeLandingStatModifier(0,0);character.step(.05,{...contact,sprint:!contact.sprint},actor);
+ expect(character.snapshot().playbackSpeed).toBe(expected);expect(calls).toBe(mode==='npc'?0:1);
 });
 
 test('native landing uses the source blend-in rate instead of the ordinary movement transition',()=>{
@@ -455,7 +474,7 @@ for(const sprint of [false,true])test(`native landing foot contacts follow sourc
  character=new NativeCharacter({...data,convention:'san-andreas-ped',run:{clip:data.clip,track:0},sprint:{clip:data.clip,track:0},airborne:{clip:data.clip,track:0},landing:{clip:data.clip,track:0}});
  const input={...controls,sprint};character.step(.7,input,sim);
  sim.player.grounded=false;sim.playerInAir=true;character.step(.01,input,sim);expect(character.landingFootContacts).toEqual([]);
- sim.player.grounded=true;const speed=sprint?2:1;
+ sim.player.grounded=true;const speed=Math.fround((sprint?2:1)*DEFAULT_LANDING_MODIFIER);
  character.step(.099/speed,input,sim);expect(character.landingFootContacts).toEqual([]);
  character.step(.002/speed,input,sim);expect(character.landingFootContacts).toEqual(['right']);
  character.update(sim,.5);character.update(sim,1);expect(character.landingFootContacts).toEqual(['right']);

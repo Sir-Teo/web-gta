@@ -8,6 +8,7 @@ import { PED_ORIGIN_HEIGHT, pedFloatDepth, swimResistance, swimRotationTowardSur
 import { NativeJetPack } from './nativeJetPack';
 import {beginPlayerBreathFrame,handlePlayerBreath} from './playerBreath';
 import {DEFAULT_LUNG_CAPACITY} from './nativeLungCapacity';
+import {DEFAULT_LANDING_MODIFIER} from './nativeLanding';
 import {controlNativeSprint,handleNativeSprintEnergy,nativeButtonSprintResult,DEFAULT_SPRINT_CAPACITY,SPRINT_MODE,type SprintMode} from './nativePlayerSprint';
 import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, nativeJumpGroundSpeed, NATIVE_BLEND_WALK, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY, NATIVE_JUMP_MIN_FORWARD_SPEED, NATIVE_PED_AIR_RESISTANCE, NATIVE_BLEND_RUN_FULL } from './nativePlayerLocomotion';
 import RAPIER from '@dimforge/rapier3d-compat';
@@ -154,6 +155,8 @@ export class Simulation {
   beginPlayerBreathFrame(dt:number){beginPlayerBreathFrame(this.player,dt*50,this.playerLungCapacity());}
   /** CStats::GetFatAndMuscleModifier(STAT_MOD_AIR_IN_LUNG); the live host supplies current SCM stats. */
   playerLungCapacity=()=>DEFAULT_LUNG_CAPACITY;
+  /** CStats mode 2, read once when CTaskSimpleLand first updates the player. */
+  playerLandingModifier=()=>DEFAULT_LANDING_MODIFIER;
   /** CPlayerPed::ResetPlayerBreath (PC 0x60A8A0, selected iOS 0x100366508). */
   resetPlayerBreath(){this.player.breath=this.playerLungCapacity();this.player.requireHandleBreath=false;this.player.drownClock=0;}
   /** CStats mode 7, supplied from current stamina stat 22 by the live host. */

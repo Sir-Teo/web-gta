@@ -4,6 +4,7 @@ import {HEAD_EFFECTOR_OFFSET,LOOK_AT_SPEED,applyQuat,limitHead,moveHeadToTarget,
 import {playerMoveBlend} from '../animation/playerMoveBlend';
 import {nativeButtonSprintResult,SPRINT_MODE} from '../simulation/nativePlayerSprint';
 import {MODE_FIXED} from '../engine/ScmCamera';
+import {nativeLandingPlayback} from '../simulation/nativeLanding';
 import {bindPlayerShoulders} from '../animation/playerShoulders';
 import { nativeAmbientState } from '../assets/nativeMaterial';
 import {setNativeScorched} from '../assets/nativeScorched';
@@ -547,7 +548,7 @@ export class NativeCharacter {
   /** A ride ends (CTaskSimpleCarSetPedOut leaves the ped standing): the move blend ratio does not carry over from the
    * run up to the car, which would walk him on after the door closes. */
   resetLocomotion(){this.moveBlend=0;this.lastGroundAction='idle';this.moveAnims?.reset();}
-  step(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>&Partial<Pick<Simulation,'previewPlayerSprint'>>): Controls {
+  step(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>&Partial<Pick<Simulation,'previewPlayerSprint'|'playerLandingModifier'>>): Controls {
     const originalControls=controls;
     controls={...controls,sprintInput:controls.sprintInput??controls.sprint};
     // BlendAnimation(aim, 8) on AIM, blend delta -8 on release, -4 when a weapon without bMoveAim lowers on the move.
@@ -605,7 +606,7 @@ export class NativeCharacter {
     // start their cycles again from frame 0, so the stride after a landing always begins at the top.
     if (landingAction(this.action) && !landingAction(action) && this.moveAnims) for (const clip of ['walk', 'run', 'sprint'] as const) { const a = this.moveAnims.assocs.get(clip); if (a) a.time = 0; }
     if (action !== this.action) {
-      this.landingSpeed = landingAction(action) && this.motionSpace === 'actor' && this.lastGroundAction === 'sprint' && controls.sprint ? 2 : 1;
+      this.landingSpeed=landingAction(action)&&this.motionSpace==='actor'?nativeLandingPlayback({initialSpeed:1,modifier:sim.playerLandingModifier?.()??1,sprintState:this.lastGroundAction==='sprint',sprintHeld:!!(controls.sprintInput??controls.sprint),isPlayer:!!sim.playerLandingModifier}):1;
       this.samplePose(this.seconds, this.transitionTime);
       const fastLandingTransition = this.motionSpace === 'actor' && (landingAction(action) || this.action === 'landingMoving' && this.seconds >= this.active.duration);
       this.transition.capture(); this.transitionDuration = fastLandingTransition ? .01 : TRANSITION_SECONDS; this.poseGeneration++; this.transitionTime = 0; this.motionTransition.begin();
