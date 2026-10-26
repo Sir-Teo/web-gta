@@ -52,6 +52,8 @@ adapter fixture supplies source metadata directly; it is not an end-to-end
 player-ped firing/input capture.
 
 This closes the named creator distinctions in these seated bullet adapters.
-Full native calculator/armour/critical-death behavior, mission-rider kill-stat
-coverage, opaque NPC shooter/group identities, other damage paths, lighting
+The later [mission-rider kill callback](SCRIPT_RIDER_KILL_ACCOUNTING.md) also
+connects those seated bullet deaths to the shared basic counters.
+Full native calculator/armour/critical-death behavior, complete Darkel coverage,
+opaque NPC shooter/group identities, other damage paths, lighting
 and matched PC captures remain open.

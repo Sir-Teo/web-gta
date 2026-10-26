@@ -122,8 +122,19 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
   [PC sources, mobile scaling evidence and scope](research/SEATED_BULLET_CREATORS.md).
 - Units and live adapters compare protected health, accepted blood, source
   propagation, respect, kill and recruit counters, including repeated fatal
-  calls. Complete native calculator, mission-rider kill stats, opaque NPC/group
+  calls. Complete native calculator, full Darkel coverage, opaque NPC/group
   identities and matched PC captures remain open.
+
+## Mission-rider bullet kill accounting (October 26, 2026)
+
+- Accepted bullet deaths now report one transition from the mission rider into
+  the existing pedestrian kill handler. Actual ped type, player-group membership
+  and creator classification survive the seated adapter. Proofed hits,
+  surviving wounds and repeated corpse contacts produce no new kill event.
+  [Source and verification scope](research/SCRIPT_RIDER_KILL_ACCOUNTING.md).
+- Unit transitions and live civilian/COP/gang/group cases check the script's
+  death state, basic kill/respect counters and repeats. Full Darkel/event timing,
+  other death entries, damage calculator and matched PC parity remain open.
 
 ## Scripted rear car passengers (October 25, 2026)
 

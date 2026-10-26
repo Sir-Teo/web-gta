@@ -218,7 +218,7 @@ import {WantedHud} from './ui/WantedHud';
 import {hudAmmoText} from './ui/nativeAmmoText';
 import {radarRange} from './ui/nativeRadar';
 import {carsStrikePlayer} from './simulation/playerCarHit';
-import {WeaponSystem,playerAimReach,SEATED_HEAD_OFFSET,seatedHeadPoint} from './weapons/WeaponSystem';
+import {WeaponSystem,playerAimReach,SEATED_HEAD_OFFSET,seatedHeadPoint,type ShotCreator,type SeatedTarget,type SeatedVehicle} from './weapons/WeaponSystem';
 import {AIM_CROSSHAIR_NDC,pickAimTarget} from './input/aimAssist';
 import {WeaponView} from './weapons/WeaponView';
 import {WorldFx} from './simulation/fx/WorldFx';
@@ -283,7 +283,7 @@ import {SceneRegionFollower} from './assets/sceneRegionFollower';
 import {readSurfaceMovementFlags,steepSlopeRefusesJump,surfaceBlocksSprint} from './simulation/nativeSurfaceMovement';
 import {rapierClimbWorld} from './simulation/climbProbe';
 import {WEAPON_FLAG,nativeWeaponInfo,weaponUsedWithoutAmmo} from './weapons/weaponData';
-import {ACQUAINTANCE_HATE,NATIVE_PED_TYPES,nativePedType,type NativeAcquaintance} from './ped/nativeAcquaintance';
+import {ACQUAINTANCE_HATE,NATIVE_PED_TYPES,nativePedType,pedTypeInfo,type NativeAcquaintance} from './ped/nativeAcquaintance';
 import {ACQUAINTANCE_RAISED_SECONDS,ACQUAINTANCE_SCAN_SECONDS,THREAT_DRIVE_BY_FREQUENCY,answersHateWithDriveBy,closestHated,senseRange,threatDriveByRange} from './simulation/nativeRiderThreat';
 import {ScmDecisionMakers} from './engine/ScmDecisionMakers';
 import {firstPersonMode} from './weapons/nativeFirstPerson';
@@ -670,6 +670,11 @@ async function boot() {
   /** CCarCtrl's emergency services: ambulances and their medics answering the dead. */
   let emergency:import('./simulation/WorldEmergency').WorldEmergency|undefined;
   let driveby:import('./simulation/GangDriveBy').GangDriveBy|undefined;
+  /** Mission riders retain their ped identity and group while their enabled pedestrian body is absent. */
+  const scriptRiderKilled=(target:SeatedTarget<SeatedVehicle>,creator?:ShotCreator)=>{
+   const rider=asRider(target.rider);if(!rider)return;
+   pedestrians?.onKill?.({id:mission?.peds.handleOf(rider)??-1,...pedTypeInfo(rider),recruit:!!target.crew,byPlayer:creator==='ped',byPlayerVehicle:creator==='vehicle'});
+  };
   /** What a script's drive-by rider fires at and through: the player, the cars, the peds, and where its target is. */
   const scriptDriveByWorld:ScriptDriveByWorld={sim,cars:()=>fleet?.cars??[],random:Math.random,
    targetPosition:target=>{
@@ -706,7 +711,7 @@ async function boot() {
     if(!seated||seated.target.kind!=='script'&&seated.target.kind!=='passenger')return undefined;
     const target=seated.target,piece=direct?.piece??9,point=new Vector3(from.x,from.y,from.z).addScaledVector(direction,seated.t),center=seatedHeadPoint(target);
     const normal=direct?.normal??point.clone().sub(new Vector3(center.x,center.y+OCCUPANT_HEAD_LIFT,center.z)).normalize();
-    return {t:seated.t,direct:!!direct,victim:target.rider,hit:(damage,weapon)=>weapons.hitNpcSeatedBullet(target,{point,normal,direction,piece},weapon,()=>target.kind==='passenger'?carEntry.passengerShot(target.car as ScriptCar,target.seat,damage,false,piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon),{weapon,piece}):scriptRiderShot(target.rider as ScriptRider,WeaponSystem.occupantDamage(target,damage,weapon,piece),weapon,false))};
+    return {t:seated.t,direct:!!direct,victim:target.rider,hit:(damage,weapon)=>weapons.hitNpcSeatedBullet(target,{point,normal,direction,piece},weapon,()=>target.kind==='passenger'?carEntry.passengerShot(target.car as ScriptCar,target.seat,damage,false,piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon),{weapon,piece}):scriptRiderShot(target.rider as ScriptRider,WeaponSystem.occupantDamage(target,damage,weapon,piece),weapon,false,()=>scriptRiderKilled(target)))};
    },
    onShot:(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');}};
   /** CTaskAllocatorKillThreatsDriveby (reversed) for CJ's group while he drives: every member riding his car (not
@@ -5727,7 +5732,7 @@ async function boot() {
              }
              return out;};
             // Only a script's rider may sit in a boat or an aircraft; every other seated target is in a car.
-            weapons.onSeatedShot=(target,damage,weapon,piece=9,creator='ped')=>{if(target.kind==='script')return scriptRiderShot(target.rider as ScriptRider,damage,weapon,creator!=='remote');const car=target.car as ScriptCar;return target.kind==='passenger'?carEntry.passengerShot(car,target.seat,damage,true,piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon),{weapon,piece,creator}):target.kind==='police'?police?.crewShot(car,target.seat,damage):target.kind==='driveby'?driveby?.crewShot(car,target.seat,damage):traffic?.driverShot(car,damage);};
+            weapons.onSeatedShot=(target,damage,weapon,piece=9,creator='ped')=>{if(target.kind==='script')return scriptRiderShot(target.rider as ScriptRider,damage,weapon,creator!=='remote',()=>scriptRiderKilled(target,creator));const car=target.car as ScriptCar;return target.kind==='passenger'?carEntry.passengerShot(car,target.seat,damage,true,piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon),{weapon,piece,creator}):target.kind==='police'?police?.crewShot(car,target.seat,damage):target.kind==='driveby'?driveby?.crewShot(car,target.seat,damage):traffic?.driverShot(car,damage);};
             if(driveby)driveby.onCrewDiesOut=(car,model)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading,car.gang,false,car.wrecked))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading(),car.gang,false,car.wrecked);}};
             if(police)police.onCrewDiesOut=(car,model)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading,undefined,false,car.wrecked))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading(),undefined,false,car.wrecked);}};
             // CTaskComplexLeaveCarAndFlee (a tyre shot out, R_Weak.ped): CTaskComplexLeaveCar without waiting for the car to

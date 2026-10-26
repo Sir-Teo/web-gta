@@ -1,4 +1,4 @@
-import {expect,test} from 'vitest';
+import {expect,test,vi} from 'vitest';
 import {scriptRiderShot,type ScriptRiderDamageState} from '../src/vehicle/scriptRiderShot';
 
 const bulletProof={bullet:true,fire:false,explosion:false,collision:false,melee:false};
@@ -23,4 +23,10 @@ test('other physical proofs do not accidentally make an occupant bullet proof',(
 test('a corpse contact is accepted before live proof gates without changing its seat death state',()=>{
  const ped:ScriptRiderDamageState={health:0,invulnerable:true,proofs:{...bulletProof},diedInSeat:true};
  expect(scriptRiderShot(ped,1000,22,false)).toBe('killed');expect(ped).toEqual({health:0,invulnerable:true,proofs:bulletProof,diedInSeat:true});
+});
+test('the kill callback observes the accepted death transition once, after proof and surviving hits',()=>{
+ const ped:ScriptRiderDamageState={health:100,invulnerable:false,proofs:{...bulletProof}},kill=vi.fn(()=>{expect(ped.health).toBe(0);expect(ped.diedInSeat).toBe(true);});
+ expect(scriptRiderShot(ped,1000,22,false,kill)).toBeUndefined();expect(kill).not.toHaveBeenCalled();ped.proofs!.bullet=false;
+ expect(scriptRiderShot(ped,25,22,false,kill)).toBe('hit');expect(kill).not.toHaveBeenCalled();expect(scriptRiderShot(ped,1000,22,false,kill)).toBe('killed');
+ expect(scriptRiderShot(ped,1000,22,false,kill)).toBe('killed');expect(scriptRiderShot(ped,1000,22,false,kill)).toBe('killed');expect(kill).toHaveBeenCalledOnce();
 });
