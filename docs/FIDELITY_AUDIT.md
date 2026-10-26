@@ -14771,3 +14771,53 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   new fields and passes movement, car entry, map/waypoint, pause/resume,
   takeoff and landing gear with no page errors, failed requests or
   development inspection hook.
+
+## Captured player sprint input and resource (October 26, 2026)
+
+- Ground and swim sprint input now use native button memory, current-stat
+  resource capacity, the -150 floor and native recovery instead of the
+  authored 0–100/30%-threshold meter. Stat 22 initially gives 450 resource
+  units and gives 3,150 at maximum. Stat changes retain the current budget;
+  reset/fill paths use the current capacity. Saved stat values therefore
+  affect the player's actual sprint resource.
+- The independent selected-executable harness contains 741 cases: 560 pad
+  controller profiles, five capacity/reset cases, 144 energy cases and 32
+  sprint-result cases. Native float/state/table instructions run unchanged;
+  external pad and vehicle queries are explicit logged input stubs. Actual
+  browser-frame timestep profiles are included. All match exactly and
+  regenerate byte-identically. The PC modifier/controller/result bodies
+  remain retail delegates; their callers and energy/reset paths are cited
+  separately without claiming matched original-PC traces.
+- Animation and state selection preview the controller without changing its
+  state; the simulation commits once. Raw input remains separate from the
+  association's chosen move state. WALK_START/stop recovery, released-button
+  memory and below-zero sprint continuation remain observable. Ground
+  eligibility, water input and the native player-data flag are separate.
+  Underwater non-positive energy becomes 0.1 before its zero-cost row runs.
+  Surface/underwater stroke selection and loop-restart playback use native
+  sprint results. Full ground tapping playback and BMX vehicle integration
+  remain outside this change.
+- The first full run caught an adapter regression in untouched-controls
+  identity plus old percentage assertions. The same identity checks pass
+  after the repair. Two additional checks exposed a raw-input debit when
+  run clips were absent or a non-arm gun task owned movement; those paths
+  now retain no debit. All 870 focused checks pass (one existing skip),
+  together with all 8,018 unit tests (51 skipped).
+- In the live game, maximum stamina resets energy to 3,150 and reaches about
+  9.48 m/s after two simulated seconds. A controlled seed while real keyboard
+  sprint is held matches the captured frame exactly at -150. The following
+  frame returns factor 0, clears button speed and selects running; subsequent
+  frames recover. A newly positive budget starts another real sprint without
+  a percentage gate. Natural swim training, ordinary saved-stat reload,
+  swim effects/dive, jump-out and dry-land jumping also pass without page
+  errors. The initial browser run needed an explicit JSON import attribute;
+  its loader repair precedes these successful live checks.
+- Complete task/air/weapon ownership, native animation-manager equivalence,
+  ground tapping playback, fixed-camera/adrenaline animation behavior and
+  actual BMX pedal/controller integration remain separate work.
+  [Executable routines, resource/pose wiring and limits](research/PLAYER_SPRINT_ENERGY.md).
+- Final TypeScript validation and production build pass. All four final
+  targeted browser checks pass, including script-disabled sprint and both
+  surface restrictions. Production smoke passes saved-game return, movement,
+  car entry, map/waypoint, pause/resume, takeoff and landing gear with no page
+  errors or failed requests.

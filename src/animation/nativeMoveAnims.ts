@@ -15,7 +15,8 @@
  * - The extracted velocity is the blend-weighted sum of each extracting clip's forward root travel over the frame
  *   (FrameUpdateCallBackSkinnedWithVelocityExtraction), not normalised by the total blend.
  * Not reproduced: the tired idle (IDLE_tired, a partial clip), adrenaline and fixed-camera sprint speeds, and
- * CPlayerPed::ControlButtonSprint's tapping (a stub); a held sprint plays at speed 1. */
+ * the SPRINT association's playback response to tapping. The captured sprint controller now supplies
+ * eligibility/resource state separately; this move-association port still plays ground sprint at speed 1. */
 
 export type MoveClip='idle'|'walkStart'|'walk'|'run'|'sprint'|'runStop'|'runStopR';
 export interface MoveClipInfo{duration:number}

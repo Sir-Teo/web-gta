@@ -151,13 +151,14 @@ test('assigned idle loops without moving and walk/run use their own root speeds'
   expect(character.snapshot()).toMatchObject({action:'run'});expect(character.snapshot().seconds).toBeCloseTo(.6);
   const back=character.step(.1,controls,sim);expect(back.animationMotion!.z).toBeGreaterThan(.2); expect(back.animationMotion!.z).toBeLessThan(.4);expect(character.snapshot().seconds).toBeCloseTo(1.3);
 });
-test('exhaustion gates running until recovery and missing run never drains sprint stamina', () => {
+test('native exhaustion gates a new sprint until energy is positive and missing run never requests sprint', () => {
   roles(); sim.player.stamina=0;
   expect(character.step(.1,{...controls,sprint:true},sim).sprint).toBe(false);expect(character.snapshot().action).toBe('walk');
-  sim.player.stamina=29;sim.player.sprintExhausted=true;character.step(.1,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('walk');
-  sim.player.stamina=30;character.step(.1,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('run');
+  sim.player.stamina=Math.fround(.01);sim.player.sprintExhausted=true;character.step(.1,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('run');
+  sim.player.stamina=-150;sim.player.sprintButtonSpeed=0;character.step(.1,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('walk');
   character.dispose();character=new NativeCharacter(source());
-  expect(character.step(.1,{...controls,sprint:true},sim).sprint).toBe(false);
+  sim.resetSprintEnergy();const unavailable=character.step(.1,{...controls,sprint:true},sim);
+  expect(unavailable.sprint).toBe(false);sim.step(.1,unavailable);expect(sim.player.stamina).toBe(sim.playerSprintCapacity());
 });
 test('role changes restore bones that the next clip does not animate', () => {
   roles(); character.step(.5,{...controls,sprint:true},sim);character.update(sim,1);
@@ -333,8 +334,8 @@ test('three native gaits separate running from stamina-consuming sprint and reco
  expect(Math.hypot(sprinting.x,sprinting.z)).toBeGreaterThan(Math.hypot(running.x,running.z));
  sim.player.stamina=0;sim.player.sprintExhausted=true;
  expect(character.step(.2,{...controls,sprint:true},sim).sprint).toBe(false);expect(character.snapshot().action).toBe('run');
- sim.player.stamina=29;character.step(.2,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('run');
- sim.player.stamina=30;character.step(.2,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('sprint');
+ sim.player.stamina=Math.fround(.01);character.step(.2,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('sprint');
+ sim.player.stamina=-150;sim.player.sprintButtonSpeed=0;character.step(.2,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('run');
  expect(()=>new NativeCharacter({...data,sprint:{clip:sprint,track:0}})).toThrow('run clip before sprint');
 });
 

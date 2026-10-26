@@ -59,3 +59,12 @@ reload path. The restored stats initialize breath and HUD capacity, and old
 saves retain native initial defaults. Training counters start fresh after
 reload, following the native save ownership.
 [Format compatibility, validation and real reload check](TRAINING_STAT_PERSISTENCE.md).
+
+## Captured sprint resource and stroke input (October 26, 2026)
+
+Surface crawl and underwater stroke/glide input now use the captured player
+sprint controller and its retained button state. Swim energy recovery,
+the underwater 0.1 resource branch and stroke playback at loop restarts
+follow their native callers. The stat-derived energy budget also reaches
+ground movement, ordinary vehicle recovery and reset/fill paths.
+[Executable controls, live exhaustion/restart and animation limits](PLAYER_SPRINT_ENERGY.md).

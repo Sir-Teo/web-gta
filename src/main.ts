@@ -18,6 +18,7 @@ import {NativeWeaponAudio} from './audio/native/NativeWeaponAudio';
 import {evaluateCarPosition} from './simulation/nativeCarChoice';
 import {statUpdateBar,statNameKey} from './ui/nativeStatUpdate';
 import {nativeLungCapacity} from './simulation/nativeLungCapacity';
+import {nativeSprintCapacity,SPRINT_MODE} from './simulation/nativePlayerSprint';
 import {FALLEN_LAMPPOST_SOLVER_GROUPS} from './simulation/solverGroups';
 import {carRollsOverProp} from './simulation/vehiclePropContacts';
 import {controlNameOf,controlNaming,controlsNamedIn,gxtHudText,gxtText,insertNumbers,loadedText,setControlNaming,setTouchText,useTouchControlNames} from './assets/gxt';
@@ -297,7 +298,6 @@ import {worldZoneAt} from './assets/worldZones';
 import {zoneText} from './ui/nativeZoneText';
 import {NativePlaceName} from './ui/nativePlaceName';
 import {inPhotograph} from './weapons/nativePhotograph';
-import {stepStamina} from './locomotion/player';
 import {pickupCategory} from './assets/scmPickups';
 import {readSurfaceAudio,nativeFootstepCategory,wadingSurface} from './assets/surfaceAudio';
 import {nativeAudioCamera,worldBikeAudioInput,worldBoatAudioInput,worldCarAudioInput,worldPlaneAudioInput,worldTrainAudioInput} from './audio/native/worldVehicleAudio';
@@ -1289,7 +1289,7 @@ async function boot() {
         // The original's save menu holds the game from the pickup on; here the world runs under the fade, so what
         // happened meanwhile (a death, an arrest, a knockdown, a car entry, the pause menu) calls the save off.
         if(paused||!canStartMission()){hud.fade(false,1000);saving=false;return;}
-        const effects=nativeSaveEffects({health:sim.player.health,maxHealth:mission?.runtime.game.playerInfo.maxHealth??100,timeMinutes:sim.timeMinutes});
+        const effects=nativeSaveEffects({health:sim.player.health,maxHealth:mission?.runtime.game.playerInfo.maxHealth??100,timeMinutes:sim.timeMinutes,sprintCapacity:sim.playerSprintCapacity()});
         // DoGameSpecificStuffBeforeSave: the six hours pass on a full stomach.
         hunger.hoursDidntEat=0;
         // CGameLogic::PassTime hands CPickups::PassTime a second of timer for each game minute.
@@ -3176,7 +3176,7 @@ async function boot() {
       case 'parachute':inventory.give(46,0);inventory.select(46);break;
       // GivePlayerGoodiesWithPickUpMI(adrenaline) when turned on; ClearAdrenaline when turned off.
       // GivePlayerGoodiesWithPickUpMI reports AE_FRONTEND_PICKUP_ADRENALINE; ClearAdrenaline resets the time scale too.
-      case 'adrenaline':cheats.toggle(cheat);if(cheats.isActive(cheat)){player.adrenaline=20;player.stamina=100;player.sprintExhausted=false;sound.frontend(AE_FRONTEND.pickupAdrenaline);}else{player.adrenaline=0;cheatTimeScale=1;}break;
+      case 'adrenaline':cheats.toggle(cheat);if(cheats.isActive(cheat)){player.adrenaline=20;sim.resetSprintEnergy();sound.frontend(AE_FRONTEND.pickupAdrenaline);}else{player.adrenaline=0;cheatTimeScale=1;}break;
       // A Micro Uzi with 150 rounds when the SMG slot's weapon is WEAPON_UNARMED (an emptied SMG still fills it).
       case 'driveby':cheats.toggle(cheat);if(cheats.isActive(cheat)&&![28,29,32].some(id=>inventory.owned.has(id))){inventory.give(28,150);inventory.select(28);}break;
       case 'weaponSkills':for(let id=22;id<=31;id++)inventory.practice.set(id,1000);break;
@@ -4136,14 +4136,17 @@ async function boot() {
         // him by the stick (TaskSimplePlayerOnFoot.cpp:615-619, 893-903).
         // PlayerControlZelda jumps only while the target button is up; PlayerControlZeldaWeapon, which moves CJ while a
         // hip-fired rifle's use-gun task runs, never does.
-        let controls:import('./simulation/Simulation').Controls = { ...axes, jetPack:!!sim.jetPack, jetPackInput:sim.jetPack?{accelerate:input.down('Space')&&!controlsOff&&!law.arrested,brake:(input.down('ShiftLeft')||input.down('ShiftRight'))&&!controlsOff&&!law.arrested}:undefined, cameraYaw: render.yaw, cameraPitch: Math.asin(Math.max(-1,Math.min(1,render.camera.getWorldDirection(fogReductionForward).y))), walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: jumpPressed&&!input.down('MouseAim')&&hipGun===undefined&&!((weapons.inventory.info()?.flags??0)&WEAPON_FLAG.heavy),jumpHeld:input.down('Space')&&!controlsOff&&!law.arrested&&!padSwitchedOff('jump'),
+        const sprintPressedLeft=input.consume('ShiftLeft'),sprintPressedRight=input.consume('ShiftRight');
+        let controls:import('./simulation/Simulation').Controls = { ...axes, jetPack:!!sim.jetPack, jetPackInput:sim.jetPack?{accelerate:input.down('Space')&&!controlsOff&&!law.arrested,brake:(input.down('ShiftLeft')||input.down('ShiftRight'))&&!controlsOff&&!law.arrested}:undefined, cameraYaw: render.yaw, cameraPitch: Math.asin(Math.max(-1,Math.min(1,render.camera.getWorldDirection(fogReductionForward).y))), walk: input.down('AltLeft') || input.down('AltRight'), sprint: !controlsOff&&(input.down('ShiftLeft') || input.down('ShiftRight')),sprintJustPressed:!controlsOff&&(sprintPressedLeft||sprintPressedRight),playerSprintDisabled:playerSprintDisabled(),sprintDisabled:playerSprintDisabled()||!!((weapons.inventory.info()?.flags??0)&WEAPON_FLAG.heavy)||aimOverridesSprint&&weapons.aiming, jump: jumpPressed&&!input.down('MouseAim')&&hipGun===undefined&&!((weapons.inventory.info()?.flags??0)&WEAPON_FLAG.heavy),jumpHeld:input.down('Space')&&!controlsOff&&!law.arrested&&!padSwitchedOff('jump'),
           // The touch settings' Auto climb (the port's MOB_ATC, on by default): its check is the pad's left stick pushed
           // forward past half (LeftStickY under -64), the touch stick or a played pad's.
           autoClimb:touchScreen&&touchSettings.autoClimb&&!controlsOff&&!law.arrested&&(input.stick?.y??0)>64/128,exitVehicle:input.down('KeyF')&&!controlsOff&&!law.arrested&&!padSwitchedOff('enterCar'),parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming&&(render.aiming||weapons.inventory.weapon.kind==='melee'&&!sim.player.crouched)?render.yaw+Math.PI:hipGun!==undefined?turnToward(sim.player.heading,render.yaw+Math.PI,step):undefined };
         // CTaskSimpleSwim player states: Space surfaces, attack dives, sprint selects the crawl while there is energy for
         // it (ControlButtonSprint's HandleSprintEnergy fails once spent, as the on-foot sprint does).
         if(onFoot&&sim.player.health>0&&!law.arrested&&!carEntry.active){
-          const splash=updatePlayerSwim(sim.player,{moveMag:Math.max(0,axes.y),sprint:(input.down('ShiftLeft')||input.down('ShiftRight'))&&!sim.player.sprintExhausted,jump:jumpPressed,dive:key||mouseFires&&mouse||click,underwaterStroke:render.nativeCharacter?.swimUnderAssociation(),lungCapacity:sim.playerLungCapacity(),drownsInWater:sim.playerDrownsInWater},swimWater,step,carEntry.clips.peek('swim','Swim_Dive_Under')?.duration);
+          const splash=updatePlayerSwim(sim.player,{moveMag:Math.max(0,axes.y),sprint:sim.previewPlayerSprint(step,controls,SPRINT_MODE.water).factor>=1,jump:jumpPressed,dive:key||mouseFires&&mouse||click,underwaterStroke:render.nativeCharacter?.swimUnderAssociation(),lungCapacity:sim.playerLungCapacity(),drownsInWater:sim.playerDrownsInWater},swimWater,step,carEntry.clips.peek('swim','Swim_Dive_Under')?.duration);
+          // Ground-only sprint filters below must not overwrite the swim task's physical pad input.
+          if(sim.player.swimming)controls={...controls,sprintInput:controls.sprint};
           // CEventDamage::AffectsPed turns WEAPON_DROWNING away from a ped that does not drown.
           if(splash.damage>0&&sim.playerDrownsInWater)sim.damagePlayer(splash.damage,true,{weapon:WEAPON.drowning});
           // ProcessSwimAnims trains moving surface swimmers and underwater swimmers, once a game frame.
@@ -4174,12 +4177,12 @@ async function boot() {
         if(importedScene&&sim.player.grounded&&lastGround){
           surfaceSprintBlocked=surfaceBlocksSprint(surfaceSprint,lastGround?.material);
           if(controls.jump&&steepSlopeRefusesJump(surfaceSteep,lastGround?.material,{x:Math.sin(sim.player.heading),z:Math.cos(sim.player.heading)},lastGround?.normal))controls.jump=false;
-          if(surfaceSprintBlocked)controls.sprint=false;
+          if(surfaceSprintBlocked){controls.sprint=false;controls.sprintDisabled=true;}
         }
         // PlayerControlZelda: m_bPlayerSprintDisabled (DISABLE_PLAYER_SPRINT, and the goggles going on or off) turns the
         // sprint button into a run.
-        if(playerSprintDisabled())controls.sprint=false;
-        if(aimOverridesSprint&&weapons.aiming)controls.sprint=false;
+        if(playerSprintDisabled()){controls.sprint=false;controls.sprintDisabled=true;}
+        if(aimOverridesSprint&&weapons.aiming){controls.sprint=false;controls.sprintDisabled=true;}
         // CTaskComplexGotoDoorAndOpen under CTaskSimpleUninterruptable: a walk-in entrance walks CJ 4 units on, out of the pad's hands.
         const walkIn=entryExits?.active?.walk;
         if(walkIn&&onFoot){const p=sim.player.position,dx=walkIn[0]-p.x,dz=-walkIn[1]-p.z;controls={...controls,x:0,y:Math.hypot(dx,dz)>.5?-1:0,cameraYaw:Math.atan2(dx,dz),walk:true,sprint:false,jump:false,facing:undefined};}
@@ -4280,7 +4283,7 @@ async function boot() {
         if(riding){
           // CPlayerPed::ProcessControl: in any vehicle but a CBmx (the BMX, Chopper and Mountain Bike), sprint energy
           // recovers as standing still.
-          if(!BMX_MODELS.has(fleet?.occupiedBike?.modelId??-1))sim.player.stamina=stepStamina(sim.player.stamina,false,false,step);
+          if(!BMX_MODELS.has(fleet?.occupiedBike?.modelId??-1))sim.handlePlayerSprintEnergy(step);
           sim.stepWorld();sim.advanceClock(step*sim.clockRate());
           sim.advancePlayerDeath(step,()=>{
             carEntry.abandon();bikeMount.abandon();
@@ -7144,7 +7147,7 @@ async function boot() {
                  territoryUnderControlPercentage:()=>Math.round((gangWars?.territoryUnderControlPercentage??0)*100),
                  // CCutsceneMgr::LoadCutsceneData: ResetSprintEnergy, the player's stamina back to full.
                  // ... CClothes::RebuildPlayerIfNeeded, and CWanted::ClearQdCrimes: a crime still waiting to be reported is dropped.
-                 loadCutscene:name=>{sim.player.stamina=100;sim.player.sprintExhausted=false;rebuildPlayerIfNeeded();law.native.clearQueuedCrimes();
+                 loadCutscene:name=>{sim.resetSprintEnergy();rebuildPlayerIfNeeded();law.native.clearQueuedCrimes();
                   // A cutscene the browser has plays; any other ends as it starts.
                   if(!cutscenes?.begin(name))return false;
                   const e=localLighting.extraColour;cutscenePreviousExtraColour={on:e.on,colour:e.hour+(e.weather-21)*8};
@@ -7273,6 +7276,8 @@ async function boot() {
                 {const game=mission.runtime.game;game.stats.onUpdateMessage=displayStatUpdate;
                  progression.bindTrainingStats(game.stats);
                  sim.playerLungCapacity=()=>nativeLungCapacity(game.stats.get(225),game.stats.get(22));
+                 sim.playerSprintCapacity=()=>nativeSprintCapacity(game.stats.get(22));
+                 sim.resetSprintEnergy();
                  // MAIN initializes once: restore its saved stat capacity before initializing player breath.
                  sim.resetPlayerBreath();
                  // CPlayerInfo::m_nMoney is the one purse the HUD shows and the score commands move.

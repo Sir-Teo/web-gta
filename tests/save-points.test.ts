@@ -17,7 +17,8 @@ test('the INITIAL mission supplies the thirteen save points active in a new game
 });
 
 test('saving restores health, clears the wanted level and passes six hours',()=>{
- expect(nativeSaveEffects({health:12,maxHealth:100,timeMinutes:22*60+30})).toEqual({health:100,timeMinutes:4*60+30,passedMinutes:360,wanted:0,stamina:100});
+ expect(nativeSaveEffects({health:12,maxHealth:100,timeMinutes:22*60+30})).toEqual({health:100,timeMinutes:4*60+30,passedMinutes:360,wanted:0,stamina:450});
+ expect(nativeSaveEffects({health:12,maxHealth:100,timeMinutes:0,sprintCapacity:3150}).stamina).toBe(3150);
  // The native cap is 200 even for a raised maximum.
  expect(nativeSaveEffects({health:100,maxHealth:569,timeMinutes:0}).health).toBe(200);
 });

@@ -299,7 +299,7 @@ export class WorldPickups {
      host.onCollect?.(pickup);return;
     }
     // CPickups::GivePlayerGoodiesWithPickUpMI: 20 s of adrenaline and a full sprint (ResetSprintEnergy).
-   case 'adrenaline':this.sim.player.adrenaline=20;this.sim.player.stamina=100;this.sim.player.sprintExhausted=false;break;
+   case 'adrenaline':this.sim.player.adrenaline=20;this.sim.resetSprintEnergy();break;
    // CPickups::GivePlayerGoodiesWithPickUpMI: MODEL_JETPACK gives the jetpack task. CPickup::Update refuses a flier
    // who already wears one.
    case 'jetpack':if(!host.onJetPack?.())return;break;

@@ -2,7 +2,7 @@ import {characterShadowBounds} from './characterShadowBounds';
 import {PED_HIT_NODES,type PedHitSphere} from '../combat/nativePedHitSpheres';
 import {HEAD_EFFECTOR_OFFSET,LOOK_AT_SPEED,applyQuat,limitHead,moveHeadToTarget,slerpQuat,startLookAt,stepLookAt,type LookAtTask,type Quat} from '../simulation/nativeIkLookAt';
 import {playerMoveBlend} from '../animation/playerMoveBlend';
-import {STAMINA_EXHAUST_FLOOR} from '../locomotion/player';
+import {nativeButtonSprintResult,SPRINT_MODE} from '../simulation/nativePlayerSprint';
 import {bindPlayerShoulders} from '../animation/playerShoulders';
 import { nativeAmbientState } from '../assets/nativeMaterial';
 import {setNativeScorched} from '../assets/nativeScorched';
@@ -546,7 +546,9 @@ export class NativeCharacter {
   /** A ride ends (CTaskSimpleCarSetPedOut leaves the ped standing): the move blend ratio does not carry over from the
    * run up to the car, which would walk him on after the door closes. */
   resetLocomotion(){this.moveBlend=0;this.lastGroundAction='idle';this.moveAnims?.reset();}
-  step(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>): Controls {
+  step(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>&Partial<Pick<Simulation,'previewPlayerSprint'>>): Controls {
+    const originalControls=controls;
+    controls={...controls,sprintInput:controls.sprintInput??controls.sprint};
     // BlendAnimation(aim, 8) on AIM, blend delta -8 on release, -4 when a weapon without bMoveAim lowers on the move.
     const lowered=this.action==='gunMove'&&this.gunAimLowered;
     this.ikClockMs+=dt*1000;this.ikFrameMs+=dt*1000;this.stepHeading=sim.player.heading;
@@ -560,7 +562,10 @@ export class NativeCharacter {
     // Out of the water the on-foot task starts afresh from idle: no run stop from the sprint that ran into the water.
     if (this.swamLast) { this.swamLast = false; this.moveAnims?.reset(); }
     const moving = Math.hypot(controls.x, controls.y) > 0;
-    const runnable = !!(this.clips.sprint ?? this.clips.run) && sim.player.stamina > 0 && (!sim.player.sprintExhausted || sim.player.stamina >= STAMINA_EXHAUST_FLOOR);
+    const runnable=!!(this.clips.sprint??this.clips.run);
+    if(!runnable)controls={...controls,sprintDisabled:true};
+    const sprint=sim.previewPlayerSprint?.(dt,controls,SPRINT_MODE.ground);
+    if(sprint)controls={...controls,sprint:sprint.factor>=1};
     const landed = this.wasAirborne && sim.player.grounded;
     const footState = sim.player.health > 0;
     if (!footState) this.lastGroundAction = 'idle';
@@ -614,7 +619,7 @@ export class NativeCharacter {
     this.previous = this.seconds;
     this.previousTransitionTime = this.transitionTime;
     this.transitionTime = Math.min(this.transitionDuration, this.transitionTime + dt);
-    if (!this.supported(sim)) { this.seconds = this.previous = 0; this.transitionTime = this.previousTransitionTime = this.transitionDuration; this.motionTransition.reset(); return controls; }
+    if (!this.supported(sim)) { this.seconds = this.previous = 0; this.transitionTime = this.previousTransitionTime = this.transitionDuration; this.motionTransition.reset(); return originalControls; }
     if (this.motionSpace === 'actor' && this.clips.landing && oneShot(action)) this.landingFootContacts = [];
     // The move associations keep their times under the jump, land and duck tasks; only SetRealMoveAnim waits.
     if (action !== 'move') this.moveAnims?.update(dt);
@@ -631,7 +636,7 @@ export class NativeCharacter {
       const displacement = this.active.motion ? this.active.motion.between(this.previous,this.seconds,this.basis,false) : {x:0,z:0};
       return { ...controls, x: 0, y: 0, jump: false, sprint: false, holdMove: true, animationMotionSpace: this.motionSpace, animationMotion: displacement };
     }
-    if (airborneAction(action)) { this.seconds = Math.min(this.active.duration, this.seconds + dt); this.motionTransition.reset(); return controls; }
+    if (airborneAction(action)) { this.seconds = Math.min(this.active.duration, this.seconds + dt); this.motionTransition.reset(); return originalControls; }
     if (action === 'move') return this.stepMoves(dt, controls, sim, runnable);
     if (action === 'gunMove') return this.stepGunMove(dt, controls);
     if (action === 'fightMove') return this.stepGunMove(dt, controls, true);
@@ -690,7 +695,7 @@ export class NativeCharacter {
     // Without bMoveAim the aim clip blends out while the gun moves.
     this.gunAimLowered = !gun.moveAim && anims.moving;
     this.seconds += dt; this.motionTransition.reset();
-    return { ...controls, sprint: false, jump: false, animationMotionSpace: this.motionSpace, animationMotion: { x, z } };
+    return { ...controls, sprint: false, sprintDisabled:true, jump: false, animationMotionSpace: this.motionSpace, animationMotion: { x, z } };
   }
   /** The RUN and SPRINT associations CTaskSimpleJump::Launch reads. */
   private launchAssociations(): { run?: number; sprint?: number } | undefined {
@@ -737,14 +742,20 @@ export class NativeCharacter {
   }
   /** CTaskSimpleSwim clip selection: tread holds station, breast follows the
    * move blend, crawl runs at sprint pressure, under glides without it. */
-  private stepSwim(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>): Controls {
+  private stepSwim(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>&Partial<Pick<Simulation,'previewPlayerSprint'>>): Controls {
     const state = sim.player.swimState ?? 0;
-    // Underwater, SWIM_UNDER strokes only while the swimmer is pressing on; otherwise he glides on SWIM_GLIDE, which
-    // carries no root motion (ProcessSwimAnims).
-    const stroking = controls.y > .01;
+    // Underwater, GetButtonSprintResults selects SWIM_UNDER; otherwise SWIM_GLIDE carries no root motion.
+    // NPC/fallback hosts without player sprint input retain their own movement request.
+    const projected=sim.previewPlayerSprint?.(dt,controls,state===4?SPRINT_MODE.underwater:SPRINT_MODE.water);
+    const result=projected?nativeButtonSprintResult(projected.buttonSpeed,state===4?SPRINT_MODE.underwater:SPRINT_MODE.water):undefined;
+    const stroking = result===undefined?controls.y>.01:result>=1;
     const wanted: SwimAction = state === 1 ? 'swimBreast' : state === 2 ? 'swimCrawl' : state === 4 ? (stroking ? 'swimUnder' : 'swimGlide') : state === 5 ? 'swimGlide' : state === 3 ? 'swimDive' : 'swimTread';
     const action = (this.clips[wanted] ? wanted : 'swimTread') as Action;
-    const speed = action === 'swimBreast' ? Math.max(sim.player.swimBlend ?? 0, .15) : action === 'swimCrawl' ? (controls.sprint ? 1.5 : 1) : action === 'swimUnder' ? (controls.sprint ? 1.2 : .8) : 1;
+    let speed = action==='swimBreast'?Math.max(0,sim.player.swimBlend??0):action==='swimCrawl'?(result===undefined?(controls.sprint?1.5:1):action!==this.action?1:Math.max(1,result)):1;
+    if(action==='swimUnder'){
+      const restarted=action===this.action&&Math.floor(this.seconds/this.active.duration)>Math.floor(this.previous/this.active.duration);
+      speed=result===undefined?(controls.sprint?1.2:.8):action!==this.action?1:restarted?Math.max(.7,result):this.swimPlaybackSpeed;
+    }
     this.swimPlaybackSpeed = speed;
     if (action !== this.action) {
       this.samplePose(this.seconds, this.transitionTime);
