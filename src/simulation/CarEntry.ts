@@ -1,6 +1,7 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import {physicalCanBeDamaged} from '../combat/nativePhysicalProofs';
 import {bulletProofVestStops,type BulletDamageProtection} from '../ped/bulletProofs';
+import {healthAfter} from '../ped/damage';
 import type {ShotCreator} from '../weapons/WeaponSystem';
 import {nativeCarSeatPose} from '../vehicle/nativeSeatPosition';
 import {NativeDrivingAnims} from './nativeDrivingAnims';
@@ -199,7 +200,7 @@ export class CarEntry {
    // AccountForPedDamageStats checks the raw creator's ped type for group scaling. A vehicle's CJ driver can
    // satisfy AffectsPed's only-player test without making the vehicle itself a player-ped damage calculator.
    const scaled=damage*(keep?.defendMult??1),applied=playerPed&&rider.follow?Math.min(scaled*Math.fround(.1),12.5):scaled;
-   const health=headshot?0:Math.max(0,(keep?.health??100)-applied);
+   const health=headshot?0:healthAfter(keep?.health??100,applied);
    rider.keep={...(rider.keep as object|undefined),health};
    if(health>0)return 'hit';
    rider.diedInSeat=true;rider.driveBy=undefined;rider.groupDriveBy=undefined;

@@ -8,6 +8,9 @@
  */
 export const PLAYER_ATTACK_MULT = 3.0;
 
+/** ComputeWillKillPed's ordinary branch (PC 0x4B3210): below one HP is a death, while exactly one survives. */
+export function healthAfter(health:number,damage:number){const remaining=health-damage;return remaining<1?0:remaining;}
+
 /** Scale an outgoing blow: base * attackerAttack * victimDefend. */
 export function scaleBlow(base: number, attackerAttack: number, victimDefend: number): number {
   return base * attackerAttack * victimDefend;

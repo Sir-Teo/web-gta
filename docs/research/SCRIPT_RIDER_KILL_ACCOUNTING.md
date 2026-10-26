@@ -37,3 +37,5 @@ This routes seated bullet deaths through the host's existing basic kill,
 respect, checkpoint, group and gang counters. Full Darkel coverage, native event
 dispatch timing, other death/damage entry points, complete damage/armour/forced
 death, opaque NPC shooter/group identities and matched PC captures remain open.
+The [ordinary death-threshold fix](SEATED_HEALTH_THRESHOLD.md) also supplies
+these callbacks when an accepted wound leaves a positive remainder below one.

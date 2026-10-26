@@ -50,7 +50,8 @@ import {playerCollisionWithPedResponse} from '../ped/nativePlayerBump';
 import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, MELEE_SWING_CLIPS, attackLineDistance, fightingStyleCombo, meleeAttackFalls } from './nativeMelee';
 import { nextChainIndex, resolveStrike, chainCooldown, inStrikeCone } from '../combat/meleeChain';
 import { decideDamageResponse, applyDamageResponse } from '../ped/brain';
-import { playerPunchDamage, scaleBlow, npcPunchDamage } from '../ped/damage';
+import { playerPunchDamage, scaleBlow, npcPunchDamage,healthAfter } from '../ped/damage';
+export {healthAfter} from '../ped/damage';
 import {bulletProofVestStops,isInstantHitGun,type BulletDamageProtection} from '../ped/bulletProofs';
 export {bulletProofVestStops,isInstantHitGun} from '../ped/bulletProofs';
 import {ARREST_DOWN_TIME,copCanArrest,policePursuitWeapon,type CopWeapon} from '../police/nativeArrest';
@@ -487,7 +488,6 @@ export function setCharacterAnim(view:{readonly reactionName:string|undefined;se
  if(change.playing!==undefined)view.setReactionPlaying?.(name,change.playing);
  if(change.progress!==undefined)view.setReactionProgress(name,change.progress);
 }
-export const healthAfter=(health:number,damage:number)=>health-damage<1?0:health-damage;
 /** CPhysical's damage response by weapon class (0x5426C0): melee, bullet, explosion and fire each have their
  * proof, and a spray can damages whatever it hits. Collision proof belongs to the brass knuckles, golf club
  * and shovel, which this browser counts as melee, so it guards nothing of its own yet. */

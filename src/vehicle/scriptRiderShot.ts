@@ -1,4 +1,5 @@
 import {physicalCanBeDamaged,type PhysicalProofs} from '../combat/nativePhysicalProofs';
+import {healthAfter} from '../ped/damage';
 
 /** The damage-bearing part of a mission ped retained while its physical body is disabled in a vehicle. */
 export interface ScriptRiderDamageState {health:number;invulnerable:boolean;proofs?:PhysicalProofs;diedInSeat?:boolean}
@@ -7,7 +8,7 @@ export interface ScriptRiderDamageState {health:number;invulnerable:boolean;proo
 export function scriptRiderShot(rider:ScriptRiderDamageState,damage:number,weapon:number,byPlayer:boolean,onKill?:()=>void):'hit'|'killed'|undefined{
  if(rider.health<=0)return 'killed';
  if(rider.invulnerable&&!byPlayer||!physicalCanBeDamaged(rider.proofs,weapon))return undefined;
- rider.health=Math.max(0,rider.health-damage);
+ rider.health=healthAfter(rider.health,damage);
  if(rider.health>0)return 'hit';
  rider.diedInSeat=true;onKill?.();return 'killed';
 }

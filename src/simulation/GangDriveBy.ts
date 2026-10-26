@@ -1,4 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-compat';
+import {healthAfter} from '../ped/damage';
 import {sitClip} from './nativeDoor';
 import {DIE_IN_CAR_OFFSET_MS,canPedStepOutCar} from '../vehicle/nativeDieInCar';
 import {Quaternion,Vector3} from 'three';
@@ -121,11 +122,11 @@ export class GangDriveBy {
    if(!u||car.wrecked||car.occupied)return undefined;
    if(seat===0){
     if(u.driverDead||car.driverOut)return undefined;if(u.driverDying)return 'hit';
-    u.driverHealth=Math.max(0,u.driverHealth-damage);if(u.driverHealth>0)return 'hit';
+    u.driverHealth=healthAfter(u.driverHealth,damage);if(u.driverHealth>0)return 'hit';
     u.driverDying={at:u.seconds};return 'killed';
    }
    if(u.shooterDead||u.shooterGone)return undefined;
-   u.shooterHealth=Math.max(0,u.shooterHealth-damage);if(u.shooterHealth>0)return 'hit';
+   u.shooterHealth=healthAfter(u.shooterHealth,damage);if(u.shooterHealth>0)return 'hit';
    u.shooterDead=true;u.shooter.gunState.active=false;return 'killed';
   }
   /** Driver plus posed shooter per attack car for the occupant renderer. */

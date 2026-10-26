@@ -1,4 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-compat';
+import {healthAfter} from '../ped/damage';
 import {DIE_IN_CAR_OFFSET_MS,canPedStepOutCar} from '../vehicle/nativeDieInCar';
 import {Matrix4,Quaternion,Vector3} from 'three';
 import {openStaticWorld} from '../assets/staticWorldArchive';
@@ -122,7 +123,7 @@ export class WorldTraffic {
    const driver=this.drivers.find(d=>d.car===car&&!d.gone);
    if(!driver||car.occupied||car.driverOut||car.wrecked||!car.autopilot||driver.dead||driver.fled||driver.raged)return undefined;
    if(driver.dying)return 'hit';
-   driver.health=Math.max(0,driver.health-damage);
+   driver.health=healthAfter(driver.health,damage);
    if(driver.health>0){
     // CEventDamage in the car: ComputeDamageResponse sends a weapon hit on a ped in a vehicle straight to the personality
     // response. A driver already answering an event keeps to it.

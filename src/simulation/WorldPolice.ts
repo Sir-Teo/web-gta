@@ -3,6 +3,7 @@ import {nativeCarSeatPose} from '../vehicle/nativeSeatPosition';
 import {pedEnteredVehicleLeaveDelay} from './nativePedEnteredVehicle';
 import {DIE_IN_CAR_OFFSET_MS,canPedStepOutCar} from '../vehicle/nativeDieInCar';
 import RAPIER from '@dimforge/rapier3d-compat';
+import {healthAfter} from '../ped/damage';
 import {openStaticWorld} from '../assets/staticWorldArchive';
 import {worldPaths} from '../assets/worldPaths';
 import {readRoadblox} from '../assets/roadblox';
@@ -208,7 +209,7 @@ export class WorldPolice {
   const u=this.units.find(u=>u.car===car);
   if(!u||car.wrecked||car.occupied||!u.seats[seat]||u.deadSeats[seat])return undefined;
   if(seat===0&&u.driverDying)return 'hit';
-  u.seatHealth[seat]=Math.max(0,u.seatHealth[seat]-damage);
+  u.seatHealth[seat]=healthAfter(u.seatHealth[seat],damage);
   if(u.seatHealth[seat]>0)return 'hit';
   if(seat===0){u.driverDying={at:u.seconds};u.siren=false;}
   else u.deadSeats[seat]=true;

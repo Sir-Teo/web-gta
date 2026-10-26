@@ -171,6 +171,17 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
   membership removal, alongside existing impact/type/drive-by/kill regressions.
   Opaque sources, full group/task/calculator and matched PC parity remain open.
 
+## Seated ordinary death threshold (October 26, 2026)
+
+- Mission riders, recruits, police/gang crews and traffic drivers now use the
+  existing ordinary ped health rule: one HP survives, a smaller remainder dies.
+  The walking helper remains available through its prior export and a pure
+  damage module. [Reversed PC source and scope](research/SEATED_HEALTH_THRESHOLD.md).
+- Seven-role unit boundaries and live noncritical mission/recruit head shots
+  check death state, resulting blood, counters and measured vehicle health.
+  Full damage/armour/forced death, float32 ordering and matched PC parity remain
+  open.
+
 ## Scripted rear car passengers (October 25, 2026)
 
 - Rear script riders now render and enter seated-head bullet checks at the same

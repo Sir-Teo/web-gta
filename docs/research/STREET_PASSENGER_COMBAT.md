@@ -13,6 +13,8 @@ the player ped's reduced damage to followers. The later
 group reduction and distinguishes protection and recruit kill accounting.
 A critical instant-hit headshot
 bypasses these reductions. Wounds survive the return to the street.
+The later [ordinary death-threshold fix](SEATED_HEALTH_THRESHOLD.md) also ends
+an accepted wound below one HP, matching the existing walking calculator.
 
 Foot NPCs, including police, and gang-car shooters now ask the same
 CheckForShootingVehicleOccupant adapter as scripted drive-bys. The first ray hit
