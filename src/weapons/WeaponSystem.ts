@@ -230,11 +230,16 @@ export class WeaponSystem {
  onSeatedShot?:(target:SeatedTarget<SeatedVehicle>,damage:number,weapon:number,piece?:number,creator?:ShotCreator)=>'hit'|'killed'|undefined;
  /** Enemy mounted guns share the NPC world/tyre/occupant query, including CJ with his physical collider off. */
  npcSeatedShot?:SeatedShot;
+ /** DoBulletImpact and CBulletInfo report contact sound only for a normal facing against the normalized shot. */
+ private reportPedBulletHit(point:Vec3,normal:Vec3,direction:Vec3){
+  const dot=direction.x*normal.x+direction.y*normal.y+direction.z*normal.z;
+  if(dot<0)this.onPedBulletHit?.(point,Math.asin(Math.max(-1,Math.min(1,-dot)))*180/Math.PI);
+ }
  /** A transferred vehicle head hit or direct biker hit keeps its native piece and samples health after damage.
   * The callback's result is authoritative: protected riders produce the contact sound without blood. */
  hitNpcSeatedBullet(target:'player'|SeatedTarget<SeatedVehicle>,contact:{point:Vec3;normal:Vec3;direction:Vec3;piece:number},weapon:number,apply:()=> 'hit'|'killed'|undefined){
   const {point,normal,direction,piece}=contact;
-  this.onPedBulletHit?.(point,Math.asin(Math.max(-1,Math.min(1,-(direction.x*normal.x+direction.y*normal.y+direction.z*normal.z))))*180/Math.PI);
+  this.reportPedBulletHit(point,normal,direction);
   const result=apply();
   if(result)this.fx?.bulletHit({point,normal,collider:target==='player'?this.sim.playerCollider.handle:this.seatKey(target),ped:{head:piece===9,dead:result==='killed'}},weapon>=25&&weapon<=27?4:8);
   return result;
@@ -730,8 +735,10 @@ export class WeaponSystem {
   const end=from.clone().addScaledVector(direction,occupant?.t??seated?.t??tyre?.t??reach);
   this.tracer(from,end,'aircraft',.1);this.fx?.gunshot(from,direction,weapon,true,fxOptions);
   if(occupant){
-   const piece=biker?.piece??9,result=this.damageSeated(occupant.target,amount,weapon,false,piece,playerDriver?'vehicle':'remote');
+   const piece=biker?.piece??9;
    let normal=biker?.normal;if(!normal){const head=seatedHeadPoint(occupant.target);normal=normalize(add(end,{x:head.x,y:head.y+OCCUPANT_HEAD_LIFT,z:head.z},-1));}
+   this.reportPedBulletHit(end,normal,direction);
+   const result=this.damageSeated(occupant.target,amount,weapon,false,piece,playerDriver?'vehicle':'remote');
    if(result)this.fx?.bulletHit({point:end,normal,collider:this.seatKey(occupant.target),ped:{head:piece===9,dead:result==='killed'}},8);
   }else if(seated)seated.hit(amount,weapon);
   else if(tyre)tyre.car.burstTyre(tyre.wheel,true,byPlayer?'player':'ped');
@@ -1005,13 +1012,15 @@ export class WeaponSystem {
     this.effect('impact',point);this.damageSeated(biker.target,b.damage,b.weapon,true,biker.piece);
     // CBulletInfo::Update emits eight blood particles for every piece; DoBulletImpact's head scaling is separate.
     this.fx?.bulletHit({point,normal:biker.normal,collider:this.seatKey(biker.target),ped:{head:false,dead:false}},8);
+    this.reportPedBulletHit(point,biker.normal,b.direction);
    }
    else if(seated){
     // CBulletInfo::Update calls CheckForShootingVehicleOccupant before switching on the hit entity's type.
     const point=add(b.position,b.direction,seated.t);b.passed.add(this.seatKey(seated.target));next=point;
-    this.effect('impact',point);this.damageSeated(seated.target,b.damage,b.weapon,true);
     const head=seatedHeadPoint(seated.target),normal=normalize(add(point,{x:head.x,y:head.y+OCCUPANT_HEAD_LIFT,z:head.z},-1));
+    this.effect('impact',point);this.damageSeated(seated.target,b.damage,b.weapon,true);
     this.fx?.bulletHit({point,normal,collider:this.seatKey(seated.target),ped:{head:false,dead:false}},8);
+    this.reportPedBulletHit(point,normal,b.direction);
    }
    else if(hit){
     const point=add(b.position,b.direction,hit.timeOfImpact),ped=hit.pedPiece!==undefined||this.pedestrians()?.targets().some(t=>t.handle===hit.collider.handle);
@@ -1099,6 +1108,7 @@ export class WeaponSystem {
    this.fx?.gunshot(source,direction,w.id,false);this.effect('impact',at);
    if(pellets){
     const origin=biker.target.hitOrigin?.(),pointBlank=w.id!==25&&w.id!==27&&!biker.target.noCriticalHits&&origin&&distance(origin,source)<=1;
+    this.reportPedBulletHit(at,biker.normal,direction);
     const result=this.damageSeated(biker.target,pointBlank?150:pellets*info.damage,w.id,false,biker.piece);
     if(result)this.fx?.bulletHit({point:at,normal:biker.normal,collider:this.seatKey(biker.target),ped:{head:biker.piece===9,dead:result==='killed'}},shotgun?4:8);
    }
@@ -1109,7 +1119,9 @@ export class WeaponSystem {
   const seated=this.onSeatedShot&&hit?this.seatedHit(source,direction,reach,hit.collider.parent(),exclude):undefined;
   if(seated){
    const at=add(source,direction,seated.t);this.tracer(source,at,'player',.065);this.fx?.gunshot(source,direction,w.id,false);this.effect('impact',at);
-   const result=this.damageSeated(seated.target,info.damage,w.id),head=seatedHeadPoint(seated.target),normal=normalize(add(at,{x:head.x,y:head.y+OCCUPANT_HEAD_LIFT,z:head.z},-1));
+   const head=seatedHeadPoint(seated.target),normal=normalize(add(at,{x:head.x,y:head.y+OCCUPANT_HEAD_LIFT,z:head.z},-1));
+   this.reportPedBulletHit(at,normal,direction);
+   const result=this.damageSeated(seated.target,info.damage,w.id);
    if(result)this.fx?.bulletHit({point:at,normal,collider:this.seatKey(seated.target),ped:{head:true,dead:result==='killed'}},shotgun?4:8);
    return true;
   }

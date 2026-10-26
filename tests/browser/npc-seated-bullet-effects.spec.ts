@@ -46,6 +46,6 @@ for(const player of [false,true])test(`incoming seated impacts use accepted nati
   await page.evaluate(({vehicle,ped,player})=>{const m=(window as any).__game.missionForProfiling(),host=m.runtime.world;if(player)host.warpPedFromCarToCoord(1,2495,-1687,13.3);else host.deletePed(ped);host.deleteVehicle(vehicle);},{vehicle,ped,player});
  }
  writeFileSync(`artifacts/npc-seated-${player?'cj':'riders'}-effects.json`,JSON.stringify({results,errors},null,2));
- for(const r of results){expect(r.fired).toBe(true);expect(r.audio).toBe(r.byPlayer?0:1);expect(r.carDamage).toBe(0);expect(r.blood.map((b:any)=>b.count)).toEqual(r.count?[r.count]:[]);if(r.count){expect(r.after).toBeLessThan(r.health);expect(r.blood[0].health).toBe(r.after);}else expect(r.after).toBe(r.health);if(r.cleared){expect(r.cleared.fired).toBe(true);expect(r.cleared.after).toBeLessThan(r.health);expect(r.cleared.carDamage).toBe(0);expect(r.cleared.blood.map((b:any)=>b.count)).toEqual([r.piece===9?16:8]);}}
+ for(const r of results){expect(r.fired).toBe(true);expect(r.audio).toBe(1);expect(r.carDamage).toBe(0);expect(r.blood.map((b:any)=>b.count)).toEqual(r.count?[r.count]:[]);if(r.count){expect(r.after).toBeLessThan(r.health);expect(r.blood[0].health).toBe(r.after);}else expect(r.after).toBe(r.health);if(r.cleared){expect(r.cleared.fired).toBe(true);expect(r.cleared.after).toBeLessThan(r.health);expect(r.cleared.carDamage).toBe(0);expect(r.cleared.blood.map((b:any)=>b.count)).toEqual([r.piece===9?16:8]);}}
  expect(errors).toEqual([]);
 });

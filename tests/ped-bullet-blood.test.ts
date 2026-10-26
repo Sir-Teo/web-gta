@@ -38,9 +38,10 @@ test('damage still lands while FX assets are unavailable',()=>{
 });
 test.each([{weapon:22,result:'hit',count:16},{weapon:22,result:'killed',count:32},{weapon:22,result:undefined,count:0},{weapon:34,result:'hit',count:8},{weapon:34,result:undefined,count:8}] as const)('vehicle-to-head transfer emits its native blood rule (%j)',c=>{
  const f=fixture({weapon:c.weapon});try{
-  const target:any={car:{car:{body:f.body}},seat:0,local:{x:0,y:0,z:0},head:{x:0,y:1.6,z:-5},kind:'script'},shot=vi.fn(()=>c.result);
-  f.weapons.seatedPeds=()=>[target];f.weapons.onSeatedShot=shot;f.fire();
+  const target:any={car:{car:{body:f.body}},seat:0,local:{x:0,y:0,z:0},head:{x:0,y:1.6,z:-5},kind:'script'},shot=vi.fn(()=>{f.order.push('damage');return c.result;});
+  f.weapons.seatedPeds=()=>[target];f.weapons.onSeatedShot=shot;f.weapons.onPedBulletHit=()=>f.order.push('audio');f.fire();
   expect(shot).toHaveBeenCalledOnce();expect(f.damage).not.toHaveBeenCalled();
   if(c.count)expect(f.blood.mock.calls[0][2]).toBe(c.count);else expect(f.blood).not.toHaveBeenCalled();
+  expect(f.order).toEqual(c.weapon===34?['damage','blood','audio']:c.count?['audio','damage','blood']:['audio','damage']);
  }finally{f.dispose();}
 });

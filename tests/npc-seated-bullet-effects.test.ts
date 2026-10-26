@@ -33,3 +33,9 @@ test.each(['armour','fatal','proof','safe'])('seated CJ blood follows actual pla
   else{expect(f.sim.player.health).toBe(100);expect(f.blood).not.toHaveBeenCalled();}
  }finally{f.dispose();}
 });
+test.each([{x:1,y:0,z:0},{x:0,y:0,z:-1}])('tangent/back-facing contacts keep damage and blood without contact sound (%j)',normal=>{
+ const f=fixture();try{
+  f.weapons.hitNpcSeatedBullet(f.target,{...f.contact,normal},22,()=>{f.order.push('damage');return 'hit';});
+  expect(f.audio).not.toHaveBeenCalled();expect(f.order).toEqual(['damage','blood']);expect(f.blood.mock.calls[0][2]).toBe(16);
+ }finally{f.dispose();}
+});

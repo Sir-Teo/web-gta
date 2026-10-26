@@ -148,6 +148,18 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
   creator check and existing seated/kill regressions pass. Complete opaque NPC
   identity/group rules, damage calculation and matched PC parity remain open.
 
+## Player seated bullet contact audio (October 26, 2026)
+
+- Player instant-hit and mounted seated contacts now report pedestrian audio
+  before damage; flying sniper contacts report after damage/blood. The shared
+  native facing/angle condition also applies to NPC seated contacts. Protection
+  keeps ordinary contact sound, while the earlier NPC type exclusion is silent.
+  [PC source, verification and limits](research/PLAYER_SEATED_BULLET_AUDIO.md).
+- Eight live pistol/sniper car/bike cases check callback order, blood, protected
+  health and vehicle health alongside mounted/type/kill/crime regressions.
+  Physical-collider sniper audio timing, contact lighting, mixing and matched
+  retail captures remain open.
+
 ## Scripted rear car passengers (October 25, 2026)
 
 - Rear script riders now render and enter seated-head bullet checks at the same

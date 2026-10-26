@@ -41,6 +41,8 @@ drive-by and mounted physical hits. The [NPC seated adapter](NPC_SEATED_BULLET_E
 adds CJ, mission-rider and recruited-passenger effects. Native contact
 brightness, localisation, corpse/task acceptance and original PC render captures
 remain separate work.
+The [player seated audio adapter](PLAYER_SEATED_BULLET_AUDIO.md) preserves
+the different ordinary/sniper contact ordering around these blood calls.
 
 Units drive actual weapon rays through Rapier and through WorldFx's blood
 selection. They verify surviving/fatal head hits, shotgun accumulation,

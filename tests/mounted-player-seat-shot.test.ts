@@ -25,11 +25,13 @@ function fixture(piece=3,remote=false){
 }
 test.each([3,5,9])('a player-driven mounted gun hits occupant piece %s with vehicle crime attribution and no practice',piece=>{
  const f=fixture(piece);try{
+  const contactAudio=vi.fn();f.weapons.onPedBulletHit=contactAudio;
   const base=f.weapons.inventory.info(38)!.damage;expect(f.fire()).toBe(true);
   expect(f.seated).toHaveBeenCalledExactlyOnceWith(f.target,piece===9?Math.max(1000,base):base,38,piece,'vehicle');
   expect(f.crime.mock.calls).toEqual([[CRIME.damageCar,'script-ped:7',true,false]]);
   expect(f.practice).not.toHaveBeenCalled();expect(f.incoming).not.toHaveBeenCalled();expect(f.damage).not.toHaveBeenCalled();
   expect(f.bulletHit.mock.calls[0][0]).toMatchObject({ped:{head:piece===9,dead:piece===9}});expect(f.bulletHit.mock.calls[0][1]).toBe(8);
+  expect(contactAudio).toHaveBeenCalledOnce();expect(contactAudio.mock.calls[0][1]).toBeCloseTo(90,7);expect(contactAudio.mock.invocationCallOrder[0]).toBeLessThan(f.seated.mock.invocationCallOrder[0]);
   expect(f.weapons.effects.find(e=>e.kind==='tracer')?.to?.z).toBeCloseTo(-7.8,5);
  }finally{f.dispose();}
 });
