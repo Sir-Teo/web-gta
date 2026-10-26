@@ -10,7 +10,7 @@ test('the boat turns toward the point, by no more than half a radian, and opens 
  // A point to the west (left of a bow pointing north) is a positive turn, held at 0.5.
  expect(steerAIBoatHeadingForTarget(north,{x:-50,y:1},10).steer).toBe(.5);
  expect(steerAIBoatHeadingForTarget(north,{x:50,y:1},10).steer).toBe(-.5);
- // Behind it: the angle wraps into (−π, π] before the clamp.
+ // Behind it: the native wrap retains both -PI and +PI before the clamp.
  expect(Math.abs(steerAIBoatHeadingForTarget({...north,forward:{x:0,y:-1}},{x:-1,y:50},10).steer)).toBe(.5);
  expect(steerAIBoatHeadingForTarget(north,{x:-5,y:50},10).steer).toBeCloseTo(Math.atan2(5,50),5);
 });
@@ -23,7 +23,7 @@ test('the throttle eases off over the last quarter below the cruise speed, and r
  expect(at(.15).gas).toBeCloseTo(.4,5);
  // At or over the cruise speed: −0.1, or −0.2 when more than 5 over; the steering negated.
  const fast=at(11/60),faster=at(16/60),turn=at(.1).steer;
- expect(fast.gas).toBe(-.1);expect(faster.gas).toBe(-.2);
+ expect(fast.gas).toBe(Math.fround(-.1));expect(faster.gas).toBe(Math.fround(-.2));
  expect(fast.steer).toBeCloseTo(-turn,6);
 });
 

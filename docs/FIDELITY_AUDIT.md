@@ -14649,3 +14649,32 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Complete native reference lifetime, source identity for other damage paths
   and matched original-PC InflictDamage captures remain separate work.
   [Captured storage and live history-query behavior](research/ANONYMOUS_VEHICLE_SOURCE.md).
+
+## Boat AI angle range and float controls (October 26, 2026)
+
+- Script boat heading now uses CGeneral::GetATanOfXY's float quadrants and
+  0..2PI range. The boat's closed [-PI, PI] wrap makes that range observable:
+  west-facing boats targeting east choose positive half-radian steering,
+  where the old atan2 controller chose negative. Reverse throttle retains
+  the native steering reversal.
+- Normalization, target subtraction, angle difference/wrap and cruise-speed
+  easing round at the selected native float operations. Other vehicle
+  controllers retain their independently scoped angle handling.
+- A new executable harness captures 149 cases. Native heading/GetATanOfXY
+  instructions execute unchanged; imported _atanf is explicitly supplied by
+  host libm rounded to float32 and logged. Its library implementation is not
+  captured. The axis-direction regression only needs signed-zero atan.
+  Regeneration is byte-identical. Seventy-four checks fail before repair;
+  all 149 pass after it. All 7,086 unit tests pass (51 skipped), together with
+  TypeScript validation and the production build.
+- The live SCM Speeder uses real heading/navigation state and its actual
+  Rapier quaternion. Synchronous controls verify the exact-astern turn and
+  its reversal above cruise speed. Ordinary navigation, engine stop/restart,
+  player engine/skimming, anchor/propeller-water lifecycle and Predator
+  gun/contact-audio/source-history regressions pass without page errors.
+- Matched original-PC trajectories, platform atanf equivalence, all AI
+  temporary actions/recovery and complete boat physics remain separate work.
+  [Captured arithmetic and live adapter boundary](research/BOAT_AI_HEADING.md).
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and landing gear without page errors,
+  failed requests or a development inspection hook.

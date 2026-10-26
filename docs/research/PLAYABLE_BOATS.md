@@ -5,7 +5,7 @@
 - Ten `boat` definitions resolve with models and textures (`static-world-vehicle-audit` scope): Predator 430, Squalo 446, Speeder 452, Reefer 453, Tropic 454, Coastguard 472, Dinghy 473, Marquis 484, Jetmax 493, Launch 595. Each has a `handling.cfg` row.
 - `CAEVehicleAudioEntity` carries `BOAT` audio rows locally (`vehicleAudioSettings.ts`).
 - Engine audio was first blocked on data: the throttle→pitch/volume constants (`FrqEngineBase`, `VolBase`, …) and the prop-speed ramp live at static addresses upstream. Both are ported now: the `m_EngineSpeed` ramp in `WorldBoat.stepPropeller` (`src/simulation/WorldBoat.ts`, with the four exe-only constants two gta-reversed forks record) and `ProcessBoatEngine` on the `s_Config` defaults in `src/audio/native/NativeVehicleAudio.ts`.
-- gta-reversed `CBoat.cpp` (ProcessControl, wake trail) and `Buoyancy.cpp` (`ProcessBuoyancyBoat`, `PreCalcSetup` boat bounds, `CalcBuoyancyForce`, `SimpleCalcBuoyancy`, `AddSplashParticles`) are fully reversed with no plugin calls at the pinned revision. The 3x3 hull volume tables live at static addresses, so per-model class selection is ported over authored uniform tables.
+- gta-reversed `CBoat.cpp` (ProcessControl, wake trail) and `Buoyancy.cpp` (`ProcessBuoyancyBoat`, `PreCalcSetup` boat bounds, `CalcBuoyancyForce`, `SimpleCalcBuoyancy`, `AddSplashParticles`) are fully reversed with no plugin calls at the pinned revision. The 3x3 hull volume tables were subsequently read from the selected iOS executable and replace the initial authored uniform tables (see the water audit in FIDELITY_AUDIT.md).
 - No boat entry clips exist in the archive (no `boat*.ifp` beyond buildings; the anim group table carries no boat groups), so entry stays an immediate warp until clips surface.
 - Model IDs follow the local vehicle definitions; the reversed comments name JETMAX 498 while the local JETMAX/CUPBOAT is 493.
 
@@ -82,3 +82,11 @@ Anonymous rounds now preserve the vehicle's prior damager reference while
 storing the new weapon and applying normal non-player gates. The live SCM
 damaged-by-player query stays true after an earlier CJ hit followed by an
 anonymous hull round. [Native storage and cross-vehicle checks](ANONYMOUS_VEHICLE_SOURCE.md).
+
+## Boat AI heading precision (October 26, 2026)
+
+Script boats now retain the native angle range and float arithmetic for
+heading and throttle. Exactly astern destinations choose the captured turn
+direction, and reverse throttle reverses that steering. All 149 independent
+selected-executable cases pass, alongside live SCM heading and engine checks.
+[Captured instructions, primitive boundary and checks](BOAT_AI_HEADING.md).
