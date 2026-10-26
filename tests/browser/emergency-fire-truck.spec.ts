@@ -1,4 +1,5 @@
 import {test,expect,type Page} from '@playwright/test';
+import {writeFileSync} from 'node:fs';
 import {endStoryMission} from './freeRoam';
 
 const emergency=(page:Page)=>page.evaluate(()=>(window as any).__game.state().emergency);
@@ -17,7 +18,9 @@ test('three fires in Grove Street bring a fire engine whose cannon puts them out
  await page.evaluate(()=>{const g=(window as any).__game,w=g.weapons(),p=g.sim.player.position;
   for(const dx of [-14,-17,-20])w.fires.startFire({x:p.x+dx,y:-p.z,z:p.y-.9},120000,0,{nowMs:w.nowMs,random:Math.random});});
  expect(await page.evaluate(()=>(window as any).__game.weapons().fires.active.length)).toBeGreaterThanOrEqual(3);
- await expect.poll(async()=>(await emergency(page)).trucks.length,{timeout:60000}).toBeGreaterThan(0);
+ // The 35-second native cooldown uses game time, which can advance slower than wall time under headless rendering.
+ await page.waitForFunction(()=>{const e=(window as any).__game.emergency();return e.trucks.length>0||e.seconds*1000>e.lastFireTruckMs+35000;},undefined,{timeout:120000});
+ await expect.poll(async()=>{const s=await page.evaluate(()=>{const g=(window as any).__game,e=g.emergency();return {trucks:e.trucks.length,seconds:e.seconds,enabled:e.enabled(),wanted:e.wanted(),outside:e.outside(),busy:e.gameLogicBusy(),level:e.level(),cars:g.fleet().cars.size,fires:g.weapons().fires.fires.filter((f:any)=>f.active&&!f.script).length,error:e.error??null};});writeFileSync('artifacts/emergency-fire-truck-dispatch.json',JSON.stringify(s,null,2));return s.trucks;},{timeout:60000}).toBeGreaterThan(0);
  expect((await emergency(page)).trucks[0].siren).toBe(true);
  // The truck reaches its 25 units and turns its cannon on.
  await expect.poll(async()=>(await emergency(page)).trucks[0]?.mission,{timeout:150000,intervals:[1000]}).toBe('cannon');

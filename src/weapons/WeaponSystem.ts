@@ -13,7 +13,7 @@ import type {AimCandidate} from '../input/aimAssist';
  * asks only that the line's first hit be a vehicle). */
 export interface SeatedVehicle {car:{body:{handle:number;translation():Vec3;rotation():{x:number;y:number;z:number;w:number}}};pedTargetable?:boolean;occupied?:boolean;disposed?:boolean;wrecked?:boolean;driverDead?:boolean}
 /** A seated NPC a bullet can reach: its vehicle, seat index and seat local (native vehicle space). */
-export interface SeatedTarget<V extends SeatedVehicle=import('../simulation/WorldCar').WorldCar> {car:V;seat:number;local:Vec3;kind:'traffic'|'police'|'driveby'|'script'|'passenger';
+export interface SeatedTarget<V extends SeatedVehicle=import('../simulation/WorldCar').WorldCar> {car:V;seat:number;local:Vec3;kind:'traffic'|'police'|'driveby'|'emergency'|'script'|'passenger';
  /** SetPedPositionInCar's turn relative to the vehicle, used until the rendered head node is ready. */
  headingOffset?:number;
  /** A script's ped in its seat: the host's own record of it. */

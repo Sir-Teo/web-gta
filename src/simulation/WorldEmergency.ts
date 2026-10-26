@@ -1,4 +1,8 @@
 import RAPIER from '@dimforge/rapier3d-compat';
+import {healthAfterFloat32,spendPedArmour} from '../ped/damage';
+import type {PedVitals} from '../ped/nativeCopVitals';
+import type {ShotCreator} from '../weapons/WeaponSystem';
+import {DIE_IN_CAR_OFFSET_MS,canPedStepOutCar} from '../vehicle/nativeDieInCar';
 import {pedEnteredVehicleLeaveDelay} from './nativePedEnteredVehicle';
 import {openStaticWorld} from '../assets/staticWorldArchive';
 import {worldPaths} from '../assets/worldPaths';
@@ -121,7 +125,9 @@ export function fireTruckAim(aim:{yaw:number;pitch:number},o:{fire:{x:number;y:n
  if(Math.abs(diff)>=step)yaw+=diff<=0?-step:step;
  return {yaw,pitch:Math.sin((o.timeMs%4096)*2*Math.PI/4096)*.15};
 }
-interface Truck {
+interface EmergencySeat extends PedVitals {dead?:boolean;accounted?:boolean}
+interface EmergencyVehicle {crewVitals?:EmergencySeat[];driverDying?:{at:number};driverDead?:boolean}
+interface Truck extends EmergencyVehicle {
  car:WorldCar;model:string;
  /** CTaskComplexDriveFireTruck's subtask: driving to a fire, its cannon on it, or wandering; or, made for a script,
   * driving to the script's point first. */
@@ -143,11 +149,11 @@ export interface EmergencyCrowd {
  /** Whether a ped is still in the world (alive or dead). */
  exists(id:number):boolean;
  /** A crew member stepping out of his vehicle, kept from the population manager while he belongs to it. */
- spawnCrew(model:string,position:V3,heading:number,crew:{unit:object;seat:number}):Promise<number|false>;
+ spawnCrew(model:string,position:V3,heading:number,crew:{unit:object;seat:number},vitals?:PedVitals):Promise<number|false>;
  /** A crew member's tasks, CTaskComplexSequence-style; an empty list leaves him idle. */
  orders(id:number,orders:ScriptedPedOrder[]):void;
  /** A crew member on foot: where he is, whether his tasks are still running, and whether he is alive and up. */
- crewState(id:number):{position:V3;busy:boolean;alive:boolean;down:boolean}|undefined;
+ crewState(id:number):{position:V3;busy:boolean;alive:boolean;down:boolean;health?:number;armour?:number}|undefined;
  /** m_nDeathTimeMS = now on a body. */
  holdDead(id:number):void;
  /** ComputeReviveResponse on a body; false when it is gone or alive. */
@@ -175,7 +181,7 @@ interface Medic {
   wait?:number};
  leftOnce:boolean;
 }
-interface Unit {
+interface Unit extends EmergencyVehicle {
  car:WorldCar;model:string;medics:Medic[];
  mission:'toAccident'|'stop'|'crewOut'|'wander'|'toPoint';
  /** The driver's accident while he drives to it. */
@@ -191,6 +197,51 @@ export class WorldEmergency {
  readonly units:Unit[]=[];
  /** The fire engines on duty (AddFiretruckOccupants' two firemen stay in the cab). */
  readonly trucks:Truck[]=[];
+ modelStats?:(model:string)=>{defend:number;pedType?:string}|undefined;
+ onCrewKilled?:(car:WorldCar,seat:number,model:string,creator:ShotCreator,pedType:string)=>void;
+ onCrewDiesOut?:(car:WorldCar,model:string,corpse:{armour:number;accounted:boolean})=>void;
+ private vitals(u:Unit|Truck,seat:number):EmergencySeat{return (u.crewVitals??=[])[seat]??={health:100,armour:0};}
+ private owner(car:WorldCar){return this.units.find(u=>u.car===car)??this.trucks.find(t=>t.car===car);}
+ private seated(u:Unit|Truck,seat:number){
+  if(u.car.occupied||u.car.wrecked||u.car.disposed||seat===0&&u.car.driverOut)return false;
+  if('medics' in u)return u.medics.some(m=>m.seat===seat&&m.state==='seated'&&!m.clip);
+  return seat===0?!u.driverGone:seat===1&&!u.passenger;
+ }
+ crewSeats(){
+  const out:{car:WorldCar;seat:number;local:V3;model:string;pedType:string}[]=[];
+  for(const u of [...this.units,...this.trucks])for(const seat of 'medics' in u?u.medics.map(m=>m.seat):[0,1]){
+   if(!this.seated(u,seat)||this.vitals(u,seat).dead)continue;
+   const frame=u.car.car.nativeFramePosition(seat<2?'ped_frontseat':'ped_backseat');if(!frame)continue;
+   out.push({car:u.car,seat,local:{x:seat%2===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},model:u.model,pedType:this.modelStats?.(u.model)?.pedType??('medics' in u?'MEDIC':'FIREMAN')});
+  }
+  return out;
+ }
+ crewShot(car:WorldCar,seat:number,damage:number,weapon=22,forceDeath=false,creator:ShotCreator='ped'):'hit'|'killed'|undefined{
+  const u=this.owner(car);if(!u||!this.seated(u,seat))return undefined;const state=this.vitals(u,seat);if(state.dead)return undefined;if(state.health<=0)return 'killed';
+  const factor=Math.fround(Math.fround(damage)*Math.fround(this.modelStats?.(u.model)?.defend??1)),response=spendPedArmour(factor,state.armour,weapon);state.armour=response.armour;state.health=forceDeath?0:healthAfterFloat32(state.health,response.damageHealth);if(state.health>0)return 'hit';
+  if(seat===0){u.driverDying={at:this.seconds};car.driverDead=true;car.siren=false;this.driving.forget(car);}else state.dead=true;
+  state.accounted=true;this.onCrewKilled?.(car,seat,u.model,creator,this.modelStats?.(u.model)?.pedType??('medics' in u?'MEDIC':'FIREMAN'));return 'killed';
+ }
+ private description(u:Unit|Truck,seat:number){const v=this.vitals(u,seat);return {model:u.model,vitals:{health:v.health,armour:v.armour},dead:v.health<=0||!!v.dead,deathAccounted:!!v.accounted};}
+ /** CTaskComplexDieInCar: stop the driving task, coast 2000 ms, then leave dead or hold the dead seat pose. */
+ private stepDeadDriver(u:Unit|Truck){
+  const state=this.vitals(u,0);if(state.health>0)return false;const car=u.car;
+  // A drag-out owns the same dead ped from its start. Its completion must not also dispatch the coast's body.
+  if(car.driverOut){u.driverDying=undefined;u.driverDead=true;state.dead=true;return false;}
+  car.siren=false;
+  if(u.driverDying){
+   if(this.seconds>=u.driverDying.at+DIE_IN_CAR_OFFSET_MS/1000){
+    u.driverDying=undefined;u.driverDead=true;state.dead=true;
+    const v=car.car.body.linvel(),w=car.car.body.angvel(),r=car.car.body.rotation(),upZ=1-2*(r.x*r.x+r.z*r.z);
+    if(canPedStepOutCar(upZ,{x:v.x/50,y:-v.z/50,z:v.y/50},{x:w.x/50,y:-w.z/50,z:w.y/50})){
+     if('medics' in u)u.medics[0].state='gone';else u.driverGone=true;
+     this.onCrewDiesOut?.(car,u.model,{armour:state.armour,accounted:!!state.accounted});car.driverOut=true;
+    }
+   }
+   car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};return true;
+  }
+  const v=car.car.body.linvel();car.autopilot={throttle:0,brake:1,steering:0,handbrake:Math.hypot(v.x,v.z)<.3};return true;
+ }
  /** CFireManager's pool. */
  fires?:{readonly fires:readonly EmergencyFire[]};
  /** CCarCtrl::LastTimeFireTruckCreated, 0 at Init. */
@@ -308,7 +359,9 @@ export class WorldEmergency {
   // The player dragged the driver out: the truck does no more work.
   if(car.driverOut)t.driverGone=true;
   this.stepTruckPassenger(t,dt);
-  if(t.driverGone||t.taken){car.siren=false;return;}
+  if(t.taken||car.occupied){car.siren=false;return;}
+  if(this.stepDeadDriver(t))return;
+  if(t.driverGone){car.siren=false;return;}
   const fires=this.fires?.fires??[],c=toNative(car.car.body.translation());
   if(t.mission==='wander'){if(findNearestFire(fires,c))this.truckFindsFire(t);return;}
   if(t.mission==='toPoint'){const g=toNative(t.goal!);if(Math.hypot(g.x-c.x,g.y-c.y)<FIRETRUCK_TARGET_RADIUS||!this.driving.driving(car))this.truckFindsFire(t);return;}
@@ -330,7 +383,7 @@ export class WorldEmergency {
   t.aim=fireTruckAim(t.aim,{fire:fire.position,car:c,heading:Math.atan2(-forward.x,forward.y),timeStep:dt*50,timeMs:this.seconds*1000});
  }
  /** The fire engines whose cannon is on (CTaskComplexUseWaterCannon), with FireTruckControl's aim. */
- cannons(){return this.trucks.filter(t=>t.mission==='cannon'&&!t.car.wrecked&&!t.car.disposed&&t.fire?.active).map(t=>({car:t.car,aim:t.aim}));}
+ cannons(){return this.trucks.filter(t=>t.mission==='cannon'&&!t.taken&&!t.car.occupied&&!t.car.wrecked&&!t.car.disposed&&this.vitals(t,0).health>0&&t.fire?.active).map(t=>({car:t.car,aim:t.aim}));}
  /** CCarCtrl::GenerateEmergencyServicesCar (iOS 0x10018fe74): the gate, then the ambulance half and the fire engine's. */
  private generate(){
   if(!emergencyDispatchOpen({enabled:this.enabled(),gameLogicBusy:this.gameLogicBusy(),wanted:this.wanted(),interior:!this.outside(),level:this.level()}))return;
@@ -439,7 +492,8 @@ export class WorldEmergency {
   // The player dragged the driver out (CreateDragPedOutSubTask): his seat is empty from then on.
   if(car.driverOut&&u.medics[0].state==='seated')u.medics[0].state='gone';
   // A van the player took: only the medics getting out of it go on.
-  if(u.taken){car.siren=false;for(const m of u.medics)if(m.state==='leaving')this.stepMedic(u,m,dt);return;}
+  if(u.taken||car.occupied){car.siren=false;for(const m of u.medics)if(m.state==='leaving')this.stepMedic(u,m,dt);return;}
+  if(this.stepDeadDriver(u)){for(const m of u.medics)if(m.seat!==0&&!this.vitals(u,m.seat).dead)this.stepMedic(u,m,dt);return;}
   const aboard=u.medics.every(m=>m.state==='seated'||m.state==='gone');
   if(u.mission==='toPoint'&&(Math.hypot(u.goal!.x-c.x,u.goal!.z-c.z)<MEDIC_LEAVE_CAR_DISTANCE||!this.driving.driving(car))){u.mission='wander';car.siren=false;}
   if(u.mission==='wander'&&aboard)this.driverFindsAccident(u);
@@ -467,6 +521,7 @@ export class WorldEmergency {
   return nativeDoorPoint({x:frame.x,y:frame.y,z:frame.z},clipRootEnd(getIn.clip),car.assets.handling.values.seatOffset,seat%2===0?'left':'right',1);
  }
  private beginExit(u:Unit,m:Medic,wait=0){
+  if(this.vitals(u,m.seat).health<=0)return;
   const found=this.clips.slot(u.car.animGroup,this.exitSlot(m.seat));
   m.leftOnce=true;
   if(!found){void this.finishExit(u,m);return;}
@@ -477,7 +532,7 @@ export class WorldEmergency {
   const local=this.doorPoint(u.car,m.seat),t=u.car.car.body.translation();
   const world=local?u.car.worldPoint(local):new RAPIER.Vector3(t.x,t.y,t.z);
   const hit=this.sim.world.castRay(new RAPIER.Ray({x:world.x,y:world.y+1,z:world.z},{x:0,y:-1,z:0}),5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,u.car.car.body);
-  const id=await this.crowd?.spawnCrew(u.model,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},u.car.heading(),{unit:u,seat:m.seat});
+  const id=await this.crowd?.spawnCrew(u.model,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},u.car.heading(),{unit:u,seat:m.seat},{...this.vitals(u,m.seat)});
   if(id===undefined||id===false||this.disposed){m.state='gone';return;}
   m.id=id;
   // Out of a van the player took he is the van's no longer: an ordinary ped from here.
@@ -570,7 +625,7 @@ export class WorldEmergency {
     if(!world||car.wrecked||car.disposed){crowd.release(u);m.state='gone';m.id=undefined;return;}
     const distance=Math.hypot(world.x-s.position.x,world.z-s.position.z);
     if(distance<m.best-.05){m.best=distance;m.stall=0;}else m.stall+=dt;
-    if((distance<=.5||m.stall>1.2&&distance<1.2)&&crowd.board(m.id)){m.id=undefined;this.enterPhase(u,m,'align');return;}
+    if((distance<=.5||m.stall>1.2&&distance<1.2)&&crowd.board(m.id)){const v=this.vitals(u,m.seat);v.health=s.health??v.health;v.armour=s.armour??v.armour;v.dead=v.accounted=false;m.id=undefined;this.enterPhase(u,m,'align');return;}
     if(!s.busy||m.time>1){m.time=0;this.walkToDoor(u,m);}
     return;
    }
@@ -634,7 +689,7 @@ export class WorldEmergency {
     // A driver the player has started to drag out is drawn by the car entry from then on.
     if(m.state!=='seated'||m.seat===0&&u.car.driverOut)continue;
     const frame=u.car.car.nativeFramePosition(m.seat<2?'ped_frontseat':'ped_backseat');if(!frame)continue;
-    out.push({car:u.car,seat:m.seat,model:u.model,local:{x:m.seat%2===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},clip:sitClip(u.car.modelFlags,m.seat===0),seconds:0});
+    const dead=this.vitals(u,m.seat).dead;out.push({car:u.car,seat:m.seat,model:u.model,local:{x:m.seat%2===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},clip:dead?(m.seat%2===0?'car_dead_lhs':'car_dead_rhs'):sitClip(u.car.modelFlags,m.seat===0),seconds:dead?1e6:0});
    }
   }
   // AddFiretruckOccupants: the driver and the front passenger (seat 0), who stay in the cab.
@@ -644,7 +699,7 @@ export class WorldEmergency {
    if(p&&p!=='gone'){const local=this.doorPoint(t.car,1);if(local)out.push({car:t.car,seat:1,model:t.model,local,clip:p.key,seconds:p.time,animation:p.animation});}
    if(t.car.occupied)continue;
    const frame=t.car.car.nativeFramePosition('ped_frontseat');if(!frame)continue;
-   for(const seat of [0,1])if(seat?!p:!t.car.driverOut&&!t.driverGone)out.push({car:t.car,seat,model:t.model,local:{x:seat===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},clip:sitClip(t.car.modelFlags,seat===0),seconds:0});
+   for(const seat of [0,1])if(seat?!p:!t.car.driverOut&&!t.driverGone){const dead=this.vitals(t,seat).dead;out.push({car:t.car,seat,model:t.model,local:{x:seat===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},clip:dead?(seat===0?'car_dead_lhs':'car_dead_rhs'):sitClip(t.car.modelFlags,seat===0),seconds:dead?1e6:0});}
   }
   return out;
  }
@@ -656,7 +711,7 @@ export class WorldEmergency {
   const t=this.trucks.find(t=>t.car===car);return t&&!t.driverGone;
  }
  /** The second fireman in a fire engine's cab (AddFiretruckOccupants; an ambulance's second medic rides behind). */
- frontPassengerOf(car:WorldCar){const t=this.trucks.find(t=>t.car===car);return t&&!t.passenger?{model:t.model}:undefined;}
+ frontPassengerOf(car:WorldCar){const t=this.trucks.find(t=>t.car===car);return t&&!t.passenger?this.description(t,1):undefined;}
  /** The player is dragging him out: the car entry draws him from now on. */
  dragPassenger(car:WorldCar){const t=this.trucks.find(t=>t.car===car);if(t)t.passenger='gone';}
  /** CCarEnterExit::MakeUndraggedPassengerPedsLeaveCar (iOS 0x1003e9564; see WorldPolice.crewLeave): the crew still
@@ -679,7 +734,7 @@ export class WorldEmergency {
   }
   const t=this.trucks.find(t=>t.car===car);if(!t)return;
   t.taken=true;this.driving.forget(car);
-  if(!t.passenger){const found=this.clips.slot(car.animGroup,VEHICLE_ANIM.getoutRHS);if(found)t.passenger={key:found.key,animation:found.clip,time:0};else{t.passenger='gone';void this.truckPassengerOut(t);}}
+  if(!t.passenger&&this.vitals(t,1).health>0){const found=this.clips.slot(car.animGroup,VEHICLE_ANIM.getoutRHS);if(found)t.passenger={key:found.key,animation:found.clip,time:0};else{t.passenger='gone';void this.truckPassengerOut(t);}}
  }
  private stepTruckPassenger(t:Truck,dt:number){
   const p=t.passenger;if(!p||p==='gone')return;
@@ -691,11 +746,11 @@ export class WorldEmergency {
  private async truckPassengerOut(t:Truck){
   const local=this.doorPoint(t.car,1),c=t.car.car.body.translation(),world=local?t.car.worldPoint(local):new RAPIER.Vector3(c.x,c.y,c.z);
   const hit=this.sim.world.castRay(new RAPIER.Ray({x:world.x,y:world.y+1,z:world.z},{x:0,y:-1,z:0}),5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,t.car.car.body);
-  const id=await this.crowd?.spawnCrew(t.model,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},t.car.heading(),{unit:t,seat:1});
+  const id=await this.crowd?.spawnCrew(t.model,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},t.car.heading(),{unit:t,seat:1},{...this.vitals(t,1)});
   if(id!==undefined&&id!==false)this.crowd?.release(t);
  }
  /** The medic or firefighter at the wheel of a unit's car, for the ped who leaves it or is dragged out. */
- driverOf(car:WorldCar){const model=this.units.find(u=>u.car===car)?.model??this.trucks.find(t=>t.car===car)?.model;return model===undefined?undefined:{model};}
+ driverOf(car:WorldCar){const u=this.owner(car);return u&&this.description(u,0);}
  snapshot(){return {ready:!!this.paths,error:this.error??null,lastAmbulanceMs:this.lastAmbulanceMs,
   accidents:this.accidents.accidents.filter(a=>a.ped).map(a=>({id:a.ped!.id,treated:a.treated,revived:a.revived})),
   units:this.units.map(u=>({handle:u.car.car.body.handle,modelId:u.car.modelId,mission:u.mission,siren:u.car.siren,position:{...u.car.car.body.translation()},

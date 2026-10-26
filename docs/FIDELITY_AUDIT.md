@@ -14069,3 +14069,22 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   fire-exit, counted dead-cop jack and fatal-driver coast checks. Other CPed
   fields and emergency seated damage remain open.
   [Native drag-out contract, handoffs and checks](research/OCCUPANT_EXIT_VITALS.md).
+
+## Seated emergency-crew damage and transitions (October 26, 2026)
+
+- Actual seated medics and firefighters now enter the bullet target list with
+  their drawn models' native type and weakness (MEDIC 1.4, FIREMAN 0.8). The
+  accepted fatal hit reports its mapped creator once, before driver coast or
+  corpse reconstruction. Dead seats use the existing car-death poses.
+- Seat wounds follow foot exits, medic returns and live/dead drag descriptions.
+  A killed driver stops its mission/cannon; a drag-out cancels a pending death
+  exit, and player ownership precedes the NPC brake controller.
+- Fifty-three focused checks, the build, six live model/creator cases and both
+  corpse-jack cases pass. Twelve deaths and six delayed bodies preserve their
+  counters; a fireman's living driver retains 80 HP. Healthy CPR/revival and
+  cannon/extinguishing regressions pass after separating the native dispatch
+  cooldown from the fixtures' original arrival budget. The full suite passes
+  5,769 tests (51 skipped).
+- NPC-to-ambient seated routing, full surviving-hit personality responses,
+  non-bullet emergency deaths and complete native source/task parity remain
+  open. [Source, body ownership and checks](research/EMERGENCY_SEATED_DAMAGE.md).

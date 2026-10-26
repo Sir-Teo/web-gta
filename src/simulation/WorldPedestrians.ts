@@ -1842,11 +1842,11 @@ export class WorldPedestrians {
  }
  /** An ambulance or fire truck crew member stepping out (CEmergencyPed from CPopulation::AddPedInCar): unarmed, and
   * kept from the population manager while his unit holds him. */
- async spawnCrew(model:string,position:{x:number;y:number;z:number},heading:number,crew:{unit:object;seat:number}){
+ async spawnCrew(model:string,position:{x:number;y:number;z:number},heading:number,crew:{unit:object;seat:number},vitals?:PedVitals){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   const [source,speeds,stats]=await Promise.all([catalog.character(model),catalog.characterSpeeds(model),catalog.characterStats(model)]).catch(()=>[undefined,undefined,undefined] as const);
   const node=this.nearestNode(position);if(!source||!node||this.disposed)return false;
-  const ped=this.createPed({position,heading,source,officer:false,node,speeds,stats,modelRef:model});ped.crew=crew;ped.loiter=false;
+  const ped=this.createPed({position,heading,source,officer:false,node,speeds,stats,modelRef:model});if(vitals){ped.health=vitals.health;ped.armour=vitals.armour;}ped.crew=crew;ped.loiter=false;
   return ped.id;
  }
  /** The dead the accident manager hears of, by id. Positions are the renderer's. */
@@ -1855,7 +1855,7 @@ export class WorldPedestrians {
  pedExists(id:number){return this.people.some(p=>p.id===id);}
  /** A crew member's tasks as a sequence; none leaves him to his own devices. */
  crewOrders(id:number,orders:ScriptedPedOrder[]){const p=this.people.find(p=>p.id===id);if(p)this.giveSequence(p,orders,false);}
- crewState(id:number){const p=this.people.find(p=>p.id===id);return p&&{position:{...p.actor.player.position},busy:!!p.sequence||!!p.order,alive:p.health>0,down:p.down>0||p.stealth!==undefined};}
+ crewState(id:number){const p=this.people.find(p=>p.id===id);return p&&{position:{...p.actor.player.position},busy:!!p.sequence||!!p.order,alive:p.health>0,down:p.down>0||p.stealth!==undefined,health:p.health,armour:p.armour??0};}
  /** CTaskComplexTreatAccident's m_nDeathTimeMS = now: the body's 30 s to fading start again. */
  holdDead(id:number){const p=this.people.find(p=>p.id===id);if(p&&p.health<=0)p.deadTime=0;}
  /** CTaskSimpleGiveCPR::ReviveDeadPed's CEventRevived, answered by CEventHandler::ComputeReviveResponse: health 100,
