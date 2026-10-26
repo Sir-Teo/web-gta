@@ -714,7 +714,12 @@ async function boot() {
     // the excluded pedestrian does not turn the round back into a hit on his vehicle or someone behind him.
     if(first?.shooter&&sameNonCivilianPedType({pedType:target.pedType},first.shooter))return {t:seated.t,direct:!!direct,victim:target.rider,hit:()=>undefined};
     const normal=direct?.normal??point.clone().sub(new Vector3(center.x,center.y+OCCUPANT_HEAD_LIFT,center.z)).normalize();
-    return {t:seated.t,direct:!!direct,victim:target.rider,hit:(damage,weapon)=>weapons.hitNpcSeatedBullet(target,{point,normal,direction,piece},weapon,()=>target.kind==='passenger'?carEntry.passengerShot(target.car as ScriptCar,target.seat,damage,false,piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon),{weapon,piece}):scriptRiderShot(target.rider as ScriptRider,WeaponSystem.occupantDamage(target,damage,weapon,piece),weapon,false,()=>scriptRiderKilled(target)))};
+    return {t:seated.t,direct:!!direct,victim:target.rider,hit:(damage,weapon)=>weapons.hitNpcSeatedBullet(target,{point,normal,direction,piece},weapon,()=>{
+     const health=target.kind==='script'?(target.rider as ScriptRider).health:(target.rider as {keep?:{health?:number}}).keep?.health??100;
+     const sameGroup=!!first?.shooter&&(!!first.shooter.follow&&!!target.crew||!!pedestrians?.sameScriptGroup?.(first.shooter,target.rider as object));
+     if(sameGroup&&health>0&&weapon!==51)return undefined;
+     return target.kind==='passenger'?carEntry.passengerShot(target.car as ScriptCar,target.seat,damage,false,piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon),{weapon,piece}):scriptRiderShot(target.rider as ScriptRider,WeaponSystem.occupantDamage(target,damage,weapon,piece),weapon,false,()=>scriptRiderKilled(target));
+    })};
    },
    onShot:(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');}};
   /** CTaskAllocatorKillThreatsDriveby (reversed) for CJ's group while he drives: every member riding his car (not

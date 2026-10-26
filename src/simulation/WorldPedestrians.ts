@@ -1942,6 +1942,9 @@ export class WorldPedestrians {
   // DoBulletImpact's same-type gate precedes GenerateDamageEvent, including for a corpse.
   if(shooter&&sameNonCivilianPedType(victim,shooter))return false;
   if(victim.health<=0){this.damageCollider(victim.collider.handle,damage,direction,'bullet',{weapon,point:end,piece,byPlayer:false});return true;}
+  // AffectsPed rejects a live groupmate hit from a nonplayer ped before running the calculator. The calculator's
+  // group scaling remains available for other damage entries; it is not acceptance for these bullet events.
+  if(shooter&&weapon!==WEAPON.explosion&&(victim.follow&&shooter.follow||this.sameScriptGroup?.(victim,shooter)))return false;
   if(pedProofedAgainst(victim,'bullet')||!npcDamageReaches(victim,shooter??{},weapon,true,piece??this.hitPiece(victim,end)))return false;
   victim.lastDamagedBy=shooter?{ped:shooter}:{};
   if(shooter)this.noteEvent(victim,EVENT.damage);
@@ -2482,7 +2485,7 @@ export class WorldPedestrians {
   return sameGroup?Math.min(scaled*FRIENDLY_DAMAGE_FACTOR,FRIENDLY_DAMAGE_CAP):scaled;
  }
  /** CPedGroups::AreInSameGroup for two of a script's peds (its groups are the mission's). */
- sameScriptGroup?:(a:Pedestrian,b:Pedestrian)=>boolean;
+ sameScriptGroup?:(a:object,b:object)=>boolean;
  /** CPedIntelligence::IsFriendlyWith (iOS 0x10035c58c) between the player and a ped, either way round: one respects or
   * likes the other's ped type, or they are of one type. */
  friendlyWithPlayer(ped:Acquainted){

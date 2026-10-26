@@ -31,9 +31,16 @@ test('a dead victim bypasses live damage proofing without another kill',()=>{
  const f=fixture();f.ped.health=0;f.ped.proofs={bullet:true};f.ped.bulletProofVest=true;f.ped.onlyDamagedByPlayer=true;
  expect(f.hit()).toBe(true);expect(f.host.onKill).not.toHaveBeenCalled();expect(f.host.damageReaction).not.toHaveBeenCalled();
 });
-test('all NPC sources apply victim weakness, while a known mission-group source retains friendly scaling',()=>{
+test('all NPC sources apply victim weakness, while a known groupmate bullet is rejected before calculation',()=>{
  const f=fixture();f.hit({pedType:'COP'});expect(f.ped.health).toBe(80);f.ped.health=100;f.hit();expect(f.ped.health).toBe(80);
- f.ped.health=100;f.ped.mission=true;f.ped.follow=true;f.hit({pedType:'COP',follow:true});expect(f.ped.health).toBeCloseTo(98,5);
+ f.ped.health=100;f.ped.mission=true;f.ped.follow=true;const source={pedType:'COP',follow:true};expect(f.hit(source)).toBe(false);expect(f.ped.health).toBe(100);
+ // This independently retained calculator behavior is reached by other damage entries, not this bullet event.
+ expect(f.host.pedOnPedDamage(f.ped,source,10,22)).toBeCloseTo(2,5);
+});
+test('resolved script-group identity rejects live nonplayer rounds but does not reject a corpse contact',()=>{
+ const f=fixture();f.host.sameScriptGroup=vi.fn(()=>true);const source={pedType:'CIVFEMALE'};
+ expect(f.hit(source)).toBe(false);expect(f.ped.health).toBe(100);expect(f.host.onKill).not.toHaveBeenCalled();
+ f.ped.health=0;expect(f.hit(source)).toBe(true);expect(f.host.onKill).not.toHaveBeenCalled();
 });
 test('NPC bullet type exclusions follow CREATE_CHAR rather than the model type',()=>{
  const f=fixture();f.ped.pedType='COP';f.ped.scriptPedType=4;expect(f.hit({pedType:'COP'})).toBe(true);

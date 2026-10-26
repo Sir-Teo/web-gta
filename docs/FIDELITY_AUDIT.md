@@ -160,6 +160,17 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
   Physical-collider sniper audio timing, contact lighting, mixing and matched
   retail captures remain open.
 
+## NPC groupmate bullet acceptance (October 26, 2026)
+
+- Known foot NPC groupmate bullets now stop at AffectsPed acceptance before
+  damage calculation, including the seated bridge's script/player groups.
+  Contact audio remains before rejection; wounds, blood and kill callbacks are
+  suppressed. Corpse acceptance and the independent calculator rule remain.
+  [PC source and scope](research/NPC_GROUP_BULLET_ACCEPTANCE.md).
+- Live civilian group leaders fire at foot/car/bike groupmates before and after
+  membership removal, alongside existing impact/type/drive-by/kill regressions.
+  Opaque sources, full group/task/calculator and matched PC parity remain open.
+
 ## Scripted rear car passengers (October 25, 2026)
 
 - Rear script riders now render and enter seated-head bullet checks at the same

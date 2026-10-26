@@ -57,6 +57,8 @@ The later [seated-impact adapter](NPC_SEATED_BULLET_EFFECTS.md) adds effects for
 the shared CJ, mission-rider and recruited-passenger route.
 The [seated type gate](NPC_SEATED_PED_TYPES.md) also retains known foot-shooter
 identity across that handoff.
+The later [group acceptance check](NPC_GROUP_BULLET_ACCEPTANCE.md) keeps live
+NPC groupmate bullets from reaching the calculator in these known-source paths.
 
 Remaining scope includes complete NPC critical
 death/calculator/task behavior, creator/group identity for opaque drive-by

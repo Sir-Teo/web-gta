@@ -32,6 +32,8 @@ the non-ped creator path. Existing CJ car/bike, mission-rider kill accounting
 and recruited death/exit regressions check the surrounding routing.
 
 This supplies the known foot shooter to the existing seated NPC bridge.
+The [group acceptance check](NPC_GROUP_BULLET_ACCEPTANCE.md) then uses that
+reference for known script/player groups inside damage acceptance.
 Opaque script/gang shooter identities, complete NPC same-group rules,
 full damage/armour/critical-death calculation, ambient-crew NPC damage,
 native contact lighting and matched PC captures remain open.
