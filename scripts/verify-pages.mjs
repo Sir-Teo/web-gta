@@ -53,17 +53,19 @@ try{
  await expect(page.locator('.flight-instruments')).toBeVisible({timeout:120000});
  // Native aircraft throttle follows the held pedal; releasing W before the climb cuts the engine.
  await page.keyboard.down('KeyW');
- // Rotate the Rustler at 100 km/h, or accept a natural climb already above 15 m. Waiting for 150 left it below
- // 120 km/h in a low hop until it hit the boneyard; the live plane spec also pulls up after about 6.5 s of throttle.
- // Hold the elevator through the measured climb: a wall-time pulse can end while streaming holds the simulation.
+ // Rotate the Rustler at 115 km/h, or accept a natural climb already above 15 m. Waiting for 150 left it below
+ // 120 km/h in a low hop until it hit the boneyard. At 100 the first climb can run out of airspeed at 15 m.
+ // Release the elevator once clearly airborne: holding full pitch through the climb over-rotates and stalls.
+ // Use measured AGL rather than a wall-time pulse, which can end while streaming holds the simulation.
  let latestFlight;
  const flight=async()=>{const text=await page.locator('.flight-instruments').innerText(),sample={wall:Date.now(),speed:Number(text.match(/(\d+) km\/h/)?.[1]),altitude:Number(text.match(/(\d+) m AGL/)?.[1])};flightSamples.push(sample);latestFlight=sample;return sample;};
  // Control decisions need a regular cadence: Playwright's default backoff reaches one second, enough to travel
  // another 28 metres at rotation speed. Use the sample that crossed the threshold instead of reading again.
- await expect.poll(async()=>{const f=await flight();return f.speed>100||f.altitude>15;},{timeout:45000,intervals:[100]}).toBe(true);
+ await expect.poll(async()=>{const f=await flight();return f.speed>115||f.altitude>15;},{timeout:45000,intervals:[100]}).toBe(true);
  const takeoffMode=latestFlight.altitude>15?'natural':'rotation';
  if(takeoffMode==='rotation')await page.keyboard.down('ArrowDown');
- try{await expect.poll(async()=>(await flight()).altitude,{timeout:20000,intervals:[100]}).toBeGreaterThan(15);}
+ let elevatorHeld=takeoffMode==='rotation';
+ try{await expect.poll(async()=>{const f=await flight();if(elevatorHeld&&f.altitude>=5){await page.keyboard.up('ArrowDown');elevatorHeld=false;}return f.altitude;},{timeout:20000,intervals:[100]}).toBeGreaterThan(15);}
  finally{if(takeoffMode==='rotation')await page.keyboard.up('ArrowDown');}
  await page.keyboard.up('KeyW');
  await page.keyboard.press('KeyG');await expect(page.locator('.flight-instruments')).toContainText('Gear UP');

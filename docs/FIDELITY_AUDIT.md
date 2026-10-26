@@ -14110,3 +14110,16 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   Full source identity, NPC nonfatal response tasks, non-bullet deaths and
   matched retail traces remain open.
   [Reference, contact ownership and checks](research/NPC_AMBIENT_SEATS.md).
+
+## Production Rustler takeoff piloting (October 26, 2026)
+
+- Production samples expose a 101 km/h rotation peaking at 15 m while full
+  elevator loses speed to 58 km/h. Development telemetry shows approximately
+  45-degree pitch under that continuous input; regular polling alone had not
+  resolved the intermittent check.
+- The verifier now rotates above 115 km/h and releases elevator at 5 m, while
+  retaining the original requirement to clear 15 m within 20 seconds. The
+  corrected production run clears 16 m in 2.846 seconds after rotation and
+  passes the surrounding walking/car/map/save/gear checks without errors.
+  This changes the authored test pilot; aircraft physics/data remain unchanged.
+  [Trace comparison, failed trial and limits](research/PLAYABLE_AIRCRAFT.md#production-takeoff-piloting-follow-up-october-26-2026).

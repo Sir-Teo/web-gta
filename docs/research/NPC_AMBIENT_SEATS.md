@@ -68,3 +68,8 @@ checkpoint: rotation at 101 km/h with continuously held elevator peaks at
 and screenshot are retained in artifacts/npc-ambient-seats-flight-failure.*.
 The earlier cadence correction did not resolve this intermittent flight check;
 this report does not claim a passing production run.
+
+The subsequent [test-pilot correction](PLAYABLE_AIRCRAFT.md#production-takeoff-piloting-follow-up-october-26-2026)
+builds takeoff speed before rotation and releases elevator once airborne.
+The full production smoke then passes, including aircraft and landing gear,
+with no page errors or failed requests. Flight physics are unchanged.

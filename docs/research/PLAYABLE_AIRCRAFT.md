@@ -46,8 +46,8 @@ Production takeoff decisions now sample the visible speed/AGL at a regular
 100 ms cadence and use the sample that crossed the threshold. Playwright's
 default polling backs off to one second, enough to travel another 28 metres
 at 100 km/h before pulling up; another read before the key press adds delay.
-The verifier still rotates above 100 km/h, requires more than 15 m AGL within
-the original limit, and releases the elevator in finally. A captured production
+That cadence change initially retained rotation above 100 km/h and continuous
+elevator through 15 m AGL, with key release in finally. A captured production
 failure reached 108 km/h and 8 m AGL before a collision near the boneyard.
 The dedicated takeoff/gear/airborne-exit case and an instrumented reproduction
 pass; production also passes with the regular cadence. The failure and native
@@ -56,3 +56,28 @@ for further investigation of flight behavior.
 
 
 The October 21 RC integration adds separate control/camera/streaming focus and delayed hand-back without seating CJ; see [remote control](REMOTE_CONTROL.md). Script aircraft placement includes the suspension-adjusted native base height, and [SET_HELI_STABILISER](HELICOPTER_STABILISER.md) reaches the rotor-axis and stick branches.
+
+### Production takeoff piloting follow-up (October 26, 2026)
+
+Regular polling alone did not resolve the intermittent check. A later
+production trace rotated at 101 km/h, peaked at 15 m and lost forward speed
+to 58 km/h while full elevator stayed held. An instrumented development run
+showed the same continuous input driving pitch to about 45 degrees and forward
+speed to 57 km/h; that run barely cleared 16 m. Roll/rudder were zero, throttle
+was full and terrain hold was false. Releasing at 5 m with the original rotation
+speed still peaked at 15 m in another production trial.
+
+The verifier now builds speed past 115 km/h before rotation and releases the
+elevator at 5 m AGL, then lets the aircraft climb. It still requires more than
+15 m AGL within the same 20-second climb deadline and checks airborne gear
+operation. This is an authored test-pilot choice; flight forces, input smoothing,
+controls, terrain and vehicle data are unchanged.
+
+The corrected production run rotates at 116 km/h, releases at 108 km/h and
+5 m AGL, and clears 16 m 2.846 wall seconds after rotation. Walking, native car
+entry, map waypoint, pause/resume, saved-game return and gear checks also pass,
+with no page errors or failed requests. Successful samples are retained in
+artifacts/aircraft-rotation-margin-production.json; the original and 5 m-release
+failures remain in artifacts/npc-ambient-seats-flight-failure.* and
+artifacts/aircraft-release-5m-failure.json. These trials do not establish matched
+retail PC flight dynamics or resolve all aircraft/streaming behavior.
