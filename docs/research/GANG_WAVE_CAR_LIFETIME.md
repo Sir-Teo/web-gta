@@ -58,3 +58,8 @@ Validation: 25 focused tests, 5,720 full-suite tests (51 skipped), a build,
 normal live war progression and the 50/55-second car-retention trial pass.
 The first live attempt compared the transient per-frame steering controls;
 the corrected trial compares the retained ScriptCarMissions task record.
+
+The [async ownership follow-up](GANG_WAVE_ASYNC_OWNERSHIP.md) adds cancellation
+and corrects the removal path for script-created wave cars; the original
+traffic-specific removal call could release a manager record without actually
+disposing its car.

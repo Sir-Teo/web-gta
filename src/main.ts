@@ -7493,10 +7493,11 @@ async function boot() {
               if(worldZones&&!gangWars){
                const toNative=(p:{x:number;y:number;z:number})=>({x:p.x,y:-p.z,z:p.y}),toBrowser=(p:{x:number;y:number;z:number})=>({x:p.x,y:p.z,z:-p.y});
                let pending:'wave'|'defenders'|undefined,ready:'wave'|'defenders'|undefined;
+               let waveGeneration=0;
                const attackCreation=newCarCreationCache();
                const spawn=(kind:'wave'|'defenders',gang:number,count:number,center:{x:number;y:number;z:number},accuracy:number)=>{
                 if(ready===kind){ready=undefined;return true;}
-                if(!pending&&pedestrians){pending=kind;void pedestrians.spawnAttackWave(gang,count,center,accuracy,kind==='defenders').then(n=>{pending=undefined;if(n>0)ready=kind;}).catch(()=>{pending=undefined;});}
+                if(!pending&&pedestrians){const generation=waveGeneration;pending=kind;void pedestrians.spawnAttackWave(gang,count,center,accuracy,kind==='defenders').then(n=>{if(generation!==waveGeneration)return;pending=undefined;if(n>0)ready=kind;}).catch(()=>{if(generation===waveGeneration)pending=undefined;});}
                 return false;
                };
                const groundY=(x:number,z:number,top:number)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:top+50,z},{x:0,y:-1,z:0}),150,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?top+50-hit.timeOfImpact:top;};
@@ -7504,20 +7505,20 @@ async function boot() {
                // starts, gone with the car): Gang1's car, when one is loaded, where GenerateOneEmergencyServicesCar puts one
                // facing the player, crewed and on MISSION_DO_DRIVEBY_FARAWAY at him (GangDriveBy.adoptAttackCar).
                const spawnWaveCar=(war:GangWars)=>{
-                const held=war.driveByCar as ScriptCar|'pending'|undefined;
-                if(held==='pending'||held&&!held.disposed&&fleet?.cars.has(held))return;
+                const held=war.driveByCar as ScriptCar|symbol|undefined;
+                if(typeof held==='symbol'||held&&!held.disposed&&fleet?.cars.has(held))return;
                 war.driveByCar=undefined;
                 const model=fleet?.gangCarModel(war.gang1);if(model===undefined||!fleet||!driveby||!emergency)return;
-                war.driveByCar='pending';
+                const generation=waveGeneration,request=Symbol('gang-war-car'),gang=war.gang1;war.driveByCar=request;
                 // The car is made at the nodes' height whether or not the collision there has streamed in (at 160 units it
                 // seldom has), and waits for it, as a script's car is set down; it is an ordinary car, not the mission's.
-                void emergency.placementToward(toNative(sim.player.position)).then(place=>place&&fleet?.spawnScriptCar(model,place.position,place.heading)).then(car=>{
-                 if(!car){if(war.driveByCar==='pending')war.driveByCar=undefined;return;}
+                void emergency.placementToward(toNative(sim.player.position)).then(place=>generation===waveGeneration&&war.driveByCar===request&&place?fleet?.spawnScriptCar(model,place.position,place.heading):undefined).then(car=>{
+                 if(!car){if(war.driveByCar===request)war.driveByCar=undefined;return;}
                  car.missionCar=false;
                  // A war started over meanwhile cleared the reference: the car is not this one's.
-                 if(war.driveByCar!=='pending'||!driveby?.adoptAttackCar(car,war.gang1)){fleet?.removeTrafficCar(car);if(war.driveByCar==='pending')war.driveByCar=undefined;return;}
+                 if(generation!==waveGeneration||war.driveByCar!==request||!driveby?.adoptAttackCar(car,gang)){fleet?.removeVehicle(car);if(war.driveByCar===request)war.driveByCar=undefined;return;}
                  war.driveByCar=car;
-                }).catch(()=>{if(war.driveByCar==='pending')war.driveByCar=undefined;});
+                }).catch(()=>{if(war.driveByCar===request)war.driveByCar=undefined;});
                };
                gangWars=new GangWars({
                 nowMs:()=>elapsed*1000,player:()=>toNative(sim.player.position),playerOnMission:()=>!!mission?.playerOnAMission(),canTriggerGangWarWhenOnAMission:()=>!!mission?.runtime.game.canTriggerGangWarWhenOnAMission,playerInAircraft:()=>!!fleet?.occupiedPlane,
@@ -7550,10 +7551,10 @@ async function boot() {
                   points.push(point&&toBrowser(point));
                  }
                  if(!points[0]&&!points[1])return false;
-                 pending='wave';
+                 const generation=waveGeneration;pending='wave';
                  void Promise.all([war.gang1,war.gang2].map((gang,i)=>{const at=points[i];return at?crowd.spawnAttackWave(gang,make.count,at,make.accuracy,false,{weapons:make,difficulty:d,health:make.health,ammo:make.ammo},{player:{x:p.x,z:p.z}}):Promise.resolve(0);}))
                   .then(n=>{
-                   pending=undefined;if(n[0]+n[1]>0)ready='wave';
+                   if(generation!==waveGeneration)return;pending=undefined;if(n[0]+n[1]>0)ready='wave';
                    // By each group's point of attack, within two units and 0.75 over the ground, CreateAttackWave leaves
                    // a PICKUP_ONCE_TIMEOUT_SLOW: health by Gang1's in the first wave, armour in the second, and in the
                    // third health by Gang1's and armour by Gang2's.
@@ -7567,7 +7568,7 @@ async function boot() {
                      category:model==='health'?'health':'armour',ammo:0,position:[x,-z,ground+.75]});
                    });
                    if(n[0]+n[1]>0&&!mission?.runtime.game.gangWarsTrainingMission)spawnWaveCar(war);
-                  }).catch(()=>{pending=undefined;});
+                  }).catch(()=>{if(generation===waveGeneration)pending=undefined;});
                  return false;
                 },
                 createDefendingGroup:(gang,point,difficulty)=>{
@@ -7591,7 +7592,7 @@ async function boot() {
                   pickups.generate({id:`gangwar:${Date.now()}`,command:'GENERATED',section:'gangwar',offset:0,modelId:armour?1242:1240,model:armour?'bodyarmour':'health',dictionary:armour?'icons7':'icons5',type:PICKUP_TYPE.onceTimeoutSlow,category:armour?'armour':'health',ammo:0,position:[px,-pz,y+.75]});}
                  return ok;},
                 attackWaveOvercome:()=>pedestrians?.attackWaveOvercome()??true,
-                releasePedsInAttackWave:(endOfWar,restore)=>{const n=pedestrians?.releaseAttackWave(restore)??0;if(endOfWar&&pedestrians)pedestrians.clearStreets=false;return n;},
+                releasePedsInAttackWave:(endOfWar,restore)=>{waveGeneration++;pending=ready=undefined;if(gangWars&&typeof gangWars.driveByCar==='symbol')gangWars.driveByCar=undefined;const n=pedestrians?.releaseAttackWave(restore)??0;if(endOfWar&&pedestrians)pedestrians.clearStreets=false;return n;},
                 releaseCarsInAttackWave:()=>driveby?.releaseCarsInAttackWave(),tellGangMembersTo:w=>pedestrians?.tellGangMembersTo(w),clearTheStreets:()=>{if(pedestrians)pedestrians.clearStreets=true;},
                 message:t=>hud.message(t,4500),help:t=>hud.help(t),// CStats::IncrementStat(STAT_RESPECT, 45) on a win and DecrementStat(30) on a defensive loss: the stat itself, on its
                 // total-respect scale; the recruit counter (FindMaxNumberOfGroupMembers reads that scale over ten) follows.

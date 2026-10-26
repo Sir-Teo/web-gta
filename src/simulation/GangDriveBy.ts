@@ -258,7 +258,7 @@ export class GangDriveBy {
     const p=car.car.body.translation(),q=car.car.body.rotation(),v=car.car.body.linvel(),speed=Math.hypot(v.x,v.z),distance=Math.hypot(target.x-p.x,target.z-p.z);
     // Browser population budget: retire an unseen wave car beyond its existing active radius. Wave membership
     // and task lifetime do not impose the ordinary ambient drive-by's 45-second timeout.
-    if(u.wave&&!car.missionCar&&distance>car.activeRadius&&this.canSpawn(p,6)){this.units.splice(i,1);this.carMissions?.forget(car);this.fleet.removeTrafficCar(car);continue;}
+    if(u.wave&&!car.missionCar&&distance>car.activeRadius&&this.canSpawn(p,6)){this.units.splice(i,1);this.carMissions?.forget(car);this.fleet.removeVehicle(car);continue;}
     const heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y));
     // A wave car's driver shot: the CCarAI mission is dropped and the car is the dying driver's, as below.
     if(u.wave&&(u.driverDying||u.driverDead)&&!u.wave.stopped){u.wave.stopped=true;this.carMissions?.forget(car);}
@@ -302,5 +302,5 @@ export class GangDriveBy {
    }
   }
   snapshot(){return {ready:!!this.paths&&!!this.gangs.length&&!!this.gunCache,pending:this.busy,error:this.error??null,lastAttack:this.lastAttack,units:this.units.map(u=>({handle:u.car.car.body.handle,gang:u.gang,mission:u.mission,wave:!!u.wave,driverHealth:u.driverHealth,shooterHealth:u.shooterHealth,driverDying:!!u.driverDying,driverDead:!!u.driverDead,shooterDead:!!u.shooterDead,shooter:u.shooter.model,weapon:DRIVEBY_WEAPON,rounds:u.shooter.gunState.rounds,shots:u.shooter.shots,side:u.shooter.side,position:{...u.car.car.body.translation()},speed:Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z)}))};}
-  dispose(){this.disposed=true;for(const u of this.units)if(!u.car.occupied)this.fleet.removeTrafficCar(u.car);this.units.length=0;}
+  dispose(){this.disposed=true;for(const u of this.units)if(!u.car.occupied){if(u.wave){this.carMissions?.forget(u.car);this.fleet.removeVehicle(u.car);}else this.fleet.removeTrafficCar(u.car);}this.units.length=0;}
 }

@@ -14037,3 +14037,20 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   Normal territory progression, 25 focused checks, a build and all 5,720 unit
   tests pass (51 skipped). Native removal and async cancellation remain open.
   [Native range trace, release and browser budget](research/GANG_WAVE_CAR_LIFETIME.md).
+
+## Gang-wave async ownership and script-car cleanup (October 26, 2026)
+
+- Releasing a wave now invalidates pending character, metadata, weapon and
+  host completion work. Stale callbacks cannot restore old readiness or make
+  late attackers, pickups or a drive-by car. Every car request has its own
+  marker, checked after placement and after car loading.
+- A live overlapping-load trial exposed that traffic-only removal ignored
+  script-created wave cars. Stale-car rejection, distant wave retirement and
+  manager disposal now use general vehicle removal and clear car missions.
+  The unit fleet fixture also respects the actual traffic-origin guard.
+- Deferred units and live host trials verify cancelled model/placement loads,
+  a later war's six- and eight-member waves, independent overlapping car
+  requests, stale resource disposal and actual distant-car retirement.
+  The build and all 5,729 unit tests pass (51 skipped); the full rerun follows
+  an isolated pass of a cutscene decoder that timed out during build overlap.
+  [Lifecycle, native release and checks](research/GANG_WAVE_ASYNC_OWNERSHIP.md).

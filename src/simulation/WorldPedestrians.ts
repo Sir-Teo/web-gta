@@ -556,6 +556,8 @@ const BUILDING_PROBE_REACH=.9;
 const WAITING_PED_LIFT_LIMIT=1.5;
 export class WorldPedestrians {
  private people:Pedestrian[]=[];
+ /** A release invalidates model/weapon loads still preparing the old synchronous native wave. */
+ private attackWaveGeneration=0;
  private readonly playerPedScanner=new NativePedScanner<Pedestrian|'player'>();
  /** Cached scan references, filtered with the current death state. Querying never refreshes the scan. */
  deadPedCandidates(observer:Pedestrian|'player'){
@@ -1658,12 +1660,13 @@ export class WorldPedestrians {
   * stands (i − count/2) × 2 times 1.2 units along the perpendicular, 1.5 either way at random on each axis, on the
   * ground found from two units over the point (FindGroundZFor3DCoord; an attacker with none under him is not made). */
  async spawnAttackWave(gang:number,count:number,center:{x:number;y:number;z:number},accuracy:number,defenders=false,make?:{weapons:{a:number;b:number};difficulty:number;health:number;ammo:number},line?:{player:{x:number;z:number}}){
+  const generation=this.attackWaveGeneration;
   const catalog=this.catalog;if(!catalog||this.disposed)return 0;
   const node=this.nearestNode(center);if(!node)return 0;
   const members=catalog.gangs[gang]??[];if(!members.length)return 0;
   const guns=[22,28,25,29];let spawned=0;
   for(let i=0;i<count;i++){
-   if(this.disposed)return spawned;
+   if(this.disposed||generation!==this.attackWaveGeneration)return spawned;
    const model=this.gangRoster?.choose(gang)??members[Math.floor(Math.random()*members.length)];
    const angle=i*2*Math.PI/count;let x:number,z:number,top:number;
    if(defenders){x=center.x+Math.sin(angle)*Math.random()*3+2;z=-(-center.z+Math.cos(angle)*Math.random()*3+2);top=center.y+2;}
@@ -1678,9 +1681,10 @@ export class WorldPedestrians {
    if(!hit)continue;
    let built:{source:import('../render/NativeCharacter').CharacterSource;speeds:{walk:number;run:number;sprint:number};stats:{attack:number;defend:number;pedType?:string;decisionMaker?:number}},weapon:Awaited<Catalog['weapon']>|undefined;
    try{built={source:await catalog.character(model),speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)};}catch{continue;}
+   if(this.disposed||generation!==this.attackWaveGeneration)return spawned;
    const type=make?attackWaveWeapon(make.weapons,make.difficulty,Math.random()):guns[i%4];
    try{weapon=await catalog.armedWith(type);}catch{try{weapon=await catalog.armedWith(22);}catch{weapon=undefined;}}
-   if(this.disposed)return spawned;
+   if(this.disposed||generation!==this.attackWaveGeneration)return spawned;
    const position={x,y:top-hit.timeOfImpact+.03,z};
    const p=this.createPed({position,heading:angle,source:built.source,officer:false,node,weapon,speed:built.speeds.walk,speeds:built.speeds,stats:built.stats,gang,modelRef:model,gunAccuracy:accuracy});
    p.attackWave=true;p.retaliate=KILL_PED_ON_FOOT_SECONDS;p.flee=0;this.chooseTarget(p);spawned++;
@@ -1700,6 +1704,7 @@ export class WorldPedestrians {
  }
  /** CGangWars::ReleasePedsInAttackWave: the attackers become ordinary peds (wandering again when `restoreWander`). */
  releaseAttackWave(restoreWander:boolean){
+  this.attackWaveGeneration++;
   let released=0;
   for(const p of this.people){if(!p.attackWave)continue;p.attackWave=false;released++;if(restoreWander){p.retaliate=0;p.foe=undefined;}}
   return released;
