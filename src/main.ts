@@ -5746,9 +5746,8 @@ async function boot() {
              const forceDeath=piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon),raw=damageFactor??damage;
              if(target.kind==='script')return scriptRiderShot(target.rider as ScriptRider,raw,weapon,creator!=='remote',()=>scriptRiderKilled(target,creator),{forceDeath:damageFactor!==undefined&&forceDeath,friendlyFire:creator==='ped'&&target.crew});
              const car=target.car as ScriptCar;
-             return target.kind==='passenger'?carEntry.passengerShot(car,target.seat,raw,true,forceDeath,{weapon,piece,creator}):target.kind==='police'?police?.crewShot(car,target.seat,raw,weapon,damageFactor!==undefined&&forceDeath,creator):target.kind==='driveby'?driveby?.crewShot(car,target.seat,damage):traffic?.driverShot(car,damage);
+             return target.kind==='passenger'?carEntry.passengerShot(car,target.seat,raw,true,forceDeath,{weapon,piece,creator}):target.kind==='police'?police?.crewShot(car,target.seat,raw,weapon,damageFactor!==undefined&&forceDeath,creator):target.kind==='driveby'?driveby?.crewShot(car,target.seat,raw,damageFactor!==undefined&&forceDeath,creator):traffic?.driverShot(car,damage);
             };
-            if(driveby)driveby.onCrewDiesOut=(car,model)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading,car.gang,false,car.wrecked))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading(),car.gang,false,car.wrecked);}};
             if(police)police.onCrewKilled=(_car,_seat,creator)=>pedestrians?.onKill?.({id:-1,officer:true,pedType:'COP',byPlayer:creator==='ped',byPlayerVehicle:creator==='vehicle'});
             if(police)police.onCrewDiesOut=(car,model,corpse)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading,undefined,false,car.wrecked,corpse))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading(),undefined,false,car.wrecked,corpse);}};
             // CTaskComplexLeaveCarAndFlee (a tyre shot out, R_Weak.ped): CTaskComplexLeaveCar without waiting for the car to
@@ -5787,6 +5786,8 @@ async function boot() {
              driveby.seatedShot=scriptDriveByWorld.seatedShot;
              driveby.bulletLine=scriptDriveByWorld.bulletLine;driveby.hitPed=scriptDriveByWorld.hitPed;
              driveby.prepareBulletImpact=scriptDriveByWorld.prepareBulletImpact;
+             driveby.onCrewKilled=(_car,_seat,gang,creator)=>pedestrians?.onKill?.({id:-1,officer:false,pedType:`GANG${gang+1}`,gang,byPlayer:creator==='ped',byPlayerVehicle:creator==='vehicle'});
+             driveby.onCrewDiesOut=(car,model,corpse)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading,car.gang,false,car.wrecked,corpse))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading(),car.gang,false,car.wrecked,corpse);}};
              driveby.gangTurf=turfAt;driveby.gangResident=gang=>pedestrians?.gangResident(gang)??[];driveby.carMissions=scriptCars;driveby.gangHatesPlayer=gang=>!!pedestrians?.gangHatesPlayer(gang);driveby.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
              driveby.onShot=(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');};
             }).catch(error=>{if(alive)hud.message(`Drive-by pursuit could not load: ${error instanceof Error?error.message:String(error)}`);});

@@ -13992,3 +13992,19 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   the full suite has 5,681 passing tests and 51 skipped. Other ambient crews,
   complete native source identity and all native accounting fields remain open.
   [Reference, tests and limits](research/POLICE_SEATED_KILLS.md).
+
+## Gang drive-by death reporting and setup (October 26, 2026)
+
+- Gang drivers and gunners now report the first accepted fatal hit with their
+  gang and mapped creator, before later coast/body tasks. Death descriptions
+  suppress duplicate reconstruction damage. Forced head death is separate from
+  the raw weapon factor, and killed gunners stop firing before the callback.
+- The manager's async creation now installs both kill and death-exit hooks;
+  the previous early if(driveby) exit hook was skipped during startup. A live
+  diagnostic exposed zero counters and no body despite a completed coast.
+- Six Families/rival and creator cases verify twelve deaths, immediate
+  counter/respect deltas, repeat suppression and unchanged totals after every
+  delayed driver body. One real pistol head kills a 5,000-HP driver with fatal
+  blood. The full suite has 5,690 passing tests and 51 skipped. Complete source
+  identity, other ambient crews and native task/retail parity remain open.
+  [Source, lifecycle repair and checks](research/GANG_SEATED_KILLS.md).
