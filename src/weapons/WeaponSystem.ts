@@ -293,16 +293,18 @@ export class WeaponSystem {
   * instant-hit gun unless the ped is spared critical hits. */
  static occupantDamage(target:Pick<SeatedTarget<SeatedVehicle>,'noCriticalHits'>,damage:number,weapon:number,piece=9){return piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon)?Math.max(damage,1000):damage;}
  /** CAECollisionAudioEntity::ReportBulletHit: the struck collider, the hit point and asin(-dir·normal) in degrees. */
- onBulletHit?:(hit:RAPIER.RayColliderIntersection,point:Vec3,angle:number)=>void;
+ onBulletHit?:(hit:RAPIER.RayColliderIntersection,point:Vec3,angle:number,vehicleHint?:boolean)=>void;
  /** A seated ped has no enabled collider of its own; its transferred contact still uses SURFACE_PED. */
  onPedBulletHit?:(point:Vec3,angle:number)=>void;
+ /** FireOneInstantHitRound's missed-line water fallback: SURFACE_WATER_SHALLOW, at the sampled surface. */
+ onWaterBulletHit?:(point:Vec3)=>void;
  /** DoBulletImpact / CBulletInfo::Update with a player ped creator; the world checks ENTITY_TYPE_BUILDING. */
  onPlayerBulletImpact?:(collider:number)=>void;
  onSound?:(event:import('../assets/nativeCombatAudio').CombatSound,weapon:number,position:Vec3,source?:'player'|'npc'|'aircraft'|'stealth')=>void;
  private reloadSoundId=-1;private reloadSoundA=false;private reloadSoundB=false;
  onUse?:(w:WeaponDefinition)=>void;
  /** Water surface height at a native x/y, when there is water there. */
- waterLevel?:(x:number,y:number)=>number|undefined;
+ waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean)=>number|undefined;
  /** TriggerExplosion's object pass, for the scene's OBJECT.DAT props. Renderer-frame point. */
  onExplosion?:(point:Vec3,params:ExplosionParams,byPlayer:boolean)=>void;
  /** CCamera::CamShake from an explosion (0.6, a molotov 0.2, at its point) and CamShakeNoPos from a sniper shot (0.2). */
@@ -360,15 +362,23 @@ export class WeaponSystem {
   const direction=new Vector3(to.x-from.x,to.y-from.y,to.z-from.z),range=direction.length();if(!(range>0&&Number.isFinite(range)))return;
   direction.divideScalar(range);const crowd=this.pedestrians(),options={};
   const hit:PedBulletIntersection|null|undefined=crowd?.bulletLine?crowd.bulletLine(from,direction,range,options):bulletLine(this.sim.world,from,direction,range,options),end=new Vector3(from.x,from.y,from.z).addScaledVector(direction,hit?.timeOfImpact??range);
-  this.singleRound(from,end);if(!hit)return;
-  if(hit.collider.handle===this.sim.playerCollider.handle){if(this.sim.player.health>0)this.sim.damagePlayer(intensity,false,{weapon:52,from});return;}
-  if(crowd?.instantHitRound?.(hit.collider.handle,intensity,{x:direction.x,z:direction.z},end,hit.pedPiece))return;
-  const fleet=this.fleet(),body=hit.collider.parent()?.handle;
-  const car=[...fleet?.cars??[]].find(c=>c.car.body.handle===body);
-  if(car){car.damage(intensity,undefined,false,undefined,{weapon:28,byPlayer:false});this.releaseExplosions();return;}
-  for(const vehicle of [...fleet?.boats??[],...fleet?.bikes??[]])if(vehicle.body.handle===body){vehicle.damage(intensity,undefined,false,undefined,{weapon:28,byPlayer:false});return;}
-  const plane=[...fleet?.planes??[]].find(p=>p.body.handle===body);if(plane){if(plane.damage(intensity,28,false)&&!plane.bombTimerMs)this.explode(plane.body.translation(),EXPLOSION_TYPE.aircraft,plane,false);return;}
-  if(!crowd?.instantHitRound)crowd?.damageCollider(hit.collider.handle,intensity,direction,'bullet',{weapon:52,point:end,piece:hit.pedPiece,noSource:true,byPlayer:false});
+  this.singleRound(from,end);
+  if(!hit){const water=this.waterLevel?.(to.x,-to.z,to.y+10,true);if(water!==undefined)this.onWaterBulletHit?.({x:to.x,y:water,z:to.z});return;}
+  let ped=false,vehicle=false;
+  try{
+   if(hit.collider.handle===this.sim.playerCollider.handle){ped=true;if(this.sim.player.health>0)this.sim.damagePlayer(intensity,false,{weapon:52,from});return;}
+   if(crowd?.instantHitRound?.(hit.collider.handle,intensity,{x:direction.x,z:direction.z},end,hit.pedPiece)){ped=true;return;}
+   const fleet=this.fleet(),body=hit.collider.parent()?.handle;
+   const car=[...fleet?.cars??[]].find(c=>c.car.body.handle===body);
+   if(car){vehicle=true;car.damage(intensity,undefined,false,undefined,{weapon:28,byPlayer:false});this.releaseExplosions();return;}
+   for(const target of [...fleet?.boats??[],...fleet?.bikes??[]])if(target.body.handle===body){vehicle=true;target.damage(intensity,undefined,false,undefined,{weapon:28,byPlayer:false});return;}
+   const plane=[...fleet?.planes??[]].find(p=>p.body.handle===body);if(plane){vehicle=true;if(plane.damage(intensity,28,false)&&!plane.bombTimerMs)this.explode(plane.body.translation(),EXPLOSION_TYPE.aircraft,plane,false);return;}
+   vehicle=[...fleet?.trains??[]].some(t=>t.body.handle===body);
+   if(!crowd?.instantHitRound)ped=!!crowd?.damageCollider(hit.collider.handle,intensity,direction,'bullet',{weapon:52,point:end,piece:hit.pedPiece,noSource:true,byPlayer:false});
+  }finally{
+   if(ped)this.reportPedBulletHit(end,hit.normal,direction);
+   else{const dot=direction.x*hit.normal.x+direction.y*hit.normal.y+direction.z*hit.normal.z;if(dot<0)this.onBulletHit?.(hit,end,Math.asin(Math.max(-1,Math.min(1,-dot)))*180/Math.PI,vehicle);}
+  }
  }
  npcShot(from:Vec3,to:Vec3,weapon=22,hit=true){this.tracer(from,to,'ped',.09);if(hit)this.effect('impact',to);this.fx?.gunshot(from,normalize(add(to,from,-1)),weapon,false);}
  /** Native FX (effects.fxp); the sphere effects remain as the fallback while it loads or when it is unavailable. */

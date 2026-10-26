@@ -104,8 +104,9 @@ through the same backend and hits the NPC's current animated body for its
 expected damage. The first SCM probe reused the old impact endpoint after a
 reaction animation; the fixture now selects a valid current body ray.
 
-Complete original line-test material flags, FireOneInstantHitRound's start
-point light and ReportBulletHit surface/water audio, exact sector ordering,
+The [subsequent contact-audio integration](INSTANT_ROUND_AUDIO.md) adds the
+original ReportBulletHit surface/water routing. Complete original line-test
+material flags, FireOneInstantHitRound's start point light, exact sector ordering,
 full seated-ped/other-vehicle behavior and matched original-PC captures remain
 separate compatibility work. These changes establish the represented fixed
 gun mechanism, anonymous round behavior and player input bridge.

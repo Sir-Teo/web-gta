@@ -68,3 +68,10 @@ origins, spread, aiming, 150 ms interval and 20-volley reload state. They fire
 independently of inventory and drive-by permission and retain camera/control
 gates. The shared anonymous round backend also serves FIRE_SINGLE_BULLET.
 [Captured instructions, live input and remaining limits](PREDATOR_FIXED_GUNS.md).
+
+## Anonymous round contact sounds (October 26, 2026)
+
+Predator and SCM anonymous rounds now report native facing-surface and water
+contact sounds, including rejected wounds. The real collision backend plays
+flesh/water/metal samples; the original endpoint height gates the water probe.
+[Source, resource safety and live sample checks](INSTANT_ROUND_AUDIO.md).

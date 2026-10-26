@@ -1398,7 +1398,7 @@ async function boot() {
   const scriptShadows=new NativeScriptShadows(render.scene);
   let scriptShadowFrameAt=-1,scriptShadowFrame:import('./render/nativeScriptShadow').ScriptShadow[]=[];
   worldFx.collisionSources=()=>importedScene?.sources;weapons.fires.onSteam=(p,rise)=>worldFx.fireSteam([p.x,p.y,p.z],rise);weapons.fires.waterMultiplier=()=>iosWaterExtinguishMultiplier(mission?.runtime.headName,mission?.runtime.secondName);weapons.fires.frameCounter=()=>Math.floor(gameTimeExact*30/1000);worldFx.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
-  weapons.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
+  weapons.waterLevel=(x,y,z,touchingWater)=>render.lighting.water.levels?.level(x,y,z,touchingWater);
   void afterStartPackage.then(()=>worldFx.load(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href)).then(()=>{if(alive&&worldFx.ready)weapons.fx=worldFx;}).catch(error=>{worldFx.error=String(error);});
   // CCamera::Find3rdPersonCamTargetVector: third-person shots go through the crosshair at (0.53, 0.4) of the screen;
   // the sniper scope aims down the middle.
@@ -1418,14 +1418,15 @@ async function boot() {
   sim.playerFireProof=()=>!!mission?.runtime.game.playerInfo.fireProof;sim.playerWeaponProof=playerWeaponProofCheat;
   // IsSoftLanding for the ground CJ has just come down on, by the material under his feet.
   sim.landingSoft=()=>{const contact=importedScene&&sampleNativeGroundLighting(sim.world,sim.player.position,sim.playerCollider,importedScene.sources);return !!contact&&surfaceSoftLand?.get(contact.material)===true;};sim.headScriptName=()=>mission?.runtime.headName;
-  weapons.onBulletHit=(hit,point,angle)=>{
+  weapons.onBulletHit=(hit,point,angle,vehicleHint)=>{
     const collisions=sound.nativeEngine?.collisions;if(!collisions||paused)return;
-    const handle=hit.collider.handle,vehicle=[...(fleet?.cars??[])].some(c=>hit.collider.parent()?.handle===c.car.body.handle)||[...(fleet?.planes??[])].some(p=>hit.collider.parent()?.handle===p.body.handle);
+    const handle=hit.collider.handle,parent=vehicleHint===undefined?hit.collider.parent()?.handle:undefined,vehicle=vehicleHint??([...(fleet?.cars??[])].some(c=>parent===c.car.body.handle)||[...(fleet?.planes??[]),...(fleet?.boats??[]),...(fleet?.bikes??[]),...(fleet?.trains??[])].some(v=>parent===v.body.handle));
     const ped=!vehicle&&pedestrians?.targets().some(t=>t.handle===handle);
     const record=importedScene?.sources.get(handle),surface=vehicle?SURFACE.car:ped?SURFACE.ped:record?nativeCollisionSurface(record.source,hit)?.material:undefined;
     if(surface!==undefined)collisions.reportBulletHit(surface,{x:point.x,y:-point.z,z:point.y},angle);
   };
   weapons.onPedBulletHit=(point,angle)=>{if(!paused)sound.nativeEngine?.collisions.reportBulletHit(SURFACE.ped,{x:point.x,y:-point.z,z:point.y},angle);};
+  weapons.onWaterBulletHit=point=>{if(!paused)sound.nativeEngine?.collisions.reportBulletHit(SURFACE.waterShallow,{x:point.x,y:-point.z,z:point.y},0);};
   // CCrime::ReportCrime passes PoliceDontCareAboutCrimesAgainstPedType for the victim, which divides the chaos by 3.
   weapons.policeHelis=()=>police?.helis??[];
   weapons.onCrime=(type,victim,queued,dontCareOverride)=>{const dontCare=dontCareOverride??!!pedestrians?.policeDontCare(victim);if(queued){if(victim)law.registerCrime(type,victim,dontCare);}else law.crime(type,victim,dontCare);};

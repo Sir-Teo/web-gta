@@ -4,7 +4,7 @@ import {BANK,SLOT,type NativeBankLoader} from './NativeBankLoader';
 import {COLLISION_LOOKUP} from './collisionLookup';
 import {audioLog10,randomInt,resolveProbability,stepTo,type AudioRandom} from './nativeAudioUtility';
 import type {SurfaceAudioFlags} from '../../assets/surfaceAudio';
-export const SURFACE={glass:45,ped:62,car:63,rubber:67} as const;
+export const SURFACE={waterShallow:39,glass:45,ped:62,car:63,rubber:67} as const;
 const AE_GENERAL_COLLISION=116,AE_BULLET_HIT=117,AE_WATER_SPLASH=118;
 const STATUS={inactive:0,oneShot:1,looping:2} as const;
 /** One side of a CPhysical::ApplyCollision report. Speeds are native units per frame. */

@@ -14592,3 +14592,33 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   captures, complete line-test flags, start point lights, surface/water hit
   audio and exact sector/seated behavior remain separate work.
   [Native functions, captured calculations and represented scope](research/PREDATOR_FIXED_GUNS.md).
+
+## Anonymous round surface and water sounds (October 26, 2026)
+
+- The shared Predator/SCM FireOneInstantHitRound backend now reports native
+  contact audio after damage. Strictly facing normals use asin(−dot); tangent
+  and back-facing hits remain silent. Proofed/dead ped contacts retain flesh
+  audio without extra wounds, corpse treatment or impact particles.
+- Misses query the original endpoint XY and Z + 10 with touching-water true,
+  report water-shallow 39 at the sampled height, and keep the original vertical
+  window. Existing two-argument water callers retain their behavior.
+- Vehicle kind crosses the damage call as a hint, so a retired Rapier body is
+  not dereferenced during audio classification. Ordinary traces read parent
+  identity once and now recognize boats/bikes/trains alongside cars/planes.
+- Eight initial checks expose missing reports. All 176 focused checks and
+  6,908 unit tests pass (51 skipped), including actual SURFAUD.DAT and the
+  native collision/sound manager's water/flesh sample, position and volume.
+  Final TypeScript/build validation passes.
+- Live Ctrl/SCM rounds start actual slot-3 flesh, water and metal samples.
+  Water uses its +6 dB offset and rolloff 2; a bullet-proof hull keeps health
+  while playing metal. A high unobstructed miss correctly has no water sound.
+  Original gun input gates, ammo/anonymous damage and no-page-error checks pass.
+- The first hull check used only-player protection, whose native occupied-player
+  exception permits the hit; the fixture now uses bullet proofing. The game
+  damage rule was not changed to satisfy that mistaken expectation.
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and gear without page errors, failed
+  requests or a development inspection hook.
+- Original start-point lighting, full material flags, exact sector/seated
+  behavior and matched original-PC captures remain separate work.
+  [Source, water windows, safe classification and native playback](research/INSTANT_ROUND_AUDIO.md).
