@@ -879,7 +879,7 @@ export class WorldPedestrians {
     if(kind==='bullet'&&hit?.byPlayer===false&&!npcDamageReaches(p,{},hit.weapon??WEAPON.pistol,true,piece))return false;
     if(kind==='bullet'&&bulletProofVestStops(p,hit?.weapon,piece))return false;
     this.noteEvent(p,EVENT.damage);
-    // CPed::m_pLastEntityDamage: the player, unless nobody did it (`noSource`: drowning, a fall, the script's TASK_DIE)
+    // CPed::m_pLastEntityDamage: the player, unless nobody did it (`noSource`: drowning or a fall)
     // or someone else did (`byPlayer` false: a blast or a fire he did not start).
     const byPlayer=!hit?.noSource&&hit?.byPlayer!==false;
     if(byPlayer)p.lastDamagedBy={player:true};
@@ -2201,18 +2201,17 @@ export class WorldPedestrians {
     break;
    }
    case 'die':{
-    if(!order.name){this.damageCollider(ped.collider.handle,10000,{x:0,z:1},'bullet',{noSource:true},true);break;}
-    // TASK_DIE_NAMED_ANIM: the ped dies with the script's clip, held on its last frame, once the clip is on it.
-    const clip=order.name.toLowerCase(),die=()=>{
+    // CTaskSimpleDie::StartAnim (PC 0x637520) writes health zero directly: no armour, damage event or RegisterKill.
+    // A named death waits for its clip; the ordinary task uses the default front death.
+    const clip=(order.name??'ko_shot_front').toLowerCase(),die=(name=clip)=>{
      if(ped.health<=0||!this.people.includes(ped))return;
-     ped.health=0;this.hit(ped,0,1,0,clip,1000);ped.down=Infinity;ped.view.playReaction(clip,Infinity);
-     this.onKill?.({id:ped.id,...pedTypeInfo(ped),recruit:!!ped.follow,byPlayer:false});
+     ped.health=0;ped.deadTime=0;ped.corpseHitReady=false;this.hit(ped,0,1,0,name,1000);ped.down=Infinity;ped.view.playReaction(name,Infinity);
     };
-    if(ped.view.hasReaction(clip)&&(order.file??'ped').toLowerCase()==='ped'){die();break;}
+    if(!order.name||ped.view.hasReaction(clip)&&(order.file??'ped').toLowerCase()==='ped'){die();break;}
     void (this.catalog?.scriptAnimation(order.file??'ped',order.name)??Promise.resolve(undefined)).then(animation=>{
-     if(this.disposed)return;
+     if(this.disposed||ped.health<=0||!this.people.includes(ped))return;
      if(animation)ped.view.installReactions({[clip]:animation});
-     if(animation)die();else this.damageCollider(ped.collider.handle,10000,{x:0,z:1},'bullet',{noSource:true},true);
+     die(animation?clip:'ko_shot_front');
     });
     break;
    }

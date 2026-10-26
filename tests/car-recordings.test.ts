@@ -1,5 +1,6 @@
 import {describe,expect,test} from 'vitest';
 import {openAsBlob} from 'node:fs';
+import {readFile} from 'node:fs/promises';
 import {CAR_RECORDING_FRAME_BYTES,decodeCarRecordingFrames,findIndexWithFileNameNumber,findRecording,loadCarRecording,readCarRecording,readCarRecordingIndex,recordingFileNumber,type CarRecordingFrame,type CarRecordingVector} from '../src/assets/carRecordings';
 import {readImgEntry} from '../src/assets/img';
 import {ScmVehicleRecordings} from '../src/engine/ScmVehicleRecordings';
@@ -50,7 +51,9 @@ describe('carrec.img',()=>{
   expect((await recording(707)).length).toBe(147);
  });
  test('steering and reversing gas are signed bytes',async()=>{
-  const file=await archive(),index=await readCarRecordingIndex(file);let steer=[Infinity,-Infinity],gas=[Infinity,-Infinity];
+  // Sweep every entry from one 2.3 MB snapshot; openAsBlob revalidates the disk file on each streamed slice.
+  // The index and individual recording tests above retain the filesystem-backed Blob checks.
+  const file=new Blob([await readFile('public/play/world/files/data/paths/carrec.img')]),index=await readCarRecordingIndex(file);let steer=[Infinity,-Infinity],gas=[Infinity,-Infinity];
   for(const entry of index)for(const frame of await readCarRecording(file,entry)){
    steer=[Math.min(steer[0],frame.steer),Math.max(steer[1],frame.steer)];gas=[Math.min(gas[0],frame.gas),Math.max(gas[1],frame.gas)];
   }

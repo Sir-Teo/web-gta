@@ -14324,3 +14324,29 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   clear; complete group-event ownership/removal, other generic damage classes
   and matched retail PC calculator equivalence remain open.
   [Arithmetic, source, actual contacts and limits](research/PED_BULLET_FLOAT_FIELDS.md#player-melee-and-shared-foot-damage-responses-october-26-2026).
+
+## Direct on-foot script death tasks (October 26, 2026)
+
+- TASK_DIE and the named/missing-clip variants now set health zero directly,
+  preserving armour and prior damage metadata without synthetic bullet events
+  or damage kill credit. High health/armour or zero weakness no longer prevent
+  task death. The death/removal clock and corpse-hit readiness reset at start.
+- Late named loads ignore removed/dead/disposed bodies before installing an
+  animation. Eleven initial cases expose ten failures, and a twelfth exposes
+  stale death clocks. All 74 focused checks and the build pass.
+- Four live SCM-adapter cases verify direct death, preserved armour/metadata,
+  allocated held poses, fresh clocks and zero damage/kill-credit deltas. The
+  original CASINO1 die/detach and explosion-corpse rebuild regression passes
+  too, without page errors.
+- An all-recordings test exceeded its existing timeout while scanning 426
+  filesystem-backed slices. Its full sweep now uses a single 2.3 MB snapshot;
+  disk-backed index/individual checks and every signed-byte assertion remain.
+  All 85 focused checks pass in about 2.2 seconds, followed by all 6,223 unit
+  tests (51 skipped).
+- The final build and full production smoke pass, including saved-game return,
+  walking, native car entry, map/waypoint, pause/resume, Rustler takeoff and gear,
+  with no page errors or failed requests.
+- PC direct-death/task/event source is available; later SimpleDead::ProcessPed
+  remains a retail delegate. Existing authored death-contact/nearby reactions,
+  full event scheduling and every ownership transition remain separate work.
+  [Source, checks and limits](research/SCRIPT_PED_DEATH_REBUILD.md#direct-on-foot-script-death-october-26-2026).
