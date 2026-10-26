@@ -1,0 +1,18 @@
+import {test,expect} from '@playwright/test';
+import {writeFileSync} from 'node:fs';
+import {endStoryMission} from './freeRoam';
+
+test('a visible wave car survives the ambient deadline and war-end release retains its crew task',async({page})=>{
+ test.setTimeout(300000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);await page.waitForFunction(()=>{const g=(window as any).__game;return g?.driveby()?.snapshot().ready&&g.gangWars()&&g.state().player.grounded;},undefined,{timeout:60000});
+ const handle=await page.evaluate(()=>{const g=(window as any).__game,p=g.sim.player.position;g.sim.playerCanBeDamaged=false;return g.missionForProfiling().vehicles.create(492,{x:p.x+12,y:-p.z,z:p.y+.5},0);});
+ await page.waitForFunction(h=>!!(window as any).__game.missionForProfiling().vehicles.entity(h),handle,{timeout:45000});
+ await page.evaluate(h=>{const g=(window as any).__game,m=g.missionForProfiling(),car=m.vehicles.entity(h);m.runtime.world.freezeVehiclePosition(h,true);if(!g.driveby().adoptAttackCar(car,0))throw Error('No native attack crew');g.__waveLifetimeUnit=g.driveby().units.find((u:any)=>u.car===car);},handle);
+ await page.waitForFunction(()=>{const g=(window as any).__game,u=g.__waveLifetimeUnit;return g.weapons().seatedPeds().filter((p:any)=>p.car===u.car&&p.head).length===2;},undefined,{timeout:45000});
+ // Let the ordinary game clock cross the old 45-second deadline; streaming pauses are not task completion.
+ await page.waitForFunction(()=>{const g=(window as any).__game,u=g.__waveLifetimeUnit;if(u.car.disposed||!g.driveby().units.includes(u))throw Error(`Wave car removed at ${u.seconds}`);return u.seconds>50;},undefined,{timeout:180000});
+ const before=await page.evaluate(()=>{const g=(window as any).__game,u=g.__waveLifetimeUnit;g.__waveLifetimeMission=g.scriptCars().missions.get(u.car);return {seconds:u.seconds,mission:g.scriptCars().mission(u.car),health:[u.driverHealth,u.shooterHealth],poses:g.driveby().poses().filter((p:any)=>p.car===u.car).length,blip:g.driveby().waveDrivers().some((p:any)=>Math.hypot(p.position.x-u.car.car.body.translation().x,p.position.z-u.car.car.body.translation().z)<1)};});
+ await page.evaluate(()=>{const g=(window as any).__game;g.gangWars().endGangWar(true);g.__waveReleasedAt=g.__waveLifetimeUnit.seconds;});
+ await page.waitForFunction(()=>{const g=(window as any).__game;return g.__waveLifetimeUnit.seconds>g.__waveReleasedAt+5;},undefined,{timeout:30000});
+ const after=await page.evaluate(()=>{const g=(window as any).__game,u=g.__waveLifetimeUnit;return {seconds:u.seconds,mission:g.scriptCars().mission(u.car),health:[u.driverHealth,u.shooterHealth],retained:g.driveby().units.includes(u),disposed:u.car.disposed,released:u.wave.released,missionCar:u.car.missionCar,sameMission:g.scriptCars().missions.get(u.car)===g.__waveLifetimeMission,poses:g.driveby().poses().filter((p:any)=>p.car===u.car).length,blips:g.driveby().waveDrivers().length};});
+ writeFileSync('artifacts/gang-wave-lifetime.json',JSON.stringify({before,after,errors},null,2));expect(before.seconds).toBeGreaterThan(50);expect(before.mission).toMatch(/^driveBy/);expect(after.mission).toMatch(/^driveBy/);expect(before.health).toEqual([100,100]);expect(before.poses).toBe(2);expect(before.blip).toBe(true);expect(after.seconds).toBeGreaterThan(before.seconds+5);expect(after).toMatchObject({health:[100,100],retained:true,disposed:false,released:true,missionCar:false,sameMission:true,poses:2,blips:0});expect(errors).toEqual([]);
+});

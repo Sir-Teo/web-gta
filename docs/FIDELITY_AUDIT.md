@@ -14023,3 +14023,17 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   passes. Complete source identity, NPC-to-ambient seat routing and native
   task/retail parity remain open.
   [Native metadata, source and checks](research/TRAFFIC_SEATED_KILLS.md).
+
+## Gang-war car lifetime and release (October 26, 2026)
+
+- Wave drive-by cars no longer inherit the ambient drive-by's 45-second
+  removal branch. The native release hook now clears their wave membership
+  and blips while retaining crew wounds and the existing driving task.
+- The browser's population budget still retires unseen random wave cars
+  beyond their existing active radius, forgetting the associated car mission.
+  Taking a car releases manager ownership without deleting the player vehicle.
+- A live car retains both crew members and the same driving task at 50.1
+  seconds and again at 55.3 seconds after war-end release; its wave blip clears.
+  Normal territory progression, 25 focused checks, a build and all 5,720 unit
+  tests pass (51 skipped). Native removal and async cancellation remain open.
+  [Native range trace, release and browser budget](research/GANG_WAVE_CAR_LIFETIME.md).
