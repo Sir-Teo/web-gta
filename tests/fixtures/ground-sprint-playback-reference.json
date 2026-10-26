@@ -1,0 +1,3175 @@
+{
+  "source": "Complete selected iOS SetRealMoveAnim, established ground sprint associations; declared lookup and sprint-stat stubs",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "function": "0x10035eaa4",
+  "cases": [
+    {
+      "input": {
+        "buttonSpeed": -1.0,
+        "cameraMode": 0,
+        "sprintDelta": 0
+      },
+      "speed": 1.0,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": -1.0,
+        "cameraMode": 0,
+        "sprintDelta": -1
+      },
+      "speed": 1.0,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": -1.0,
+        "cameraMode": 15,
+        "sprintDelta": 0
+      },
+      "speed": 0.699999988079071,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": -1.0,
+        "cameraMode": 15,
+        "sprintDelta": -1
+      },
+      "speed": 0.699999988079071,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 0.0,
+        "cameraMode": 0,
+        "sprintDelta": 0
+      },
+      "speed": 1.0,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 0.0,
+        "cameraMode": 0,
+        "sprintDelta": -1
+      },
+      "speed": 1.0,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 0.0,
+        "cameraMode": 15,
+        "sprintDelta": 0
+      },
+      "speed": 0.699999988079071,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 0.0,
+        "cameraMode": 15,
+        "sprintDelta": -1
+      },
+      "speed": 0.699999988079071,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 0.009999999776482582,
+        "cameraMode": 0,
+        "sprintDelta": 0
+      },
+      "speed": 1.0,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 0.009999999776482582,
+        "cameraMode": 0,
+        "sprintDelta": -1
+      },
+      "speed": 1.0,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 0.009999999776482582,
+        "cameraMode": 15,
+        "sprintDelta": 0
+      },
+      "speed": 0.699999988079071,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 0.009999999776482582,
+        "cameraMode": 15,
+        "sprintDelta": -1
+      },
+      "speed": 0.699999988079071,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 1.0,
+        "cameraMode": 0,
+        "sprintDelta": 0
+      },
+      "speed": 1.0,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 1.0,
+        "cameraMode": 0,
+        "sprintDelta": -1
+      },
+      "speed": 1.0,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 1.0,
+        "cameraMode": 15,
+        "sprintDelta": 0
+      },
+      "speed": 0.699999988079071,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 1.0,
+        "cameraMode": 15,
+        "sprintDelta": -1
+      },
+      "speed": 0.699999988079071,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 4.0,
+        "cameraMode": 0,
+        "sprintDelta": 0
+      },
+      "speed": 1.0,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 4.0,
+        "cameraMode": 0,
+        "sprintDelta": -1
+      },
+      "speed": 1.0,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 4.0,
+        "cameraMode": 15,
+        "sprintDelta": 0
+      },
+      "speed": 0.699999988079071,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 4.0,
+        "cameraMode": 15,
+        "sprintDelta": -1
+      },
+      "speed": 0.699999988079071,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 4.999999046325684,
+        "cameraMode": 0,
+        "sprintDelta": 0
+      },
+      "speed": 1.0,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 4.999999046325684,
+        "cameraMode": 0,
+        "sprintDelta": -1
+      },
+      "speed": 1.0,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 4.999999046325684,
+        "cameraMode": 15,
+        "sprintDelta": 0
+      },
+      "speed": 0.699999988079071,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 4.999999046325684,
+        "cameraMode": 15,
+        "sprintDelta": -1
+      },
+      "speed": 0.699999988079071,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 5.0,
+        "cameraMode": 0,
+        "sprintDelta": 0
+      },
+      "speed": 1.0,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 5.0,
+        "cameraMode": 0,
+        "sprintDelta": -1
+      },
+      "speed": 1.0,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 5.0,
+        "cameraMode": 15,
+        "sprintDelta": 0
+      },
+      "speed": 0.699999988079071,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 5.0,
+        "cameraMode": 15,
+        "sprintDelta": -1
+      },
+      "speed": 0.699999988079071,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 5.000000953674316,
+        "cameraMode": 0,
+        "sprintDelta": 0
+      },
+      "speed": 1.0000001192092896,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 5.000000953674316,
+        "cameraMode": 0,
+        "sprintDelta": -1
+      },
+      "speed": 1.0000001192092896,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 5.000000953674316,
+        "cameraMode": 15,
+        "sprintDelta": 0
+      },
+      "speed": 0.699999988079071,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 5.000000953674316,
+        "cameraMode": 15,
+        "sprintDelta": -1
+      },
+      "speed": 0.699999988079071,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 6.0,
+        "cameraMode": 0,
+        "sprintDelta": 0
+      },
+      "speed": 1.0600000619888306,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 6.0,
+        "cameraMode": 0,
+        "sprintDelta": -1
+      },
+      "speed": 1.0600000619888306,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 6.0,
+        "cameraMode": 15,
+        "sprintDelta": 0
+      },
+      "speed": 0.699999988079071,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 6.0,
+        "cameraMode": 15,
+        "sprintDelta": -1
+      },
+      "speed": 0.699999988079071,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 8.0,
+        "cameraMode": 0,
+        "sprintDelta": 0
+      },
+      "speed": 1.1800000667572021,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 8.0,
+        "cameraMode": 0,
+        "sprintDelta": -1
+      },
+      "speed": 1.1800000667572021,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 8.0,
+        "cameraMode": 15,
+        "sprintDelta": 0
+      },
+      "speed": 0.699999988079071,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 8.0,
+        "cameraMode": 15,
+        "sprintDelta": -1
+      },
+      "speed": 0.699999988079071,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 9.899999618530273,
+        "cameraMode": 0,
+        "sprintDelta": 0
+      },
+      "speed": 1.2939999103546143,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 9.899999618530273,
+        "cameraMode": 0,
+        "sprintDelta": -1
+      },
+      "speed": 1.2939999103546143,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 9.899999618530273,
+        "cameraMode": 15,
+        "sprintDelta": 0
+      },
+      "speed": 0.699999988079071,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 9.899999618530273,
+        "cameraMode": 15,
+        "sprintDelta": -1
+      },
+      "speed": 0.699999988079071,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 10.0,
+        "cameraMode": 0,
+        "sprintDelta": 0
+      },
+      "speed": 1.2999999523162842,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 10.0,
+        "cameraMode": 0,
+        "sprintDelta": -1
+      },
+      "speed": 1.2999999523162842,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 10.0,
+        "cameraMode": 15,
+        "sprintDelta": 0
+      },
+      "speed": 0.699999988079071,
+      "delta": 0.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    },
+    {
+      "input": {
+        "buttonSpeed": 10.0,
+        "cameraMode": 15,
+        "sprintDelta": -1
+      },
+      "speed": 0.699999988079071,
+      "delta": 2.0,
+      "external": [
+        {
+          "address": "0x1001405a8",
+          "animation": 0,
+          "result": 536879104
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 1,
+          "result": 536879360
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 2,
+          "result": 536879616
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 5,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 3,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 6,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 7,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 137,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 138,
+          "result": 0
+        },
+        {
+          "address": "0x1001405a8",
+          "animation": 10,
+          "result": 0
+        },
+        {
+          "address": "0x100265518",
+          "name": "UpdateSprintStats",
+          "stub": "no external stat mutation"
+        }
+      ]
+    }
+  ]
+}

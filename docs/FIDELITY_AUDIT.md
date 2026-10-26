@@ -2774,7 +2774,7 @@ reVC (mrxenginner/reVC, miami branch).
 - Associations follow the reversed `CAnimManager::BlendAnimation` /
   `AddAnimation` and `CAnimBlendAssociation::UpdateBlend` / `UpdateTime`:
   - WALK, RUN and SPRINT are synchronised. `RpAnimBlendClumpUpdateAnimations`
-    advances them at one phase rate, Σ blend / Σ blend × length, and a newly
+    advances them at one phase rate, Σ blend / Σ (blend × length / speed), and a newly
     blended one joins the moving anim's phase.
   - The ped moves by the blend-weighted sum of each clip's root travel over
     the frame (`FrameUpdateCallBackSkinnedWithVelocityExtraction`), not
@@ -2787,10 +2787,12 @@ reVC (mrxenginner/reVC, miami branch).
   - Sprint builds to about 9.6 m/s over 0.5 s.
   - A sprint stop slides 2.2–2.3 units in 0.9 s.
 - Known differences:
-  - `CPlayerPed::ControlButtonSprint` (sprint tapping) is a stub, so a held
-    sprint plays at speed 1. The tired idle (IDLE_tired), adrenaline speeds
-    and the stamina rules (`HandleSprintEnergy` depends on a stubbed stat
-    modifier) keep the browser's model.
+  - Captured sprint input/resource and ground tapping playback now replace
+    the original authored meter and fixed sprint playback. See
+    [sprint energy](research/PLAYER_SPRINT_ENERGY.md) and
+    [ground playback](research/GROUND_SPRINT_PLAYBACK.md). The tired partial
+    idle, adrenaline animation/time-scale lifecycle and full movement
+    association-manager equivalence remain open.
   - Turning: `CPed::CalculateNewVelocity` is a stub. Its Vice City ancestor
     turns toward the aimed heading by at most DEGTORAD(rate) × TimeStep a
     frame, and pedstats.dat gives STAT_PLAYER 9 (450° per second). The
@@ -14821,3 +14823,40 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   surface restrictions. Production smoke passes saved-game return, movement,
   car entry, map/waypoint, pause/resume, takeoff and landing gear with no page
   errors or failed requests.
+
+## Captured ground sprint playback (October 26, 2026)
+
+- Ground sprint now applies the captured button result to the SPRINT
+  association's playback. Repeated presses can reach float32 1.3; ordinary
+  held input returns to 1. The character supplies its read-only controller
+  preview and Simulation still commits the resource once.
+- The independent harness executes the entire selected SetRealMoveAnim
+  (`0x10035eaa4`) with established walk/run/sprint associations. Its 48 cases
+  cover threshold-adjacent button values, MODE_FIXED and ordinary cameras,
+  and steady/resuming sprint deltas. Lookup supplies declared association
+  objects and the external sprint-training call is a logged stub. All
+  playback and delta results match exactly and regenerate byte-identically;
+  this is not a complete animation-manager or original-PC comparison.
+- Synchronised associations now use the PC implementation's weighted
+  duration divided by playback speed. Their phase remains shared while
+  blended root travel responds to tapping. Fifty new checks expose the
+  missing speed behavior; all 129 focused checks pass (one existing skip),
+  including the unchanged ordinary blends, stops and character regressions.
+- Live keyboard movement extracts 9.564 m/s across ordinary sprint strides
+  and 12.340 m/s during frame-scheduled DOM key taps. All 119 boosted frames
+  match native playback; button speed reaches 10 and held decay returns to
+  1. The rapid taps use the existing SCM time-scale adapter at 0.1 to keep
+  input cadence independent of software rendering's fixed-step catch-up.
+  Ordinary movement and final held decay run at normal scale. There are no
+  page errors. Root travel is measured before scenery blocks displacement.
+- The pure adapter also matches MODE_FIXED's 0.7 override; live camera-mode
+  ownership, adrenaline animation/time-scale behavior, tired partial idle,
+  fallback single-role rigs and complete SetRealMoveAnim equivalence remain
+  separate work.
+  [Full routine, stubs, phase formula and browser method](research/GROUND_SPRINT_PLAYBACK.md).
+- All 8,068 unit tests pass (51 skipped). Final TypeScript validation and
+  production build pass. The existing live keyboard resource/exhaustion
+  regression also passes with the playback change.
+- Production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and landing gear with no page errors or
+  failed requests.

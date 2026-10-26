@@ -10,13 +10,16 @@
  *     idle in at 4 per second.
  * - The associations follow the reversed CAnimManager::BlendAnimation / AddAnimation and CAnimBlendAssociation
  *   UpdateBlend / UpdateTime. WALK, RUN and SPRINT are synchronised (RpAnimBlendClumpUpdateAnimations advances them at
- *   one phase rate, Σ blend / Σ blend × length), and a newly blended one joins the moving anim's phase
+ *   one phase rate, Σ blend / Σ (blend × length / speed)), and a newly blended one joins the moving anim's phase
  *   (AddAnimationAndSync).
  * - The extracted velocity is the blend-weighted sum of each extracting clip's forward root travel over the frame
  *   (FrameUpdateCallBackSkinnedWithVelocityExtraction), not normalised by the total blend.
- * Not reproduced: the tired idle (IDLE_tired, a partial clip), adrenaline and fixed-camera sprint speeds, and
- * the SPRINT association's playback response to tapping. The captured sprint controller now supplies
- * eligibility/resource state separately; this move-association port still plays ground sprint at speed 1. */
+ * - Ground sprint playback follows selected iOS SetRealMoveAnim (0x10035eaa4): max(1, ground button result),
+ *   or 0.7 in MODE_FIXED. Synchronised phase uses duration / playback speed, as RpAnimBlendClumpUpdateAnimations does.
+ * Not reproduced: the tired idle (IDLE_tired, a partial clip), adrenaline's animation/time-scale lifecycle and
+ * full SetRealMoveAnim equivalence. The host currently supplies ordinary-camera sprint playback. */
+
+import {nativeButtonSprintResult,SPRINT_MODE} from '../simulation/nativePlayerSprint';
 
 export type MoveClip='idle'|'walkStart'|'walk'|'run'|'sprint'|'runStop'|'runStopR';
 export interface MoveClipInfo{duration:number}
@@ -24,7 +27,7 @@ export interface MoveClipInfo{duration:number}
 const LOOPED=new Set<MoveClip>(['idle','walk','run','sprint']),SYNCED=new Set<MoveClip>(['walk','run','sprint']);
 export const MOVE_EXTRACTS=new Set<MoveClip>(['walkStart','walk','run','sprint','runStop','runStopR']);
 /** ANIMATION_IS_BLEND_AUTO_REMOVE: every one of these is deleted once faded out. */
-export interface MoveAssociation{clip:MoveClip;time:number;step:number;blend:number;delta:number;playing:boolean;autoRemove:boolean}
+export interface MoveAssociation{clip:MoveClip;time:number;step:number;speed:number;blend:number;delta:number;playing:boolean;autoRemove:boolean}
 /** One frame of an extracting association's time, weighted by its blend, for the caller's root-motion sum. */
 export interface MoveSegment{clip:MoveClip;from:number;to:number;wrapped:boolean;blend:number}
 export type MoveState='still'|'walk'|'run'|'sprint';
@@ -39,7 +42,7 @@ export class NativeMoveAnims{
  /** CAnimManager::AddAnimation: a fresh association at full blend, playing from 0, or for a synchronised clip at the
   * phase of the newest synchronised one already on the ped (AddAnimationToClump prepends, so it is the list's first). */
  private add(clip:MoveClip){
-  const a:MoveAssociation={clip,time:0,step:0,blend:1,delta:0,playing:true,autoRemove:false};
+  const a:MoveAssociation={clip,time:0,step:0,speed:1,blend:1,delta:0,playing:true,autoRemove:false};
   if(SYNCED.has(clip)){const newest=[...this.assocs.values()].reverse().find(m=>SYNCED.has(m.clip));if(newest)a.time=newest.time/this.duration(newest.clip)*this.duration(clip);}
   this.assocs.set(clip,a);return a;
  }
@@ -73,12 +76,12 @@ export class NativeMoveAnims{
    a.blend+=a.delta*seconds;
    if(a.blend<=0&&a.delta<0){a.blend=0;a.delta=Math.max(0,a.delta);if(a.autoRemove){this.remove(a.clip);continue;}}
    if(a.blend>1){a.blend=1;a.delta=Math.min(0,a.delta);}
-   if(SYNCED.has(a.clip)){totalTime+=this.duration(a.clip)*a.blend;totalBlend+=a.blend;}
+   if(SYNCED.has(a.clip)){totalTime+=this.duration(a.clip)/a.speed*a.blend;totalBlend+=a.blend;}
   }
   const mult=totalTime===0?1:totalBlend/totalTime,segments:MoveSegment[]=[];
   for(const a of this.assocs.values()){
    if(!a.playing)continue;
-   a.step=(SYNCED.has(a.clip)?this.duration(a.clip)*mult:1)*seconds;
+   a.step=(SYNCED.has(a.clip)?this.duration(a.clip)*mult:a.speed)*seconds;
    const total=this.duration(a.clip),from=a.time;
    if(a.time>=total){a.playing=false;continue;}
    a.time+=a.step;let wrapped=false;
@@ -91,8 +94,10 @@ export class NativeMoveAnims{
   return segments;
  }
  /** CPlayerPed::SetRealMoveAnim for the current move blend ratio and sprint request. */
- setRealMoveAnim(ratio:number,sprint:boolean){
+ setRealMoveAnim(ratio:number,sprint:boolean,playback?:{buttonSpeed:number;fixedCamera?:boolean}){
   let walk=this.assocs.get('walk'),run=this.assocs.get('run'),sprintAssoc=this.assocs.get('sprint'),walkStart=this.assocs.get('walkStart'),idle=this.assocs.get('idle');
+  const sprintSpeed=playback?.fixedCamera?Math.fround(.7):Math.max(1,nativeButtonSprintResult(playback?.buttonSpeed??0,SPRINT_MODE.ground));
+  if(sprintAssoc)sprintAssoc.speed=sprintSpeed;
   const runStop=this.assocs.get('runStop'),runStopR=this.assocs.get('runStopR');
   // CPlayerPed::ProcessControl resets the state to still each frame; PlayerControlZelda sets sprint while it is held.
   this.moveState=sprint?'sprint':'still';
@@ -143,7 +148,7 @@ export class NativeMoveAnims{
    walk.playing=false;run.playing=false;walk.blend=0;run.blend=0;
   }else if(this.moveState==='sprint'){
    if(sprintAssoc){if(sprintAssoc.delta<0){sprintAssoc.delta=2;run.delta=-2;}}
-   else{walk.blend=0;run.blend=1;this.blendAnimation('sprint',2);}
+   else{walk.blend=0;run.blend=1;this.blendAnimation('sprint',2).speed=sprintSpeed;}
   }else{
    if(ratio<1){walk.blend=1;run.blend=0;this.moveState='walk';}
    else if(ratio<2){walk.blend=2-ratio;run.blend=ratio-1;this.moveState='run';}

@@ -144,8 +144,9 @@ or failed requests. Logs are `artifacts/player-sprint-targeted-final.log` and
 
 The controller fixture establishes selected-executable computation with
 declared external inputs, rather than matched original-PC input traces.
-The ground SPRINT association still plays at its existing speed 1; its full
-tapping-dependent playback, adrenaline/fixed-camera animation behavior,
+The [later ground playback port](GROUND_SPRINT_PLAYBACK.md) applies the
+captured tapping result to ordinary-camera SPRINT associations and their
+synchronised root travel. Adrenaline/fixed-camera host behavior,
 complete task/air/weapon ownership, mobile widget semantics and the BMX
 pedal/controller integration remain separate work. Capturing the BMX table
 row does not establish its live vehicle integration.

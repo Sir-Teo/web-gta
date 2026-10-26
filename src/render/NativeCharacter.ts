@@ -637,7 +637,7 @@ export class NativeCharacter {
       return { ...controls, x: 0, y: 0, jump: false, sprint: false, holdMove: true, animationMotionSpace: this.motionSpace, animationMotion: displacement };
     }
     if (airborneAction(action)) { this.seconds = Math.min(this.active.duration, this.seconds + dt); this.motionTransition.reset(); return originalControls; }
-    if (action === 'move') return this.stepMoves(dt, controls, sim, runnable);
+    if (action === 'move') return this.stepMoves(dt, controls, sim, runnable,sprint?.buttonSpeed??0);
     if (action === 'gunMove') return this.stepGunMove(dt, controls);
     if (action === 'fightMove') return this.stepGunMove(dt, controls, true);
     if (idleAction(action)) {
@@ -656,7 +656,7 @@ export class NativeCharacter {
     return { ...controls, sprint: action === 'sprint' || action === 'run' && !this.clips.sprint, animationMotionSpace: this.motionSpace, animationMotion: this.motionTransition.advance(motion,dt) };
   }
   /** One frame of the player's movement associations: the clump update, then SetRealMoveAnim with the new ratio. */
-  private stepMoves(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>, runnable: boolean): Controls {
+  private stepMoves(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>, runnable: boolean,buttonSpeed:number): Controls {
     const anims = this.moveAnims!;
     for (const [clip, a] of anims.assocs) this.movePrevious.set(clip, a.time);
     let x = 0, z = 0;
@@ -667,7 +667,7 @@ export class NativeCharacter {
       const looped = LOOPED_MOVES.has(segment.clip), d = clip.motion.between(segment.from, segment.wrapped ? segment.to + clip.duration : segment.to, this.basis, looped);
       x += d.x * segment.blend; z += d.z * segment.blend;
     }
-    anims.setRealMoveAnim(this.moveBlend, !!controls.sprint && runnable && !controls.walk);
+    anims.setRealMoveAnim(this.moveBlend, !!controls.sprint && runnable && !controls.walk,{buttonSpeed});
     this.seconds += dt; this.motionTransition.reset();
     // A run stop zeroes m_headingRate until it ends.
     return { ...controls, sprint: anims.moveState === 'sprint', facing: anims.headingLocked ? sim.player.heading : controls.facing, animationMotionSpace: this.motionSpace, animationMotion: { x, z } };
@@ -970,7 +970,7 @@ export class NativeCharacter {
   }
   /** The current locomotion action, as snapshot().action gives it, without building the snapshot. */
   get currentAction(){return this.action === 'move' ? this.moveAction() : this.action;}
-  snapshot() { return { motionGroup:this.playerMotionGroup,vehicleClip:this.vehicleClip??null,reload:this.weaponReload??null,reaction:this.reaction?.name??null, gun:this.gunAnims?{cmd:{...this.gunAnims.cmd},lowered:this.gunAimLowered,poses:this.gunAnims.poses().map(a=>({clip:a.clip,blend:+a.blend.toFixed(3),playing:a.playing,speed:+a.speed.toFixed(3)}))}:null, playbackSpeed:landingAction(this.action)?this.landingSpeed:1, moveBlend:this.moveBlend, playerBody:!!this.shoulders, bodySwaps:this.bodySwaps, transition: this.transitionTime / this.transitionDuration, action: this.action === 'move' ? this.moveAction() : this.action, moves: this.moveAnims ? [...this.moveAnims.assocs.values()].map(a => ({ clip: a.clip, blend: a.blend, time: a.time })) : null, seconds: this.seconds, visible: this.root.visible }; }
+  snapshot() { return { motionGroup:this.playerMotionGroup,vehicleClip:this.vehicleClip??null,reload:this.weaponReload??null,reaction:this.reaction?.name??null, gun:this.gunAnims?{cmd:{...this.gunAnims.cmd},lowered:this.gunAimLowered,poses:this.gunAnims.poses().map(a=>({clip:a.clip,blend:+a.blend.toFixed(3),playing:a.playing,speed:+a.speed.toFixed(3)}))}:null, playbackSpeed:landingAction(this.action)?this.landingSpeed:1, moveBlend:this.moveBlend, playerBody:!!this.shoulders, bodySwaps:this.bodySwaps, transition: this.transitionTime / this.transitionDuration, action: this.action === 'move' ? this.moveAction() : this.action, moves: this.moveAnims ? [...this.moveAnims.assocs.values()].map(a => ({ clip: a.clip, blend: a.blend, time: a.time, speed:a.speed })) : null, seconds: this.seconds, visible: this.root.visible }; }
   /** The gait the movement associations show, by name. */
   private moveAction(): Action { const a = this.moveAnims!; if (a.assocs.has('runStop') || a.assocs.has('runStopR')) return 'runStop'; if (a.assocs.has('walkStart')) return 'walkStart'; const w = (c: MoveClip) => a.assocs.get(c)?.blend ?? 0; return w('sprint') > .5 ? 'sprint' : w('run') > w('walk') && w('run') > w('idle') ? 'run' : w('walk') > w('idle') ? 'walk' : 'idle'; }
   dispose() { this.setThermal(false);this.heatMaterial.dispose();this.root.removeFromParent(); this.owner.dispose(); }
