@@ -1720,10 +1720,15 @@ export class WorldPedestrians {
  /** CEventHandler::ComputeVehicleDiedResponse: the occupant of a car that blew up dies where he sat (health 0,
   * CTaskComplexDie by WEAPON_EXPLOSION with KO_shot_front). The ped stands in as the body at the seat and takes the
   * explosion at once. `scorched` distinguishes vehicle destruction from a shot victim leaving its car. */
- spawnDead(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number,recruit=false,scorched=false){
+ spawnDead(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number,recruit=false,scorched=false,corpse?:{armour?:number;accounted?:boolean}){
   // A recruit dies still a member of the group: CDarkel::RegisterKillByPlayer asks IsMember and counts him as one.
   // CPed::CreateDeadPedMoney returns at once for a ped that died bInVehicle (Ped.cpp:590-592): the body leaves no cash.
-  return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{if(recruit)p.follow=true;p.money=0;p.renderScorched=scorched;this.damageCollider(p.collider.handle,1000,{x:Math.sin(heading),z:Math.cos(heading)},'explosion');});
+  return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{
+   if(recruit)p.follow=true;p.money=0;p.renderScorched=scorched;
+   if(corpse?.armour!==undefined)p.armour=corpse.armour;
+   if(corpse?.accounted)this.restoreDeadScriptPed(p);
+   else this.damageCollider(p.collider.handle,1000,{x:Math.sin(heading),z:Math.cos(heading)},'explosion');
+  });
  }
  /** A driver the player dragged out (CEventDraggedOutCar answered by his decision maker, event 7; the car is the
   * one he lost). Only KILL_PED_ON_FOOT acts in the reversed handler: when the kill is appropriate (an unarmed victim

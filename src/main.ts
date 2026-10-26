@@ -1154,7 +1154,7 @@ async function boot() {
    const shooter=driveby?.crewLeave(car);
    if(shooter)carEntry.evictPassenger(car,{model:shooter.model},(position,heading)=>{pedestrians?.spawnJacked(shooter.model,position,heading,shooter.gang,{position:()=>{const t=car.car.body.translation();return {x:t.x,y:t.y,z:t.z};}});},pedEnteredVehicleLeaveDelay(Math.floor(Math.random()*65536)));};
   carEntry.onDriverOut=(car,position,heading,lying,who,seat=0)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);const model=who?.model??occupants.driverModel(car),release=()=>carEntry.releaseDragged(car,seat);
-   if(!seat&&car.driverDead||who?.dead){if(!seat)car.driverDead=false;pedestrians?.spawnDead(model,position,heading,car.gang,false,car.wrecked);release();return;}
+   if(!seat&&car.driverDead||who?.dead){if(!seat)car.driverDead=false;pedestrians?.spawnDead(model,position,heading,car.gang,false,car.wrecked,{armour:who?.officer?.vitals?.armour,accounted:who?.deathAccounted});release();return;}
    // A cop dragged out of his car gets up a cop, armed, and goes on as any officer on foot (CCopPed).
    if(who?.officer&&typeof model==='string'&&pedestrians){void pedestrians.spawnOfficer(model,who.officer.weapon,position,heading,undefined,who.officer.accuracy,false,lying,who.officer.vitals).catch(()=>false).finally(release);return;}
    pedestrians?.spawnJacked(model,position,heading,car.gang,{position:()=>{const t=car.car.body.translation();return {x:t.x,y:t.y,z:t.z};}},VEHICLE_ANIM_GROUP_TABLES[car.animGroup.id]?.file==='coach',lying,release)||release();};
@@ -5746,10 +5746,11 @@ async function boot() {
              const forceDeath=piece===9&&!target.noCriticalHits&&isInstantHitGun(weapon),raw=damageFactor??damage;
              if(target.kind==='script')return scriptRiderShot(target.rider as ScriptRider,raw,weapon,creator!=='remote',()=>scriptRiderKilled(target,creator),{forceDeath:damageFactor!==undefined&&forceDeath,friendlyFire:creator==='ped'&&target.crew});
              const car=target.car as ScriptCar;
-             return target.kind==='passenger'?carEntry.passengerShot(car,target.seat,raw,true,forceDeath,{weapon,piece,creator}):target.kind==='police'?police?.crewShot(car,target.seat,raw,weapon,damageFactor!==undefined&&forceDeath):target.kind==='driveby'?driveby?.crewShot(car,target.seat,damage):traffic?.driverShot(car,damage);
+             return target.kind==='passenger'?carEntry.passengerShot(car,target.seat,raw,true,forceDeath,{weapon,piece,creator}):target.kind==='police'?police?.crewShot(car,target.seat,raw,weapon,damageFactor!==undefined&&forceDeath,creator):target.kind==='driveby'?driveby?.crewShot(car,target.seat,damage):traffic?.driverShot(car,damage);
             };
             if(driveby)driveby.onCrewDiesOut=(car,model)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading,car.gang,false,car.wrecked))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading(),car.gang,false,car.wrecked);}};
-            if(police)police.onCrewDiesOut=(car,model)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading,undefined,false,car.wrecked))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading(),undefined,false,car.wrecked);}};
+            if(police)police.onCrewKilled=(_car,_seat,creator)=>pedestrians?.onKill?.({id:-1,officer:true,pedType:'COP',byPlayer:creator==='ped',byPlayerVehicle:creator==='vehicle'});
+            if(police)police.onCrewDiesOut=(car,model,corpse)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading,undefined,false,car.wrecked,corpse))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading(),undefined,false,car.wrecked,corpse);}};
             // CTaskComplexLeaveCarAndFlee (a tyre shot out, R_Weak.ped): CTaskComplexLeaveCar without waiting for the car to
             // slow, then CTaskComplexSmartFleePoint 60 units from where the driver was, for good.
             // CEventVehicleDied: a car blown up with its driver aboard leaves him dead at the seat.

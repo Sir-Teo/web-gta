@@ -13978,3 +13978,17 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   and 51 skipped. Native source/group/task parity and ambient crew death
   accounting/reconstruction remain open.
   [PC constructor, trials and limits](research/COP_ARMOUR.md).
+
+## Seated police bullet kill timing (October 26, 2026)
+
+- Police crews now register their first accepted fatal bullet at the hit, using
+  the existing creator-specific counter/respect paths. A retained marker and
+  armour follow a counted death through coast, exit and drag-out descriptions;
+  body reconstruction restores the corpse without another weapon hit.
+- A dispatched FBI trial checks player-ped, driven-vehicle and remote deltas,
+  repeated contacts and the remote driver's delayed body. A separate actual
+  dead-cop jack preserves the corpse, suppresses cash and leaves counters
+  unchanged. Armour/transition, living jack and driver-death regressions pass;
+  the full suite has 5,681 passing tests and 51 skipped. Other ambient crews,
+  complete native source identity and all native accounting fields remain open.
+  [Reference, tests and limits](research/POLICE_SEATED_KILLS.md).

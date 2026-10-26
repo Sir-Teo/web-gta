@@ -36,8 +36,9 @@ hits, falls, drowning and forced heads. A native FBI crew trial exercises its
 animated exit and return with armour already spent.
 
 The host still uses separate browser bodies for vehicle and foot states.
-Other CPed fields, ambient NPC-to-police seated routing, dead-body reconstruction
-and complete crew kill accounting/task equivalence remain open. This change
+Other CPed fields, ambient NPC-to-police seated routing, complete crew kill accounting/task equivalence remain open. Seated police bullet
+accounting and already-counted body reconstruction are covered in
+[seated police kills](POLICE_SEATED_KILLS.md). This change
 does not establish complete population or pursuit parity with retail PC 1.0.
 
 The live FBI trial sets the wanted maximum to six through the game API before

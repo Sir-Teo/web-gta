@@ -5,6 +5,7 @@ import {DIE_IN_CAR_OFFSET_MS,canPedStepOutCar} from '../vehicle/nativeDieInCar';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {healthAfter,spendPedArmour} from '../ped/damage';
 import {copArmour,type PedVitals} from '../ped/nativeCopVitals';
+import type {ShotCreator} from '../weapons/WeaponSystem';
 import {openStaticWorld} from '../assets/staticWorldArchive';
 import {worldPaths} from '../assets/worldPaths';
 import {readRoadblox} from '../assets/roadblox';
@@ -143,7 +144,7 @@ interface Unit {
  /** The seat whose cop was handed a shotgun, if one was. */
  shotgunSeat?:number;
  /** CPed health per seat under the player's bullets, seats whose cop died in them (CTaskSimpleDieInCar), and the dying driver's 2000 ms coast (CTaskComplexDieInCar). */
- seatHealth:number[];seatArmour?:number[];deadSeats:boolean[];driverDying?:{at:number};
+ seatHealth:number[];seatArmour?:number[];deathAccounted?:boolean[];deadSeats:boolean[];driverDying?:{at:number};
  mission:'far'|'close'|'stopped'|'cruise'|'roadblock'|'slowly1'|'slowly2';siren:boolean;cruise:number;
  /** A set piece's MISSION_SLOWLY_DRIVE_TOWARDS_PLAYER destination (native) and its TEMPACT_GOFORWARD end. */
  goal?:{x:number;y:number};goForwardUntil?:number;
@@ -189,7 +190,9 @@ export class WorldPolice {
  /** The street population's cops on foot: list a unit's crew, send one toward a door point (undefined resumes the pursuit), or take one into the car. */
  crew?:{list:(unit:object)=>FootCrew[];goTo:(id:number,point?:{x:number;z:number},walk?:boolean)=>void;board:(id:number)=>boolean};
  /** CTaskComplexLeaveCarAndDie for a unit's shot driver once the car rests: the host plays his exit and lays him dead. */
- onCrewDiesOut?:(car:WorldCar,model:string)=>void;
+ onCrewDiesOut?:(car:WorldCar,model:string,corpse?:{armour:number;accounted:boolean})=>void;
+ /** EventHandler::RegisterKill runs at the accepted fatal transition, before any later corpse reconstruction. */
+ onCrewKilled?:(car:WorldCar,seat:number,creator:ShotCreator)=>void;
  /** The seated crew a bullet line can reach (CWorld::ProcessLineOfSight on seated peds): seat locals in car space. */
  crewSeats(){
   const out:{car:WorldCar;seat:number;local:V3;headingOffset:number}[]=[];
@@ -206,15 +209,16 @@ export class WorldPolice {
  }
  /** A bullet reaching a seated cop: CPed damage; the fatal one starts the driver's 2000 ms coast (CTaskComplexDieInCar)
   * or kills a passenger in his seat. */
- crewShot(car:WorldCar,seat:number,damage:number,weapon=22,forceDeath=false):'hit'|'killed'|undefined{
+ crewShot(car:WorldCar,seat:number,damage:number,weapon=22,forceDeath=false,creator:ShotCreator='ped'):'hit'|'killed'|undefined{
   const u=this.units.find(u=>u.car===car);
   if(!u||car.wrecked||car.occupied||!u.seats[seat]||u.deadSeats[seat])return undefined;
-  if(seat===0&&u.driverDying)return 'killed';
+  if(seat===0&&u.driverDying||u.seatHealth[seat]<=0)return 'killed';
   const armour=this.armourOf(u),response=spendPedArmour(damage,armour[seat],weapon);armour[seat]=response.armour;
   u.seatHealth[seat]=forceDeath?0:healthAfter(u.seatHealth[seat],response.damageHealth);
   if(u.seatHealth[seat]>0)return 'hit';
   if(seat===0){u.driverDying={at:u.seconds};u.siren=false;}
   else u.deadSeats[seat]=true;
+  (u.deathAccounted??=Array(4).fill(false))[seat]=true;this.onCrewKilled?.(car,seat,creator);
   return 'killed';
  }
  private armourOf(u:Unit){return u.seatArmour??=Array(4).fill(copArmour(u.member?.model??''));}
@@ -486,7 +490,7 @@ export class WorldPolice {
     const world=local&&car.worldPoint(local),distance=world?Math.hypot(world.x-c.position.x,world.z-c.position.z):Infinity;
     if(!world||!usable||c.down||back.time>30||distance>50){u.returning.delete(c.id);crew.goTo(c.id);continue;}
     if(distance<back.best-.05){back.best=distance;back.stall=0;}else back.stall+=dt;
-    if((distance<=.5||back.stall>1.2&&distance<1.2)&&crew.board(c.id)){u.seatHealth[back.seat]=c.health??u.seatHealth[back.seat];this.armourOf(u)[back.seat]=c.armour??this.armourOf(u)[back.seat];u.returning.delete(c.id);this.enterPhase(u,back.seat,'align');continue;}
+    if((distance<=.5||back.stall>1.2&&distance<1.2)&&crew.board(c.id)){u.seatHealth[back.seat]=c.health??u.seatHealth[back.seat];this.armourOf(u)[back.seat]=c.armour??this.armourOf(u)[back.seat];if(u.deathAccounted)u.deathAccounted[back.seat]=false;u.returning.delete(c.id);this.enterPhase(u,back.seat,'align');continue;}
     crew.goTo(c.id,{x:world.x,z:world.z},distance<4);continue;
    }
    if(c.down)continue;
@@ -629,7 +633,7 @@ export class WorldPolice {
     if(u.seconds>=u.driverDying.at+DIE_IN_CAR_OFFSET_MS/1000){
      u.driverDying=undefined;
      const v=car.car.body.linvel(),w=car.car.body.angvel(),r=car.car.body.rotation(),upZ=1-2*(r.x*r.x+r.z*r.z);
-     if(canPedStepOutCar(upZ,{x:v.x/50,y:-v.z/50,z:v.y/50},{x:w.x/50,y:-w.z/50,z:w.y/50})){u.seats[0]=false;this.onCrewDiesOut?.(car,u.member.model);car.driverOut=true;}
+     if(canPedStepOutCar(upZ,{x:v.x/50,y:-v.z/50,z:v.y/50},{x:w.x/50,y:-w.z/50,z:w.y/50})){u.seats[0]=false;this.onCrewDiesOut?.(car,u.member.model,{armour:this.armourOf(u)[0],accounted:!!u.deathAccounted?.[0]});car.driverOut=true;}
      else{u.deadSeats[0]=true;car.driverDead=true;}
     }
     car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};continue;
@@ -793,14 +797,14 @@ export class WorldPolice {
   * was handed it), for the ped the player drags out or who leaves it. */
  driverOf(car:WorldCar){
   const u=this.units.find(u=>u.car===car);
-  return u&&{model:u.member.model,officer:{weapon:u.shotgunSeat===0?25:u.member.weapon,accuracy:u.member.accuracy,vitals:this.crewVitals(u,0)}};
+  return u&&{model:u.member.model,officer:{weapon:u.shotgunSeat===0?25:u.member.weapon,accuracy:u.member.accuracy,vitals:this.crewVitals(u,0)},dead:u.seatHealth[0]<=0,deathAccounted:!!u.deathAccounted?.[0]};
  }
  /** The cop in the front passenger seat of a unit's car (CCarEnterExit::ComputeSlowJackedPed for the right front
   * door, m_apPassengers[0]), alive or dead, unless he is getting in or out. */
  frontPassengerOf(car:WorldCar){
   const u=this.units.find(u=>u.car===car);
   if(!u||!u.seats[1]||u.leaving.some(l=>l.seat===1)||u.entering.some(e=>e.seat===1))return undefined;
-  return {model:u.member.model,officer:{weapon:u.shotgunSeat===1?25:u.member.weapon,accuracy:u.member.accuracy,vitals:this.crewVitals(u,1)},dead:u.deadSeats[1]};
+  return {model:u.member.model,officer:{weapon:u.shotgunSeat===1?25:u.member.weapon,accuracy:u.member.accuracy,vitals:this.crewVitals(u,1)},dead:u.deadSeats[1],deathAccounted:!!u.deathAccounted?.[1]};
  }
  /** The player is dragging the front passenger out: the car entry draws him from now on. */
  dragPassenger(car:WorldCar){const u=this.units.find(u=>u.car===car);if(u){u.seats[1]=false;u.deadSeats[1]=false;u.seatHealth[1]=100;}}

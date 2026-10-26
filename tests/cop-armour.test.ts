@@ -23,9 +23,9 @@ test('a wounded seated cop retains both values on exit and in the drag-out descr
  expect(host.spawnOfficer.mock.calls[0][7]).toEqual({health:75,armour:0});
 });
 test('a cop returning to a different seat retains live health and armour before entering',()=>{
- const {car,unit,host}=fixture('army');unit.seats=[false,false];unit.returning.set(9,{seat:0,time:0,best:1,stall:0});
+ const {car,unit,host}=fixture('army');unit.seats=[false,false];unit.deathAccounted=[true,true];unit.returning.set(9,{seat:0,time:0,best:1,stall:0});
  host.crew={list:()=>[{id:9,seat:1,health:63,armour:17,position:{x:0,y:0,z:0},down:false}],board:vi.fn(()=>true),goTo:vi.fn()};host.enterPhase=vi.fn();host.recallCrew(unit,.1);
- expect(unit.seatHealth[0]).toBe(63);expect(unit.seatArmour[0]).toBe(17);expect(host.enterPhase).toHaveBeenCalledWith(unit,0,'align');
+ expect(unit.seatHealth[0]).toBe(63);expect(unit.seatArmour[0]).toBe(17);expect(unit.deathAccounted[0]).toBe(false);expect(host.enterPhase).toHaveBeenCalledWith(unit,0,'align');
 });
 test('the walking crew list exposes actual wounds before the body is removed on boarding',()=>{
  const unit={},ped:any={id:9,health:63,armour:17,crew:{unit,seat:1},actor:{player:{position:{x:0,y:0,z:0}}},down:0};
