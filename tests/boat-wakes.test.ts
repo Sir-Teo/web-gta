@@ -49,10 +49,10 @@ test('trails behind the stern ribbon the oldest segment, nothing without a trail
  }finally{wakes.dispose();}
 });
 
-test('burning hulls run overheat smoke and fire through the car systems',()=>{
+test('burning hulls route native health and wrecked state through boat fire, without car overheat smoke',()=>{
  const sim=new Simulation(),scene=new Scene(),camera=new PerspectiveCamera(55,1,.1,100);
  const fx=new WorldFx(scene,sim,camera);
- const calls:{overheat:number[];fire:boolean[]}={overheat:[],fire:[]};
+ const calls:{overheat:number[];fire:[number,boolean][]}={overheat:[],fire:[]};
  const fakeBoat=(health:number,wrecked:boolean)=>({
   splashes:[],health,wrecked,onFire:!wrecked&&health<250,inWater:true,
   body:{translation:()=>({x:0,y:0,z:0}),rotation:()=>({x:0,y:0,z:0,w:1}),linvel:()=>({x:0,y:0,z:0})},
@@ -63,10 +63,10 @@ test('burning hulls run overheat smoke and fire through the car systems',()=>{
   (fx as unknown as {effects:object}).effects={
    statics:{},boatSplash(){},
    overheat:(current:unknown,health:number)=>{calls.overheat.push(health);return undefined;},
-   carFire:(current:unknown,burning:boolean)=>{calls.fire.push(burning);return undefined;},
+   boatFire:(current:unknown,health:number,wrecked:boolean)=>{calls.fire.push([health,wrecked]);return undefined;},
   };
   fx.step(1/60,[],[],[],[],[fakeBoat(500,false),fakeBoat(100,false),fakeBoat(0,true)]);
-  expect(calls.overheat).toEqual([500,100,0]);
-  expect(calls.fire).toEqual([false,true,false]);
+  expect(calls.overheat).toEqual([]);
+  expect(calls.fire).toEqual([[500,false],[100,false],[0,true]]);
  }finally{fx.dispose();sim.dispose();}
 });

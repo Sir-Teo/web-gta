@@ -4257,7 +4257,7 @@ async function boot() {
          plane.beforeStep(step,permitted?planeControls:{throttle:0,pitch:0,roll:0,rudder:0,brake:false});
         }
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const {phase,foot}=plane.entry;plane.entry=undefined;if(phase==='getin')plane.finishEnter();else plane.finishExit(foot);}
-        for(const boat of fleet?.boats??[])boat.beforeStep(step,boat.occupied?{throttle:axes.y,steer:steerAxes.x,brake:input.down('Space')}:undefined);
+        for(const boat of fleet?.boats??[])boat.beforeStep(step,boat.occupied?{throttle:axes.y,steer:steerAxes.x,brake:input.down('Space')}:undefined,render.camera.position);
         // ProcessDrivingAnims in a boat: the DRIVE_BOAT set, or a car's in a boat its driver sits in, steering and looking back.
         {const boat=fleet?.occupiedBoat;if(boat)boat.driving.step(step,{steer:boat.steerAngle,reversing:boat.gasPedal<0&&!(boat.modelFlags&MODEL_FLAG.low),idleFull:true,ride:boatRideAnims(boat,carEntry.drivingSkill),duration:name=>carEntry.clips.ped(name)?.duration});}
         const bikeMotion=bikeMount.step(step);

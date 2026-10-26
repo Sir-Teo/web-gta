@@ -3,6 +3,7 @@ import {NativeClumpAlpha} from './nativeClumpAlpha';
 import {bindClumpAlpha} from '../render/nativeClumpAlpha';
 import {bindNativeBoatComponents} from '../render/nativeBoatComponents';
 import type {BoatFlapMotion} from './nativeBoatFlap';
+import {boatFireControl,boatFirePosition} from './nativeBoatFire';
 import {bindNativeCarDirt} from '../render/nativeCarDirt';
 import {NativeCarReflection} from '../assets/nativeCarEnvMap';
 import {randomSeed} from './nativeVehicleLights';
@@ -104,20 +105,18 @@ export class WorldBoat {
  get crimeKey(){return `boat:${this.body.handle}`;}
  /** CBoat::ProcessControl's fire section: the blow-up timer is cleared only above 460 health or once wrecked; below
   * that it holds, and under 250 health, with the hull within 200 units of the camera along each ground axis (the
-  * player stands in for the camera), it runs (TimeStep × 20 ms a frame) until past 5000 ms the hull blows up. */
- private processFire(dt:number){
-  if(this.health>460||this.wrecked){this.burnTimer=0;return;}
-  if(this.health>=250)return;
-  const p=this.body.translation(),c=this.sim.player.position;
-  if(Math.abs(p.x-c.x)>=200||Math.abs(p.z-c.z)>=200)return;
-  this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();
+   * standalone caller may use the player as its camera), it runs (TimeStep × 20 ms a frame) until past 5000 ms the hull blows up. */
+ private processFire(dt:number,camera=this.sim.player.position){
+  const p=this.body.translation(),state=boatFireControl(this.health,this.wrecked,[p.x,-p.z,p.y],[camera.x,-camera.z,camera.y]);
+  if(state.reset){this.burnTimer=0;return;}
+  if(!state.burning)return;
+  // The PC timer is a float in milliseconds; the selected iOS build truncates each added millisecond interval.
+  this.burnTimer=Math.fround(Math.fround(this.burnTimer*1000)+Math.fround(Math.fround(dt*50)*20))/1000;
+  if(this.burnTimer*1000>5000)this.blowUp();
  }
- /** Burn anchor (per-model fire dummy): the engine/exhaust frame, else the stern deck. */
+ /** CBoat's per-model PC burn position, independent of engine/exhaust model frames. */
  fireDummy():{x:number;y:number;z:number}{
-  const dummy=this.assets.model?.frames.find(f=>/^(engine|exhaust)/i.test(f.name));
-  if(dummy)return {x:dummy.matrix[12],y:dummy.matrix[13],z:dummy.matrix[14]};
-  const b=this.assets.collision!.bounds;
-  return {x:0,y:b.min[1]*0.7,z:b.max[2]*0.5};
+  const [x,y,z]=boatFirePosition(this.modelId);return {x,y,z};
  }
  private previous:{x:number;y:number;z:number};private previousRotation:RAPIER.Rotation;
  /** `colors`: CVehicleModelInfo::ChooseVehicleColour's paint for the hull's colour-coded materials, as for any vehicle. */
@@ -227,7 +226,7 @@ export class WorldBoat {
  }
  /** CBoat::ProcessControl buoyancy section for a drifting hull (no throttle yet):
   * native float, browser gravity, stern wake points and bow spray. */
- beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean}={throttle:0,steer:0,brake:false}){
+ beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean}={throttle:0,steer:0,brake:false},camera?:{x:number;y:number;z:number}){
   this.componentSeconds=(this.componentSeconds??0)+dt;
   this.clumpAlpha.step(dt);
   // ProcessDelayedExplosion (CBoat::ProcessControl) runs whether or not the hull is in the world: a blast's victim
@@ -239,7 +238,7 @@ export class WorldBoat {
   const nearby=Math.hypot(focus.x-at.x,focus.y-at.y,focus.z-at.z)<250,steps=nearby||!this.wrecked&&this.pilot?.physics===true&&this.pilot.mission===MISSION_GOTOCOORDINATES_ASTHECROWSWIMS;
   const frozen=syncFrozenVehicle(this.body,this.frozen);this.body.setEnabled(steps);this.root.visible=nearby;if(!steps)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
-  if(frozen){this.processFire(dt);return;}
+  if(frozen){this.processFire(dt,camera);return;}
   // Attached to another vehicle (ATTACH_CAR_TO_CAR): a kinematic body the host sets on it after the step.
   if(this.body.bodyType()===RAPIER.RigidBodyType.KinematicPositionBased)return;
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
@@ -249,7 +248,7 @@ export class WorldBoat {
   // CBoat::ProcessControl: a scorched hull loses buoyancy each frame until it is down to 80% of its weight and sinks.
   // The loss is per game frame (30 fps), not scaled by the timestep.
   if(this.wrecked){const mass=this.handling.values.mass,floor=mass*.008*100/125;if(floor<this.water.buoyancy)this.water.buoyancy=Math.max(floor,this.water.buoyancy-mass*.001*.008*dt*30);}
-  this.processFire(dt);
+  this.processFire(dt,camera);
   this.floatOnWater(dt);
   this.holdAnchor();
   this.stepVelocity={...this.body.linvel()};

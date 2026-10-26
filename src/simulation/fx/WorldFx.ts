@@ -47,7 +47,7 @@ export interface WeaponFxHost {
 /** CVehicleModelInfo model flags NO_EXHAUST and DOUBLE_EXHAUST. */
 const MODEL_FLAG_NO_EXHAUST=0x1000,MODEL_FLAG_DOUBLE_EXHAUST=0x2000;
 interface CarFx {overheat?:NativeFxSystem;fire?:NativeFxSystem;matrix:FxMatrix}
-interface BoatFx extends CarFx {propellers:{system?:NativeFxSystem;matrix:Float64Array}[]}
+interface BoatFx {fire?:NativeFxSystem;matrix:Float64Array;propellers:{system?:NativeFxSystem;matrix:Float64Array}[]}
 /** Per-ejector damage systems for one airframe. */
 interface PlaneDamage {matrix:Float64Array;systems:{overheat?:NativeFxSystem;fire?:NativeFxSystem}[]}
 interface FuelBurst {bursts:ReturnType<NativeFxEffects['fuelBursts']>;timer:number}
@@ -251,7 +251,7 @@ export class WorldFx implements WeaponFxHost {
    for(const [plane,state] of this.dust)if(!live.has(plane)){state.system?.kill();this.dust.delete(plane);}
    for(const [plane,state] of this.planeDamage)if(!live.has(plane)){for(const s of state.systems){s.overheat?.kill();s.fire?.kill();}this.planeDamage.delete(plane);}
   }
-  /** Boat spray, stern spray, wake ribbon support and burn visuals (fire sits on the per-model fire dummy). */
+  /** Boat spray, stern spray, wake ribbon support and CBoat's owned fire system. */
   private boatDamage=new Map<WorldBoat,BoatFx>();
   private updateBoats(boats:Iterable<WorldBoat>){
    const effects=this.effects!;if(!effects)return;
@@ -264,7 +264,7 @@ export class WorldFx implements WeaponFxHost {
     const axis=(x:number,y:number,z:number)=>new THREE.Vector3(x,z,-y).applyQuaternion(q);
     const r=axis(1,0,0),f=axis(0,1,0),u=axis(0,0,1);
     const matrix:Float64Array=new Float64Array([r.x,-r.z,r.y,f.x,-f.z,f.y,u.x,-u.z,u.y,p.x,-p.z,p.y]);
-    const v=body.linvel(),velocity:FxVec=[v.x,-v.z,v.y],speedSq=(v.x*v.x+v.y*v.y+v.z*v.z)/2500,b=boat.assets.collision!.bounds;
+    const v=body.linvel(),speedSq=(v.x*v.x+v.y*v.y+v.z*v.z)/2500,b=boat.assets.collision!.bounds;
     effects.boatSplash({matrix,origin:[p.x,-p.z,p.y],boundsMin:[...b.min] as FxVec,boundsMax:[...b.max] as FxVec,
      forward:[f.x,-f.z,f.y],right:[r.x,-r.z,r.y],up:[u.x,-u.z,u.y],speedSq,cameraDist:Math.hypot(p.x-camera[0],-p.z-camera[1])});
     let damage=this.boatDamage.get(boat);if(!damage){damage={matrix:new Float64Array(12),propellers:Array.from({length:2},()=>({matrix:new Float64Array(12)}))};this.boatDamage.set(boat,damage);}
@@ -273,11 +273,10 @@ export class WorldFx implements WeaponFxHost {
      const points=boat.propellerPositions?.();
      damage.propellers.forEach((slot,i)=>{const point=points?.[i];if(!point)return;slot.matrix.set(matrix);slot.matrix[9]=point.x;slot.matrix[10]=-point.z;slot.matrix[11]=point.y;slot.system=effects.boatPropeller(slot.system,slot.matrix,boat.submergedInWater,Math.sqrt(speedSq));});
     }
-    const stern=boat.fireDummy?.()??{x:0,y:0,z:1},burn:FxVec=[stern.x,stern.y,stern.z];
-    damage.overheat=effects.overheat(damage.overheat,boat.wrecked?0:boat.health,false,burn,damage.matrix,velocity,boat.inWater);
-    damage.fire=effects.carFire(damage.fire,boat.onFire,burn,damage.matrix,velocity);
+    const stern=boat.fireDummy?.()??{x:-1.5,y:-.5,z:Math.fround(1.2)},burn:FxVec=[stern.x,stern.y,stern.z];
+    damage.fire=effects.boatFire(damage.fire,boat.health,boat.wrecked,burn,damage.matrix);
    }
-   for(const [boat,state] of this.boatDamage)if(!live.has(boat)){state.overheat?.kill();state.fire?.kill();for(const slot of state.propellers)slot.system?.kill();this.boatDamage.delete(boat);}
+   for(const [boat,state] of this.boatDamage)if(!live.has(boat)){state.fire?.kill();for(const slot of state.propellers)slot.system?.kill();this.boatDamage.delete(boat);}
   }
  /** CWeather rain and sandstorm particles. CWeather::AddRain port (0x72A9A0): ground splashes around the camera
   * with the FxPrtMult the reversed ped and vehicle rain splashes use; AddSandStormParticles is native. */
@@ -327,5 +326,5 @@ export class WorldFx implements WeaponFxHost {
   /** Fx_c::Render after the camera is placed; `dayNightBalance` is 1 at night. */
  draw(dayNightBalance:number){this.dayNight=dayNightBalance;this.renderer?.update(this.camera,dayNightBalance);}
  snapshot(){return this.manager?{...this.manager.snapshot(),...this.renderer!.snapshot(),cars:[...this.cars.values()].filter(c=>c.overheat||c.fire).length,hazards:this.hazards.size,area:this.area?.system.name??null}:{error:this.error??null,loading:true};}
- dispose(){this.disposed=true;this.renderer?.dispose();this.manager?.clear();this.cars.clear();this.hazards.clear();this.fireSystems.clear();for(const state of this.boatDamage.values()){state.overheat?.kill();state.fire?.kill();for(const slot of state.propellers)slot.system?.kill();}this.boatDamage.clear();}
+ dispose(){this.disposed=true;this.renderer?.dispose();this.manager?.clear();this.cars.clear();this.hazards.clear();this.fireSystems.clear();for(const state of this.boatDamage.values()){state.fire?.kill();for(const slot of state.propellers)slot.system?.kill();}this.boatDamage.clear();}
 }

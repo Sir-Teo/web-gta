@@ -14520,3 +14520,36 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Native PC motion captures, original friction accumulators, complete atomic
   callbacks and LOD/transparency behavior remain separate work.
   [Sources, captured regions and integration boundaries](research/BOAT_MARQUIS_FLAP.md).
+
+## Native boat fire ownership and PC offsets (October 26, 2026)
+
+- Boat fire now follows CBoat's own 250-health creation and 460-health
+  recovery boundaries. Existing fire survives partial repairs and camera
+  movement out of range. The actual camera gates creation and timer growth
+  inside the strict native 200-by-axis square; altitude is ignored.
+- Speeder, Reefer and other boats use explicit PC fire offsets, independent
+  of engine/exhaust frames. The boat path no longer requests car overheat
+  smoke or adds engine velocity to fire particles. Native fire blueprints,
+  ordinary bounds culling, creation retry and parent-matrix ownership remain.
+- The burn timer preserves PC float millisecond additions and a strict
+  greater-than-5000 explosion threshold. Default camera lookup stays on the
+  fire path, preserving offscreen delayed-explosion ordering and attribution.
+- A pinned executable harness captures 37 branch/ownership cases, with
+  external FX/events/explosions logged as stubs. The selected iOS build's
+  fire Z offsets are one unit higher and its timer truncates milliseconds;
+  those differences are recorded while the port retains the PC profile.
+- Fourteen initial checks expose the old car routing. All 242 focused checks,
+  6,774 unit tests (51 skipped) and final TypeScript/build validation pass.
+  The first full pass caught an eager camera default in delayed-bomb tests;
+  the corrected lookup and full rerun pass.
+- Actual painted/textured Predator, Speeder and Reefer verify camera gates,
+  particle emission, PC positions, no car smoke/velocity, retained system
+  identity through repairs, reignition, destruction and complete cleanup.
+  Hinge/water effects, boarding/driving and whole-game SCM audio regressions
+  pass without page errors.
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and landing gear without page errors,
+  failed requests or development inspection hook.
+- Native event audience/occupant reactions, matched original-PC captures,
+  full status transitions and campaign recovery remain separate work.
+  [Native branches, captured regions and profile differences](research/BOAT_FIRE_LIFECYCLE.md).
