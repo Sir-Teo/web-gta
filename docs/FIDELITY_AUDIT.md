@@ -14435,3 +14435,30 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Exact PC flight/dynamics captures, AI temporary actions, all engine ownership
   transitions and retained propeller arithmetic/cadence remain separate work.
   [Source, script transitions and real sound lifecycle](research/BOAT_PILOT_ENGINE_AUDIO.md).
+
+## Native boat moving components (October 26, 2026)
+
+- Boat render updates now drive supplied rudder/rear-flap frames, paired
+  static/blurred propellers and model-specific scanning hardware. Native axis,
+  sign, absolute-basis/translation and strict angle-wrap rules are retained.
+  Per-frame simulation time drives animation, with no offscreen accumulation.
+- Component alpha replaces source alpha before existing clump fading and
+  enables stored native material RGB. Only the last drawn atomic directly on
+  each frame is selected. Other materials keep their original-opacity path.
+- The pinned executable supplies 132 independently executed propeller/alpha
+  captures and 18 descriptor entries. Regeneration is byte-identical. All 167
+  focused checks, 6,403 unit tests (51 skipped), build and final typecheck pass.
+- All ten original boat models pass transform/material/lifetime checks: eight
+  rear-flap frames, twenty propeller frames and the Reefer's one scan frame.
+  Missing nodes remain optional. Rendered native-painted Predator idle,
+  running and faded views change correctly; all diagnostic GPU geometries
+  and scene children release. No page errors are reported.
+- Real SCM engine navigation/stop/restart still passes. Its fixture now uses
+  SCM's no-offset teleport and waits for streaming/audio readiness; direct
+  debug placement had suspended audio behind a terrain hold before navigation.
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and gear with no page errors, failed
+  requests or inspection hook.
+- Marquis door/flap dynamics, propeller particles, complete atomic/LOD/alpha
+  pipelines and matched original-PC motion remain separate compatibility work.
+  [Native functions, captures, model inventory and scope](research/BOAT_RENDER_COMPONENTS.md).

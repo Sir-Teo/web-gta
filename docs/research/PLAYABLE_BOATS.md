@@ -24,3 +24,12 @@ actual engine flag to native audio without requiring CJ aboard. Live native
 SCM navigation, stop and restart verify the bank and engine loop; the player
 engine/skimming regression passes. Full native physics and engine ownership
 remain separate work. [Source, transitions and checks](BOAT_PILOT_ENGINE_AUDIO.md).
+
+## Moving render components (October 26, 2026)
+
+Native propeller, steering-flap and scan transforms now reach each supplied
+component frame. Captured native alpha combines with vehicle fading, and all
+ten boat models have asset/material/lifetime coverage. The independent
+executable fixture contains 132 cases. Marquis door/flap physics, propeller
+particles and complete render-pipeline comparison remain separate work.
+[Source, captures, actual inventory and checks](BOAT_RENDER_COMPONENTS.md).

@@ -1,6 +1,7 @@
 import {applyScriptVehicleForce,type ScriptVehicleForceBasis} from './nativeScriptVehicleForce';
 import {NativeClumpAlpha} from './nativeClumpAlpha';
 import {bindClumpAlpha} from '../render/nativeClumpAlpha';
+import {bindNativeBoatComponents} from '../render/nativeBoatComponents';
 import {bindNativeCarDirt} from '../render/nativeCarDirt';
 import {NativeCarReflection} from '../assets/nativeCarEnvMap';
 import {randomSeed} from './nativeVehicleLights';
@@ -34,7 +35,9 @@ type Assets=Awaited<ReturnType<Awaited<ReturnType<typeof openStaticWorldVehicles
  * seated driver pose, engine audio speed and swim-push boarding follow the
  * reversed boat sources; entry clips arrive with the animation set. */
 export class WorldBoat {
- private readonly alphaBinding=bindClumpAlpha(()=>this.visual?.materialBindings??[]);
+ private readonly alphaBinding=bindClumpAlpha(()=>this.visual?.materialBindings??[],material=>this.components?.opacity(material));
+ private components?:ReturnType<typeof bindNativeBoatComponents>;
+ private componentSeconds=0;
  private readonly clumpAlpha=new NativeClumpAlpha(this.alphaBinding);
  get alpha(){return this.clumpAlpha.value;}
  setClumpAlpha(value:number){this.clumpAlpha.set(value);}
@@ -130,7 +133,7 @@ export class WorldBoat {
   this.handling.values.turnMass=Math.fround(this.handling.values.turnMass*.5);
   this.physical=installNativeVehicleBody(sim.world,assets.collision!,this.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:0});this.body=this.physical.body;this.car={body:this.body,root:this.root};
   if(assets.model&&!assets.missingTextures.length){
-   try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);if(colors)bindNativeCarPaint(this.visual.materialBindings,assets.textures.find(t=>t.name==='vehiclelights128')).setColors(colors);this.root.add(this.visual.root);}catch{this.visual=undefined;}
+   try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);if(colors)bindNativeCarPaint(this.visual.materialBindings,assets.textures.find(t=>t.name==='vehiclelights128')).setColors(colors);this.root.add(this.visual.root);this.components=bindNativeBoatComponents(this.visual.root,this.modelId);}catch{this.visual=undefined;}
   }
   scene.add(this.root);
   this.previous={...position};this.previousRotation={...this.body.rotation()};this.update(1);
@@ -224,6 +227,7 @@ export class WorldBoat {
  /** CBoat::ProcessControl buoyancy section for a drifting hull (no throttle yet):
   * native float, browser gravity, stern wake points and bow spray. */
  beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean}={throttle:0,steer:0,brake:false}){
+  this.componentSeconds=(this.componentSeconds??0)+dt;
   this.clumpAlpha.step(dt);
   // ProcessDelayedExplosion (CBoat::ProcessControl) runs whether or not the hull is in the world: a blast's victim
   // carried out of range still goes up on time.
@@ -355,6 +359,8 @@ export class WorldBoat {
  get anchorHeading(){return this.lockedHeading;}
  update(alpha:number){
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
+  const seconds=this.componentSeconds;this.componentSeconds=0;
+  if(this.root.visible&&this.components){this.components.update(this.engineSpeed,this.steerAngle,seconds);this.alphaBinding(this.clumpAlpha.value/255);}
  }
  /** Pin the embarked player to the hull; true when a blast must spawn. */
  afterStep(){
