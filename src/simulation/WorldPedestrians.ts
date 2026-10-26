@@ -52,7 +52,7 @@ import {playerCollisionWithPedResponse} from '../ped/nativePlayerBump';
 import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, MELEE_SWING_CLIPS, attackLineDistance, fightingStyleCombo, meleeAttackFalls } from './nativeMelee';
 import { nextChainIndex, resolveStrike, chainCooldown, inStrikeCone } from '../combat/meleeChain';
 import { decideDamageResponse, applyDamageResponse } from '../ped/brain';
-import { playerPunchDamage, npcPunchDamage,healthAfter,healthAfterFloat32,pedDamageFactor,spendPedArmour,spendPedArmourFloat32 } from '../ped/damage';
+import { PLAYER_ATTACK_MULT,playerPunchDamage,npcPunchDamage,healthAfter,healthAfterFloat32,pedDamageFactor,spendPedArmour,spendPedArmourFloat32 } from '../ped/damage';
 import {copArmour,type PedVitals} from '../ped/nativeCopVitals';
 export {copArmour,copHealth} from '../ped/nativeCopVitals';
 export {healthAfter} from '../ped/damage';
@@ -893,15 +893,17 @@ export class WorldPedestrians {
     // kills outright, unless the ped is spared critical hits (bNoCriticalHits, SET_CHAR_SUFFERS_CRITICAL_HITS off).
     const headshot=kind==='bullet'&&(hit?.piece!==undefined||!!hit?.point)&&!p.noCriticalHits&&isInstantHitGun(hit?.weapon)&&piece===PED_PIECE.head;
     // iOS CPedDamageResponseCalculator::AccountForPedDamageStats (0x10028a070): any weapon's damage times the victim's
-    // pedstats defend weakness (a melee blow's is in playerPunchDamage); then the player's own blow on a member of his
+    // pedstats defend weakness (a player melee blow first reads his native attack strength); then the player's own blow on a member of his
     // group, short of a flamethrower or a blast, is cut to a tenth and to 12.5 at most.
-    let applied=kind==='bullet'?pedDamageFactor(base,p.defendMult):base*(kind==='melee'?playerPunchDamage(1,p.defendMult):p.defendMult);
+    const nativeFields=kind==='bullet'||kind==='melee';
+    let applied=nativeFields?pedDamageFactor(kind==='melee'?pedDamageFactor(base,PLAYER_ATTACK_MULT):base,p.defendMult):base*p.defendMult;
     const weaponType=hit?.weapon??(kind==='explosion'?WEAPON.explosion:undefined);
-    if(byPlayer&&p.follow&&weaponType!==WEAPON.flamethrower&&weaponType!==WEAPON.explosion)applied=Math.min(kind==='bullet'?Math.fround(applied*Math.fround(FRIENDLY_DAMAGE_FACTOR)):applied*FRIENDLY_DAMAGE_FACTOR,FRIENDLY_DAMAGE_CAP);
-    const response=(kind==='bullet'?spendPedArmourFloat32:spendPedArmour)(applied,p.armour,weaponType),beforeHealth=p.health;
+    if(byPlayer&&p.follow&&weaponType!==WEAPON.flamethrower&&weaponType!==WEAPON.explosion)applied=Math.min(nativeFields?pedDamageFactor(applied,FRIENDLY_DAMAGE_FACTOR):applied*FRIENDLY_DAMAGE_FACTOR,FRIENDLY_DAMAGE_CAP);
+    const response=(nativeFields?spendPedArmourFloat32:spendPedArmour)(applied,p.armour,weaponType),beforeHealth=nativeFields?Math.fround(p.health):p.health;
     p.armour=response.armour;
-    p.health=megaPunch||headshot?0:(kind==='bullet'?healthAfterFloat32:healthAfter)(p.health,response.damageHealth);
-    applied=beforeHealth-p.health;
+    p.health=megaPunch||headshot?0:(nativeFields?healthAfterFloat32:healthAfter)(p.health,response.damageHealth);
+    // ComputeWillKillPed reports the remaining factor on survival, and pre-hit HP on death, rather than quantized field loss.
+    applied=nativeFields?(p.health===0?beforeHealth:response.damageHealth):beforeHealth-p.health;
     const q=p.actor.player.position,from={x:q.x-direction.x,z:q.z-direction.z};
     const weapon=hit?.weapon??(kind==='melee'?WEAPON.unarmed:kind==='explosion'?WEAPON.explosion:kind==='spray'?WEAPON.spraycan:WEAPON.pistol);
     if(applied+response.damageArmour>0)p.lastWeaponDamage=weapon;
@@ -1975,12 +1977,13 @@ export class WorldPedestrians {
   // AccountForPedDamageStats always applies victim weakness. Known foot sources retain their event/damager
   // metadata; external ped context currently supplies type/group acceptance, not a complete event source.
   const dealt=shooter?this.pedOnPedDamage(victim,shooter,damage,weapon):pedDamageFactor(damage,victim.defendMult);
-  const response=spendPedArmourFloat32(dealt,victim.armour,weapon),beforeHealth=victim.health;
+  const response=spendPedArmourFloat32(dealt,victim.armour,weapon),beforeHealth=Math.fround(victim.health);
   victim.armour=response.armour;victim.health=npcFootBulletCritical(victim,weapon,piece??this.hitPiece(victim,end))?0:healthAfterFloat32(victim.health,response.damageHealth);
-  if(beforeHealth-victim.health+response.damageArmour>0)victim.lastWeaponDamage=weapon;
+  const healthResponse=victim.health===0?beforeHealth:response.damageHealth;
+  if(healthResponse+response.damageArmour>0)victim.lastWeaponDamage=weapon;
   if(!victim.health)this.onKill?.({id:victim.id,...pedTypeInfo(victim),recruit:!!victim.follow,byPlayer:false});
   const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};
-  this.applyReaction(victim,this.damageReaction(victim,weapon,beforeHealth-victim.health,vfrom,end,false,undefined,false,piece,response.damageArmour),vfrom);
+  this.applyReaction(victim,this.damageReaction(victim,weapon,healthResponse,vfrom,end,false,undefined,false,piece,response.damageArmour),vfrom);
   return true;
  }
  giveOrder(ped:Pedestrian,order:ScriptedPedOrder){this.giveSequence(ped,[order],false,false);}

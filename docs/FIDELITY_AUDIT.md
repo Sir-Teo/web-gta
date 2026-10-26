@@ -14297,3 +14297,30 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Player melee, armed NPC-to-NPC melee, complete task cadence, other generic
   damage classes and matched retail PC traces remain separate work.
   [Native captures, arithmetic, checks and scope](research/NPC_MELEE_ARMOUR.md).
+
+## Player melee floats and foot damage responses (October 26, 2026)
+
+- Physical player melee now uses native float attack/weakness, friendly,
+  armour and health operations. A friendly 82.5 factor now becomes native
+  8.25 rather than double 8.250000122929, preserving a 9.25-HP target at one.
+  Existing multipliers, caps, proof and critical/mega-punch order are retained.
+- Physical player/raw-vehicle bullets and NPC bullets now pass the native
+  remaining factor on survival, or pre-hit HP on death, to animation and
+  last-weapon tracking. Quantized HP loss no longer erases a positive response.
+- Twenty-two new cases expose ten failures before repair. All 198 focused
+  checks and the build pass. Fifteen real player/NPC/mounted contacts verify
+  native response amounts, blood, armour, post-frame health and fatal counts.
+- Six real ground kicks pass one-HP, partial/full armour, actual recruitment
+  friendship, large-health response and below-one death checks. NPC kickboxing
+  and player mouse combo/ground-kick regressions pass without page errors.
+- The ground fixture now waits for the fallen body's native position and
+  faces CJ toward it; range/cone and hit-frame rules are retained. The mouse
+  fixture uses a single click action with saved press/release/fire traces.
+- All 6,211 unit tests pass (51 skipped).
+- The final build and full production smoke pass, including saved-game return,
+  walking, native car entry, map/waypoint, pause/resume, Rustler takeoff and gear,
+  with no page errors or failed requests.
+- Mission group sync can restore the follow flag after its immediate damage
+  clear; complete group-event ownership/removal, other generic damage classes
+  and matched retail PC calculator equivalence remain open.
+  [Arithmetic, source, actual contacts and limits](research/PED_BULLET_FLOAT_FIELDS.md#player-melee-and-shared-foot-damage-responses-october-26-2026).
