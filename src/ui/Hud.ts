@@ -477,9 +477,10 @@ export class Hud {
     this.put('armour.fill',`${barFill(sim.player.armour,limits.maxArmour)}%`,v=>{e.armourFill.style.width=v;});
     // CHud::RenderBreathBar: light blue, the armour bar's width, breath over lung capacity. Its caller is unreversed; the bar
     // shows while CJ is under the water or short of air.
-    const capacity=100,under=sim.player.swimming&&(sim.player.swimState===3||sim.player.swimState===4);
+    const capacity=sim.playerLungCapacity(),under=sim.player.swimming&&(sim.player.swimState===3||sim.player.swimState===4);
     this.put('breath.hidden',String(!under&&sim.player.breath>=capacity),v=>{e.breath.hidden=v==='true';});
     this.put('breath.now',String(Math.ceil(sim.player.breath)),v=>e.breath.setAttribute('aria-valuenow',v));
+    this.put('breath.max',String(Math.ceil(capacity)),v=>e.breath.setAttribute('aria-valuemax',v));
     this.put('breath.fill',`${barFill(sim.player.breath,capacity)}%`,v=>{e.breathFill.style.width=v;});
     const minutes = Math.floor(sim.timeMinutes);
     this.put('clock',`${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`,v=>{this.clock.textContent=v;});

@@ -14678,3 +14678,31 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Normal production smoke passes saved-game return, movement, car entry,
   map/waypoint, pause/resume, takeoff and landing gear without page errors,
   failed requests or a development inspection hook.
+
+## Current-stat player breath capacity (October 26, 2026)
+
+- Player breath initialization/reset, dry recovery, vehicle handling, swim
+  recovery and HUD scaling now use the selected native mode-8 stat modifier.
+  Integer lung-capacity stat 225 and float stamina stat 22 contribute to the
+  capacity: 1,150 at initial stats, 4,000 when both are 1,000. Stat changes
+  retain current breath; the native recovery overshoot remains intact.
+- The pinned PC modifier at 0x559AF0 remains a retail delegate. Independent
+  captures execute selected iOS 0x100266300 and its actual ResetPlayerBreath
+  caller at 0x100366508 without replacing arithmetic or external calls. All
+  63 cases pass, including fractional, negative, above-cap and float-precision
+  inputs. Regeneration is byte-identical. Seven new integration checks fail
+  before the wiring repair and pass afterward; all 99 focused checks and
+  7,156 unit tests pass (51 skipped). Final TypeScript/build validation passes.
+- The real-game browser starts at 1,150, retains about 945 breath and full
+  health after four underwater simulated seconds, and observes capacity
+  4,000 after actual script-stat updates without a refill. Dry recovery
+  continues above 2,000 with the visible HUD near 50.7%; reset fills 4,000
+  and hides the full bar on land. Existing car, helicopter, overturned-boat
+  and dry-land jump regressions pass without page errors.
+- Matched original-PC modifier captures, natural swimming stat training,
+  complete stat persistence, animation-manager parity and complete swim/
+  drowning events remain separate work.
+  [Captured modifier, native reset and live integration](research/PLAYER_LUNG_CAPACITY.md).
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and landing gear without page errors,
+  failed requests or a development inspection hook.

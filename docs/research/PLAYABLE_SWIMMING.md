@@ -8,7 +8,7 @@
 ## Slices
 
 1. Clip inventory (`tests/native-swim.test.ts`): every mapped clip exists in the packaged IFP.
-2. Movement core (`src/simulation/nativeSwim.ts`, `tests/native-swim-core.test.ts`): six states, the 0.6 m entry rule, surface state selection, the blend ramp, resistance blending, the submerge servo and breath/drowning. Lung capacity defaults to 100 without the stat modifier; the buoyancy-ratio entry trigger is omitted.
+2. Movement core (`src/simulation/nativeSwim.ts`, `tests/native-swim-core.test.ts`): six states, the 0.6 m entry rule, surface state selection, the blend ramp, resistance blending, the submerge servo and breath/drowning. The original fixed-100 lung-capacity approximation is replaced by the captured stat modifier below; the buoyancy-ratio entry trigger is omitted.
 3. State machine wiring, clips, input, FX, audio and boat exits exist in the browser. Their presence does not establish native task equivalence.
 
 ## PC 1.0 comparison corrections — September 17, 2026
@@ -20,7 +20,7 @@ Reference: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, ins
 - `CPlayerPed::HandlePlayerBreath` (0x60A8D0) permits the recovery increment to exceed lung capacity and truncates the drowning damage-event argument to an integer. The browser helper now preserves both behaviors, including the infinite-oxygen and `bDrownsInWater` branches.
 - The water-task integration had consumed the jump command on dry land. It now suppresses ordinary jumping only while the player is swimming. A browser regression reproduces the original failure and checks airborne motion and return to the ground.
 
-Remaining differences: lung capacity is still the authored default 100 rather than `STAT_MOD_AIR_IN_LUNG`; swim association blending, sprint-button results and fade-out scheduling are not a native animation-manager port; climb/jump-out, underwater pitch, buoyancy-trigger entry and full damage-event dispatch remain incomplete. The source-based breath formula does not make the entire swimming system reference-matched.
+Remaining differences at this comparison: lung capacity was the authored default 100 rather than `STAT_MOD_AIR_IN_LUNG` (replaced below); swim association blending, sprint-button results and fade-out scheduling are not a native animation-manager port; climb/jump-out, underwater pitch, buoyancy-trigger entry and full damage-event dispatch were incomplete. Later work implements portions of those paths; the source-based breath formula does not make the entire swimming system reference-matched.
 
 Regression coverage: `tests/native-swim-core.test.ts`, `tests/player-swim.test.ts`, `tests/swim-integration.test.ts`, and `tests/browser/player-jump-input.spec.ts`.
 
@@ -32,4 +32,13 @@ Regression coverage: `tests/native-swim-core.test.ts`, `tests/player-swim.test.t
 
 The shared death timer now also advances when the simulation is following an occupied vehicle; seat ownership is released before respawn. This fixes the newly exposed dead-pilot stall without shortening the existing death delay. That delay and hospital/wasted flow are still browser implementations requiring separate reference comparison.
 
-Remaining vehicle coverage: bikes lack this buoyancy/occupant integration; NPC/passenger drowning events and non-swim pedestrian head-submersion handling are not complete. The infinite-oxygen branch is available in the helper but not wired to a cheat input. Native unit and callback tests are in `tests/player-breath.test.ts`; original-asset car, helicopter and boat adapter tests are in `tests/browser/vehicle-breath.spec.ts`.
+Later vehicle work also connects the bike drowning branch to shared player breath and its rider fall-off path. The infinite-oxygen branch is wired through nativeCheats. NPC/passenger drowning events and complete pedestrian head-submersion behavior remain partial. Native unit and callback tests are in `tests/player-breath.test.ts`; original-asset car, helicopter and boat adapter tests are in `tests/browser/vehicle-breath.spec.ts`.
+
+## Current-stat breath capacity (October 26, 2026)
+
+The selected executable's mode-8 stat modifier now supplies initial/reset
+breath, dry/vehicle/swim recovery and HUD scaling. Initial stats give 1,150;
+maximized lung and stamina stats give 4,000. Stat changes retain current
+breath. Sixty-three independent captures and live underwater/recovery/HUD
+checks cover the change. Natural swimming stat training remains separate.
+[Captured modifier, reset caller and integration](PLAYER_LUNG_CAPACITY.md).

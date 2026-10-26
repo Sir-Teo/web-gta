@@ -17,6 +17,7 @@ import {playerFootstepSoundLevel} from './ped/nativeSoundEvents';
 import {NativeWeaponAudio} from './audio/native/NativeWeaponAudio';
 import {evaluateCarPosition} from './simulation/nativeCarChoice';
 import {statUpdateBar,statNameKey} from './ui/nativeStatUpdate';
+import {nativeLungCapacity} from './simulation/nativeLungCapacity';
 import {FALLEN_LAMPPOST_SOLVER_GROUPS} from './simulation/solverGroups';
 import {carRollsOverProp} from './simulation/vehiclePropContacts';
 import {controlNameOf,controlNaming,controlsNamedIn,gxtHudText,gxtText,insertNumbers,loadedText,setControlNaming,setTouchText,useTouchControlNames} from './assets/gxt';
@@ -4142,7 +4143,7 @@ async function boot() {
         // CTaskSimpleSwim player states: Space surfaces, attack dives, sprint selects the crawl while there is energy for
         // it (ControlButtonSprint's HandleSprintEnergy fails once spent, as the on-foot sprint does).
         if(onFoot&&sim.player.health>0&&!law.arrested&&!carEntry.active){
-          const splash=updatePlayerSwim(sim.player,{moveMag:Math.max(0,axes.y),sprint:(input.down('ShiftLeft')||input.down('ShiftRight'))&&!sim.player.sprintExhausted,jump:jumpPressed,dive:key||mouseFires&&mouse||click,underwaterStroke:render.nativeCharacter?.swimUnderAssociation(),drownsInWater:sim.playerDrownsInWater},swimWater,step,carEntry.clips.peek('swim','Swim_Dive_Under')?.duration);
+          const splash=updatePlayerSwim(sim.player,{moveMag:Math.max(0,axes.y),sprint:(input.down('ShiftLeft')||input.down('ShiftRight'))&&!sim.player.sprintExhausted,jump:jumpPressed,dive:key||mouseFires&&mouse||click,underwaterStroke:render.nativeCharacter?.swimUnderAssociation(),lungCapacity:sim.playerLungCapacity(),drownsInWater:sim.playerDrownsInWater},swimWater,step,carEntry.clips.peek('swim','Swim_Dive_Under')?.duration);
           // CEventDamage::AffectsPed turns WEAPON_DROWNING away from a ped that does not drown.
           if(splash.damage>0&&sim.playerDrownsInWater)sim.damagePlayer(splash.damage,true,{weapon:WEAPON.drowning});
           controls={...controls,swimWater,jump:sim.player.swimming?false:controls.jump};
@@ -7268,6 +7269,7 @@ async function boot() {
                 // the raw m_fHealth += value, is a retail stub; the port keeps health within the maximum, as the HUD
                 // bar does, and the rest goes to fat through STAT_CALORIES.
                 {const game=mission.runtime.game;game.stats.onUpdateMessage=displayStatUpdate;
+                 sim.playerLungCapacity=()=>nativeLungCapacity(game.stats.get(225),game.stats.get(22));
                  // CPlayerInfo::m_nMoney is the one purse the HUD shows and the score commands move.
                  game.bindMoney({get:()=>sim.money,set:v=>{sim.money=v;}});
                  if(shoppingText)game.shopping.load(shoppingText);registerStreamedScripts();game.stats.player={health:()=>sim.player.health,maxHealth:()=>game.playerInfo.maxHealth,addHealth:addPlayerHealth,ateEnough:()=>{hunger.hoursDidntEat=0;}};

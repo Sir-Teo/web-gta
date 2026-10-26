@@ -7,6 +7,7 @@ import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/timecycle';
 import { PED_ORIGIN_HEIGHT, pedFloatDepth, swimResistance, swimRotationTowardSurface, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
 import { NativeJetPack } from './nativeJetPack';
 import {beginPlayerBreathFrame,handlePlayerBreath} from './playerBreath';
+import {DEFAULT_LUNG_CAPACITY} from './nativeLungCapacity';
 import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, nativeJumpGroundSpeed, NATIVE_BLEND_WALK, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY, NATIVE_JUMP_MIN_FORWARD_SPEED, NATIVE_PED_AIR_RESISTANCE, NATIVE_BLEND_RUN_FULL } from './nativePlayerLocomotion';
 import { stepStamina, STAMINA_DRAIN, STAMINA_REGEN_IDLE } from '../locomotion/player';
 import RAPIER from '@dimforge/rapier3d-compat';
@@ -78,7 +79,7 @@ export class Simulation {
   player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, sprintExhausted: false, phase: 0, crouched: false, health: 100, armour: 0,
     /** CPlayerPedData::m_bAdrenaline: seconds left of an adrenaline pill (m_nAdrenalineEndTime), 0 when none. */
     adrenaline: 0,
-   swimming: false, swimState: 0, swimBlend: 0, breath: 100, requireHandleBreath:false, swimStopTime: 0, swimDiveTime: 0, swimDiveDuration: 1, swimPitch: 0, swimStateChanger: 0, swimVelY: 0, swimVel: { x: 0, z: 0 },
+   swimming: false, swimState: 0, swimBlend: 0, breath: DEFAULT_LUNG_CAPACITY, requireHandleBreath:false, drownClock:0, swimStopTime: 0, swimDiveTime: 0, swimDiveDuration: 1, swimPitch: 0, swimStateChanger: 0, swimVelY: 0, swimVel: { x: 0, z: 0 },
    /** Native m_fMoveBlendRatio (PlayerControlZelda) plus preserved jump momentum (CTaskSimpleJump::Launch). */
    moveBlend: 0, jumpMomentum: { x: 0, z: 0 },
    /** SET_CHAR_ROTATION's tilt under the heading (CMatrix::SetRotate's x and y, radians), until SetHeading clears it. */
@@ -144,7 +145,11 @@ export class Simulation {
     this.world.step();
   }
   /** Once per fixed frame, including frames spent in a vehicle. */
-  beginPlayerBreathFrame(dt:number){beginPlayerBreathFrame(this.player,dt*50);}
+  beginPlayerBreathFrame(dt:number){beginPlayerBreathFrame(this.player,dt*50,this.playerLungCapacity());}
+  /** CStats::GetFatAndMuscleModifier(STAT_MOD_AIR_IN_LUNG); the live host supplies current SCM stats. */
+  playerLungCapacity=()=>DEFAULT_LUNG_CAPACITY;
+  /** CPlayerPed::ResetPlayerBreath (PC 0x60A8A0, selected iOS 0x100366508). */
+  resetPlayerBreath(){this.player.breath=this.playerLungCapacity();this.player.requireHandleBreath=false;this.player.drownClock=0;}
   /** Vehicle tasks share the same breath state as swimming. Drowning bypasses armour. */
   /** CPed::bDrownsInWater for the player (SET_CHAR_DROWNS_IN_WATER). */
   playerDrownsInWater=true;
@@ -201,7 +206,7 @@ export class Simulation {
     if(v.z>0)this.player.grounded=false;
   }
   handlePlayerBreath(dt:number,decrease=true,multiplier=1){
-    const result=handlePlayerBreath(this.player,decrease,multiplier,dt*50,undefined,undefined,this.playerDrownsInWater);
+    const result=handlePlayerBreath(this.player,decrease,multiplier,dt*50,this.playerLungCapacity(),undefined,this.playerDrownsInWater);
     // CEventDamage drops WEAPON_DROWNING damage to a ped that does not drown.
     if(result.damage>0&&this.playerDrownsInWater)this.damagePlayer(result.damage,true,{weapon:53});// WEAPON_DROWNING
     return result;
@@ -1017,7 +1022,7 @@ export class Simulation {
     this.playerCollider.setTranslation(this.playerBody.translation());
     this.player.position = { ...this.respawn }; this.player.previous = { ...this.respawn };
     this.player.speed = 0; this.player.verticalSpeed = 0; this.player.grounded = false; this.player.moveBlend = 0; this.player.jumpMomentum = { x: 0, z: 0 };
-    this.player.swimming = false; this.player.swimState = 0; this.player.swimBlend = 0; this.player.breath = 100; this.player.requireHandleBreath=false; this.player.swimStopTime = 0; this.player.swimDiveTime = 0; this.player.swimDiveDuration = 1; this.player.swimVel = { x: 0, z: 0 };
+    this.player.swimming = false; this.player.swimState = 0; this.player.swimBlend = 0; this.resetPlayerBreath(); this.player.swimStopTime = 0; this.player.swimDiveTime = 0; this.player.swimDiveDuration = 1; this.player.swimVel = { x: 0, z: 0 };
   }
   /** CCollision::BuildCacheOfCameraCollision's entity filter for this frame (peds, the car being entered, vehicles
    * moving too fast relative to the player's, objects while driving fast); set by the host. */
