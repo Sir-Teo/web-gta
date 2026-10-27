@@ -59,8 +59,9 @@ the native source stage. Evidence:
 The browser test checks horizontal coordinates for motorcycles/bicycles and all
 three coordinates for quads. The neck-height path was outside this offset change. A subsequent
 [neck/lead/visibility change](BIKE_BUMPER_HEIGHT.md) covers selected native height
-branches; wheelie camera, ground protection and full original-PC scheduling
-remain open.
+branches. A subsequent [ground-lift change](BUMPER_GROUND_LIFT.md) covers the
+upside-down source guard; wheelie camera and full original-PC scheduling remain
+open.
 The host's double/quaternion transform is compared with a declared millimetre
 tolerance, not called bit-exact. Arbitrary nested dummy preprocessing and matched
 original-PC screenshots remain acceptance boundaries.

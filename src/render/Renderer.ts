@@ -1,5 +1,6 @@
 import {nativeDayNightBalance} from '../world/nativeDayNight';
 import {withHiddenVehicle} from './vehicleRenderOwnership';
+import {nativeBumperGround} from './nativeBumperGround';
 import { retainPrograms } from './retainPrograms';
 import { ProgramWarmer } from './programWarmer';
 import { setCompressedTextureSupport } from '../assets/nativeTexture';
@@ -69,12 +70,16 @@ export class GameRenderer {
     up?:THREE.Vector3};
   /** CCam::Process_1stPerson's source and the vehicle's frame for the bumper view, from the host each frame. */
   bumper?:{source:{x:number;y:number;z:number};quaternion:{x:number;y:number;z:number;w:number};vehicle?:THREE.Object3D;
+    /** Physical vehicle up-Z in native axes, independent of the bike lean matrix. */
+    upZ?:number;
     /** Sample a rider bone after this frame's vehicle pose has updated. */
     sourceForCamera?:()=>{x:number;y:number;z:number};
     /** First-person look routines run after the normal source/pose calculation. */
     viewForCamera?:(look:Exclude<CameraGlance,'none'>,source:{x:number;y:number;z:number})=>{source:{x:number;y:number;z:number};front:{x:number;y:number;z:number};up:{x:number;y:number;z:number};near:number}};
   /** TheCamera.m_bDisableFirstPersonInCar off. */
   bumperAllowed=true;
+  private bumperGroundLift=0;
+  private wasBumper=false;
   get bumperView(){return this.vehicleView&&this.cameraSettings.vehicle==='bumper'&&!!this.bumper&&this.bumperAllowed;}
   /** CCamera::m_fCamShakeForce left this frame, for the shake below. */
   shake?:()=>number;
@@ -266,11 +271,19 @@ export class GameRenderer {
     this.camera.position.copy(this.target).addScaledVector(direction, this.distance);this.followPosition.copy(this.camera.position);
     this.camera.lookAt(this.target);
     let bumperNear:number|undefined;
+    const activeBumper=!this.fixedCamera&&this.bumperView;
+    // Host mode-entry adapter for m_bResetStatics. Held redraws retain the state.
+    if(!activeBumper||!this.wasBumper)this.bumperGroundLift=0;
+    this.wasBumper=activeBumper;
     // CCam::Process_Fixed keeps the camera at m_vecCamFixedModeSource and faces the entity it took control of.
     if(this.fixedCamera){const up=this.fixedCamera.up;this.camera.position.copy(this.fixedCamera.position);if(up)this.camera.up.copy(up);this.camera.lookAt(this.fixedCamera.target());if(up)this.camera.up.set(0,1,0);if(this.fixedCamera.roll)this.camera.rotateZ(-this.fixedCamera.roll);}
     // CCam::Process_1stPerson: the source the host worked out, looking along the vehicle's own forward and up.
     else if(this.bumperView){
       const b=this.bumper!;b.source=b.sourceForCamera?.()??b.source;
+      if(b.upZ!==undefined){
+        if(!paused)this.bumperGroundLift=nativeBumperGround({previous:this.bumperGroundLift,upZ:b.upZ,sourceZ:b.source.y}).state;
+        b.source={...b.source,y:Math.fround(Math.fround(b.source.y)+this.bumperGroundLift)};
+      }
       const view=this.glance==='none'?undefined:b.viewForCamera?.(this.glance,b.source);
       if(view){b.source=view.source;bumperNear=view.near;this.camera.position.set(b.source.x,b.source.y,b.source.z);this.camera.up.copy(view.up);this.camera.lookAt(b.source.x+view.front.x,b.source.y+view.front.y,b.source.z+view.front.z);this.camera.up.set(0,1,0);}
       else{this.camera.position.set(b.source.x,b.source.y,b.source.z);this.camera.quaternion.set(b.quaternion.x,b.quaternion.y,b.quaternion.z,b.quaternion.w);}

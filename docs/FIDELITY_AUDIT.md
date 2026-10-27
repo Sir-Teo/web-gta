@@ -9,6 +9,16 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Bumper camera ground lift (October 27, 2026)
+
+- The bumper source now receives the captured world-height lift when physical
+  vehicle up-Z reaches −0.9, preserving the per-call 0.03 increase, transient
+  overshoot, cap and upright clear. Host mode entry resets it and paused redraws
+  hold it. All 180 fixed captures, 38 live state transitions and 34 forward
+  camera heights match the selected native routines exactly. Reversed-PC source
+  agrees on the scalar logic; full camera lifecycle and wheelie ownership remain
+  open. [Evidence and limits](research/BUMPER_GROUND_LIFT.md).
+
 ## Selected native bumper side/rear looks (October 27, 2026)
 
 - Real Q/E and look-behind inputs now change the bumper camera's source,

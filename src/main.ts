@@ -4569,6 +4569,7 @@ async function boot() {
       const selected=car??bike??boat,bumper=render.bumper;
       if(selected&&bumper){
         const body=car?car.car.body:(bike??boat)!.body,type=boat?5:bike&&!bike.quad?9:0,appearance=type===5?4:type===9?2:1;
+        bumper.upZ=nativeMatrixOf(body.rotation(),body.translation()).up[2];
         bumper.viewForCamera=(look,source)=>{
           const neck=boat&&render.nativeCharacter?.inVehiclePose&&render.vehiclePose?.frame.vehicle===boat.root?render.nativeCharacter.bonePosition(4,scratchSpine):undefined;
           const result=nativeVehicleBumperLook({vehicleType:type,appearance,behind:look==='behind',right:look==='right',driver:!!neck,neck:neck?[neck.x,-neck.z,neck.y]:[0,0,0],source:[source.x,-source.z,source.y],matrix:nativeMatrixOf(body.rotation(),body.translation())});
