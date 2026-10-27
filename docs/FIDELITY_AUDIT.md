@@ -9,6 +9,17 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Bike/quad bumper camera offsets (October 27, 2026)
+
+- Bike views now include their front-seat dummy; quads keep the automobile's
+  transformed camera height instead of taking the motorcycle neck override.
+  Measured baseline horizontal errors were 20–48 cm across the 14 models.
+- All 14 models and the ten-boat regression pass. The 140 bike/quad frames agree
+  with the native source stage within 0.14 mm for the tested coordinates;
+  native/compiled-PC float32 outputs agree for their declared inputs.
+  Motorcycle neck timing/lead, visibility and full camera ownership remain open.
+  [Source, validation and limits](research/BIKE_BUMPER_CAMERA.md).
+
 ## Boat bumper camera source (October 27, 2026)
 
 - The boat bumper view uses the helm dummy (boat dummy slot 0), applies its

@@ -4544,7 +4544,7 @@ async function boot() {
       const car=worldCar?.occupied?worldCar:fleet?.occupied,bike=fleet?.occupiedBike,boat=fleet?.occupiedBoat;
       const frameOf=(root:Object3D,local:{x:number;y:number;z:number})=>{const q=root.quaternion,w=new Vector3(local.x,local.z,-local.y).applyQuaternion(q);return {source:{x:root.position.x+w.x,y:root.position.y+w.y,z:root.position.z+w.z},quaternion:{x:q.x,y:q.y,z:q.z,w:q.w}};};
       if(car){const seat=car.car.nativeFramePosition('ped_frontseat');render.bumper=frameOf(car.car.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62});}
-      else if(bike){const b=frameOf(bike.root,{x:0,y:.08,z:.62}),neck=render.nativeCharacter?.bonePosition(4,scratchSpine);if(neck)b.source.y=neck.y+.15;render.bumper=b;}
+      else if(bike){const seat=bike.seat(),b=frameOf(bike.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62}),neck=!bike.quad?render.nativeCharacter?.bonePosition(4,scratchSpine):undefined;if(neck)b.source.y=neck.y+.15;render.bumper=b;}
       else if(boat){const seat=boat.seat(),b=frameOf(boat.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62});b.source.y+=.5;render.bumper=b;}
       else render.bumper=undefined;
     }
