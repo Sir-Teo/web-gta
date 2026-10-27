@@ -33,9 +33,9 @@ prevents that assumption from passing unnoticed.
 
 ## Remaining scope
 
-Inventory cooldowns and reload duration still control repeat shots. This change
-implements the animation gate, not native FireFromCar ammo/state transitions or
-the controller's 70 ms timestamp overwrite. The final shot uses the existing
+This slice implements the animation gate. The subsequent
+[weapon-state change](BIKE_DRIVE_BY_WEAPON_STATE.md) adds selected player bike
+FireFromCar ammo/state transitions and the controller's 70 ms timestamp overwrite. The final shot uses the existing
 sampled hand skeleton and the post-physics host body state; full original-PC task,
 render and firing phase equivalence remains open. The separate external hop task
 and its cross-fades remain as described in the pose research.

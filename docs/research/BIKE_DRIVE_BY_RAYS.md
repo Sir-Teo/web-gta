@@ -63,7 +63,9 @@ native character pose or weapon data retains the existing host fallback.
 
 Existing inventory cooldowns, animation fire readiness, damage, impact events,
 tracers, audio and pad feedback remain host stages. In particular the native
-FireFromCar/DoDriveByShootings shot timestamps are outside this change. This
+FireFromCar/DoDriveByShootings shot timestamps were outside this slice; the
+subsequent [weapon-state change](BIKE_DRIVE_BY_WEAPON_STATE.md) captures and
+integrates those selected player-bike stages. This
 work does not establish complete combat or original PC weapon equivalence.
 
 ## Validation

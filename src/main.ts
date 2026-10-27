@@ -3967,7 +3967,7 @@ async function boot() {
         {const canSkip=gameLogic.skipCanBeActivated(skipWorld);
          if(canSkip&&!tripSkipHelpShown){tripSkipHelpShown=true;hud.help(gxtHudText(gxtText('SKIP_1','')),5000);}else if(!canSkip)tripSkipHelpShown=false;
          hud.tripSkip(canSkip,canSkip?gxtHudText(gxtText('FEC_TSK','TRIP SKIP')):'');}
-        weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:aimDirection()}:undefined);
+        weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:aimDirection()}:undefined,fleet?.occupiedBike&&mission?.runtime.game.playerInfo.canDoDriveBy!==false?gameTimeMs:undefined);
         // The touch controls' aim assist (input/aimAssist): an aimed gun in the follow camera eases onto the ped nearest
         // the crosshair that the camera can see. A swipe switches targets, as the mobile ports' lock-on does: while the
         // finger turns the camera the target held is not favoured, so the ped the swipe ends on is taken.
@@ -4136,7 +4136,8 @@ async function boot() {
         // is held, which shoots out of that side (CVehicle::DoDriveByShootings is unreversed; the styles are its own).
         let bikeDriveBy:import('./simulation/nativeBikeDriveBy').BikeDriveByInput|undefined;
         if(fleet?.occupiedBike){
-         const bike=fleet.occupiedBike,permitted=!bikeMount.active&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth,drivebyTrigger=permitted&&drivebyPulled(),look=bikeLookSide(),inv=weapons.inventory,ammo=inv.ammo.get(inv.selected);
+         const bike=fleet.occupiedBike,permitted=!bikeMount.active&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth,drivebyTrigger=permitted&&drivebyPulled(),look=bikeLookSide(),inv=weapons.inventory;
+         if(driveByAllowed)inv.prepareDriveBy(gameTimeMs,!!drivebyTrigger);const ammo=inv.ammo.get(inv.selected);
          bikeDriveBy={enabled:driveByAllowed&&DRIVER_DRIVEBY_WEAPONS.includes(inv.selected),fire:drivebyTrigger?1:0,left:look==='left',right:look==='right',ammo:ammo?ammo.clip+ammo.reserve:0,bicycle:BMX_MODELS.has(bike.modelId)};
         }
         const rocket=input.consume('KeyB')||input.down('KeyB');

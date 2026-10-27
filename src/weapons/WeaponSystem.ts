@@ -647,7 +647,7 @@ export class WeaponSystem {
   private drivebyShot(vehicle:{half:number;body:RAPIER.RigidBody;position:Vec3;look?:'forward'|'left'|'right';bike?:import('../simulation/WorldBike').WorldBike},camera:{origin:Vec3;direction:Vec3}){
    const w=this.inventory.weapon;
    if(this.sim.player.health<=0||!DRIVEBY_WEAPONS.has(w.id))return false;
-   if(!this.inventory.fire())return false;
+   if(!(vehicle.bike&&this.inventory.driveByActive?this.inventory.fireFromCar():this.inventory.fire()))return false;
    this.lastHand='right';this.leftHand=false;
    this.onUse?.(w);
    const bikePose=vehicle.bike&&this.bikeFirePose?.(),standard=vehicle.bike&&this.inventory.native&&nativeWeaponInfo(this.inventory.native,w.id,1),info=bikePose&&standard?standard:this.inventory.info();
@@ -1521,8 +1521,9 @@ export class WeaponSystem {
   const vehicle=[...this.fleet()?.cars??[]].map(c=>c.car.body).concat([...this.fleet()?.boats??[]].map(b=>b.body),[...this.fleet()?.planes??[]].map(p=>p.body)).find(b=>b.handle===body?.handle);
   this.lock=vehicle?{handle:vehicle.collider(0).handle,position:{...vehicle.translation()}}:undefined;
  }
-  tick(dt:number,camera?:{origin:Vec3;direction:Vec3}){
+  tick(dt:number,camera?:{origin:Vec3;direction:Vec3},driveByTimeMs?:number){
    this.planeGunStepSeconds=dt;
+   const nativeDriveBy=driveByTimeMs!==undefined&&DRIVEBY_WEAPONS.has(this.inventory.selected)&&!!(this.native&&nativeWeaponInfo(this.native,this.inventory.selected,1));
    this.aircraftOrdnanceCooldown=Math.max(0,this.aircraftOrdnanceCooldown-dt);
    this.inventory.crouched=this.sim.player.crouched;
    if(camera)this.lockCamera={origin:{...camera.origin},direction:{...camera.direction}};
@@ -1542,7 +1543,7 @@ export class WeaponSystem {
    const shift=d-1;if(Math.abs(shift)>.02&&d>.01&&this.sim.playerBody.isEnabled()){const step=shift<0?shift:Math.min(shift,.05*dt/NATIVE_STEP),center=this.sim.playerBody.translation(),next={x:center.x+dx/d*step,y:center.y,z:center.z+dz/d*step};const blocked=this.sim.world.castRay(new RAPIER.Ray(center,{x:dx/d*Math.sign(step),y:0,z:dz/d*Math.sign(step)}),Math.abs(step)+.3,true,RAPIER.QueryFilterFlags.ONLY_FIXED);if(!blocked){this.sim.playerBody.setNextKinematicTranslation(next);this.sim.player.position={...this.sim.player.position,x:next.x,z:next.z};}}
    if(this.stealth.remaining<=0||this.sim.player.health<=0)this.stealth=undefined;
   }
-  if(this.inventory.reloading){
+  if(!nativeDriveBy&&this.inventory.reloading){
    if(this.reloadSoundId!==this.inventory.selected){this.reloadSoundId=this.inventory.selected;this.reloadSoundA=false;this.reloadSoundB=false;}
    const info=this.inventory.info(),ao=info&&this.native?nativeAimOffset(this.native,info):undefined,elapsed=(this.inventory.reloadTotal-this.inventory.reloading)*1000;
    // CWeapon::Update reload audio: RLoadA/B (or the crouched pair) milliseconds into the reload.
@@ -1550,7 +1551,7 @@ export class WeaponSystem {
    if(!this.reloadSoundA&&elapsed>=a){this.reloadSoundA=true;this.onSound?.('reloadA',this.inventory.selected,this.sim.player.position);}
    if(!this.reloadSoundB&&elapsed>=b){this.reloadSoundB=true;this.onSound?.('reloadB',this.inventory.selected,this.sim.player.position);}
   }else this.reloadSoundId=-1;
-  this.inventory.tick(dt);this.effects=this.effects.filter(e=>(e.life-=dt)>0);this.stepThrow(dt,camera);
+  this.inventory.tick(dt,driveByTimeMs);this.effects=this.effects.filter(e=>(e.life-=dt)>0);this.stepThrow(dt,camera);
   // The canopy closes on landing, in water as on the ground (a ped submerged in water is not using a parachute).
   if(this.sim.player.grounded||this.sim.player.swimming||this.sim.player.health<=0)this.parachute=false;
   // A queued press belongs to the fight it was made in: a weapon switch, a knockdown or death drops it (it would

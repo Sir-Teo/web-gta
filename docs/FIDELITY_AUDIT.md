@@ -9,6 +9,17 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Bike drive-by weapon state (October 27, 2026)
+
+- Player bike/quad SMGs use owner-null native weapon update, strict unsigned
+  retry timestamps, the 70 ms attempt overwrite, clip refill on release and
+  captured ammo preservation rules. All 889 fixed cases and 1,113 live
+  weapon decisions match native output exactly; all 49 live rays still match.
+- Full units: 16,977 passed / 51 skipped. The real-key bike, all-model pose,
+  ordinary weapon/reload/pause and corrected game-clock Molotov checks pass.
+  On-foot timer entry/exit and full original-PC scheduling remain boundaries.
+  [Source, validation and limits](research/BIKE_DRIVE_BY_WEAPON_STATE.md).
+
 ## Bike drive-by animation readiness (October 27, 2026)
 
 - Player motorcycle, bicycle and quad shots wait for the selected shooting pose

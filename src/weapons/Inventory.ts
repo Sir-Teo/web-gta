@@ -1,3 +1,4 @@
+import {updateDriveByWeapon,refillDriveByWeapon,attemptDriveByWeapon,type DriveByWeaponState} from './nativeDriveByWeapon';
 import {fightingStyleCombo} from '../simulation/nativeMelee';
 import {CHEATS} from '../simulation/nativeCheats';
 import {WEAPONS,weaponById} from './catalog';
@@ -29,6 +30,41 @@ export class WeaponInventory {
  fullCompletion:()=>boolean=()=>false;
  /** The inventory's own clock, for the reloads weapons carry while put away. */
  private clock=0;
+ /** The occupied bike owns native weapon time while selected; public inventory mutations invalidate this snapshot. */
+ private driveByState?:{id:number;weapon:DriveByWeaponState;timeMs:number;clip:number;total:number;cooldown:number;reload:number};
+ get driveByActive(){return this.driveByState?.id===this.selected;}
+ private driveByInfo(){return this.native&&[28,29,32].includes(this.selected)?nativeWeaponInfo(this.native,this.selected,1):undefined;}
+ private enterDriveBy(timeMs:number,dt:number){
+  const info=this.driveByInfo();if(!info)return false;
+  const a=this.ammo.get(this.selected)!,total=a.clip+a.reserve,old=this.driveByState;
+  if(!old||old.id!==this.selected||old.clip!==a.clip||old.total!==total||old.cooldown!==this.cooldown||old.reload!==this.reloading){
+   const remaining=this.reloading||this.cooldown,state=this.reloading?2:this.cooldown>0?1:total===0?3:0;
+   // Entering from an on-foot host timer is an adapter boundary; subsequent native timestamps stay absolute.
+   const nextShot=remaining>0?Math.floor(timeMs-dt*1000+remaining*1000)>>>0:0;
+   this.driveByState={id:this.selected,weapon:{state,clip:a.clip,total,nextShot},timeMs:timeMs>>>0,clip:a.clip,total,cooldown:this.cooldown,reload:this.reloading};
+  }
+  const context=this.driveByState!;context.timeMs=timeMs>>>0;updateDriveByWeapon(context.weapon,timeMs,info.clip);this.syncDriveBy();return true;
+ }
+ private syncDriveBy(){
+  const c=this.driveByState!,w=c.weapon,a=this.ammo.get(c.id)!;a.clip=w.clip;a.reserve=w.total-w.clip;
+  const remaining=c.timeMs<=(w.nextShot>>>0)?(w.nextShot>>>0)-c.timeMs:0;
+  this.cooldown=remaining/1000;this.reloading=w.state===2?Math.max(Number.EPSILON,remaining/1000):0;
+  if(!this.reloading)this.duration=0;
+  c.clip=w.clip;c.total=w.total;c.cooldown=this.cooldown;c.reload=this.reloading;
+ }
+ /** The release/ammo branch runs after the owner-null native update and before rider control. */
+ prepareDriveBy(timeMs:number,trigger:boolean){
+  if(!this.enterDriveBy(timeMs,0))return false;
+  const c=this.driveByState!,info=this.driveByInfo()!;if(!trigger||c.weapon.total<1)refillDriveByWeapon(c.weapon,info.clip);
+  this.syncDriveBy();return true;
+ }
+ /** FireFromCar plus DoDriveByShootings' unconditional 70 ms retry overwrite after an attempt. */
+ fireFromCar(){
+  const c=this.driveByState,info=this.driveByInfo();if(!c||c.id!==this.selected||!info)return false;
+  const result=attemptDriveByWeapon(c.weapon,{timeMs:c.timeMs,infinite:CHEATS.isActive('infiniteAmmo'),progress:this.fullCompletion()?100:0,entityByte:2,reloadMs:nativeWeaponReloadMs(this.native!,info)});
+  if(result){this.shots++;if(c.weapon.state===2)this.duration=.07;}this.syncDriveBy();return result;
+ }
+
  /** A reload left running when its weapon was put away: CWeapon keeps m_TimeForNextShotMs per slot, so switching
   * back finishes it once that time has passed. */
  private stashedReloads=new Map<number,{endAt:number;duration:number}>();
@@ -179,8 +215,15 @@ export class WeaponInventory {
  }
  refill(){for(const w of WEAPONS){this.owned.add(w.id);const clip=this.magazine(w.id);this.ammo.set(w.id,{clip,reserve:this.native?reserveFor(clip,this.reloadable(w.id)):w.reload?w.magazine*8:0});}this.reloading=0;this.stashedReloads.clear();}
  reload(){const a=this.ammo.get(this.selected)!;if(this.reloading||!this.reloadable(this.selected)||a.clip>=this.magazine()||a.reserve<=0)return false;this.duration=this.reloadDuration;this.reloading=this.duration;return true;}
- tick(dt:number){this.clock+=dt;for(const [id,seconds] of this.cooldowns){if(seconds<=dt)this.cooldowns.delete(id);else this.cooldowns.set(id,seconds-dt);}if(this.reloading){this.reloading=Math.max(0,this.reloading-dt);if(!this.reloading)this.finishReload();}}
+ tick(dt:number,driveByTimeMs?:number){
+  this.clock+=dt;
+  const driveBy=driveByTimeMs!==undefined&&this.enterDriveBy(driveByTimeMs,dt);
+  if(!driveBy)this.driveByState=undefined;
+  for(const [id,seconds] of this.cooldowns){if(driveBy&&id===this.selected)continue;if(seconds<=dt)this.cooldowns.delete(id);else this.cooldowns.set(id,seconds-dt);}
+  if(!driveBy&&this.reloading){this.reloading=Math.max(0,this.reloading-dt);if(!this.reloading)this.finishReload();}
+ }
  fire(){
+  this.driveByState=undefined;
   if(this.cooldown>0||this.reloading)return false;
   if(!this.spend())return false;
   // The fire anim's loop still gates the next FireGun, reloading or not.
