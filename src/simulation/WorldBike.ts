@@ -119,6 +119,8 @@ export class WorldBike {
  }
  private contactPairs(){if(!this.stepPairsRead)this.readStepPairs();return this.stepPairs;}
  readonly body:RAPIER.RigidBody;readonly root=new Group();
+ /** Process_1stPerson adds body position separately from the lean matrix's wheel-placement translation. */
+ readonly renderBodyPosition=new Vector3();
  /** CCustomCarEnvMapPipeline's reflection state (every vehicle model uses the car pipeline). */
  readonly reflection=new NativeCarReflection();readonly name:string;readonly modelId:number;
  private physical:ReturnType<typeof installNativeVehicleBody>;
@@ -894,6 +896,7 @@ export class WorldBike {
   this.wheelRoll?.update(this.previousWheelAngles,this.wheelPoses.map(p=>p.rotation),alpha);
   this.pedals?.update(this.previousCrankAngle,this.crankAngle,alpha);
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
+  this.renderBodyPosition.copy(this.root.position);
   const lit=this.lightsOn&&!this.wrecked;
   if(this.lamp)this.lamp.visible=lit;
   if(this.tailLamp){this.tailLamp.visible=lit;this.tailLamp.scale.setScalar(this.brake?0.45:0.3);}

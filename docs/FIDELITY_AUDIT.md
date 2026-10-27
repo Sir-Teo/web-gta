@@ -9,6 +9,16 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Bike bumper body origin (October 27, 2026)
+
+- Bike bumper sources now combine the selected lean orientation with the
+  interpolated physical body origin before the wheel-placement lean shift.
+  Rendered bike/rider poses retain that shift. All 53 controlled and moving
+  browser observations pass; maximum native horizontal disagreement falls from
+  3.80 cm to 0.12 mm, with zero height disagreement. Quad control cases remain
+  aligned. The retained double transform and full native camera/interpolation
+  ownership are explicit limits. [Evidence](research/BIKE_BUMPER_ORIGIN.md).
+
 ## Passenger bumper camera selection (October 27, 2026)
 
 - Real V now selects the bumper source for car and bike passengers, including

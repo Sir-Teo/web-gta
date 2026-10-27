@@ -4547,10 +4547,10 @@ async function boot() {
       // Pauses/streaming holds advance no game time and therefore add no camera movement lead.
       const cameraStep=Math.fround(Math.min(3,Math.max(0,(gameTimeExact-bumperGameTime)/20)));bumperGameTime=gameTimeExact;
       const passenger=playerPassenger?.car,car=worldCar?.occupied?worldCar:fleet?.occupied??(isScriptCar(passenger)?passenger:undefined),bike=fleet?.occupiedBike??(isScriptBike(passenger)?passenger:undefined),boat=fleet?.occupiedBoat;
-      const frameOf=(root:Object3D,local:{x:number;y:number;z:number})=>{const q=root.quaternion,w=new Vector3(local.x,local.z,-local.y).applyQuaternion(q);return {vehicle:root,source:{x:root.position.x+w.x,y:root.position.y+w.y,z:root.position.z+w.z},quaternion:{x:q.x,y:q.y,z:q.z,w:q.w}};};
+      const frameOf=(root:Object3D,local:{x:number;y:number;z:number},position=root.position)=>{const q=root.quaternion,w=new Vector3(local.x,local.z,-local.y).applyQuaternion(q);return {vehicle:root,source:{x:position.x+w.x,y:position.y+w.y,z:position.z+w.z},quaternion:{x:q.x,y:q.y,z:q.z,w:q.w}};};
       if(car){const seat=car.car.nativeFramePosition('ped_frontseat');render.bumper=frameOf(car.car.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62});}
       else if(bike){
-        const seat=bike.seat(),b=frameOf(bike.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62});
+        const seat=bike.seat(),b=frameOf(bike.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62},bike.renderBodyPosition);
         if(bike.quad||render.cameraSettings.vehicle!=='bumper')render.bumper=b;
         else{
           // Process_1stPerson's visibility test uses the camera axes on entry, before it replaces the final basis.

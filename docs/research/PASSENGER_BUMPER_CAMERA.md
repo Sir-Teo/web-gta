@@ -61,6 +61,8 @@ height replay separately declares the prior source, current driver neck and
 physical body position. Zero frozen velocity removes lead cadence from the
 driver-height comparison. The existing bike render-origin adapter is retained;
 this check does not establish the complete native lean-matrix/body-origin owner.
+The later [bike body-origin correction](BIKE_BUMPER_ORIGIN.md) separately
+removes the lean translation from the camera's interpolated origin.
 
 Evidence: `artifacts/passenger-bumper-camera-browser.log`,
 `artifacts/passenger-bumper-camera-live.json`,
