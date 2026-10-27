@@ -49,17 +49,23 @@ export class NativeStatReactions {
   }
   return rate;
  }
- /** CStats::UpdateStatsWhenSprinting (0x55C660). `timeStepMs` is CTimer::GetTimeStepInMS. */
+ /** CStats::UpdateStatsWhenSprinting (PC 0x55C660; selected iOS 0x100265518).
+  * The host supplies milliseconds; restore native 50-Hz units before native float conversion. */
  sprinting(timeStepMs:number){
-  this.onExercise?.(timeStepMs/20,unsignedFloat(Math.fround(this.v(AR.exerciseSprint))));
-  if(this.v(AR.timeLimitSprintStamina)*1000>=this.sprintStaminaCounter)this.sprintStaminaCounter+=Math.trunc(timeStepMs);
-  else{this.sprintStaminaCounter=0;this.increment(STAT_STAMINA,this.v(AR.incSprintStamina));}
+  this.groundTraining(timeStepMs,'sprintStaminaCounter',AR.exerciseSprint,AR.timeLimitSprintStamina,AR.incSprintStamina);
  }
- /** CStats::UpdateStatsWhenRunning (0x55C6F0). */
+ /** CStats::UpdateStatsWhenRunning (PC 0x55C6F0; selected iOS 0x100265644). */
  running(timeStepMs:number){
-  this.onExercise?.(timeStepMs/20,unsignedFloat(Math.fround(this.v(AR.exerciseRun))));
-  if(this.v(AR.timeLimitRunning)*1000>=this.runningCounter)this.runningCounter+=Math.trunc(timeStepMs);
-  else{this.runningCounter=0;this.increment(STAT_STAMINA,this.v(AR.incRunning));}
+  this.groundTraining(timeStepMs,'runningCounter',AR.exerciseRun,AR.timeLimitRunning,AR.incRunning);
+ }
+ private groundTraining(timeStepMs:number,counter:'sprintStaminaCounter'|'runningCounter',exercise:number,limit:number,increment:number){
+  const f=Math.fround,timeStep=f(timeStepMs/20);
+  this.onExercise?.(timeStep,unsignedFloat(f(this.v(exercise))));
+  if(f(this[counter])>f(f(this.v(limit))*1000)){
+   this[counter]=0;const gain=f(this.v(increment));if(gain>0)this.increment(STAT_STAMINA,gain);
+  }else{
+   const ms=unsignedFloat(f(f(timeStep/50)*1000));this[counter]=(this[counter]+ms)>>>0;
+  }
  }
  /** CStats::UpdateStatsWhenOnMotorBike (0x55CD60): fast riding or a wheelie counts half again, steady riding half;
   * `moveSpeed` is the bike's speed in units a frame. */

@@ -15043,3 +15043,28 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Final TypeScript validation and the production build pass.
 - Production smoke passes old-save resume, walking, car entry, map waypoint,
   pause/resume, takeoff and landing gear without page errors or failed requests.
+
+## Captured run/sprint training counters (October 27, 2026)
+
+- Run/sprint training now restores native float32 frame units from the host's
+  millisecond interface, compares old counters as float32, adds truncated
+  native milliseconds with uint32 wrap, and invokes positive float32 awards.
+  Body exercise still precedes stamina; normal fixed-frame thresholds remain.
+- Complete selected native caller/body routines execute unchanged in 137
+  captured profiles. Only stat-condition/display calls are logged stubs;
+  body entry and stamina stores are observed without skipping instructions.
+  All fixture values regenerate byte-identically. Twelve initial regressions
+  expose lost wrapping, float32 threshold/award precision and non-positive
+  callback suppression. All 421 focused checks and TypeScript validation pass.
+- Real W then W+Shift awards stamina 100→105→115. Complete caller/body
+  outputs match independently captured native profiles, and idle time pauses
+  the running counter. The existing body-exercise/reload browser regression
+  also passes (two checks, 1.5 minutes), without page errors. Distant water
+  streaming reports terrain-support warnings.
+- Native feedback effects, broader task scheduling and original-PC execution
+  matching remain separate work.
+  [Counter arithmetic, capture scope and evidence](research/GROUND_STAT_TRAINING.md).
+- The complete unit suite passes all 8,867 tests (51 skipped).
+- Final TypeScript validation and the production build pass.
+- Production smoke passes old-save resume, walking, car entry, map waypoint,
+  pause/resume, takeoff and landing gear without page errors or failed requests.
