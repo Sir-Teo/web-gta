@@ -1,4 +1,6 @@
 import {test,expect} from '@playwright/test';
+import {mkdirSync,writeFileSync} from 'node:fs';
+import {endStoryMission} from './freeRoam';
 
 test('the boat\'s driver sits in DRIVE_BOAT, and a standing boat\'s steers with DRIVE_BOAT_L and _R',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
@@ -32,4 +34,18 @@ test('the boat\'s driver sits in DRIVE_BOAT, and a standing boat\'s steers with 
  expect(placed.visible).toBe(true);expect(placed.distance).toBeLessThan(4);
  await page.screenshot({path:'artifacts/boat-driver-pose.png'});
  expect(errors).toEqual([]);
+});
+
+test('a seated boat driver uses the PC weak, standard and pro ride sets',async({page})=>{
+ test.setTimeout(180000);mkdirSync('artifacts',{recursive:true});const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
+ await page.waitForFunction(()=>(window as any).__game.sim.player.grounded,undefined,{timeout:60000});
+ const flags=await page.evaluate(async()=>{const g=(window as any).__game;g.placePlayer(2600,3,2600);const boat=await g.fleet().spawnBoat(446,2600,2601,0);for(let i=0;i<40&&!boat.seat();i++)await new Promise(r=>setTimeout(r,100));boat.finishEnter();return {sit:!!(boat.modelFlags&0x400),low:!!(boat.modelFlags&1)};});expect(flags).toEqual({sit:true,low:false});
+ const rows:any[]=[];
+ for(const [skill,idle,pattern] of [[0,'car_sit_weak','^drive_[lr]_weak_slow$'],[80,'car_sit','^drive_[lr]_slow$'],[100,'car_sit_pro','^drive_[lr]_pro_slow$']] as const){
+  await page.evaluate(skill=>(window as any).__game.missionForProfiling().runtime.game.stats.set(160,skill),skill);
+  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter?.vehicleClip),{timeout:20000}).toBe(idle);await page.keyboard.down('KeyA');
+  await page.waitForFunction(pattern=>(window as any).__game.fleet().occupiedBoat.driving.partials().some((p:any)=>new RegExp(pattern).test(p.clip)),pattern,{timeout:30000});
+  rows.push(await page.evaluate(()=>{const g=(window as any).__game;return {clip:g.state().nativeCharacter.vehicleClip,pose:g.render().vehiclePose.pose,visible:g.render().nativeCharacter.root.visible};}));await page.screenshot({path:`artifacts/pc-boat-driving-${skill}.png`});await page.keyboard.up('KeyA');
+ }
+ writeFileSync('artifacts/pc-boat-driving-live.json',JSON.stringify({rows,errors},null,2));for(const r of rows){expect(r.visible).toBe(true);expect(r.pose.partials.length).toBeGreaterThan(0);expect(r.pose.overlays).toBeUndefined();}expect(errors).toEqual([]);
 });

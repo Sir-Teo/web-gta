@@ -6,7 +6,7 @@ import {stepBicycleAssociations,type BicycleAssociation} from '../src/simulation
 import {NativeDrivingAnims} from '../src/simulation/nativeDrivingAnims';
 import {bikeDriveByAnimationReady} from '../src/simulation/nativeBikeDriveBy';
 for(const [index,row] of reference.cases.entries())test(`native car drive-by/driving partial frame ${index}`,()=>{
- const i=row.input,associations:BicycleAssociation[]=i.associations.filter(a=>a.flags&16).map(a=>({...a,group:0})),duration=(id:number)=>(i.durations as Record<string,number>)[id],ride=carDrivingRideIds({low:i.low,boat:i.boat,sitInBoat:i.sitInBoat,kart:i.kart,truck:i.truck,skill:i.drivingSkill,velocity:i.velocity});
+ const i=row.input,associations:BicycleAssociation[]=i.associations.filter(a=>a.flags&16).map(a=>({...a,group:0})),duration=(id:number)=>(i.durations as Record<string,number>)[id],ride=carDrivingRideIds({low:i.low,boat:i.boat,sitInBoat:i.sitInBoat,kart:i.kart,truck:i.truck,skill:i.drivingSkill,velocity:i.velocity},'ios');
  const selected=i.withDriveBy?controlCarDriveBy(associations,{enabled:i.driver&&i.playerData&&i.pad&&i.allowed&&i.slot===4,fire:i.fire,left:i.left,right:i.right,ammo:i.ammo,low:i.low},duration):undefined;
  const snapshot=()=>associations.map(({identifier,amount,delta,time,speed,timeStep,flags})=>({identifier,amount,delta,time,speed,timeStep,flags}));
  expect(snapshot()).toEqual(row.control.filter(a=>a.flags&16));expect(!!i.fire&&bikeDriveByAnimationReady(associations,selected)&&i.timeMs>i.nextShot).toBe(row.fireAttempts.length>0);

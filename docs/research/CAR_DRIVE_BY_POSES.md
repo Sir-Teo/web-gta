@@ -39,7 +39,10 @@ records passing the animation gate before the timestamp check.
 Native PED descriptor rows start at `0x100624418` for the selected car IDs.
 Ride tables at `0x100654260..0x1006542d0` and the actual native selector execute;
 the skill threshold is 50 and the float32 3D move-speed threshold is 0.4. This
-matches the selected iOS two-tier implementation; original PC has three tiers.
+slice captured the iOS two-tier implementation. The subsequent
+[PC ride-set change](PC_DRIVING_RIDE_SETS.md) restores the PC three-tier policy,
+validates its selector against compiled reversed source and supplies those PC
+tables as declared input to the native partial/controller capture.
 The mapping preserves the existing exported clip-name casing.
 
 Declared external services are player/pad lookup and look/fire results, the

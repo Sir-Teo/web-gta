@@ -187,16 +187,10 @@ import {vehicleDestroyed} from './simulation/vehicleDestroyed';
 import {PLAYER_MOTION_CLIPS,playerMotionGroupToLoad} from './ped/playerMotionGroup';
 import {playerBodyRatios,type PlayerBodyRatios} from './assets/blendPlayerBody';
 import {vehicleLightsStatus} from './simulation/nativeVehicleLights';
-/** aDriveAnimIdsBoat: the standing boat driver's idle, steering and look back. */
-const BOAT_RIDE={idle:'DRIVE_BOAT',left:'DRIVE_BOAT_L',right:'DRIVE_BOAT_R',back:'DRIVE_BOAT_back'};
-/** ProcessDrivingAnims' set in a boat (iOS 0x100480518): the DRIVE_BOAT set for one without m_bSitInBoat. One with it
- * (the Speeder, Squalo, Tropic, Launch) falls through to the car sets by driving skill and speed: AddInCarAnim (iOS
- * 0x1003e9754) sat its driver in CAR_SIT, and he steers as in a car. */
+/** ProcessDrivingAnims: low first, standing boat set, then the original-PC car skill sets for a seated boat. */
 function boatRideAnims(boat:{modelFlags:number;body:{linvel():{x:number;y:number;z:number}}},drivingSkill:number){
- if(!(boat.modelFlags&MODEL_FLAG.sitInBoat))return BOAT_RIDE;
  const v=boat.body.linvel();
- // A boat's handling anim group is 0, neither kart nor truck.
- return nativeRideAnims({low:!!(boat.modelFlags&MODEL_FLAG.low),kart:false,truck:false,drivingSkill,speed:Math.hypot(v.x,v.y,v.z)});
+ return nativeRideAnims({low:!!(boat.modelFlags&MODEL_FLAG.low),boat:true,sitInBoat:!!(boat.modelFlags&MODEL_FLAG.sitInBoat),kart:false,truck:false,drivingSkill,speed:Math.hypot(v.x,v.y,v.z),velocity:[v.x/50,-v.z/50,v.y/50]});
 }
 import {WorldPlane,advancePlaneEntry,planeEntrySlots} from './simulation/WorldPlane';
 import {WorldPolice,DEFAULT_COP_MODEL,DEFAULT_COP_CAR} from './simulation/WorldPolice';
@@ -4790,7 +4784,7 @@ async function boot() {
       if(!idle)void carEntry.clips.block('ped').catch(()=>{});
       if(seat&&idle){
         render.nativeCharacter.installVehicleClips(Object.fromEntries([ride.idle,ride.left,ride.right,ride.back].flatMap(name=>{const clip=carEntry.clips.ped(name);return clip?[[name.toLowerCase(),clip]]:[];})));
-        render.vehiclePose={frame:{vehicle:boat.root,local:seat},pose:{clip:ride.idle.toLowerCase(),seconds:idle.duration,blend:1,overlays:boat.driving.overlays()}};
+        render.vehiclePose={frame:{vehicle:boat.root,local:seat},pose:{clip:ride.idle.toLowerCase(),seconds:idle.duration,blend:1,partials:boat.driving.partials()}};
       }else render.vehiclePose=undefined;
     }else if(fleet?.occupiedBike&&render.nativeCharacter){
       // Ride base with synchronized pedal/sprint partial associations at the saddle dummy.

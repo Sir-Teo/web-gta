@@ -9,6 +9,17 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Original-PC driving skill poses (October 27, 2026)
+
+- Drivers now use weak/standard/pro sets at raw stat 160 thresholds 50 and 100;
+  weak clips are loaded, full 3D native speed supplies the slow/fast choice, and
+  seated boats use the same policy. Standing boats retain their own set.
+- All 512 source-compiled cases and 1,620 live selections agree. With explicitly
+  declared PC ride tables, the native partial/weapon routine matches all 1,620
+  live frames and 100 shot rays. The PC selector is source-validated; retail PC
+  executable/FPU identity and full-body idle task transitions remain open.
+  [Source, validation and limits](research/PC_DRIVING_RIDE_SETS.md).
+
 ## Player car drive-bys (October 27, 2026)
 
 - Normal and low-car driver shooting poses blend, finish and hold before firing;

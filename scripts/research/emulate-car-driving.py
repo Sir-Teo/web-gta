@@ -3,7 +3,8 @@
 Actual DoDriveByShootings (null ride data), ProcessDrivingAnims, association
 lookup/blend and clump execute. Player/pad/weapon services, driving stat and
 asset/clump construction are declared external. Native PED descriptors and
-ride ID tables are read from the pinned binary. Full-body idle task ownership,
+ride ID tables are read from the pinned binary. When declaredRide is supplied its table replaces the iOS selector result; that
+selector is then outside the validated stage. Full-body idle task ownership,
 skeletal callbacks remain outside the capture. With nativeWeapon input enabled,
 actual owner-null CWeapon::Update/FireFromCar execute; instant-hit effects, audio,
 completion percentage and reload-time services are declared external.
@@ -115,7 +116,7 @@ for page in [0x10049b000,0x10049d000,0x10049a000,0x100497000,0x100365000,0x10035
 uc.mem_map(0x1007a3000,0x1000)
 uc.mem_map(0x100480000,0x1000);uc.mem_write(0x100480000,data(0x100480000,0x1000));uc.mem_map(0x100654000,0x1000);uc.mem_write(0x100654000,data(0x100654000,0x1000));uc.mem_map(0x1008f8000,0x1000);uc.mem_map(0x100260000,0x1000)
 for page in [0x10014f000,0x100256000,0x100261000,0x100284000,0x10071d000]:uc.mem_map(page,0x1000)
-drive={};fireAttempts=[];usedRide=[];fireResults=[];weaponUpdated=None;animationReady=False
+drive={};fireAttempts=[];usedRide=[];fireResults=[];weaponUpdated=None;animationReady=False;nativeRide=[]
 vehicle,ped,pad,weaponInfo,playerInfo,ride=0x20014000,0x20016000,0x20018000,0x20019000,0x2001a000,0x20014830
 def driveHook(uc,addr,size,user):
  global weaponUpdated,animationReady
@@ -128,7 +129,10 @@ def driveHook(uc,addr,size,user):
    value=1 if addr==0x100497a48 else drive['reloadMs'] if addr==0x10049dbf8 else 0
    if addr==0x100261c30:uc.reg_write(UC_ARM64_REG_S0,struct.unpack('<I',struct.pack('<f',drive['progress']))[0])
    uc.reg_write(UC_ARM64_REG_X0,value);uc.reg_write(UC_ARM64_REG_PC,uc.reg_read(UC_ARM64_REG_LR));return
- if addr==0x1004805f4:usedRide.append(list(struct.unpack('<4I',uc.mem_read(uc.reg_read(UC_ARM64_REG_X25),16))))
+ if addr==0x1004805f4:
+  nativeRide.append(list(struct.unpack('<4I',uc.mem_read(uc.reg_read(UC_ARM64_REG_X25),16))))
+  if drive['declaredRide'] is not None:uc.mem_write(0x2001b800,struct.pack('<4I',*drive['declaredRide']));uc.reg_write(UC_ARM64_REG_X25,0x2001b800)
+  usedRide.append(list(struct.unpack('<4I',uc.mem_read(uc.reg_read(UC_ARM64_REG_X25),16))))
  if addr==0x100260858:uc.reg_write(UC_ARM64_REG_S0,struct.unpack('<I',struct.pack('<f',drive['drivingSkill']))[0]);uc.reg_write(UC_ARM64_REG_PC,uc.reg_read(UC_ARM64_REG_LR));return
  if addr==0x2001d200:uc.reg_write(UC_ARM64_REG_X0,0);uc.reg_write(UC_ARM64_REG_PC,uc.reg_read(UC_ARM64_REG_LR));return
  if addr in [0x10036547c,0x10035f8e4,0x10049db10,0x1002437fc,0x10049adf8,0x100244504,0x10024460c,0x100497908,0x100329d10] and not (drive.get('nativeWeapon') and addr in [0x10049adf8,0x100497908]):
@@ -145,9 +149,9 @@ def driveHook(uc,addr,size,user):
 uc.hook_add(UC_HOOK_CODE,driveHook)
 def weaponSnapshot():
  state,clip,total,nextShot=struct.unpack('<4I',uc.mem_read(ped+0x734,16));return {'state':state,'clip':clip,'total':total,'nextShot':nextShot}
-def capture(nativeWeapon=False,state=0,clip=30,magazine=30,reloadMs=1000,infinite=False,progress=0,entityByte=2,low=False,steer=0,gas=0,drivingSkill=0,velocity=[0,0,0],boat=False,sitInBoat=False,kart=False,truck=False,offscreen=False,player=True,blendRadio=False,cameraMode=0,cameraDirection=0,driving=True,withDriveBy=True,fire=0,left=False,right=False,ammo=100,subtype=0,associations=None,driver=True,playerData=True,pad=True,allowed=True,slot=4,dt=1/60,timeMs=100,nextShot=0,durations=None,rider=None):
+def capture(declaredRide=None,nativeWeapon=False,state=0,clip=30,magazine=30,reloadMs=1000,infinite=False,progress=0,entityByte=2,low=False,steer=0,gas=0,drivingSkill=0,velocity=[0,0,0],boat=False,sitInBoat=False,kart=False,truck=False,offscreen=False,player=True,blendRadio=False,cameraMode=0,cameraDirection=0,driving=True,withDriveBy=True,fire=0,left=False,right=False,ammo=100,subtype=0,associations=None,driver=True,playerData=True,pad=True,allowed=True,slot=4,dt=1/60,timeMs=100,nextShot=0,durations=None,rider=None):
  global pointers,nextIndex,created,controller,powerCalls,events,removed,rate,drive,weaponUpdated,animationReady
- drive={'nativeWeapon':nativeWeapon,'reloadMs':reloadMs,'progress':progress,'drivingSkill':drivingSkill,'fire':fire,'left':left,'right':right,'playerData':playerData,'pad':pad};fireAttempts.clear();fireResults.clear();weaponUpdated=None;animationReady=False;usedRide.clear();pointers={};nextIndex=0;created=[];powerCalls=[];events=[];removed=[];rate=None
+ drive={'declaredRide':declaredRide,'nativeWeapon':nativeWeapon,'reloadMs':reloadMs,'progress':progress,'drivingSkill':drivingSkill,'fire':fire,'left':left,'right':right,'playerData':playerData,'pad':pad};fireAttempts.clear();fireResults.clear();weaponUpdated=None;animationReady=False;usedRide.clear();nativeRide.clear();pointers={};nextIndex=0;created=[];powerCalls=[];events=[];removed=[];rate=None
  controller={'quad':bool(rider and rider.get('quad')),'player':player,'skill':0,'durations':{**{i:.2 for i in range(60,99)},189:1.0}}
  if durations:controller['durations'].update({int(k):v for k,v in durations.items()})
  uc.mem_write(clump,bytes(0x20000));uc.mem_write(0x10068acb4,struct.pack('<i',0x70));uc.mem_write(0x100689fa0,struct.pack('<Q',groups));uc.mem_write(clump+0x70,struct.pack('<Q',clumpData));uc.mem_write(clumpData+0x20,struct.pack('<Q',0x20000500));uc.mem_write(0x20000608,struct.pack('<Q',0x2001d100));uc.mem_write(0x20000780,struct.pack('<Q',0x2001d200));addresses=[]
@@ -184,7 +188,7 @@ def capture(nativeWeapon=False,state=0,clip=30,magazine=30,reloadMs=1000,infinit
  shotAt=struct.unpack('<I',uc.mem_read(ped+0x740,4))[0]
  uc.reg_write(UC_ARM64_REG_SP,stack);uc.reg_write(UC_ARM64_REG_X0,clump);uc.reg_write(UC_ARM64_REG_W1,0);uc.reg_write(UC_ARM64_REG_S0,struct.unpack('<I',struct.pack('<f',dt))[0]);uc.reg_write(UC_ARM64_REG_LR,0x2001e000);uc.emu_start(0x10013ad30,0x2001e000,count=10000)
  if uc.reg_read(UC_ARM64_REG_PC)!=0x2001e000:raise RuntimeError('Clump did not return.')
- return {'animationReady':animationReady,'weaponUpdated':weaponUpdated,'weapon':weaponSnapshot(),'fireResults':fireResults.copy(),'drivingControl':drivingControl,'usedRide':usedRide.copy(),'input':{'nativeWeapon':nativeWeapon,'state':state,'clip':clip,'magazine':magazine,'reloadMs':reloadMs,'infinite':infinite,'progress':progress,'entityByte':entityByte,'low':low,'steer':steer,'gas':gas,'drivingSkill':drivingSkill,'velocity':velocity,'boat':boat,'sitInBoat':sitInBoat,'kart':kart,'truck':truck,'offscreen':offscreen,'player':player,'blendRadio':blendRadio,'cameraMode':cameraMode,'cameraDirection':cameraDirection,'driving':driving,'withDriveBy':withDriveBy,'fire':fire,'left':left,'right':right,'ammo':ammo,'subtype':subtype,'driver':driver,'playerData':playerData,'pad':pad,'allowed':allowed,'slot':slot,'dt':f(dt),'timeMs':timeMs,'nextShot':nextShot,'associations':initial,'durations':controller['durations']},'control':control,'frame':snapshot(),'rate':rate,'removed':removed.copy(),'fireAttempts':fireAttempts.copy(),'nextShot':shotAt,**riderResult}
+ return {'nativeRide':nativeRide.copy(),'animationReady':animationReady,'weaponUpdated':weaponUpdated,'weapon':weaponSnapshot(),'fireResults':fireResults.copy(),'drivingControl':drivingControl,'usedRide':usedRide.copy(),'input':{'declaredRide':declaredRide,'nativeWeapon':nativeWeapon,'state':state,'clip':clip,'magazine':magazine,'reloadMs':reloadMs,'infinite':infinite,'progress':progress,'entityByte':entityByte,'low':low,'steer':steer,'gas':gas,'drivingSkill':drivingSkill,'velocity':velocity,'boat':boat,'sitInBoat':sitInBoat,'kart':kart,'truck':truck,'offscreen':offscreen,'player':player,'blendRadio':blendRadio,'cameraMode':cameraMode,'cameraDirection':cameraDirection,'driving':driving,'withDriveBy':withDriveBy,'fire':fire,'left':left,'right':right,'ammo':ammo,'subtype':subtype,'driver':driver,'playerData':playerData,'pad':pad,'allowed':allowed,'slot':slot,'dt':f(dt),'timeMs':timeMs,'nextShot':nextShot,'associations':initial,'durations':controller['durations']},'control':control,'frame':snapshot(),'rate':rate,'removed':removed.copy(),'fireAttempts':fireAttempts.copy(),'nextShot':shotAt,**riderResult}
 base={'identifier':60,'amount':1,'duration':.2}
 rows=[]
 for low in [False,True]:
@@ -205,4 +209,4 @@ for state in range(5):
   for now in [99,100,101]:rows.append(capture(nativeWeapon=True,state=state,clip=clip,ammo=ammo,magazine=50,timeMs=now,nextShot=100,fire=1,left=True,associations=[{'identifier':74,'amount':1,'time':.2,'duration':.2,'flags':0x1014},base]))
 if args.profiles:
  for row in json.loads(args.profiles.read_text()):rows.append(capture(**row['nativeInput']))
-args.output.write_text(json.dumps({'source':'Actual DoDriveByShootings with null ride data, ProcessDrivingAnims and scalar clump; nativeWeapon profiles also execute owner-null CWeapon::Update/FireFromCar. Player/pad/stat/info/reload/effects/audio and asset construction are external. Native descriptor/ride tables, selection, pose writes and clump arithmetic execute.','sha256':sha256,'driveEntry':'0x100480498','weaponUpdate':'0x10049adf8','weaponFire':'0x100497908','cases':rows},indent=2)+'\n');print(json.dumps({'cases':len(rows)}))
+args.output.write_text(json.dumps({'rideSelection':'Native iOS unless declaredRide supplies the table; PC selection needs its separate source-compiled reference.','source':'Actual DoDriveByShootings with null ride data, ProcessDrivingAnims and scalar clump; nativeWeapon profiles also execute owner-null CWeapon::Update/FireFromCar. Player/pad/stat/info/reload/effects/audio and asset construction are external. Native descriptor/ride tables, selection, pose writes and clump arithmetic execute.','sha256':sha256,'driveEntry':'0x100480498','weaponUpdate':'0x10049adf8','weaponFire':'0x100497908','cases':rows},indent=2)+'\n');print(json.dumps({'cases':len(rows)}))

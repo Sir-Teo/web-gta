@@ -42,10 +42,14 @@ export function controlCarDriving(associations:BicycleAssociation[],input:CarDri
  if(on){on.amount=used;on.delta=0;}else blend(associations,onId,duration,4);
  if(back)back.delta=-4;
 }
-const RIDE={low:[61,68,69,78],boat:[81,82,83,84],standard:[60,66,67,78],standardSlow:[60,85,86,78],pro:[63,72,73,80],proSlow:[63,89,90,80],truck:[91,92,93,94],kart:[95,96,97,98]} as const;
-/** Native ride tables 0x100654260..2d0, two iOS skill tiers and native 3D move-speed arithmetic. */
-export function carDrivingRideIds(input:{low:boolean;boat?:boolean;sitInBoat?:boolean;kart:boolean;truck:boolean;skill:number;velocity:readonly number[]}){
+const RIDE={weak:[62,70,71,79],weakSlow:[62,87,88,79],low:[61,68,69,78],boat:[81,82,83,84],standard:[60,66,67,78],standardSlow:[60,85,86,78],pro:[63,72,73,80],proSlow:[63,89,90,80],truck:[91,92,93,94],kart:[95,96,97,98]} as const;
+/** PC ride tables/tiers from reversed ProcessDrivingAnims and RideAnims.h.
+ * The explicit iOS mode retains its native two-tier selector for reference replay. */
+export function carDrivingRideIds(input:{low:boolean;boat?:boolean;sitInBoat?:boolean;kart:boolean;truck:boolean;skill:number;velocity:readonly number[]},release:'pc1'|'ios'='pc1'){
  if(input.low)return RIDE.low;if(input.boat&&!input.sitInBoat)return RIDE.boat;if(input.kart)return RIDE.kart;if(input.truck)return RIDE.truck;
- const v=input.velocity.map(f),speed=f(Math.sqrt(f(f(f(v[0]*v[0])+f(v[1]*v[1]))+f(v[2]*v[2])))),pro=f(input.skill)>=50;
- return speed>f(.4)?pro?RIDE.pro:RIDE.standard:pro?RIDE.proSlow:RIDE.standardSlow;
+ const v=input.velocity.map(f),speed=f(Math.sqrt(f(f(f(v[0]*v[0])+f(v[1]*v[1]))+f(v[2]*v[2])))),skill=f(input.skill),fast=speed>f(.4);
+ if(release==='ios'){const pro=skill>=50;return fast?pro?RIDE.pro:RIDE.standard:pro?RIDE.proSlow:RIDE.standardSlow;}
+ if(skill<50)return fast?RIDE.weak:RIDE.weakSlow;
+ if(skill<100)return fast?RIDE.standard:RIDE.standardSlow;
+ return fast?RIDE.pro:RIDE.proSlow;
 }

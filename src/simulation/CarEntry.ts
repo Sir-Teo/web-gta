@@ -32,7 +32,7 @@ const ENTRY_SETTLE_RATE=10;
 const LINE_UP_SECONDS=LINE_UP_SHARED;
 /** CTaskSimpleCarJumpOut for automobiles: door until 0.07 s, carried car speed until 0.45 s. */
 const JUMP_OUT_SET_OUT=JUMP_SET_SHARED,JUMP_OUT_CARRY=JUMP_CARRY_SHARED;
-const RIDE_SETS=[['CAR_sit','Drive_L','Drive_R','Drive_L_slow','Drive_R_slow','CAR_LB'],['CAR_sit_pro','Drive_L_pro','Drive_R_pro','Drive_L_pro_slow','Drive_R_pro_slow','CAR_LB_pro'],['CAR_Lsit','Drive_LO_l','Drive_LO_R'],['Drive_truck','DRIVE_truck_L','DRIVE_truck_R','DRIVE_truck_back'],['KART_drive','KART_L','KART_R','KART_LB']];
+const RIDE_SETS=[['CAR_sit','Drive_L','Drive_R','Drive_L_slow','Drive_R_slow','CAR_LB'],['CAR_sit_pro','Drive_L_pro','Drive_R_pro','Drive_L_pro_slow','Drive_R_pro_slow','CAR_LB_pro'],['CAR_Lsit','Drive_LO_l','Drive_LO_R'],['Drive_truck','DRIVE_truck_L','DRIVE_truck_R','DRIVE_truck_back'],['KART_drive','KART_L','KART_R','KART_LB'],['CAR_sit_weak','Drive_L_weak','Drive_R_weak','Drive_L_weak_slow','Drive_R_weak_slow','CAR_LB_weak']];
 const RIDE_NAMES=new Map(RIDE_SETS.flat().map(name=>[name.toLowerCase(),name]));
 export interface EntryPose {car?:WorldCar;local?:V3;headingOffset?:number;world?:V3;heading?:number;clip:string;seconds:number;blend:number;overlay?:{clip:string;amount:number};
  /** Partial clips laid over the idle in turn, each at its own time (the steering and look-back). */
@@ -42,12 +42,11 @@ export interface NpcPose {car:WorldCar;seat:0|1;local:V3;clip:string;seconds:num
  * model he was drawn with in the seat, and an officer's gun (a unit's cop stays a cop, CCopPed, once out). */
 export interface LeavingDriver {model:number|string;vitals?:PedVitals;officer?:{weapon:number;accuracy:number;vitals?:PedVitals};dead?:boolean;deathAccounted?:boolean}
 interface ClipUse {key:string;clip:NativeAnimation;group:number}
-/** CVehicle::ProcessDrivingAnims set selection, shared by cars and aircraft: low, kart, truck, else driving skill with
- * `_slow` at |m_vecMoveSpeed| ≤ 0.4 (`speed` in metres per second). The iOS build (0x100480518, sets at 0x100654260)
- * has two skill tiers, not the PC's three: under 50 the standard set, from 50 the pro one. It never picks the `_weak`
- * clips the PC gives a driver under 50. */
-export function nativeRideAnims(o:{low:boolean;kart:boolean;truck:boolean;drivingSkill:number;speed:number;velocity?:readonly number[]}){
- const [idle,left,right,back]=carDrivingRideIds({low:o.low,kart:o.kart,truck:o.truck,skill:o.drivingSkill,velocity:o.velocity??[o.speed/50,0,0]}).map(id=>RIDE_NAMES.get(CAR_DRIVING_CLIPS[id])??CAR_DRIVING_CLIPS[id]);
+/** Original-PC ProcessDrivingAnims ride sets: weak below 50, standard below 100,
+ * pro thereafter, with slow steering at native move-speed magnitude <= 0.4.
+ * Low/kart/truck sets precede skill. */
+export function nativeRideAnims(o:{low:boolean;kart:boolean;truck:boolean;drivingSkill:number;speed:number;velocity?:readonly number[];boat?:boolean;sitInBoat?:boolean}){
+ const [idle,left,right,back]=carDrivingRideIds({low:o.low,boat:o.boat,sitInBoat:o.sitInBoat,kart:o.kart,truck:o.truck,skill:o.drivingSkill,velocity:o.velocity??[o.speed/50,0,0]}).map(id=>RIDE_NAMES.get(CAR_DRIVING_CLIPS[id])??CAR_DRIVING_CLIPS[id]);
  return {idle,left,right,back};
 }
 /** ProcessDrivingAnims' look-left/right blend: |m_fSteerAngle / 0.61| clamped to 1, the right clip for negative (rightward) steering. */
