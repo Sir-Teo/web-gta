@@ -11,6 +11,8 @@ export function driverSeat(car:WorldCar){const dummy=car.car.root.getObjectByNam
 /** What an occupant sits on: the vehicle's root (renderer axes) and its body, a car's or a bike's. */
 export interface OccupantVehicle {car:{root:import('three').Object3D;body:{handle:number}}}
 export interface OccupantPose {key:string;car:OccupantVehicle;model:number|string;local:{x:number;y:number;z:number};clip:string;seconds:number;animation?:NativeAnimation;
+ /** Entry/exit and attached peds draw independently of the seated vehicle pass. */
+ renderWithVehicle?:boolean;
  partials?:readonly {clip:string;amount:number;seconds:number;animation:NativeAnimation}[];
  /** A turn about the vertical off the vehicle's own heading (an attached ped facing its side). */
  headingOffset?:number;scorched?:boolean;gun?:{model:Parameters<typeof modelObject>[0];textures:Parameters<typeof modelObject>[1]}}
@@ -68,7 +70,7 @@ export class VehicleOccupants {
     view.hand()?.add(gun.root);entry.gun={model:pose.gun.model,root:gun.root,dispose:()=>gun.dispose()};
    }else if(!pose.gun&&entry.gun){entry.gun.dispose();entry.gun=undefined;}
    if(pose.partials)view.installVehicleClips(Object.fromEntries(pose.partials.map(layer=>[layer.clip,layer.animation])));
-   view.updateVehicle({vehicle:pose.car.car.root,local:pose.local,headingOffset:pose.headingOffset},{clip:pose.clip,seconds:pose.seconds,partials:pose.partials});
+   view.updateVehicle({vehicle:pose.car.car.root,local:pose.local,headingOffset:pose.headingOffset,renderWithVehicle:pose.renderWithVehicle},{clip:pose.clip,seconds:pose.seconds,partials:pose.partials});
   }
  }
  /** The head node of the occupant drawn under `key`, in the world (renderer axes), while it is drawn. */

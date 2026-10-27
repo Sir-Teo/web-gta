@@ -9,6 +9,20 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Forward bumper vehicle/body culling (October 27, 2026)
+
+- Forward bumper draws suppress the occupied vehicle and its seated bodies,
+  including NPC passengers. Each root's visibility is restored after drawing;
+  current posing, bones and queries remain available. Independent entry, exit
+  and attached poses retain their own draws.
+- Draw-time checks cover Greenwood with an NPC passenger, Wayfarer, Squalo and
+  CJ getting out from bumper view. Camera and seven crew/transition checks pass.
+  The prior camera-exit ten-wall-second wait failed on both the unchanged
+  checkpoint and current game; readiness/game-clock checks pass on both.
+- All 17,995 units pass / 51 skipped. The rule follows the reversed-PC renderer;
+  wheelie exceptions, side/rear ordering and full render ownership remain open.
+  [Source, validation and limits](research/FIRSTPERSON_VEHICLE_CULLING.md).
+
 ## Selected native bike bumper height (October 27, 2026)
 
 - Motorcycle/bicycle bumper views sample the current rendered neck, add native

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { afterEach, beforeAll, expect, test, vi } from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { NativeCharacter, type CharacterSource } from '../src/render/NativeCharacter';
+import {withHiddenVehicle} from '../src/render/vehicleRenderOwnership';
 import { readDff } from '../src/assets/dff';
 import { readIfp } from '../src/assets/ifp';
 import {Mesh} from 'three';
@@ -16,6 +17,14 @@ beforeAll(async () => RAPIER.init()); afterEach(() => { character?.dispose(); si
 const source = (): CharacterSource => ({model:readDff(new Uint8Array(readFileSync('tests/fixtures/dragonff-skin.dff'))),textures:[],clip:readIfp(new Uint8Array(readFileSync('tests/fixtures/animation-rig.ifp'))).animations[0],track:0});
 const controls = { x:0,y:1,cameraYaw:Math.PI,sprint:false,jump:false,handbrake:false };
 function setup() { sim=new Simulation(); sim.player.grounded=true; character=new NativeCharacter(source()); }
+test('independent entry/exit poses keep drawing, and seated render ownership clears on foot',()=>{
+ setup();const vehicle=new Object3D(),clip=source().clip,pose={clip:'seat',seconds:0};character.installVehicleClips({seat:clip});
+ character.updateVehicle({vehicle,local:{x:0,y:0,z:0},renderWithVehicle:false},pose);
+ withHiddenVehicle(vehicle,()=>expect(character.root.visible).toBe(true));
+ character.updateVehicle({vehicle,local:{x:0,y:0,z:0}},pose);
+ withHiddenVehicle(vehicle,()=>expect(character.root.visible).toBe(false));
+ character.update(sim,1);withHiddenVehicle(vehicle,()=>expect(character.root.visible).toBe(true));
+});
 test('scorched character lighting survives normal ambient updates and thermal replacement, then restores per-material uniforms',()=>{
  setup();const materials=new Set<import('three').Material>();character.root.traverse(o=>{if(o instanceof Mesh)for(const material of [o.material].flat())materials.add(material);});expect(materials.size).toBeGreaterThan(0);
  character.setScorched(true);character.setAmbient([1,1,1],4,2);expect([...materials].every(m=>m.userData.nativeRenderScorched.value)).toBe(true);character.setThermal(true);character.setScorched(false);character.setThermal(false);expect([...materials].every(m=>m.userData.nativeRenderScorched.value===false)).toBe(true);

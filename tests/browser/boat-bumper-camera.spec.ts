@@ -33,6 +33,6 @@ test('boat bumper cameras follow dummy slot zero at the helm, with a world-heigh
    }
    await page.evaluate(()=>{const g=(window as any).__game,b=g.fleet().occupiedBoat;b.finishExit({x:2605,y:3,z:2605});g.fleet().removeScriptVehicle(b);});
   }
- }finally{const last=await page.evaluate(()=>{const g=(window as any).__game;g.__restoreBoatBumper?.();return {frames:g.__boatBumperRows,state:{mode:g.render().cameraSettings.vehicle,bumper:g.render().bumper,terrainHold:g.state().terrainHold,boat:g.fleet().occupiedBoat?.modelId}};});writeFileSync('artifacts/boat-bumper-camera-live.json',JSON.stringify({rows,errors,last},null,2));}
+ }finally{const last=await page.evaluate(()=>{const g=(window as any).__game,b=g.render().bumper;g.__restoreBoatBumper?.();return {frames:g.__boatBumperRows,state:{mode:g.render().cameraSettings.vehicle,bumper:b&&{source:b.source,quaternion:b.quaternion},terrainHold:g.state().terrainHold,boat:g.fleet().occupiedBoat?.modelId}};});writeFileSync('artifacts/boat-bumper-camera-live.json',JSON.stringify({rows,errors,last},null,2));}
  expect(rows).toHaveLength(110);expect(rows.slice(-10).every(r=>!r.terrainHold)).toBe(true);for(const row of rows){expect(row.error,JSON.stringify(row)).toBeLessThan(1e-5);expect(row.fov).toBe(60);}expect(errors).toEqual([]);
 });

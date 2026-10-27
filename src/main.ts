@@ -94,7 +94,7 @@ function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp'
  bikeClip?:(block:string,name:string)=>import('./assets/ifp').NativeAnimation|undefined,nowMs=0){
  const poses:import('./render/VehicleOccupants').OccupantPose[]=[];
  for(const rider of scriptRiders){
-  const add=(pose:import('./render/VehicleOccupants').OccupantPose)=>poses.push({...pose,scorched:!!rider.renderScorched});
+  const add=(pose:import('./render/VehicleOccupants').OccupantPose)=>poses.push({...pose,renderWithVehicle:!rider.offset,scorched:!!rider.renderScorched});
   if(rider.gone||rider.car.disposed||rider.health<=0&&!rider.diedInSeat){scriptRiders.delete(rider);continue;}
   // A clip the script plays on the seated rider takes the place of the seat's own pose: looped, or held at its end.
   const own=rider.clip?.animation,played=own&&rider.clip?{clip:rider.clip.name,animation:own,seconds:own.duration>0?(rider.clip.loop?((nowMs-rider.clip.started)/1000)%own.duration:Math.min((nowMs-rider.clip.started)/1000,own.duration)):0}:undefined;
@@ -4546,7 +4546,7 @@ async function boot() {
       // Pauses/streaming holds advance no game time and therefore add no camera movement lead.
       const cameraStep=Math.fround(Math.min(3,Math.max(0,(gameTimeExact-bumperGameTime)/20)));bumperGameTime=gameTimeExact;
       const car=worldCar?.occupied?worldCar:fleet?.occupied,bike=fleet?.occupiedBike,boat=fleet?.occupiedBoat;
-      const frameOf=(root:Object3D,local:{x:number;y:number;z:number})=>{const q=root.quaternion,w=new Vector3(local.x,local.z,-local.y).applyQuaternion(q);return {source:{x:root.position.x+w.x,y:root.position.y+w.y,z:root.position.z+w.z},quaternion:{x:q.x,y:q.y,z:q.z,w:q.w}};};
+      const frameOf=(root:Object3D,local:{x:number;y:number;z:number})=>{const q=root.quaternion,w=new Vector3(local.x,local.z,-local.y).applyQuaternion(q);return {vehicle:root,source:{x:root.position.x+w.x,y:root.position.y+w.y,z:root.position.z+w.z},quaternion:{x:q.x,y:q.y,z:q.z,w:q.w}};};
       if(car){const seat=car.car.nativeFramePosition('ped_frontseat');render.bumper=frameOf(car.car.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62});}
       else if(bike){
         const seat=bike.seat(),b=frameOf(bike.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62});
@@ -4730,7 +4730,7 @@ async function boot() {
       target:()=>new Vector3(scripted.target.x,scripted.target.y,scripted.target.z),roll:'roll' in scripted?scripted.roll:undefined,fov:'fov' in scripted?scripted.fov:undefined};}
      else if(scriptFixedCamera&&render.fixedCamera===scriptFixedCamera){render.fixedCamera=undefined;scriptFixedCamera=undefined;}
     }
-    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)||!!emergency?.covers(car)),...leavingAll.map(({pose:leaving,clip:leavingClip})=>({key:`leaving:${leaving.car.car.body.handle}:${leaving.seat}`,car:leaving.car,model:leaving.who?.model??occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip})),...(police?.poses().map(p=>({...p,key:`police:${p.car.car.body.handle}:${p.seat}`}))??[]),...(emergency?.poses().map(p=>({...p,key:`emergency:${p.car.car.body.handle}:${p.seat}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses(d=>{const name=`gang_driveby${d.side==='left'?'lhs':'rhs'}`,clip=driveby?.clip(name);return clip&&clip.duration>0?{clip:name,seconds:d.seconds%clip.duration,animation:clip,gun:driveby?.gun?.asset}:undefined;}),...carEntry.leavingPoses(),...scriptOccupantPoses(driveby,(block,name)=>carEntry.clips.peek(block,name),gameTimeMs)],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
+    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)||!!emergency?.covers(car)),...leavingAll.map(({pose:leaving,clip:leavingClip})=>({key:`leaving:${leaving.car.car.body.handle}:${leaving.seat}`,car:leaving.car,model:leaving.who?.model??occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip,renderWithVehicle:false})),...(police?.poses().map(p=>({...p,key:`police:${p.car.car.body.handle}:${p.seat}`}))??[]),...(emergency?.poses().map(p=>({...p,key:`emergency:${p.car.car.body.handle}:${p.seat}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses(d=>{const name=`gang_driveby${d.side==='left'?'lhs':'rhs'}`,clip=driveby?.clip(name);return clip&&clip.duration>0?{clip:name,seconds:d.seconds%clip.duration,animation:clip,gun:driveby?.gun?.asset}:undefined;}),...carEntry.leavingPoses(),...scriptOccupantPoses(driveby,(block,name)=>carEntry.clips.peek(block,name),gameTimeMs)],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
     const entryPose=carEntry.pose(),entryClips=entryPose&&carEntry.requiredClips();
     const entryPlane=[...(fleet?.planes??[])].find(p=>p.entry);
     if(entryClips&&render.nativeCharacter)render.nativeCharacter.installVehicleClips(entryClips,['car_rollout_lhs','car_rollout_rhs']);
@@ -4773,17 +4773,17 @@ async function boot() {
       render.vehiclePose={frame:{position:{x:lerp(p.previous.x,p.position.x),y:lerp(p.previous.y,p.position.y)+1,z:lerp(p.previous.z,p.position.z)},heading:p.heading},pose:{clip:'climb_jump',seconds:climbJump,blend:1}};
     }else if(entryPose&&render.nativeCharacter?.hasVehicleClip(entryPose.clip)){
       const world=entryPose.world?{x:p.previous.x+(p.position.x-p.previous.x)*alpha,y:p.previous.y+(p.position.y-p.previous.y)*alpha+1,z:p.previous.z+(p.position.z-p.previous.z)*alpha}:undefined;
-      render.vehiclePose={frame:entryPose.car?{vehicle:entryPose.car.car.root,local:entryPose.local,headingOffset:entryPose.headingOffset}:{position:world,heading:entryPose.heading},pose:{clip:entryPose.clip,seconds:entryPose.seconds,blend:entryPose.blend,overlay:entryPose.overlay,overlays:entryPose.overlays,partials:entryPose.partials}};
+      render.vehiclePose={frame:entryPose.car?{vehicle:entryPose.car.car.root,local:entryPose.local,headingOffset:entryPose.headingOffset,renderWithVehicle:carEntry.phase==='seated'||carEntry.phase==='waitSlow'}:{position:world,heading:entryPose.heading},pose:{clip:entryPose.clip,seconds:entryPose.seconds,blend:entryPose.blend,overlay:entryPose.overlay,overlays:entryPose.overlays,partials:entryPose.partials}};
     }else if(bikeMount.active&&render.nativeCharacter&&bikeMount.pose()){
       // Bike jump-on and get-off: bike space at the side point (the clip's root carries the body), or the world once a
       // get-off-back has set the rider out.
       const pose=bikeMount.pose()!;render.nativeCharacter.installVehicleClips(bikeMount.requiredClips());
       render.vehiclePose=pose.world?{frame:{position:{x:p.previous.x+(p.position.x-p.previous.x)*alpha,y:p.previous.y+(p.position.y-p.previous.y)*alpha+1,z:p.previous.z+(p.position.z-p.previous.z)*alpha},heading:pose.heading},pose:{clip:pose.clip,seconds:pose.seconds,blend:1}}
-        :{frame:{vehicle:pose.bike!.root,local:pose.local},pose:{clip:pose.clip,seconds:pose.seconds,blend:1}};
+        :{frame:{vehicle:pose.bike!.root,local:pose.local,renderWithVehicle:false},pose:{clip:pose.clip,seconds:pose.seconds,blend:1}};
     }else if(entryPlane?.entry&&render.nativeCharacter?.hasVehicleClip(entryPlane.entry.steps[entryPlane.entry.index].clipName)){
       // Choreographed aircraft entry/exit (clips resolved through the handling anim group).
       const e=entryPlane.entry,step=e.steps[e.index],seat=entryPlane.seat();
-      if(e.phase==='getin'&&seat)render.vehiclePose={frame:{vehicle:entryPlane.root,local:seat},pose:{clip:step.clipName,seconds:e.time,blend:1}};
+      if(e.phase==='getin'&&seat)render.vehiclePose={frame:{vehicle:entryPlane.root,local:seat,renderWithVehicle:false},pose:{clip:step.clipName,seconds:e.time,blend:1}};
       else{const p=sim.player.position;render.vehiclePose={frame:{position:{x:p.x,y:p.y+1,z:p.z},heading:sim.player.heading},pose:{clip:step.clipName,seconds:e.time,blend:1}};}
     }else if(fleet?.occupiedPlane&&render.nativeCharacter){
       // CTaskSimpleCarDrive in an aircraft: ProcessDrivingAnims' ride set at the mirrored ped_frontseat dummy.

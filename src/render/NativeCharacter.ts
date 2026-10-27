@@ -1,4 +1,5 @@
 import {characterShadowBounds} from './characterShadowBounds';
+import {setVehicleRenderOwner} from './vehicleRenderOwnership';
 import {PED_HIT_NODES,type PedHitSphere} from '../combat/nativePedHitSpheres';
 import {HEAD_EFFECTOR_OFFSET,LOOK_AT_SPEED,applyQuat,limitHead,moveHeadToTarget,slerpQuat,startLookAt,stepLookAt,type LookAtTask,type Quat} from '../simulation/nativeIkLookAt';
 import {PartialPose} from '../animation/PartialPose';
@@ -828,7 +829,8 @@ export class NativeCharacter {
   /** Samples a vehicle clip with the entity pinned in car space (`vehicle` + native-space `local`) or standing in the world.
    * `blend` fades from the previously rendered pose (BlendAnimation delta × time); `overlay` weights a partial clip's final
    * frame, `overlays` layer sequentially, and `partials` sum simultaneous track-aware associations. */
-  updateVehicle(frame:{vehicle?:Object3D;local?:{x:number;y:number;z:number};headingOffset?:number;position?:{x:number;y:number;z:number};heading?:number},pose:{clip:string;seconds:number;blend?:number;overlay?:{clip:string;amount:number};overlays?:readonly {clip:string;amount:number;seconds:number}[];partials?:readonly {clip:string;amount:number;seconds:number}[]}){
+  updateVehicle(frame:{vehicle?:Object3D;local?:{x:number;y:number;z:number};headingOffset?:number;position?:{x:number;y:number;z:number};heading?:number;renderWithVehicle?:boolean},pose:{clip:string;seconds:number;blend?:number;overlay?:{clip:string;amount:number};overlays?:readonly {clip:string;amount:number;seconds:number}[];partials?:readonly {clip:string;amount:number;seconds:number}[]}){
+    setVehicleRenderOwner(this.root,frame.renderWithVehicle===false?undefined:frame.vehicle);
     const binding=this.vehicleBindings.get(pose.clip);if(!binding){this.root.visible=false;return false;}
     if(frame.vehicle&&frame.local){this.root.position.copy(frame.vehicle.localToWorld(new Vector3(frame.local.x,frame.local.z,-frame.local.y)));this.root.quaternion.copy(frame.vehicle.getWorldQuaternion(new Quaternion()));if(frame.headingOffset)this.root.quaternion.multiply(new Quaternion().setFromAxisAngle(new Vector3(0,1,0),frame.headingOffset));this.root.visible=frame.vehicle.visible;this.worldPoseReady=true;}
     else if(frame.position){this.root.position.set(frame.position.x,frame.position.y,frame.position.z);this.root.rotation.set(0,(frame.heading??0)+this.headingOffset,0);this.root.visible=true;this.worldPoseReady=true;}
@@ -853,7 +855,7 @@ export class NativeCharacter {
     this.updatePoseMatrices();this.poseRevision++;return true;
   }
   /** Leaves vehicle posing; the next on-foot sample restores every bone the vehicle clips touched. */
-  endVehicle(){this.transition.capture();for(const binding of this.vehicleBindings.values())binding.restore();this.vehicleClip=undefined;this.transitionTime=this.previousTransitionTime=0;this.transitionDuration=TRANSITION_SECONDS;this.poseGeneration++;}
+  endVehicle(){setVehicleRenderOwner(this.root);this.transition.capture();for(const binding of this.vehicleBindings.values())binding.restore();this.vehicleClip=undefined;this.transitionTime=this.previousTransitionTime=0;this.transitionDuration=TRANSITION_SECONDS;this.poseGeneration++;}
   private transitionTargets(){const targets:Object3D[]=[];this.owner.root.traverse(o=>{if(Number.isInteger(o.userData.nativeFrame)&&this.source.model.frames[o.userData.nativeFrame]?.hanim)targets.push(o);});return targets;}
   get inVehiclePose(){return !!this.vehicleClip;}
   /** m_nMoveState is PEDMOVE_SPRINT. */
@@ -861,6 +863,7 @@ export class NativeCharacter {
   /** CPlayerPedData::m_fMoveBlendRatio: 0 still, 1 walking, 2 running. */
   get moveBlendRatio(){return this.moveBlend;}
   update(sim: Pick<Simulation, 'player'>, alpha: number) {
+    setVehicleRenderOwner(this.root);
     if(this.vehicleClip)this.endVehicle();
     // A dead CJ stays drawn: the death clip plays on his body through the wasted sequence.
     const p = sim.player; this.root.visible = p.health <= 0 || this.supported(sim);
@@ -984,5 +987,5 @@ export class NativeCharacter {
   snapshot() { return { motionGroup:this.playerMotionGroup,vehicleClip:this.vehicleClip??null,reload:this.weaponReload??null,reaction:this.reaction?.name??null, gun:this.gunAnims?{cmd:{...this.gunAnims.cmd},lowered:this.gunAimLowered,poses:this.gunAnims.poses().map(a=>({clip:a.clip,blend:+a.blend.toFixed(3),playing:a.playing,speed:+a.speed.toFixed(3)}))}:null, playbackSpeed:landingAction(this.action)?this.landingSpeed:launchAction(this.action)?this.launchSpeed:1, moveBlend:this.moveBlend, playerBody:!!this.shoulders, bodySwaps:this.bodySwaps, transition: this.transitionTime / this.transitionDuration, action: this.action === 'move' ? this.moveAction() : this.action, moves: this.moveAnims ? [...this.moveAnims.assocs.values()].map(a => ({ clip: a.clip, blend: a.blend, time: a.time, speed:a.speed })) : null, seconds: this.seconds, visible: this.root.visible }; }
   /** The gait the movement associations show, by name. */
   private moveAction(): Action { const a = this.moveAnims!; if (a.assocs.has('runStop') || a.assocs.has('runStopR')) return 'runStop'; if (a.assocs.has('walkStart')) return 'walkStart'; const w = (c: MoveClip) => a.assocs.get(c)?.blend ?? 0; return w('sprint') > .5 ? 'sprint' : w('run') > w('walk') && w('run') > w('idle') ? 'run' : w('walk') > w('idle') ? 'walk' : 'idle'; }
-  dispose() { this.setThermal(false);this.heatMaterial.dispose();this.root.removeFromParent(); this.owner.dispose(); }
+  dispose() { setVehicleRenderOwner(this.root);this.setThermal(false);this.heatMaterial.dispose();this.root.removeFromParent(); this.owner.dispose(); }
 }

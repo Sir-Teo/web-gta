@@ -162,7 +162,7 @@ interface Unit {
  /** The player has climbed into the car: the crew still aboard are getting out, and nobody boards it again. */
  taken?:boolean;
 }
-export interface PolicePose {car:WorldCar;seat:number;model:string;local:V3;headingOffset?:number;clip:string;seconds:number;animation?:NativeAnimation}
+export interface PolicePose {car:WorldCar;seat:number;model:string;local:V3;headingOffset?:number;clip:string;seconds:number;animation?:NativeAnimation;renderWithVehicle?:boolean}
 /** Law vehicles in pursuit: CCarAI police missions, speeds and switch distances, crew exits and recovery. Spawning comes from the
  * unreversed CCarCtrl::GenerateOneRandomCar. The browser uses car path nodes 60–110 units away,
  * with a strict visibility guard checked again after asset loading. */
@@ -836,7 +836,7 @@ export class WorldPolice {
    for(let seat=0;seat<4;seat++){
     const leaving=u.leaving.find(l=>l.seat===seat)??(taken?undefined:u.entering.find(e=>e.seat===seat));
     if(!leaving&&taken)continue;
-    if(leaving){const local=this.doorPoint(u.car,seat);if(local)out.push({car:u.car,seat,model:u.member.model,local,clip:leaving.key,seconds:leaving.time,animation:leaving.clip});continue;}
+    if(leaving){const local=this.doorPoint(u.car,seat);if(local)out.push({car:u.car,seat,model:u.member.model,local,clip:leaving.key,seconds:leaving.time,animation:leaving.clip,renderWithVehicle:false});continue;}
     if(!u.seats[seat])continue;
     // A driver the player has started to drag out is drawn by the car entry from that frame (beforeStep clears his seat).
     if(seat===0&&u.car.driverOut)continue;

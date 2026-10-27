@@ -1,4 +1,5 @@
 import {nativeDayNightBalance} from '../world/nativeDayNight';
+import {withHiddenVehicle} from './vehicleRenderOwnership';
 import { retainPrograms } from './retainPrograms';
 import { ProgramWarmer } from './programWarmer';
 import { setCompressedTextureSupport } from '../assets/nativeTexture';
@@ -67,7 +68,7 @@ export class GameRenderer {
     /** The view's up (CCam::Up), for a camera that sets its own: the cutscene's fly-by. */
     up?:THREE.Vector3};
   /** CCam::Process_1stPerson's source and the vehicle's frame for the bumper view, from the host each frame. */
-  bumper?:{source:{x:number;y:number;z:number};quaternion:{x:number;y:number;z:number;w:number};
+  bumper?:{source:{x:number;y:number;z:number};quaternion:{x:number;y:number;z:number;w:number};vehicle?:THREE.Object3D;
     /** Sample a rider bone after this frame's vehicle pose has updated. */
     sourceForCamera?:()=>{x:number;y:number;z:number}};
   /** TheCamera.m_bDisableFirstPersonInCar off. */
@@ -291,7 +292,12 @@ export class GameRenderer {
     this.beforeRender?.(this.camera);lap('beforeRender');
     this.nativeShadow.update(this.renderer,this.nativeCharacter,this.shadowReceivers,this.camera.position,this.sim.timeMinutes,this.lighting.nativeShadowStrength,paused,this.playerShadowAllowed);lap('shadow');
     this.programWarmer.beforeRender(performance.now());
-    this.renderer.render(this.scene, this.camera);this.afterRender?.();retainPrograms(this.renderer);lap('render');this.profile.frames++;
+    // Forward MODE_1STPERSON culls the player's vehicle in SetupEntityVisibility.
+    // Seated bodies belong to that vehicle draw; keep their pose updates above.
+    const hiddenVehicle=!this.fixedCamera&&this.bumperView&&this.glance==='none'?this.bumper?.vehicle:undefined;
+    const draw=()=>this.renderer.render(this.scene,this.camera);
+    if(hiddenVehicle)withHiddenVehicle(hiddenVehicle,draw);else draw();
+    this.afterRender?.();retainPrograms(this.renderer);lap('render');this.profile.frames++;
   }
   dispose() {
     this.nativeCharacter?.dispose();

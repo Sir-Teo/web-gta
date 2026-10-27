@@ -679,13 +679,13 @@ export class WorldEmergency {
  }
  /** The medics in their seats, or in their door clips. */
  poses(){
-  const out:{car:WorldCar;seat:number;model:string;local:V3;clip:string;seconds:number;animation?:NativeAnimation}[]=[];
+  const out:{car:WorldCar;seat:number;model:string;local:V3;clip:string;seconds:number;animation?:NativeAnimation;renderWithVehicle?:boolean}[]=[];
   for(const u of this.units){
    if(u.car.wrecked)continue;
    for(const m of u.medics){
     // In a van the player has taken only the medics getting out are drawn.
     if(u.car.occupied&&m.state!=='leaving')continue;
-    if(m.clip){const local=this.doorPoint(u.car,m.seat);if(local)out.push({car:u.car,seat:m.seat,model:u.model,local,clip:m.clip.key,seconds:m.clip.time,animation:m.clip.animation});continue;}
+    if(m.clip){const local=this.doorPoint(u.car,m.seat);if(local)out.push({car:u.car,seat:m.seat,model:u.model,local,clip:m.clip.key,seconds:m.clip.time,animation:m.clip.animation,renderWithVehicle:false});continue;}
     // A driver the player has started to drag out is drawn by the car entry from then on.
     if(m.state!=='seated'||m.seat===0&&u.car.driverOut)continue;
     const frame=u.car.car.nativeFramePosition(m.seat<2?'ped_frontseat':'ped_backseat');if(!frame)continue;
@@ -696,7 +696,7 @@ export class WorldEmergency {
   for(const t of this.trucks){
    if(t.car.wrecked)continue;
    const p=t.passenger;
-   if(p&&p!=='gone'){const local=this.doorPoint(t.car,1);if(local)out.push({car:t.car,seat:1,model:t.model,local,clip:p.key,seconds:p.time,animation:p.animation});}
+   if(p&&p!=='gone'){const local=this.doorPoint(t.car,1);if(local)out.push({car:t.car,seat:1,model:t.model,local,clip:p.key,seconds:p.time,animation:p.animation,renderWithVehicle:false});}
    if(t.car.occupied)continue;
    const frame=t.car.car.nativeFramePosition('ped_frontseat');if(!frame)continue;
    for(const seat of [0,1])if(seat?!p:!t.car.driverOut&&!t.driverGone){const dead=this.vitals(t,seat).dead;out.push({car:t.car,seat,model:t.model,local:{x:seat===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},clip:dead?(seat===0?'car_dead_lhs':'car_dead_rhs'):sitClip(t.car.modelFlags,seat===0),seconds:dead?1e6:0});}
