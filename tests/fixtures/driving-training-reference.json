@@ -1,0 +1,7448 @@
+{
+  "source": "Complete selected CStats::UpdateStatsWhenDriving with actual counter and integer-stat writes; logged CheckForStatsMessage/DisplayScriptStatUpdateMessage stubs",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "function": "0x100265c70",
+  "configuration": [
+    50.0,
+    50.0,
+    10.0,
+    5.0,
+    20.0,
+    50.0,
+    50.0,
+    25.0,
+    50.0,
+    10.0,
+    50.0,
+    20.0,
+    0.8,
+    5.0,
+    3.0,
+    0.6,
+    0.45,
+    0.6,
+    0.4,
+    1.5,
+    3.0,
+    2.0,
+    10.0,
+    15.0,
+    15.0,
+    10.0,
+    5.0,
+    15.0,
+    10.0,
+    15.0,
+    10.0,
+    5.0,
+    5.0,
+    300.0,
+    180.0,
+    300.0,
+    300.0,
+    300.0,
+    300.0,
+    120.0,
+    180.0,
+    300.0,
+    150.0,
+    150.0,
+    60.0,
+    600.0,
+    50.0,
+    20.0,
+    50.0,
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    50.0,
+    50.0,
+    50.0,
+    20.0,
+    5.0,
+    1000.0
+  ],
+  "arStatsSha256": "3f8a184d088dc25e166ff0bb067286b5dcac2398de21d3bb4e00b43956d31d25",
+  "cases": [
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 0,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 2,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 0,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 2,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.19999000430107117,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300000,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.20000000298023224,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.2000100016593933,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.7999899983406067,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.800000011920929,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 49,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300049,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.8000100255012512,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 0,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 16,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300000,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300016,
+      "skill": 999,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.30000001192092896,
+          0.4000000059604645,
+          0.10000000149011612
+        ],
+        "wheels": 4,
+        "vehicleType": 1,
+        "skill": 999,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": -2147483648,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": -2147483648,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": -100,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": -80,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": -1,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 19,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 1000,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 16777217,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 2147483610,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 2147483647,
+        "timeStep": 1.6666666269302368,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": -2147483648,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "4": -1
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "4": -1
+        },
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "4": 0
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "4": 0
+        },
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "4": 0.5
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "4": 0.5
+        },
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 0,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "4": 1
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "skill": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "4": 1
+        },
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "4": 1.0001
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "skill": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "4": 1.0001
+        },
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 1.000100016593933,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "4": 20
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "4": 20
+        },
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 20,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 160,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "4": 10000000000.0
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 300001,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "4": 10000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 0,
+      "skill": 1000,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "counter": 16777215,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 0.5,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 16777220,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 16777215,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 0.8333333134651184,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 16777224,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 16777215,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 16777232,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 16777215,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 100000000.0,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 1016777216,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 16777216,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 0.5,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 16777220,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 16777216,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 0.8333333134651184,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 16777224,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 16777216,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 16777232,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 16777216,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 100000000.0,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 1016777216,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 16777217,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 0.5,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 16777220,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 16777217,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 0.8333333134651184,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 16777224,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 16777217,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 16777232,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 16777217,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 100000000.0,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 1016777216,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 4294967294,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 0.5,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 4294967295,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 4294967294,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 0.8333333134651184,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 4294967295,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 4294967294,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 4294967295,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 4294967294,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 100000000.0,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 4294967295,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 4294967295,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 0.5,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 4294967295,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 4294967295,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 0.8333333134651184,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 4294967295,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 4294967295,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 4294967295,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 4294967295,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 100000000.0,
+        "overrides": {
+          "37": 1000000000.0
+        },
+        "showUpdates": true
+      },
+      "counter": 4294967295,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 16777215,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "37": 16777.216
+        },
+        "showUpdates": true
+      },
+      "counter": 16777232,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 16777216,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "37": 16777.216
+        },
+        "showUpdates": true
+      },
+      "counter": 16777232,
+      "skill": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "counter": 16777217,
+        "velocity": [
+          0.6000000238418579,
+          0.0,
+          0.0
+        ],
+        "wheels": 4,
+        "vehicleType": 0,
+        "skill": 0,
+        "timeStep": 1.6666666269302368,
+        "overrides": {
+          "37": 16777.216
+        },
+        "showUpdates": true
+      },
+      "counter": 16777232,
+      "skill": 0,
+      "external": []
+    }
+  ]
+}

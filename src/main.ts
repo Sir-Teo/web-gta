@@ -33,6 +33,7 @@ import {NativeParachuteTimer,WEAPON_PARACHUTE} from './simulation/nativeParachut
 import {sphereTouchingVehicle} from './vehicle/sphereTouchingVehicle';
 import {NativeStatReactions,readActionReactionStats,STAT_BIKE_SKILL,swimTrainingActive} from './simulation/nativeStatReactions';
 import {NativeBodyExercise,applyBodyExercise} from './simulation/nativeBodyExercise';
+import {NativeDrivingTraining} from './simulation/nativeDrivingTraining';
 import {STAT_CALORIES,STAT_COST_OF_PROPERTY_DAMAGED,STAT_PROGRESS_MADE,ScmStats} from './engine/ScmGameState';
 import {NativeShinyTexts} from './render/NativeShinyTexts';
 import {pedSignalQuad,type ShinyQuad} from './world/nativeShinyTexts';
@@ -1044,8 +1045,8 @@ async function boot() {
   /** A window the step waits for: a save point's, a restart's from indoors, or (`script`) the scene a script's teleport or
    * SET_AREA_VISIBLE took the player into, where he stays as the script put him. */
   let savedTransfer:{x:number;y:number;z:number;heading:number;quiet?:boolean;area?:number;enexStack?:number[];script?:boolean}|undefined,savedTransferInstalling=false,scriptAreaHold=false;
-  /** Body stats restore after INITIAL's default-setting pass, at the same INTRO boundary as saved-world return. */
-  let bodyStatsBound=false;
+  /** Saved driving/body stats restore after MAIN/INITIAL defaults, at the same INTRO boundary as saved-world return. */
+  let startupStatsBound=false;
   /** Whether a loaded game has had the new game's INTRO ended for it. */
   let introSkipped=false;
   /** When the new game's opening black was put up (play pressed with no save), until INTRO or a failure takes it over. */
@@ -1469,8 +1470,10 @@ async function boot() {
   law.onGoodCitizen=()=>{sim.money+=50;const text=gxtHudText(gxtText('GOODBOY',''));if(text)hud.bigMessage(text,'',5000);};
   // AR_STATS.DAT and the reversed CStats::UpdateStatsWhen* routines that read it.
   let statReactions:NativeStatReactions|undefined;
+  let drivingTraining:NativeDrivingTraining|undefined;
   void fetch(new URL(`${import.meta.env.BASE_URL}play/world/files/data/ar_stats.dat`,location.href)).then(r=>r.ok?r.text():Promise.reject(new Error(`ar_stats.dat ${r.status}`))).then(text=>{
    const values=readActionReactionStats(text);
+   drivingTraining=new NativeDrivingTraining(values);
    statReactions=new NativeStatReactions(values,(stat,value)=>{mission?.runtime.game.stats.increment(stat,value);displayStatUpdate(true,stat,value);});
    const bodyExercise=new NativeBodyExercise(values);
    statReactions.onExercise=(timeStep,rate)=>{
@@ -3910,6 +3913,17 @@ async function boot() {
           else if(statFrameDue&&onFoot&&!sim.player.swimming&&sim.footMove==='run')statReactions.running(1000/30);
           // CBike counts four wheel contact points.
           if(statFrameDue&&bike?.motorbike){const v=bike.body.linvel();statReactions.onMotorBike(1000/30,Math.hypot(v.x,v.y,v.z)/50,bike.airborne?0:4);}
+          const car=worldCar?.occupied?worldCar:fleet?.occupied,quad=bike?.quad?bike:undefined;
+          if(statFrameDue&&drivingTraining&&!law.arrested&&(car||quad)){
+           const v=(car?car.car.body:quad!.body).linvel(),f=Math.fround,velocity:[number,number,number]=[f(v.x/50),f(-v.z/50),f(v.y/50)];
+           // The selected CPlayerInfo caller skips zero native squared speed; partial work pauses in a stopped car.
+           if(f(f(f(velocity[0]*velocity[0])+f(velocity[1]*velocity[1]))+f(velocity[2]*velocity[2]))>0){
+            const wheels=car?car.wheelsOnGround:(()=>{const w=quad!.wheelContacts();return 2*(Number(w.front)+Number(w.rear));})();
+            const result=drivingTraining.step(50/30,{velocity,automobile:true,contactWheels:wheels,skill:progression.drivingSkill},game.showUpdateStats);
+            if(result.skill!==progression.drivingSkill)game.stats.set(160,result.skill);
+            for(const message of result.messages)displayStatUpdate(message.increase,message.stat,message.value);
+           }
+          }
          }
          if(game&&sim.player.health>0)hunger.update(Math.floor(sim.timeMinutes/60)%24,cheats.isActive('neverHungry'),playerControlsDisabled()||game.widescreenOn||!!navigation?.open||arsenal.open||game.cutscene.running||!!playerAttached,{
           fat:()=>game.stats.get(21),muscle:()=>game.stats.get(23),decrementFat:v=>{game.stats.decrement(21,v);displayStatUpdate(false,21,v);},decrementMuscle:v=>{game.stats.decrement(23,v);displayStatUpdate(false,23,v);},
@@ -4400,7 +4414,7 @@ async function boot() {
          stuntJumps.update(step*1000,{driving:!!body&&sim.player.health>0&&!law.arrested,position:p?{x:p.x,y:-p.z,z:p.y}:{x:0,y:0,z:0},
           moveSpeed:v?{x:v.x/50,y:-v.z/50,z:v.y/50}:{x:0,y:0,z:0},collided:car?car.entitiesCollided:bike?bike.entitiesCollided():1,lost:car?car.wrecked||car.drowning||under:bike?bike.wrecked||under:false});
         }
-        progression.tick(step,!!worldCar?.occupied,law.arrested);
+        progression.tick(step);
         carEntry.drivingSkill=progression.drivingSkill;
         if(entryExits&&importedScene&&!interiorTransfer){
          const active=entryExits.active;
@@ -4841,8 +4855,8 @@ async function boot() {
       // CEventVehicleDied affects living occupants before the scripts read their health.
       for(const rider of scriptRiders)respondToVehicleDeath(rider);
       mission.step(gameTimeExact,scriptStepMs);
-      if(!bodyStatsBound&&(mission.stopped||mission.runtime.active.some(slot=>slot.thread.base>0&&slot.thread.name==='INTRO'))){
-        progression.bindBodyStats(mission.runtime.game.stats);bodyStatsBound=true;rebuildPlayerIfNeeded();
+      if(!startupStatsBound&&(mission.stopped||mission.runtime.active.some(slot=>slot.thread.base>0&&slot.thread.name==='INTRO'))){
+        progression.bindBodyStats(mission.runtime.game.stats);progression.bindDrivingStats(mission.runtime.game.stats);startupStatsBound=true;rebuildPlayerIfNeeded();
       }
       // The script runtime stops at a command the port cannot run: say so once, with the command, rather than leave the
       // story silently frozen (the world and free roam go on).
@@ -7306,9 +7320,8 @@ async function boot() {
                  // CPlayerInfo::m_nMoney is the one purse the HUD shows and the score commands move.
                  game.bindMoney({get:()=>sim.money,set:v=>{sim.money=v;}});
                  if(shoppingText)game.shopping.load(shoppingText);registerStreamedScripts();game.stats.player={health:()=>sim.player.health,maxHealth:()=>game.playerInfo.maxHealth,addHealth:addPlayerHealth,ateEnough:()=>{hunger.hoursDidntEat=0;}};
-                 // STAT_DRIVING_SKILL and the weapon skills (GetSkillStatIndex: pistol 22 to M4 31 on stats 69-78, the
-                 // Tec-9 sharing the machine pistol's) are the saved skills the ride sets and aiming read.
-                 game.stats.bind(160,{get:()=>progression.drivingSkill,set:v=>{progression.drivingSkill=v;}});
+                 // Weapon skills (GetSkillStatIndex: pistol 22 to M4 31 on stats 69-78, the Tec-9 sharing machine pistol).
+                 // Driving stat ownership waits until MAIN's initial zero write has completed.
                  law.native.stats=game.stats;
                  game.stats.bind(137,{get:()=>cheats.timesCheated,set:v=>{cheats.timesCheated=v;}});
                  for(let stat=69;stat<=78;stat++)game.stats.bind(stat,{get:()=>weapons.inventory.practice.get(stat-47)??0,set:v=>{weapons.inventory.practice.set(stat-47,v);}});}

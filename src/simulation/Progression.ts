@@ -15,8 +15,7 @@ const finite=(v:unknown,max:number)=>typeof v==='number'&&Number.isFinite(v)&&v>
  * their practice, driving/body/training stats, collected pickups, sprayed tags, stunt jumps, explored map squares, the cars in
  * the safehouse garages and the last save point. Saves from before the Activities were removed keep loading; their fields are ignored. */
 export class Progression {
-/** Driving skill stat (0–1000): weak ride set below 50, standard below 100, pro above.
- * CStats::UpdateStatsWhenDriving port: +1 per 25 m driven (≈2.5 km to pro), weak/std/pro ride sets switch at the native bands. */
+/** Raw integer stat 160: native counter awards update the saved value read by weak/std/pro ride sets. */
  drivingSkill=0;
  /** CStats::Save/Load (PC 0x5D3B40/0x5D3BF0) store fat/stamina/muscle/raw max health (21–24) as floats and lungs (225) as int.
   * This browser-save subset keeps their current values; native training counters are not serialized. */
@@ -35,7 +34,7 @@ export class Progression {
  storedCars:(StoredCar|null)[][]=Array.from({length:HIDEOUT_SLOT_COUNT},()=>Array<StoredCar|null>(STORED_CARS_PER_GARAGE).fill(null));
  /** Where the last save point put the player (native x/y, browser height), the clock it saved and, inside, the
   * interior (CGame::currArea) and the doors taken into it (CEntryExitManager's stack, as pool indices). */
- savedLocation?:{x:number;y:number;z:number;heading:number;timeMinutes:number;weekDay?:number;area?:number;enexStack?:number[]};private previous?:{x:number;y:number;z:number};private saveTime=0;
+ savedLocation?:{x:number;y:number;z:number;heading:number;timeMinutes:number;weekDay?:number;area?:number;enexStack?:number[]};private saveTime=0;
  /** Whether stored progress was loaded (cash, weapons, stats or a save point), which New Game would throw away. */
  hadSave=false;
  /** The save's revision this tab last read or wrote; a write bumps it. */
@@ -49,7 +48,9 @@ export class Progression {
   try{const raw=fresh?undefined:storage?.getItem(KEY);if(!raw||raw.length>MAX_SAVE_LENGTH)return;const data=JSON.parse(raw);if(data.version!==1)return;this.hadSave=true;if(Number.isSafeInteger(data.revision)&&data.revision>0)this.revision=data.revision;
    // CPlayerInfo::m_nMoney is signed: the HUD draws a debt as -$%07d.
    if(Number.isInteger(data.money)&&data.money>=-9999999&&data.money<=999999999)sim.money=data.money;
-   if(finite(data.drivingSkill,1000))this.drivingSkill=data.drivingSkill;
+   // Stat 160 is int32. Older browser distance awards stored fractions in the natural 0–1000 range.
+   const driving=data.drivingSkill;
+   if(typeof driving==='number'&&Number.isFinite(driving)&&driving>=-2147483648&&driving<=2147483647&&(Number.isInteger(driving)||driving>=0&&driving<=1000))this.drivingSkill=Math.trunc(driving);
    const training=data.trainingStats,lung=training?.lungCapacity;
    for(const field of ['stamina','fat','muscle','maxHealth'] as const){const value=training?.[field];if(typeof value==='number'&&Number.isFinite(value)&&Number.isFinite(Math.fround(value))){this.trainingStats[field]=Math.fround(value);if(field!=='stamina')this.bodyStatsOwned.add(field);}}
    if(Number.isInteger(lung)&&lung>=-2147483648&&lung<=2147483647)this.trainingStats.lungCapacity=lung;
@@ -78,6 +79,10 @@ export class Progression {
   stats.bind(225,{get:()=>this.trainingStats.lungCapacity,set:value=>{this.trainingStats.lungCapacity=value;}});
   if(!options.deferBody)this.bindBodyStats(stats);
  }
+ /** MAIN writes stat 160 = 0 at file offset 56079. Replay that setup before restoring saved driving ownership. */
+ bindDrivingStats(stats:ScmStats){
+  stats.bind(160,{get:()=>this.drivingSkill,set:value=>{this.drivingSkill=value;}});
+ }
  /** MAIN gives a fresh CJ fat 200 and muscle 50 after CStats::Init zeroes them (raw health stat starts at 569).
   * Apply saved fields after that setup, or adopt its current values when those fields were absent. */
  bindBodyStats(stats:ScmStats){
@@ -96,12 +101,9 @@ export class Progression {
   if(id<22||id>32)return;
   const stat=skillStatWeapon(id);this.inventory.practice.set(stat,Math.min(1000,(this.inventory.practice.get(stat)??0)+(this.skillIncrements?.get(id)??5)));
  }
- /** A step of play: CStats::UpdateStatsWhenDriving's driving skill from the distance driven (a jump longer than the
-  * step could cover is a teleport and counts nothing), and the save every 5 s. */
- tick(dt:number,driving:boolean,arrested:boolean){
-  const p=this.sim.player.position;
-  if(driving&&this.previous&&this.sim.player.health>0&&!arrested){const distance=Math.hypot(p.x-this.previous.x,p.y-this.previous.y,p.z-this.previous.z);if(distance<Math.max(1,dt*100))this.drivingSkill=Math.min(1000,this.drivingSkill+distance/25);}
-  this.previous={...p};
+ /** Periodic save. Driving skill belongs to the native action/reaction counter, not distance traveled.
+  * Legacy ride arguments remain accepted while old callers migrate to the counter. */
+ tick(dt:number,_driving?:boolean,_arrested?:boolean){
   this.saveTime+=dt;if(this.saveTime>=5){this.saveTime=0;this.autosave();}
  }
  snapshot(){return {practice:this.inventory.practice.get(skillStatWeapon(this.inventory.selected))??0,skill:this.inventory.snapshot().skill,drivingSkill:this.drivingSkill,tags:this.tags};}

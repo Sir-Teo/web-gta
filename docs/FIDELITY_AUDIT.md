@@ -15121,3 +15121,37 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Final TypeScript validation and the production build pass.
 - Production smoke passes save resume, walking, car entry, map waypoint,
   pause/resume, takeoff and landing gear without page errors or failed requests.
+
+## Captured driving training and startup restore (October 27, 2026)
+
+- Authored driving skill by distance is replaced by the selected native
+  time/speed/wheel counter. Driver cars and quads write integer stat 160
+  through its saved binding; periodic autosave/position changes add no
+  duplicate award. Old natural-range browser fractions migrate by truncation,
+  while valid signed int32 direct-set values survive saves.
+- The complete selected UpdateStatsWhenDriving routine executes unchanged
+  in 332 fixed profiles. Only condition/display calls are logged external
+  stubs. Counter thresholds, speed/contact branches, float32 accumulation,
+  unsigned saturation, raw integer addition/wrap/cap and feedback match
+  exactly and regenerate byte-identically. Six host regressions expose the
+  duplicate distance award and save-loading differences before repair.
+- A live car/quad check initially exposes saved skill 80 being overwritten
+  to zero during startup. MAIN writes SET_FLOAT_STAT 160, 0 at offset 56079;
+  saved driving ownership now waits for the completed setup boundary. A new
+  unit executes that actual instruction and verifies early-save retention,
+  late restore, subsequent writes and no binding heal/gain notification.
+- Actual W driving awards 40→60 in a Landstalker and 60→80 in a quad. A
+  handbraked car pauses its counter; normal pagehide/reload restores stat and
+  ride provider 80. All 82 recorded live inputs also execute independently
+  in the native routine, exactly matching skill/counter/check counts/feedback.
+- All 383 focused checks and TypeScript validation pass. Three browser
+  checks pass (2.0 minutes): new driving/save, existing scripted driving and
+  body/training save/movement. They have no page errors. Full original-PC
+  matching, complete CPlayerInfo scheduling/passenger ownership, native HUD
+  effects and complete vehicle physics remain separate work.
+  [Native arithmetic, runtime replay and saved ownership](research/DRIVING_STAT_TRAINING.md).
+- The complete unit suite passes all 9,215 tests (51 skipped).
+- Final TypeScript validation and production build pass. A build process
+  ended without a completion result; the unchanged-source rerun passed.
+- Production smoke passes save resume, walking, car entry, map waypoint,
+  pause/resume, takeoff and landing gear without page errors or failed requests.
