@@ -15094,3 +15094,30 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Final TypeScript validation and the production build pass.
 - Production smoke passes old-save resume, walking, car entry, map waypoint,
   pause/resume, takeoff and landing gear without page errors or failed requests.
+
+## Live house save and primary-task gating (October 27, 2026)
+
+- The original CJ house disc has full-world coverage through CARLS entry,
+  actual W movement into pickup reach, the normal browser save flow and
+  reload. One 360-minute advance occurs; health 25 rises to 100, sprint energy
+  resets to capacity 450 and the original return location is saved in area 3
+  with its CARLS entry stack. Reload restores that stack and its floor.
+  No save callback or seeded save location substitutes for collection.
+- A new negative regression exposes a real missing predicate: an active
+  TASK_STAND_STILL previously still healed, passed six hours and wrote a save.
+  CPlayerPed::CanPlayerStartMission (PC 0x609590) rejects a non-drive primary
+  task. The on-foot save adapter now checks its actual PlayerScriptTasks
+  ownership before starting and again before applying delayed effects.
+- After repair the script task remains associated, health stays 25 and no
+  time pass or saved location occurs. Both new checks and the existing
+  player-task regression pass (three browser checks, 2.5 minutes), with no
+  page errors. All 62 focused save/task/stat checks and TypeScript pass.
+  The preceding full-unit baseline is 8,874 passed/51 skipped; the host guard
+  is verified through the focused checks and real ownership regression.
+- This verifies the browser save adapter and its new task guard. Native save
+  menus, complete script/world persistence, other safehouse discs and full
+  native task-manager matching remain separate work.
+  [Original disc, source predicate and live before/after evidence](research/NATIVE_SAVE_POINTS.md).
+- Final TypeScript validation and the production build pass.
+- Production smoke passes save resume, walking, car entry, map waypoint,
+  pause/resume, takeoff and landing gear without page errors or failed requests.

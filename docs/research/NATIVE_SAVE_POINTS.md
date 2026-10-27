@@ -16,7 +16,7 @@ The PICKUPSAVE discs from the original script now save the game (`src/assets/scm
 
 ## Gaps
 
-- Only the Verdant Meadows disc (slot 2) is outside an interior; the other twelve sit in safehouse interiors. Interiors are now published (`gta_int.img` under `public/play/world/int/`, listed in the world manifest's `archives`) and entered through the entry-exit doors (`src/world/nativeEntryExits.ts`), but saving at the interior discs has not been verified.
+- Only the Verdant Meadows disc (slot 2) is outside an interior; the other twelve sit in safehouse interiors. Interiors are published (`gta_int.img` under `public/play/world/int/`, listed in the world manifest's `archives`) and entered through the entry-exit doors (`src/world/nativeEntryExits.ts`). A real walk into CJ's house disc now verifies this browser save flow and reload; other safehouse discs still need live coverage.
 - The Verdant disc remains below the streamed ground. The October 22 support probe loads 54 models/83 placements with no missing COL: `ne_bit_08` is at Z=15.53686, with `des_byoffice` surfaces above it, and no floor is found below Z=15 at the disc or respawn point. The original INITIAL values remain Z=9.5077/9.0077; native CREATE_PICKUP preserves that disc height, then compresses it to 9.5. The reason for this script/world discrepancy remains unresolved. Pickup-system save checks do not establish a reachable disc there.
 - Native ACTIVATE_SAVE_MENU/HAS_SAVE_GAME_FINISHED remain unimplemented. The direct disc flow saves browser progress and shows a HUD confirmation; it does not provide the native menu or complete world/script persistence. `CStats` safehouse visits, gang wars, ropes and `TidyUpMemory` remain outside this flow.
 
@@ -26,3 +26,48 @@ The PICKUPSAVE discs from the original script now save the game (`src/assets/scm
 - `tests/verdant-save-disc.test.ts`: the Verdant disc collects at its script height on foot but not from the streamed strip ~6 m above. `PICKUP_REACH` stays native; the script/world height discrepancy still needs an explanation before a placement or terrain correction is justified.
 - `tests/browser/pickups.spec.ts`: a save disc reports the save on foot but not from a car, stays active for a repeat save, and its effects match.
 - `node scripts/research/verdant-save-support.mjs` probes the packaged world offline and writes `artifacts/verdant-save-support.json`. Native [pickup position captures](PICKUP_POSITION_STORAGE.md) establish storage without moving the disc to another floor.
+
+## Live house disc and primary-task ownership (October 27, 2026)
+
+The new full-world check enters CJ's house through CARLS and retains its entry
+stack. It reads slot 0 from the original MAIN initialization, approaches from
+the original respawn spot and walks into the actual disc with W. Pickup
+contact and the existing Simulation.passTime call are observed; no save
+callback is invoked and no saved location is seeded. One six-hour advance
+occurs, health 25 rises to 100, sprint energy resets to capacity 450, and the
+player returns to the exact original XY with the script's respawn Z saved.
+A normal reload restores area 3 and the CARLS entry stack, on its floor.
+
+The first approach incorrectly started inside the west wall; observations
+showed no pickup contacts and physical blockage. The repaired route uses the
+script's respawn point. The test releases W at collection so held input does
+not move the player after the return. Neither investigation changed game
+collision or original pickup/respawn coordinates.
+
+A second regression exposes a gameplay bug: standing at the disc under a real
+TASK_STAND_STILL still saves, healing 25→100 and advancing 360 minutes while
+the task remains associated. Pinned gta-reversed
+`4281f82d8af83e14935ac84a69dfd1ceebb9f256` reverses
+CPlayerPed::CanPlayerStartMission (`0x609590`): an existing primary task must
+be TASK_SIMPLE_CAR_DRIVE, and CPickup::Update applies the predicate to the save
+disc. The browser's on-foot save predicate now rejects PlayerScriptTasks
+ownership, as its existing door-transition predicate already does. The same
+predicate is checked before the fade and again before applying the delayed
+save. This is a source-backed ownership repair, not an independently captured
+original-PC trace or a complete task-manager port.
+
+All 62 focused save/player-task/stat checks and TypeScript validation pass.
+Before-repair evidence is `artifacts/safehouse-save-task-before.json` and
+`artifacts/safehouse-save-task-before.log`.
+
+After repair the real task stays associated, health remains 25, no six-hour
+pass occurs and no saved location is created. Both new save checks and the
+existing player-task regression pass (three checks, 2.5 minutes) without page
+errors. Evidence is `artifacts/safehouse-save-flow.json`,
+`artifacts/safehouse-save-task.json` and `artifacts/safehouse-save-browser-final.log`.
+The last complete unit baseline is 8,874 passed/51 skipped at the preceding
+terrain checkpoint; the single-condition host repair is verified by the 62
+focused checks and live ownership regression.
+Final TypeScript validation and the production build pass.
+Production smoke passes save resume, walking, car entry, map waypoint,
+pause/resume, aircraft takeoff and landing gear without page errors or failed requests.

@@ -1284,7 +1284,8 @@ async function boot() {
       // CPickup::Update takes the save disk only when CPlayerPed::CanPlayerStartMission: the game playing, the player
       // alive and in control, no physical response (a knockdown, a fall), no primary task (climbing, swimming, the
       // jetpack, a car entry) and no attack (aiming or a weapon mid-use).
-      const canStartMission=()=>!(gameLogic.state!==0||sim.player.health<=0||law.arrested||sim.knockdown>0||!sim.player.grounded||sim.climb||sim.player.swimming||sim.jetPack||carEntry.active||weapons.aiming||weapons.inventory.cooldown>0);
+      // CPlayerPed::CanPlayerStartMission (0x609590) also rejects a script-owned primary task, even while standing.
+      const canStartMission=()=>!(gameLogic.state!==0||sim.player.health<=0||law.arrested||sim.knockdown>0||!sim.player.grounded||sim.climb||sim.player.swimming||sim.jetPack||carEntry.active||playerTasks.active||weapons.aiming||weapons.inventory.cooldown>0);
       if(!canStartMission())return;
       const point=savePoints.filter(p=>Math.hypot(p.pickup[0]-pickup.position[0],p.pickup[1]-pickup.position[1],p.pickup[2]-pickup.position[2])<2)[0];
       if(!point)return;
