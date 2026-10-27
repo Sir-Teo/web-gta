@@ -52,8 +52,9 @@ bicycle drivers and motor-driven vehicles do not consume this player branch.
 Frozen, unloaded and skipped-physics bikes retain their existing early exits.
 The host has no native BIKE_SPRINT association yet, so it supplies no fast
 association. Boost/coefficient are retained as decision outputs; the full
-native bicycle acceleration formula, sprint-animation blending and cycling
-training are still open. Existing authored vehicle acceleration remains.
+native bicycle acceleration formula and sprint-animation blending remain
+open. [Cycling training](CYCLING_STAT_TRAINING.md) now consumes this decision
+separately. Existing authored vehicle acceleration remains.
 
 ## Host validation
 

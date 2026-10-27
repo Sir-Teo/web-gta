@@ -9,6 +9,18 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Cycling training and saved skill (October 27, 2026)
+
+- Player BMX, Chopper and Mountain Bike riding now runs captured stamina,
+  cycling-skill and shared body-exercise counters. Raw integer stat 230 shares
+  script/save ownership after MAIN startup. All 259 fixed native profiles and
+  27 independently replayed live calls match exactly.
+- Full units: 9,703 passed/51 skipped before the final contact mapping;
+  494 focused checks and three browser regressions pass after it. TypeScript,
+  build and production smoke pass. Full original-PC physics/task/HUD
+  equivalence remains open.
+  [Source, arithmetic, validation and limits](research/CYCLING_STAT_TRAINING.md).
+
 ## Bicycle player energy (October 27, 2026)
 
 - BMX, Chopper and Mountain Bike riding now runs the captured player pedal and
@@ -19,7 +31,7 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
   [Source and remaining scope](research/BMX_PLAYER_PEDALS.md).
 - The selected block captures native boost/coefficient decisions and pedal
   fallback. Complete bicycle acceleration, BIKE_SPRINT association blending,
-  cycling training and independent original-PC traces remain open.
+  and independent original-PC traces remain open.
 
 ## Open compatibility requirements
 

@@ -191,6 +191,8 @@ export class WorldBike {
  rawSteer=0;gasPedal=0;
  /** CBmx player decision outputs; native CBike control clears boost each frame. */
  playerBoost=false;pedalCoefficient=0;
+ /** Inputs at the native cycling call, before this controller integrates the bike's new velocity. */
+ playerCyclingFrame?:{gas:number;boost:boolean;velocity:readonly [number,number,number]};
  private accelerateHeld=false;
  /** CBmx::m_fControlJump (0 to 25 steps of charge) and the time left before the hop launches. */
  controlJump=0;hopLaunch?:number;pillion?:{modelRef:number|string};
@@ -371,7 +373,7 @@ export class WorldBike {
  }
  beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean;disabled?:boolean;sprint?:boolean;sprintJustPressed?:boolean;sprintDisabled?:boolean}={throttle:0,steer:0,brake:false}){
   this.wheelStepSeconds=0;
-  this.playerBoost=false;
+  this.playerBoost=false;this.playerCyclingFrame=undefined;
   if(!this.occupied){this.accelerateHeld=false;this.pedalCoefficient=0;}
   this.previousSteer=this.steer;
   this.previousCrankAngle=this.crankAngle;
@@ -431,6 +433,7 @@ export class WorldBike {
    stepBmxPedalControl(state,{accelerate,acceleratePressed:accelerate>0&&!this.accelerateHeld,held,justPressed:input.sprintJustPressed??(held&&!player.sprintInputHeld),capacity:this.sim.playerSprintCapacity(),neverTired:!!this.sim.neverTired?.(),adrenaline:player.adrenaline>0,sprintDisabled:input.sprintDisabled},dt*50);
    this.accelerateHeld=accelerate>0;player.sprintInputHeld=held;player.stamina=state.energy;player.sprintButtonSpeed=state.buttonSpeed;player.sprintExhausted=state.energy<=0&&state.buttonSpeed<=0;
    this.playerBoost=state.boost;this.pedalCoefficient=state.coefficient;gas=state.gas;
+   this.playerCyclingFrame={gas,boost:state.boost,velocity:[v.x/50,-v.z/50,v.y/50]};
    // The native decision snaps tiny steering angles to zero before testing straight acceleration.
    if(state.steer===0)this.steer=0;
   }

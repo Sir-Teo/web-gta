@@ -34,6 +34,8 @@ import {sphereTouchingVehicle} from './vehicle/sphereTouchingVehicle';
 import {NativeStatReactions,readActionReactionStats,STAT_BIKE_SKILL,swimTrainingActive} from './simulation/nativeStatReactions';
 import {NativeBodyExercise,applyBodyExercise} from './simulation/nativeBodyExercise';
 import {NativeDrivingTraining} from './simulation/nativeDrivingTraining';
+import {NativeCyclingTraining} from './simulation/nativeCyclingTraining';
+import {bikeContactPointCount} from './simulation/nativeBikeControls';
 import {STAT_CALORIES,STAT_COST_OF_PROPERTY_DAMAGED,STAT_PROGRESS_MADE,ScmStats} from './engine/ScmGameState';
 import {NativeShinyTexts} from './render/NativeShinyTexts';
 import {pedSignalQuad,type ShinyQuad} from './world/nativeShinyTexts';
@@ -1471,9 +1473,11 @@ async function boot() {
   // AR_STATS.DAT and the reversed CStats::UpdateStatsWhen* routines that read it.
   let statReactions:NativeStatReactions|undefined;
   let drivingTraining:NativeDrivingTraining|undefined;
+  let cyclingTraining:NativeCyclingTraining|undefined;
   void fetch(new URL(`${import.meta.env.BASE_URL}play/world/files/data/ar_stats.dat`,location.href)).then(r=>r.ok?r.text():Promise.reject(new Error(`ar_stats.dat ${r.status}`))).then(text=>{
    const values=readActionReactionStats(text);
    drivingTraining=new NativeDrivingTraining(values);
+   cyclingTraining=new NativeCyclingTraining(values);
    statReactions=new NativeStatReactions(values,(stat,value)=>{mission?.runtime.game.stats.increment(stat,value);displayStatUpdate(true,stat,value);});
    const bodyExercise=new NativeBodyExercise(values);
    statReactions.onExercise=(timeStep,rate)=>{
@@ -1481,6 +1485,7 @@ async function boot() {
     const result=applyBodyExercise(bodyExercise,timeStep,rate,game.stats,game.showUpdateStats);
     for(const message of result.messages)displayStatUpdate(message.increase,message.stat,message.value);
    };
+   cyclingTraining.onExercise=(timeStep,rate)=>statReactions?.onExercise?.(timeStep,rate);
    // STAT_INC_PISTOL_SKILL (12) to STAT_INC_M4_SKILL (21) by weapon; the Tec-9 trains the Micro Uzi's stat at its rate.
    progression.skillIncrements=new Map([22,23,24,25,26,27,28,29,30,31,32].map(id=>[id,values[id===32?18:id-10]??5]));
   }).catch(error=>{console.error('ar_stats.dat failed to load',error);});
@@ -4302,6 +4307,15 @@ async function boot() {
         // DisablePlayerControls: no hop (CBmx refuses the press and drops the charge), gas off and the brakes on, as
         // CAutomobile::ProcessControlInputs does for the quad.
         for(const bike of fleet?.bikes??[])bike.beforeStep(step,bike.occupied&&!bike.scriptDriven?(bikeMount.active&&bikeMount.bike===bike||controlsOff?{throttle:0,steer:0,brake:true,disabled:controlsOff}:{throttle:axes.y,steer:steerAxes.x,brake:input.down('Space'),hop:input.down('ControlLeft'),sprint:controls.sprint,sprintJustPressed:controls.sprintJustPressed,sprintDisabled:controls.playerSprintDisabled}):bike.autopilotInput());
+        // CBmx::ProcessAI calls cycling immediately after its player pedal/boost decision. Preserve that frame's
+        // gas and pre-integration velocity, and native 30-Hz counter scheduling shared by other training tasks.
+        if(statFrameDue&&cyclingTraining&&mission){
+         const bike=fleet?.occupiedBike,frame=bike?.playerCyclingFrame;
+         if(bike&&frame){const contacts=bike.wheelContacts(),game=mission.runtime.game;
+          const result=cyclingTraining.step(50/30,{...frame,contactWheels:bikeContactPointCount(contacts.front,contacts.rear),skill:progression.cyclingSkill},game.stats,game.showUpdateStats);
+          for(const message of result.messages)displayStatUpdate(message.increase,message.stat,message.value);
+         }
+        }
         const tPlayer=performance.now();
         const riding=remoteMode()||!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||carEntry.pinned||bikeMount.pinned||playerPassenger||playerAttached);
         // A ride or entry sequence ending leaves CJ standing: neither move blend ratio carries over from before it.
@@ -4856,7 +4870,7 @@ async function boot() {
       for(const rider of scriptRiders)respondToVehicleDeath(rider);
       mission.step(gameTimeExact,scriptStepMs);
       if(!startupStatsBound&&(mission.stopped||mission.runtime.active.some(slot=>slot.thread.base>0&&slot.thread.name==='INTRO'))){
-        progression.bindBodyStats(mission.runtime.game.stats);progression.bindDrivingStats(mission.runtime.game.stats);startupStatsBound=true;rebuildPlayerIfNeeded();
+        progression.bindBodyStats(mission.runtime.game.stats);progression.bindDrivingStats(mission.runtime.game.stats);progression.bindCyclingStats(mission.runtime.game.stats);startupStatsBound=true;rebuildPlayerIfNeeded();
       }
       // The script runtime stops at a command the port cannot run: say so once, with the command, rather than leave the
       // story silently frozen (the world and free roam go on).
