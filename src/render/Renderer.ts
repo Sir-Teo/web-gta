@@ -67,7 +67,9 @@ export class GameRenderer {
     /** The view's up (CCam::Up), for a camera that sets its own: the cutscene's fly-by. */
     up?:THREE.Vector3};
   /** CCam::Process_1stPerson's source and the vehicle's frame for the bumper view, from the host each frame. */
-  bumper?:{source:{x:number;y:number;z:number};quaternion:{x:number;y:number;z:number;w:number}};
+  bumper?:{source:{x:number;y:number;z:number};quaternion:{x:number;y:number;z:number;w:number};
+    /** Sample a rider bone after this frame's vehicle pose has updated. */
+    sourceForCamera?:()=>{x:number;y:number;z:number}};
   /** TheCamera.m_bDisableFirstPersonInCar off. */
   bumperAllowed=true;
   get bumperView(){return this.vehicleView&&this.cameraSettings.vehicle==='bumper'&&!!this.bumper&&this.bumperAllowed;}
@@ -263,7 +265,7 @@ export class GameRenderer {
     // CCam::Process_Fixed keeps the camera at m_vecCamFixedModeSource and faces the entity it took control of.
     if(this.fixedCamera){const up=this.fixedCamera.up;this.camera.position.copy(this.fixedCamera.position);if(up)this.camera.up.copy(up);this.camera.lookAt(this.fixedCamera.target());if(up)this.camera.up.set(0,1,0);if(this.fixedCamera.roll)this.camera.rotateZ(-this.fixedCamera.roll);}
     // CCam::Process_1stPerson: the source the host worked out, looking along the vehicle's own forward and up.
-    else if(this.bumperView){const b=this.bumper!;this.camera.position.set(b.source.x,b.source.y,b.source.z);this.camera.quaternion.set(b.quaternion.x,b.quaternion.y,b.quaternion.z,b.quaternion.w);}
+    else if(this.bumperView){const b=this.bumper!;b.source=b.sourceForCamera?.()??b.source;this.camera.position.set(b.source.x,b.source.y,b.source.z);this.camera.quaternion.set(b.quaternion.x,b.quaternion.y,b.quaternion.z,b.quaternion.w);}
     else if(fp){
       // Process_Rocket and the Vice City Process_Sniper: the head bone plus the mode's offset, looking along the angles.
       const head=this.nativeCharacter?.headPosition(this.head)??this.head.set(p.position.x,p.position.y+1.6-.5*this.crouchAmount,p.position.z);

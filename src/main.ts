@@ -187,6 +187,7 @@ import {vehicleDestroyed} from './simulation/vehicleDestroyed';
 import {PLAYER_MOTION_CLIPS,playerMotionGroupToLoad} from './ped/playerMotionGroup';
 import {playerBodyRatios,type PlayerBodyRatios} from './assets/blendPlayerBody';
 import {vehicleLightsStatus} from './simulation/nativeVehicleLights';
+import {nativeBikeBumperCamera} from './render/nativeBikeBumperCamera';
 /** ProcessDrivingAnims: low first, standing boat set, then the original-PC car skill sets for a seated boat. */
 function boatRideAnims(boat:{modelFlags:number;body:{linvel():{x:number;y:number;z:number}}},drivingSkill:number){
  const v=boat.body.linvel();
@@ -1176,7 +1177,7 @@ async function boot() {
   // CRestart tables; the simulation's own timer only releases the seat.
   const nativeRestart=new NativeRestart(),gameLogic=new NativeGameLogic(nativeRestart),cameraFade=new ScmCameraFade();
   sim.externalDeathRecovery=true;
-  let arrested=false,gameTimeMs=0,previousGameTimeMs=0,gameTimeExact=0;
+  let arrested=false,gameTimeMs=0,previousGameTimeMs=0,gameTimeExact=0,bumperGameTime=0;
   /** The game clock the script last ran at, and the mission it ran for (a new mission starts from the clock as it is). */
   let scriptGameTimeExact=0,scriptClockMission:unknown;
   /** The script stop last reported to the player. */
@@ -4541,10 +4542,27 @@ async function boot() {
     // roots so the camera and the hull use the same interpolated pose. A bike's height is its rider's neck + .15.
     render.bumperAllowed=!mission?.runtime.game.camera.disableFirstPersonInCar;
     {
+      // CTimer input adapter: elapsed game time since the previous rendered frame, capped at three native steps.
+      // Pauses/streaming holds advance no game time and therefore add no camera movement lead.
+      const cameraStep=Math.fround(Math.min(3,Math.max(0,(gameTimeExact-bumperGameTime)/20)));bumperGameTime=gameTimeExact;
       const car=worldCar?.occupied?worldCar:fleet?.occupied,bike=fleet?.occupiedBike,boat=fleet?.occupiedBoat;
       const frameOf=(root:Object3D,local:{x:number;y:number;z:number})=>{const q=root.quaternion,w=new Vector3(local.x,local.z,-local.y).applyQuaternion(q);return {source:{x:root.position.x+w.x,y:root.position.y+w.y,z:root.position.z+w.z},quaternion:{x:q.x,y:q.y,z:q.z,w:q.w}};};
       if(car){const seat=car.car.nativeFramePosition('ped_frontseat');render.bumper=frameOf(car.car.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62});}
-      else if(bike){const seat=bike.seat(),b=frameOf(bike.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62}),neck=!bike.quad?render.nativeCharacter?.bonePosition(4,scratchSpine):undefined;if(neck)b.source.y=neck.y+.15;render.bumper=b;}
+      else if(bike){
+        const seat=bike.seat(),b=frameOf(bike.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62});
+        if(bike.quad||render.cameraSettings.vehicle!=='bumper')render.bumper=b;
+        else{
+          // Process_1stPerson's visibility test uses the camera axes on entry, before it replaces the final basis.
+          const front=render.camera.getWorldDirection(new Vector3()),up=new Vector3(0,1,0).applyQuaternion(render.camera.quaternion);
+          render.bumper={...b,sourceForCamera:()=>{
+            const neck=render.nativeCharacter?.bonePosition(4,scratchSpine);if(!neck)return b.source;
+            const v=bike.body.linvel(),p=bike.body.translation(),stage=nativeBikeBumperCamera({source:[b.source.x,-b.source.z,b.source.y],position:[p.x,-p.z,p.y],neck:[neck.x,-neck.z,neck.y],velocity:[v.x/50,-v.z/50,v.y/50],timeStep:cameraStep,front:[front.x,-front.z,front.y],up:[up.x,-up.z,up.y]});
+            const from={x:stage.lineFrom[0],y:stage.lineFrom[2],z:-stage.lineFrom[1]},delta={x:stage.lineTo[0]-stage.lineFrom[0],y:stage.lineTo[2]-stage.lineFrom[2],z:-(stage.lineTo[1]-stage.lineFrom[1])},length=Math.hypot(delta.x,delta.y,delta.z);
+            const blocked=length>0&&sim.world.castRay(new RAPIER.Ray(from,{x:delta.x/length,y:delta.y/length,z:delta.z/length}),length,true,RAPIER.QueryFilterFlags.ONLY_FIXED|RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,undefined,collider=>{const kind=importedScene?.sources.get(collider.handle)?.entityKind;return kind!=='dummy'&&kind!=='object';})!==null;
+            const source=blocked?stage.blockedSource:stage.source;return {x:source[0],y:source[2],z:-source[1]};
+          }};
+        }
+      }
       else if(boat){const seat=boat.seat(),b=frameOf(boat.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62});b.source.y+=.5;render.bumper=b;}
       else render.bumper=undefined;
     }

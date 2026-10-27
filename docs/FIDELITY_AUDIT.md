@@ -9,6 +9,18 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Selected native bike bumper height (October 27, 2026)
+
+- Motorcycle/bicycle bumper views sample the current rendered neck, add native
+  vertical movement lead and use the captured building-visibility fallback.
+  Pauses and streaming holds add no game-clock movement lead. Quads retain
+  their automobile source.
+- All 240 fixed captures and 139 live height sources/sightlines match the
+  selected native stage exactly, including five blocked and four moving frames.
+  All 14 models and car/boat regressions pass. Original-PC sightline behavior,
+  complete task/render ownership and host query membership remain boundaries.
+  [Source, validation and limits](research/BIKE_BUMPER_HEIGHT.md).
+
 ## Bike/quad bumper camera offsets (October 27, 2026)
 
 - Bike views now include their front-seat dummy; quads keep the automobile's

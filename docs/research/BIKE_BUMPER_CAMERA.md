@@ -57,9 +57,10 @@ the native source stage. Evidence:
 - `artifacts/bike-bumper-baseline-verification.json`
 
 The browser test checks horizontal coordinates for motorcycles/bicycles and all
-three coordinates for quads. The existing motorcycle neck-height path remains:
-its sampling phase, velocity lead, visibility fallback, wheelie camera and
-ground-fault protection are **not** validated or corrected by this change.
+three coordinates for quads. The neck-height path was outside this offset change. A subsequent
+[neck/lead/visibility change](BIKE_BUMPER_HEIGHT.md) covers selected native height
+branches; wheelie camera, ground protection and full original-PC scheduling
+remain open.
 The host's double/quaternion transform is compared with a declared millimetre
 tolerance, not called bit-exact. Arbitrary nested dummy preprocessing and matched
 original-PC screenshots remain acceptance boundaries.
