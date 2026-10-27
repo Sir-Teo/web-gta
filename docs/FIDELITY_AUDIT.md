@@ -15243,3 +15243,18 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   quaternion sums. Ordinary CBike fallback/lean associations, fallback
   crank behavior, full native scheduling and float32 pose-sampler parity
   remain separate work. See [evidence and boundaries](research/BICYCLE_ASSOCIATION_BLENDING.md).
+
+
+## Motorcycle and quad rider lean poses (October 27, 2026)
+
+- Eleven supported motorcycles/quads now sample Left/Right at native filtered
+  lean phase; reversing steering keeps the residual lean's pose side until
+  filtered lean crosses zero. Player/script drivers share the selected stage;
+  freeze, repeated render and rider-release ownership are checked.
+- 1,134 independent native pose cases and 360 native filter cases pass; 80 more captures check the reverse-pedalling
+  precision boundary. The
+  imported powf is an explicit host-libm boundary. All 2,112 recorded live
+  steps replay exactly for filtered lean and active association pose state.
+- Existing physical lean, ride/still availability, forward input and full
+  rider task/association lifecycle remain separate. See
+  [capture boundaries and evidence](research/BIKE_RIDER_LEAN_POSES.md).

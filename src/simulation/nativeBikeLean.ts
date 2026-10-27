@@ -1,6 +1,7 @@
 import {requireAsset} from '../assets/binary';
 /** CBike lean (CBike::CalculateLeanMatrix is reversed; the LeanAngle dynamics in
- * ProcessRiderAnims are not, so targets/rates are authored while caps and the
+ * ProcessRiderAnims are separate from the captured rider pose filter/mapping,
+ * so physical targets/rates are authored while caps and the
  * matrix application follow the source). Lean is a roll about the forward axis
  * in radians; positive leans right. BIKEH angles are degrees. */
 export function bikeLeanTarget(steer:number,speed:number,maxLeanDeg:number){

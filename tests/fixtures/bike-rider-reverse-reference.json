@@ -1,0 +1,646 @@
+{
+  "source": "Selected actual CBike reverse-pedalling sentinel decision 0x100457b80..0x100457be4; declared no Still/Pushes associations; no arithmetic or calls stubbed",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "cases": [
+    {
+      "input": {
+        "speed": -0.5,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.5,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": true
+      },
+      "reverse": true
+    },
+    {
+      "input": {
+        "speed": -0.30000001192092896,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.30000001192092896,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": true
+      },
+      "reverse": true
+    },
+    {
+      "input": {
+        "speed": -0.20000000298023224,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.20000000298023224,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": true
+      },
+      "reverse": true
+    },
+    {
+      "input": {
+        "speed": -0.10000000149011612,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.10000000149011612,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": true
+      },
+      "reverse": true
+    },
+    {
+      "input": {
+        "speed": -0.009999999776482582,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.009999999776482582,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": 0.0,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": 0.0,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": 0.10000000149011612,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": 0.10000000149011612,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.03000001050531864,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.03000001050531864,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": true
+      },
+      "reverse": true
+    },
+    {
+      "input": {
+        "speed": -0.029999999329447746,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.029999999329447746,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.029999990016222,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.029999990016222,
+        "maxReverseVelocity": -0.019999999552965164,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.5,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.5,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": true
+      },
+      "reverse": true
+    },
+    {
+      "input": {
+        "speed": -0.30000001192092896,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.30000001192092896,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": true
+      },
+      "reverse": true
+    },
+    {
+      "input": {
+        "speed": -0.20000000298023224,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.20000000298023224,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": true
+      },
+      "reverse": true
+    },
+    {
+      "input": {
+        "speed": -0.10000000149011612,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.10000000149011612,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.009999999776482582,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.009999999776482582,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": 0.0,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": 0.0,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": 0.10000000149011612,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": 0.10000000149011612,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.15000000596046448,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.15000000596046448,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": true
+      },
+      "reverse": true
+    },
+    {
+      "input": {
+        "speed": -0.15000000596046448,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.15000000596046448,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": true
+      },
+      "reverse": true
+    },
+    {
+      "input": {
+        "speed": -0.14999999105930328,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.14999999105930328,
+        "maxReverseVelocity": -0.10000000149011612,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.5,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.5,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": true
+      },
+      "reverse": true
+    },
+    {
+      "input": {
+        "speed": -0.30000001192092896,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.30000001192092896,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": true
+      },
+      "reverse": true
+    },
+    {
+      "input": {
+        "speed": -0.20000000298023224,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.20000000298023224,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.10000000149011612,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.10000000149011612,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.009999999776482582,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.009999999776482582,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": 0.0,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": 0.0,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": 0.10000000149011612,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": 0.10000000149011612,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.22500000894069672,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.22500000894069672,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.22499999403953552,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.22499999403953552,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.22499999403953552,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.22499999403953552,
+        "maxReverseVelocity": -0.15000000596046448,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.5,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.5,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": true
+      },
+      "reverse": true
+    },
+    {
+      "input": {
+        "speed": -0.30000001192092896,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.30000001192092896,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": true
+      },
+      "reverse": true
+    },
+    {
+      "input": {
+        "speed": -0.20000000298023224,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.20000000298023224,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.10000000149011612,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.10000000149011612,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.009999999776482582,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.009999999776482582,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": 0.0,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": 0.0,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": 0.10000000149011612,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": 0.10000000149011612,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": true
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.30000001192092896,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.30000001192092896,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": true
+      },
+      "reverse": true
+    },
+    {
+      "input": {
+        "speed": -0.30000001192092896,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.30000001192092896,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": true
+      },
+      "reverse": true
+    },
+    {
+      "input": {
+        "speed": -0.29999998211860657,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": false
+      },
+      "reverse": false
+    },
+    {
+      "input": {
+        "speed": -0.29999998211860657,
+        "maxReverseVelocity": -0.20000000298023224,
+        "player": true
+      },
+      "reverse": false
+    }
+  ]
+}
