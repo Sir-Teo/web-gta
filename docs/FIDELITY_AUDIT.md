@@ -9,6 +9,18 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Boat bumper camera source (October 27, 2026)
+
+- The boat bumper view uses the helm dummy (boat dummy slot 0), applies its
+  half-metre lift vertically in world space and samples the current hull render
+  pose. The previous bounds substitution placed Squalo/Reefer views 8.3/6.2 metres
+  from the source position in the measured baseline.
+- All ten boats and the existing car bumper controls pass browser checks.
+  All 110 recorded boat frames agree with the compiled PC source within
+  0.14 mm. This is source/coordinate evidence; complete camera task, ground
+  protection, look handlers and matched retail-PC captures remain open.
+  [Source, validation and limits](research/BOAT_BUMPER_CAMERA.md).
+
 ## Original-PC driving skill poses (October 27, 2026)
 
 - Drivers now use weak/standard/pro sets at raw stat 160 thresholds 50 and 100;

@@ -4531,24 +4531,23 @@ async function boot() {
      towCameraBlend=towed&&!paused?Math.min(1,towCameraBlend+dt):towed?towCameraBlend:0;
      if(car&&towed&&towCameraBlend>0){const a=car.assets.collision.bounds,b=towed.assets.collision.bounds,length=2*Math.abs(a.min[1]);
       if(length>0)render.vehicleDistance*=(length+.5*towCameraBlend*Math.hypot(a.max[0]-b.min[0],a.max[1]-b.min[1],a.max[2]-b.min[2]))/length;}}
-    // CCam::Process_1stPerson's source: the front-seat dummy with its x ignored plus (0, 0.08, 0.62) in the vehicle's
-    // frame; a bike's height is the rider's neck plus 0.15; a boat's is its front light dummy half a unit higher (the
-    // port's boats keep no light dummies, so the bounds' front top stands in). The vehicle's render root gives the
-    // frame the mesh is drawn at.
+    guard('pedestrians.render',()=>pedestrians?.render(alpha,render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes),weapons.vision==='infrared'));
+    for(const plane of fleet?.planes??[])plane.update(alpha);
+    for(const boat of fleet?.boats??[])boat.update(alpha);
+    for(const bike of fleet?.bikes??[])bike.update(alpha);
+    for(const train of fleet?.trains??[])train.update();
+    // Process_1stPerson ignores the dummy's x, adds (0, .08, .62) in model space, then lifts boats .5 in world Z.
+    // A boat's descriptor maps ped_frontseat to dummy slot 0 (DUMMY_LIGHT_FRONT_MAIN). Sample the updated render
+    // roots so the camera and the hull use the same interpolated pose. A bike's height is its rider's neck + .15.
     render.bumperAllowed=!mission?.runtime.game.camera.disableFirstPersonInCar;
     {
       const car=worldCar?.occupied?worldCar:fleet?.occupied,bike=fleet?.occupiedBike,boat=fleet?.occupiedBoat;
       const frameOf=(root:Object3D,local:{x:number;y:number;z:number})=>{const q=root.quaternion,w=new Vector3(local.x,local.z,-local.y).applyQuaternion(q);return {source:{x:root.position.x+w.x,y:root.position.y+w.y,z:root.position.z+w.z},quaternion:{x:q.x,y:q.y,z:q.z,w:q.w}};};
       if(car){const seat=car.car.nativeFramePosition('ped_frontseat');render.bumper=frameOf(car.car.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62});}
       else if(bike){const b=frameOf(bike.root,{x:0,y:.08,z:.62}),neck=render.nativeCharacter?.bonePosition(4,scratchSpine);if(neck)b.source.y=neck.y+.15;render.bumper=b;}
-      else if(boat){const bounds=boat.assets.collision?.bounds;render.bumper=frameOf(boat.root,{x:0,y:(bounds?.max[1]??0)+.08,z:(bounds?.max[2]??0)+.62+.5});}
+      else if(boat){const seat=boat.seat(),b=frameOf(boat.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62});b.source.y+=.5;render.bumper=b;}
       else render.bumper=undefined;
     }
-    guard('pedestrians.render',()=>pedestrians?.render(alpha,render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes),weapons.vision==='infrared'));
-    for(const plane of fleet?.planes??[])plane.update(alpha);
-    for(const boat of fleet?.boats??[])boat.update(alpha);
-    for(const bike of fleet?.bikes??[])bike.update(alpha);
-    for(const train of fleet?.trains??[])train.update();
     // The on-foot key hints (jump, crouch, enter car) do not apply in a vehicle.
     hud.element.classList.toggle('in-vehicle',remoteMode()||!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||playerPassenger));
     if(touch){
