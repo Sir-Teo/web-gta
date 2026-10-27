@@ -15324,3 +15324,21 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   retained lean, freeze, player pillions with NPC drivers and bicycle regressions.
 - Physical steering/air forces and full native task scheduling remain separate.
   See [capture boundaries and evidence](research/QUAD_RIDER_LEAN.md).
+
+
+## Player bike drive-by associations and visible weapon (October 27, 2026)
+
+- Fixed player shots leaving all fourteen bike riders in their ordinary
+  riding/pedal pose. Loaded left/right/forward drive-by clips now share the
+  rider association list, suppress lean/pedalling, and fade on release or
+  empty ammo. The right-hand SMG is visible during the blend; its second
+  dual-wield model stays hidden.
+- Player shooting associations are cleared before a direct NPC handoff.
+  Q/E memory now advances while riding, including frames without firing.
+- All 363 native controller/clump cases pass. All 1,736 live composite
+  frames match native scalar state, including 372 bicycle and 14 handoff
+  frames. Real keys, one-gun visibility, all-model loaded poses, freeze,
+  release, empty ammo and touch-hop regressions pass.
+- Weapon timing/ballistics, simultaneous external-hop cross-fades and full
+  task/key-sampler parity remain separate. See
+  [capture boundaries and evidence](research/BIKE_DRIVE_BY_POSES.md).

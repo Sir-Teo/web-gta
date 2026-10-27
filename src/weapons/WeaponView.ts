@@ -32,7 +32,7 @@ export class WeaponView {
  private sphere=new SphereGeometry(1,8,6);
  private effectMaterial=new MeshBasicMaterial({color:0xffae3e,transparent:true,opacity:.45,depthWrite:false});
  private particleViews:Mesh[]=[];
- visible=()=>true;
+ visible=(_left=false)=>true;
  aimDirection?:()=>Vector3;
  /** CCamera::Find3rdPersonCamTargetVector(20, ...): the point on the crosshair ray the arm or torso points at. */
  aimTarget?:()=>Vector3;
@@ -124,7 +124,7 @@ export class WeaponView {
   // PutOnGoggles sets m_DontPlaceInHand while the goggles are worn.
   if(this.held)this.held.root.visible=this.visible()&&w.kind!=='parachute'&&!((w.kind==='nightvision'||w.kind==='infrared')&&this.weapons.vision);
   this.updateGoggles(owner);if(this.goggles?.object)this.goggles.object.root.visible=this.visible();
-  if(this.leftHeld)this.leftHeld.root.visible=this.visible();
+  if(this.leftHeld)this.leftHeld.root.visible=this.visible(true);
   const active=new Set(this.weapons.projectiles.map(p=>p.id));for(const [id,view] of this.projectileViews)if(!active.has(id)){view.dispose();this.projectileViews.delete(id);}
   for(const p of this.weapons.projectiles){let view=this.projectileViews.get(p.id);const loaded=[...this.assets.entries()].find(([k])=>k.startsWith(`${p.weapon}/`))?.[1],asset=loaded?.projectileAsset??loaded?.asset;if(!asset&&!this.projectileLoads.has(p.weapon)){this.projectileLoads.add(p.weapon);void this.catalog.then(c=>c.load(p.weapon)).then(a=>{if(!this.disposed)this.assets.set(this.key(p.weapon),a);}).catch(e=>{if(!this.disposed)this.error=String(e);});}if(!view&&asset){view=modelObject(asset.model,asset.textures);this.scene.add(view.root);this.projectileViews.set(p.id,view);}if(view){view.root.position.set(p.position.x,p.position.y,p.position.z);if(p.weapon===35||p.weapon===36)view.root.quaternion.setFromUnitVectors(new Vector3(0,1,0),new Vector3(p.velocity.x,p.velocity.y,p.velocity.z).normalize());}}
   let particle=0;for(const effect of this.weapons.effects){

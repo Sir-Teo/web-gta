@@ -1,5 +1,6 @@
 import {blendBicycleAssociation,newBicycleAssociation,setBicycleAssociationTime,stepBicycleAssociations,BICYCLE_ASSOC_FLAGS,type BicycleAssociation} from './nativeBicycleBlend';
 import {controlOrdinaryBikeRider,type OrdinaryBikeRiderState} from './nativeBikeRiderController';
+import {controlBikeDriveBy,type BikeDriveByInput} from './nativeBikeDriveBy';
 const f=Math.fround;
 export interface BicycleRiderInput {
  model:number;
@@ -85,7 +86,8 @@ export class NativeBicycleRider {
  get baseTime(){return this.associations.find(a=>a.identifier===194)?.time??0;}
  get time(){return (this.associations.find(a=>a.identifier===207)??this.associations.find(a=>a.identifier===208))?.time??0;}
  get fastBlend(){return this.associations.find(a=>a.identifier===208)?.amount;}
- step(dt:number,input:Omit<BmxRiderControlInput,'timeStep'|'unclippedTimeStep'>,hopActive=false,previousCrank=this.crank??0){
+ step(dt:number,input:Omit<BmxRiderControlInput,'timeStep'|'unclippedTimeStep'|'driveBy'>,hopActive=false,previousCrank=this.crank??0,driveBy?:BikeDriveByInput){
+  controlBikeDriveBy(this.associations,driveBy,this.duration);
   if(hopActive&&!this.hopping){
    // The independently owned partial hop requests BlendAnimation(206, 8).
    // Its unsynchronised time is advanced by the existing hop owner, once.
@@ -93,7 +95,7 @@ export class NativeBicycleRider {
    this.associations.splice(this.associations.indexOf(hop),1);
   }
   this.hopping=hopActive;this.crank=null;
-  if(!hopActive){const timeStep=f(dt*50),result=controlBmxRider(this.associations,this.state,{...input,timeStep,unclippedTimeStep:timeStep},this.duration,previousCrank);this.decision=result.decision;this.crank=result.crank;}
+  if(!hopActive){const timeStep=f(dt*50),result=controlBmxRider(this.associations,this.state,{...input,driveBy:this.associations.some(a=>a.identifier>=202&&a.identifier<=204),timeStep,unclippedTimeStep:timeStep},this.duration,previousCrank);this.decision=result.decision;this.crank=result.crank;}
   stepBicycleAssociations(this.associations,dt);
   return this.decision;
  }

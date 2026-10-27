@@ -14,6 +14,7 @@ import {bindBikeSteering} from '../render/bikeSteering';
 import {bindBicyclePedals} from '../render/bicyclePedals';
 import {stepBmxPedalControl} from './nativeBmxPedalControl';
 import {NativeBicycleRider} from './nativeBicycleRider';
+import type {BikeDriveByInput} from './nativeBikeDriveBy';
 import {NativeBikeRiderController,bikeRiderClipName} from './nativeBikeRiderController';
 import {stepBicycleCrank} from './bicycleCrank';
 import {stepNativeBicycleHop,type BicycleHopState} from './nativeBicycleHop';
@@ -200,7 +201,9 @@ export class WorldBike {
  private accelerateHeld=false;
  private bicycleRider?:NativeBicycleRider;
  private riderAnimation?:NativeBikeRiderController;
- private riderDriveBy=false;
+ private riderDriveBy?:BikeDriveByInput;
+ private playerDriveByOwner=false;
+ get riderDriveByActive(){return !!(this.bicycleRider??this.riderAnimation)?.associations.some(a=>a.identifier>=202&&a.identifier<=204&&a.amount>0);}
  /** CBmx::m_fControlJump (0 to 25 steps of charge) and the time left before the hop launches. */
  controlJump=0;hopLaunch?:number;pillion?:{modelRef:number|string};
  private hopState?:BicycleHopState;
@@ -378,9 +381,16 @@ export class WorldBike {
   const check=this.enterCheck();if(check)return check;
   return this.finishEnter();
  }
- beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean;disabled?:boolean;sprint?:boolean;sprintJustPressed?:boolean;sprintDisabled?:boolean;driveBy?:boolean}={throttle:0,steer:0,brake:false}){
+ beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean;disabled?:boolean;sprint?:boolean;sprintJustPressed?:boolean;sprintDisabled?:boolean;driveBy?:BikeDriveByInput}={throttle:0,steer:0,brake:false}){
   this.wheelStepSeconds=0;
-  this.riderDriveBy=!!input.driveBy;
+  // These associations were requested on the player's clump, never the next NPC's.
+  if(!this.occupied&&this.playerDriveByOwner){
+   const associations=(this.bicycleRider??this.riderAnimation)?.associations;
+   if(associations)for(let i=associations.length-1;i>=0;i--)if(associations[i].identifier>=202&&associations[i].identifier<=204)associations.splice(i,1);
+   this.playerDriveByOwner=false;
+  }
+  this.riderDriveBy=this.occupied?input.driveBy:undefined;
+  if(this.riderDriveBy)this.playerDriveByOwner=true;
   if(!this.motorbike&&!this.occupied&&!WorldBike.hasDriverPed?.(this)){this.bicycleRider=undefined;this.rideTime=0;}
   if(this.motorbike&&!this.occupied&&!WorldBike.hasDriverPed?.(this))this.riderAnimation=undefined;
   this.playerBoost=false;this.playerCyclingFrame=undefined;
@@ -667,18 +677,18 @@ export class WorldBike {
     this.advanceWheelRoll(dt);
     if(this.motorbike&&(this.occupied||WorldBike.hasDriverPed?.(this))){
      const block=this.assets.vehicle.animation,duration=(id:number)=>WorldBike.riderClipSeconds?.(block,bikeRiderClipName(block,id));
-     if(this.riderAnimation||[194,195,196,197,198,199,200].every(id=>(duration(id)??0)>0)){
+     if(this.riderAnimation||[194,195,196,197,198,199,200,202,203,204].every(id=>(duration(id)??0)>0)){
       const owner=this.riderAnimation??=new NativeBikeRiderController(id=>duration(id)!),full=Math.fround(Math.fround(this.assets.bike.fullAnimLean)*Math.fround(Math.PI/180));
-      owner.step(dt,{speed:this.speed()/50,lean:this.quad?this.riderLean:this.lean,leanFwd:0,fullAnimLean:full,maxFlatVelocity:this.assets.handling.maxFlatVelocity,maxReverseVelocity:this.assets.handling.maxReverseVelocity,gas:this.gasPedal,brake:this.brakePedal,player:this.occupied,passenger:!!this.pillion||!!WorldBike.hasPassengerPed?.(this),quad:this.quad});
+      owner.step(dt,{speed:this.speed()/50,lean:this.quad?this.riderLean:this.lean,leanFwd:0,fullAnimLean:full,maxFlatVelocity:this.assets.handling.maxFlatVelocity,maxReverseVelocity:this.assets.handling.maxReverseVelocity,gas:this.gasPedal,brake:this.brakePedal,player:this.occupied,passenger:!!this.pillion||!!WorldBike.hasPassengerPed?.(this),quad:this.quad},this.riderDriveBy);
       this.rideTime=owner.time;
      }
     }
     if(this.pedals&&(this.occupied||WorldBike.hasDriverPed?.(this))){
      if(!this.motorbike){
       const block=this.assets.vehicle.animation,duration=(id:number)=>WorldBike.riderClipSeconds?.(block,bikeRiderClipName(block,id));
-      if(this.bicycleRider||[194,195,196,197,198,199,200,206,207,208].every(id=>(duration(id)??0)>0)){
+      if(this.bicycleRider||[194,195,196,197,198,199,200,202,203,204,206,207,208].every(id=>(duration(id)??0)>0)){
        const clock=this.bicycleRider??=new NativeBicycleRider(id=>duration(id)!),full=Math.fround(Math.fround(this.assets.bike.fullAnimLean)*Math.fround(Math.PI/180));
-       clock.step(dt,{model:this.modelId,speed:this.speed()/50,coefficient:this.pedalCoefficient,gear:this.gear,maxFlatVelocity:this.assets.handling.maxFlatVelocity,maxReverseVelocity:this.assets.handling.maxReverseVelocity,fullAnimLean:full,lean:this.lean,leanFwd:0,driveBy:this.riderDriveBy,gas:this.gasPedal,brake:this.brakePedal,player:this.occupied,passenger:!!this.pillion||!!WorldBike.hasPassengerPed?.(this),status:this.occupied?0:3},!!this.hopState?.animation,this.crankAngle);
+       clock.step(dt,{model:this.modelId,speed:this.speed()/50,coefficient:this.pedalCoefficient,gear:this.gear,maxFlatVelocity:this.assets.handling.maxFlatVelocity,maxReverseVelocity:this.assets.handling.maxReverseVelocity,fullAnimLean:full,lean:this.lean,leanFwd:0,gas:this.gasPedal,brake:this.brakePedal,player:this.occupied,passenger:!!this.pillion||!!WorldBike.hasPassengerPed?.(this),status:this.occupied?0:3},!!this.hopState?.animation,this.crankAngle,this.riderDriveBy);
        this.rideTime=clock.time;
       }
      }

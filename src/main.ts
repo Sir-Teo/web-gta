@@ -1401,8 +1401,8 @@ async function boot() {
      driverSavedWeapon=undefined;
     }
   };
-  // CPed::Render draws the weapon unless the ped is in a vehicle with a swim task: a swimmer keeps his gun in hand.
-  weaponView.visible=()=>!playerWeaponHiddenByScript&&!render.scriptPlayerHidden&&!phones.get('player')?.active&&!jetWeaponHidden&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');
+  // A bike drive-by exposes the right-hand model while its shooting association blends in or out.
+  weaponView.visible=(left=false)=>!playerWeaponHiddenByScript&&!render.scriptPlayerHidden&&!phones.get('player')?.active&&!jetWeaponHidden&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&(!fleet?.occupiedBike||!left&&fleet.occupiedBike.riderDriveByActive)&&(!carEntry.active||carEntry.phase==='approach');
   weapons.muzzle=left=>weaponView.muzzle(left);
   weapons.playerMove=()=>{const view=render.nativeCharacter;return view&&{blendRatio:view.moveBlendRatio,sprinting:view.sprinting};};
   const worldFx=new WorldFx(render.scene,sim,render.camera);
@@ -4127,9 +4127,11 @@ async function boot() {
 
         // A rider's drive-by: ahead of the bike (eDrivebyStyle FIXED_FWD) unless VEHICLE_LOOKLEFT or LOOKRIGHT (Q, E)
         // is held, which shoots out of that side (CVehicle::DoDriveByShootings is unreversed; the styles are its own).
-        if(fleet?.occupiedBike&&!bikeMount.active&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth){
-         const drivebyTrigger=drivebyPulled();
-         if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDrivebyBike(fleet.occupiedBike,{origin:render.camera.position,direction},bikeLookSide());}
+        let bikeDriveBy:import('./simulation/nativeBikeDriveBy').BikeDriveByInput|undefined;
+        if(fleet?.occupiedBike){
+         const bike=fleet.occupiedBike,permitted=!bikeMount.active&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth,drivebyTrigger=permitted&&drivebyPulled(),look=bikeLookSide(),inv=weapons.inventory,ammo=inv.ammo.get(inv.selected);
+         bikeDriveBy={enabled:driveByAllowed&&DRIVER_DRIVEBY_WEAPONS.includes(inv.selected),fire:drivebyTrigger?1:0,left:look==='left',right:look==='right',ammo:ammo?ammo.clip+ammo.reserve:0,bicycle:BMX_MODELS.has(bike.modelId)};
+         if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDrivebyBike(bike,{origin:render.camera.position,direction},look);}
         }
         const rocket=input.consume('KeyB')||input.down('KeyB');
         // The guns and the ordnance are separate buttons with separate clocks: both can fire together.
@@ -4317,7 +4319,7 @@ async function boot() {
         // While the rider waits or gets off, the bike only brakes.
         // DisablePlayerControls: no hop (CBmx refuses the press and drops the charge), gas off and the brakes on, as
         // CAutomobile::ProcessControlInputs does for the quad.
-        for(const bike of fleet?.bikes??[])bike.beforeStep(step,bike.occupied&&!bike.scriptDriven?(bikeMount.active&&bikeMount.bike===bike||controlsOff?{throttle:0,steer:0,brake:true,disabled:controlsOff}:{throttle:axes.y,steer:steerAxes.x,brake:input.down('Space'),hop:input.down('ControlLeft'),sprint:controls.sprint,sprintJustPressed:controls.sprintJustPressed,sprintDisabled:controls.playerSprintDisabled}):bike.autopilotInput());
+        for(const bike of fleet?.bikes??[])bike.beforeStep(step,bike.occupied&&!bike.scriptDriven?(bikeMount.active&&bikeMount.bike===bike||controlsOff?{throttle:0,steer:0,brake:true,disabled:controlsOff,driveBy:bikeDriveBy}:{throttle:axes.y,steer:steerAxes.x,brake:input.down('Space'),hop:input.down('ControlLeft'),sprint:controls.sprint,sprintJustPressed:controls.sprintJustPressed,sprintDisabled:controls.playerSprintDisabled,driveBy:bikeDriveBy}):bike.autopilotInput());
         // CBmx::ProcessAI calls cycling immediately after its player pedal/boost decision. Preserve that frame's
         // gas and pre-integration velocity, and native 30-Hz counter scheduling shared by other training tasks.
         if(statFrameDue&&cyclingTraining&&mission){

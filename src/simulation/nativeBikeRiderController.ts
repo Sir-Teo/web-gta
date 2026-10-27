@@ -1,5 +1,6 @@
 import {bicycleAssociationFlags,blendBicycleAssociation,newBicycleAssociation,stepBicycleAssociations,type BicycleAssociation} from './nativeBicycleBlend';
 import {bikeRiderReversePedalling,controlBikeRiderLean,filterBikeRiderLean} from './nativeBikeRiderLean';
+import {controlBikeDriveBy,type BikeDriveByInput} from './nativeBikeDriveBy';
 const f=Math.fround;
 const RIDER_ROLES:Readonly<Record<number,string>>={194:'ride',195:'still',196:'left',197:'right',198:'back',199:'fwd',200:'pushes',206:'bunnyhop',207:'pedal',208:'sprint'};
 export interface OrdinaryBikeRiderState {lean:number;forward:number}
@@ -11,7 +12,9 @@ export interface OrdinaryBikeRiderInput {
 }
 /** Ride-group slots; QUAD maps Still to Ride and Pushes to Reverse. */
 export function bikeRiderClipName(block:string,identifier:number){
- const role=block==='quad'&&identifier===195?'ride':block==='quad'&&identifier===200?'reverse':RIDER_ROLES[identifier];
+ const side=identifier===202?'lhs':identifier===203?'rhs':identifier===204?'ft':undefined;
+ const driveBy=side?`driveby${block==='quad'||identifier!==204&&['bmx','mtb','choppa'].includes(block)?'_':''}${side}`:undefined;
+ const role=driveBy??(block==='quad'&&identifier===195?'ride':block==='quad'&&identifier===200?'reverse':RIDER_ROLES[identifier]);
  if(!role)throw new Error('Unsupported bike rider association.');
  return `${block==='wayfarer'?'wf':block}_${role}`;
 }
@@ -63,7 +66,8 @@ export class NativeBikeRiderController {
  constructor(private duration:(identifier:number)=>number){const base=newBicycleAssociation(194,duration(194));base.amount=1;this.associations=[base];}
  get filtered(){return this.state.lean;}
  get time(){return this.associations.find(a=>a.identifier===194)?.time??0;}
- step(dt:number,input:Omit<OrdinaryBikeRiderInput,'timeStep'|'unclippedTimeStep'>){
+ step(dt:number,input:Omit<OrdinaryBikeRiderInput,'timeStep'|'unclippedTimeStep'>,driveBy?:BikeDriveByInput){
+  controlBikeDriveBy(this.associations,driveBy,this.duration);
   const timeStep=f(dt*50),result=controlOrdinaryBikeRider(this.associations,this.state,{...input,timeStep,unclippedTimeStep:timeStep},this.duration);
   stepBicycleAssociations(this.associations,dt);return result;
  }
