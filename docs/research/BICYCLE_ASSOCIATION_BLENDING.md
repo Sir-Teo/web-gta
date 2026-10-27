@@ -65,6 +65,10 @@ pedal/sprint associations at 8, and its time is advanced only by that owner.
 
 ## Pose composition and remaining boundaries
 
+The later [root-frame correction](VEHICLE_ROOT_POSE_BLEND.md) applies the
+non-extracting skinned root callback separately. The normal-frame formula
+below remains applicable to the other bones.
+
 `PartialPose` follows the skinned callback's per-bone partial sum, weighted
 quaternion terms with hemisphere correction and final normalization, and
 translation/rest contribution. Tracks absent from a partial leave the ride

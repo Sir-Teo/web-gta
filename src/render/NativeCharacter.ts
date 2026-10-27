@@ -839,7 +839,7 @@ export class NativeCharacter {
     }
     this.transition.restoreTargets();
     if(pose.partials?.length){
-      this.vehiclePartialPose??=new PartialPose();
+      this.vehiclePartialPose??=new PartialPose(this.shadowRootBone);
       this.vehiclePartialPose.sample(binding,pose.seconds,pose.partials.flatMap(layer=>{const binding=this.vehicleBindings.get(layer.clip);return binding?[{binding,seconds:layer.seconds,amount:layer.amount}]:[];}));
     }else binding.sample(pose.seconds,false,false);
     this.transition.apply(pose.blend??1);

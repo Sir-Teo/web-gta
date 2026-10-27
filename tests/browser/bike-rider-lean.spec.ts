@@ -4,8 +4,8 @@ import {writeFileSync} from 'node:fs';
 test('loaded motorcycle and quad riders sample native lean phase, preserve residual direction and hold on freeze',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/models.html');
  const result=await page.evaluate(async()=>{
-  const [{openStaticWorld},{openStaticWorldVehicles},{loadFixedWorldBike},{WorldBike},{Simulation},{THREE,RAPIER},{VehicleAnimationLibrary},{NativeBikeRiderController},{openWorldPedestrians},{NativeCharacter}]=await Promise.all(['/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/assets/fixedWorldBike.ts','/src/simulation/WorldBike.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts','/src/assets/vehicleAnimations.ts','/src/simulation/nativeBikeRiderController.ts','/src/assets/worldPedestrians.ts','/src/render/NativeCharacter.ts'].map(path=>import(path)));
-  await RAPIER.init();const base=new URL('/play/world/',location.href).href,catalog=await openStaticWorldVehicles(await openStaticWorld(base)),clips=new VehicleAnimationLibrary(base),pedestrians=await openWorldPedestrians(base),view=new NativeCharacter(pedestrians.models[1]),out:any[]=[],rows:any[]=[],original=NativeBikeRiderController.prototype.step;
+  const [{captureVehicleRootPose},{openStaticWorld},{openStaticWorldVehicles},{loadFixedWorldBike},{WorldBike},{Simulation},{THREE,RAPIER},{VehicleAnimationLibrary},{NativeBikeRiderController},{openWorldPedestrians},{NativeCharacter}]=await Promise.all(['/tests/fixtures/capture-vehicle-root.ts','/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/assets/fixedWorldBike.ts','/src/simulation/WorldBike.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts','/src/assets/vehicleAnimations.ts','/src/simulation/nativeBikeRiderController.ts','/src/assets/worldPedestrians.ts','/src/render/NativeCharacter.ts'].map(path=>import(path)));
+  await RAPIER.init();const base=new URL('/play/world/',location.href).href,catalog=await openStaticWorldVehicles(await openStaticWorld(base)),clips=new VehicleAnimationLibrary(base),pedestrians=await openWorldPedestrians(base),view=new NativeCharacter(pedestrians.models[1]),out:any[]=[],rows:any[]=[],rootCaptures:any[]=[],original=NativeBikeRiderController.prototype.step;
   WorldBike.riderClipSeconds=(block:string,clip:string)=>clips.peek(block,clip)?.duration;
   NativeBikeRiderController.prototype.step=function(this:any,dt:number,input:any){
    const previous={...this.state},associations=this.associations.map(({group,...a}:any)=>a),durations=Object.fromEntries([194,195,196,197,198,199,200].map(id=>[id,this.duration(id)]));
@@ -21,7 +21,7 @@ test('loaded motorcycle and quad riders sample native lean phase, preserve resid
     try{
      const block=await clips.block(assets.vehicle.animation);view.installVehicleClips(Object.fromEntries(block));
      const tick=(throttle=0,steer=0)=>{bike.beforeStep(1/60,{throttle,steer,brake:false});sim.world.step();bike.afterStep();bike.update(1);};
-     const pose=()=>{const p=bike.riderPose();view.updateVehicle({vehicle:bike.root,local:p.seat!},{clip:p.idle,seconds:p.baseTime??p.time,partials:p.partials});return p;};
+     const pose=()=>{const p=bike.riderPose();view.updateVehicle({vehicle:bike.root,local:p.seat!},{clip:p.idle,seconds:p.baseTime??p.time,partials:p.partials});const capture=captureVehicleRootPose(view,{clip:p.idle,seconds:p.baseTime??p.time,partials:p.partials});if(capture)rootCaptures.push({model:id,...capture});return p;};
      for(let i=0;i<40;i++)tick();bike.finishEnter();for(let i=0;i<40;i++)tick();const idle=pose(),heldBase=(bike as any).riderAnimation.time;
      for(let i=0;i<25;i++)tick(1);const accelerating=pose(),acceleratingForward=(bike as any).riderAnimation.state.forward;
      WorldBike.hasPassengerPed=(b:any)=>b===bike;for(let i=0;i<10;i++)tick(1);const passengerForward=(bike as any).riderAnimation.state.forward,passengerSeen=rows.at(-1).nativeInput.passenger;WorldBike.hasPassengerPed=undefined;
@@ -53,7 +53,7 @@ test('loaded motorcycle and quad riders sample native lean phase, preserve resid
     }finally{bike.dispose();sim.dispose();}
    }
   }finally{view.dispose();WorldBike.riderClipSeconds=undefined;WorldBike.hasDriverPed=undefined;WorldBike.hasPassengerPed=undefined;NativeBikeRiderController.prototype.step=original;}
-  return {models:out,rows};
+  return {models:out,rows,rootCaptures};
  });
  writeFileSync('artifacts/bike-rider-lean-live.json',JSON.stringify({result,errors},null,2));
  for(const r of result.models){
@@ -64,5 +64,5 @@ test('loaded motorcycle and quad riders sample native lean phase, preserve resid
   if(r.id===471){expect(r.quadReverse?.clip).toBe('quad_reverse');expect(r.quadReverse.flags&2).toBe(0);expect(r.quadReverse.flags&1).toBe(0);expect(r.quadReverse.time).toBe(r.quadReverse.duration);}
   for(const matrix of r.frozenMatrices)expect(matrix.every(Number.isFinite)).toBe(true);
  }
- expect(errors).toEqual([]);
+ expect(result.rootCaptures.length).toBeGreaterThanOrEqual(77);expect(errors).toEqual([]);
 });

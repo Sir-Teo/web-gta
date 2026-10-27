@@ -6,6 +6,9 @@ export interface PartialPoseLayer {binding:Binding;seconds:number;amount:number}
  * Partial tracks reduce the full-body contribution only on the bones they name.
  * Quaternion terms use hemisphere correction and a final normalization. */
 export class PartialPose {
+ /** A skinned ped's root has the velocity frame callback and BonePos zero.
+  * Vehicle associations here do not extract movement; their root translations sum once. */
+ constructor(private root?:Object3D){}
  private frames=new Map<Object3D,{partial:number;rotation:Quaternion;translation:Vector3;translationBlend:number;rest:Vector3;scale:Vector3}>();
  private amount=1;private partial=false;
  private accumulate:LocalPoseVisitor=(target,rotation,translation,rest,scale)=>{
@@ -33,7 +36,7 @@ export class PartialPose {
   for(const [target,frame] of this.frames){
    if(frame.rotation.lengthSq()===0)continue;
    frame.rotation.normalize();
-   frame.translation.multiplyScalar(frame.translationBlend).addScaledVector(frame.rest,1-frame.translationBlend);
+   if(target!==this.root)frame.translation.multiplyScalar(frame.translationBlend).addScaledVector(frame.rest,1-frame.translationBlend);
    target.matrix.compose(frame.translation,frame.rotation,frame.scale);target.matrixWorldNeedsUpdate=true;
   }
   // Preserve the binding's animated mesh bounds policy without sampling over the pose sum.

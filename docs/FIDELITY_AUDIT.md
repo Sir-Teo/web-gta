@@ -15276,3 +15276,17 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Physical lean, wheelie/stoppie/contact/task reactions, full ownership and
   native skeleton sampling remain separate. See
   [capture boundaries and validation](research/BIKE_RIDER_ASSOCIATIONS.md).
+
+
+## Vehicle partial-pose root translation (October 27, 2026)
+
+- Corrected root translation being weighted twice in the earlier partial
+  pose blender. Non-extracting vehicle root tracks now use the captured
+  skinned-root callback; ordinary bones retain their existing formula.
+- All 79 native root-frame cases pass. All 101 sampled live root poses,
+  including actual CJ, match native blending within the declared tolerances
+  (coordinate error below 3.67e-9, angular error below 1.40e-7 radians).
+- Real keyboard/passenger and touch-hop checks, eleven-model rider posing,
+  bicycle articulation and limb-position regressions pass. Native key
+  sampling and other root callback contexts remain separate. See
+  [source, boundaries and evidence](research/VEHICLE_ROOT_POSE_BLEND.md).

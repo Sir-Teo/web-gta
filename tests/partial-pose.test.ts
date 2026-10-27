@@ -28,3 +28,11 @@ test('partial quaternion sums preserve hemisphere, fade the ride contribution an
   pose.sample(base,0,[]);expect(root.matrix).toEqual(new Matrix4());
  }finally{object.dispose();}
 });
+test('a velocity root leaves rotation-only limb translations attached to their rest joints',()=>{
+ const {object,bind}=setup();try{
+  const root=object.root.getObjectByName('Root')!,tip=object.root.getObjectByName('Tip')!,base=bind('ride',[{boneId:10,q:[0,0,0,1]},{boneId:-1,q:[0,0,0,1]}]),partial=bind('lean',[{boneId:10,q:[0,0,1,0]},{boneId:-1,q:[1,0,0,0]}]);
+  new PartialPose(root).sample(base,0,[{binding:partial,amount:1,seconds:0}]);
+  expect(new Vector3().setFromMatrixPosition(root.matrix).toArray()).toEqual([0,0,0]);
+  expect(new Vector3().setFromMatrixPosition(tip.matrix).toArray()).toEqual([0,0,1]);
+ }finally{object.dispose();}
+});

@@ -22,8 +22,8 @@ test('actual motorcycle controls feed rider poses and a seated passenger suppres
   await page.waitForFunction(()=>(window as any).__ordinaryRider.rows.some((r:any)=>r.input.speed>.02),undefined,{timeout:15000});
   passenger=await page.evaluate(h=>(window as any).__game.missionForProfiling().peds.createInCar(4,'MALE01',h,0),vehicle);
   await page.waitForFunction(()=>(window as any).__ordinaryRider.rows.some((r:any)=>r.input.passenger&&r.input.gas>.5&&r.output.forwardTarget===0),undefined,{timeout:15000});
-  const pose=await page.evaluate(()=>{const g=(window as any).__game,v=g.render().vehiclePose?.pose;return {clip:v?.clip,partials:v?.partials,visible:g.render().nativeCharacter.root.visible};});
-  expect(pose.clip).toBe('bikes_ride');expect(pose.visible).toBe(true);expect(pose.partials?.length).toBeGreaterThan(0);
+  const pose=await page.evaluate(async()=>{const path='/tests/fixtures/capture-vehicle-root.ts',{captureVehicleRootPose}=await import(path);const g=(window as any).__game,v=g.render().vehiclePose?.pose;return {clip:v?.clip,partials:v?.partials,visible:g.render().nativeCharacter.root.visible,root:captureVehicleRootPose(g.render().nativeCharacter,v)};});
+  writeFileSync('artifacts/bike-rider-root-main.json',JSON.stringify(pose.root,null,2));expect(pose.root).toBeDefined();expect(pose.clip).toBe('bikes_ride');expect(pose.visible).toBe(true);expect(pose.partials?.length).toBeGreaterThan(0);
   await page.screenshot({path:'artifacts/bike-rider-controller-live-passenger.png'});
   await page.evaluate(h=>(window as any).__game.missionForProfiling().runtime.world.deletePed(h),passenger);passenger=undefined;
   await page.keyboard.up('KeyW');await page.keyboard.down('KeyS');
