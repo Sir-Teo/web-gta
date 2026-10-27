@@ -14,9 +14,9 @@
         "baseType": 0,
         "subType": 2,
         "velocity": [
-          0,
-          0,
-          0
+          0.0,
+          0.0,
+          0.0
         ],
         "inVehicle": true
       },
@@ -30,9 +30,9 @@
         "baseType": 0,
         "subType": 2,
         "velocity": [
-          0.1,
-          0,
-          0
+          0.10000000149011612,
+          0.0,
+          0.0
         ],
         "inVehicle": true
       },
@@ -52,9 +52,9 @@
         "baseType": 9,
         "subType": 9,
         "velocity": [
-          0,
-          0,
-          0
+          0.0,
+          0.0,
+          0.0
         ],
         "inVehicle": true
       },
@@ -68,9 +68,167 @@
         "baseType": 9,
         "subType": 9,
         "velocity": [
-          0.1,
-          0,
-          0
+          0.10000000149011612,
+          0.0,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": [
+        {
+          "name": "motorbike",
+          "address": "0x100265f94",
+          "vehicleArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "name": "motorbike",
+        "model": 461,
+        "modelFlags": 16785408,
+        "baseType": 9,
+        "subType": 9,
+        "velocity": [
+          -0.10000000149011612,
+          0.0,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": [
+        {
+          "name": "motorbike",
+          "address": "0x100265f94",
+          "vehicleArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "name": "motorbike",
+        "model": 461,
+        "modelFlags": 16785408,
+        "baseType": 9,
+        "subType": 9,
+        "velocity": [
+          0.0,
+          0.10000000149011612,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": [
+        {
+          "name": "motorbike",
+          "address": "0x100265f94",
+          "vehicleArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "name": "motorbike",
+        "model": 461,
+        "modelFlags": 16785408,
+        "baseType": 9,
+        "subType": 9,
+        "velocity": [
+          0.0,
+          0.0,
+          -0.10000000149011612
+        ],
+        "inVehicle": true
+      },
+      "calls": [
+        {
+          "name": "motorbike",
+          "address": "0x100265f94",
+          "vehicleArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "name": "motorbike",
+        "model": 461,
+        "modelFlags": 16785408,
+        "baseType": 9,
+        "subType": 9,
+        "velocity": [
+          1.0000000195414814e-24,
+          0.0,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": []
+    },
+    {
+      "input": {
+        "name": "motorbike",
+        "model": 461,
+        "modelFlags": 16785408,
+        "baseType": 9,
+        "subType": 9,
+        "velocity": [
+          9.999999682655225e-21,
+          0.0,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": [
+        {
+          "name": "motorbike",
+          "address": "0x100265f94",
+          "vehicleArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "name": "motorbike",
+        "model": 461,
+        "modelFlags": 16785408,
+        "baseType": 9,
+        "subType": 9,
+        "velocity": [
+          0.0,
+          1.0000000195414814e-24,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": []
+    },
+    {
+      "input": {
+        "name": "motorbike",
+        "model": 461,
+        "modelFlags": 16785408,
+        "baseType": 9,
+        "subType": 9,
+        "velocity": [
+          9.999999998199587e-24,
+          9.999999998199587e-24,
+          9.999999998199587e-24
+        ],
+        "inVehicle": true
+      },
+      "calls": []
+    },
+    {
+      "input": {
+        "name": "motorbike",
+        "model": 461,
+        "modelFlags": 16785408,
+        "baseType": 9,
+        "subType": 9,
+        "velocity": [
+          1.000000031374395e-22,
+          1.000000031374395e-22,
+          1.000000031374395e-22
         ],
         "inVehicle": true
       },
@@ -90,9 +248,9 @@
         "baseType": 9,
         "subType": 10,
         "velocity": [
-          0,
-          0,
-          0
+          0.0,
+          0.0,
+          0.0
         ],
         "inVehicle": true
       },
@@ -106,9 +264,9 @@
         "baseType": 9,
         "subType": 10,
         "velocity": [
-          0.1,
-          0,
-          0
+          0.10000000149011612,
+          0.0,
+          0.0
         ],
         "inVehicle": true
       },
@@ -122,9 +280,9 @@
         "baseType": 0,
         "subType": 0,
         "velocity": [
-          0,
-          0,
-          0
+          0.0,
+          0.0,
+          0.0
         ],
         "inVehicle": true
       },
@@ -138,9 +296,9 @@
         "baseType": 0,
         "subType": 0,
         "velocity": [
-          0.1,
-          0,
-          0
+          0.10000000149011612,
+          0.0,
+          0.0
         ],
         "inVehicle": true
       },
@@ -160,9 +318,9 @@
         "baseType": 6,
         "subType": 6,
         "velocity": [
-          0,
-          0,
-          0
+          0.0,
+          0.0,
+          0.0
         ],
         "inVehicle": true
       },
@@ -176,9 +334,9 @@
         "baseType": 6,
         "subType": 6,
         "velocity": [
-          0.1,
-          0,
-          0
+          0.10000000149011612,
+          0.0,
+          0.0
         ],
         "inVehicle": true
       },

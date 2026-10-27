@@ -1,6 +1,7 @@
 import {expect,test} from 'vitest';
+import {NativeMotorbikeTraining} from '../src/simulation/nativeMotorbikeTraining';
 import {readFileSync} from 'node:fs';
-import {AR,NativeStatReactions,readActionReactionStats,STAT_BIKE_SKILL,STAT_STAMINA} from '../src/simulation/nativeStatReactions';
+import {AR,NativeStatReactions,readActionReactionStats,STAT_STAMINA} from '../src/simulation/nativeStatReactions';
 
 const values=readActionReactionStats(readFileSync('public/play/world/files/data/ar_stats.dat','utf8'));
 
@@ -22,11 +23,13 @@ test('five minutes of sprinting raise stamina by 10, of running by 5 (UpdateStat
  got.length=0;for(let i=0;i<18000;i++)r.running(16.67);expect(got).toEqual([]);expect(r.runningCounter).toBe(288000);
 });
 
-test('motorbike skill counts fast riding and wheels in the air half again, steady riding half, standing still nothing',()=>{
- const got:[number,number][]=[],r=new NativeStatReactions(values,(stat,value)=>got.push([stat,value]));
- r.onMotorBike(20,.7,4);expect(r.bikeCounter).toBe(30);
- r.onMotorBike(20,.3,0);expect(r.bikeCounter).toBe(60);
- r.onMotorBike(20,.3,4);expect(r.bikeCounter).toBe(70);
- r.onMotorBike(20,.1,4);expect(r.bikeCounter).toBe(70);
- r.bikeCounter=180001;r.onMotorBike(20,0,4);expect(got).toEqual([[STAT_BIKE_SKILL,25]]);expect(r.bikeCounter).toBe(0);
+test('native motorbike skill counts fast riding and reduced contact half again, steady riding half',()=>{
+ const r=new NativeMotorbikeTraining(values);let skill=0;
+ const step=(speed:number,wheels:number)=>{const result=r.step(1,{velocity:[speed,0,0],contactWheels:wheels,skill});skill=result.skill;};
+ step(.7,4);expect(r.counter).toBe(30);
+ step(.3,0);expect(r.counter).toBe(60);
+ step(.3,4);expect(r.counter).toBe(70);
+ step(.1,4);expect(r.counter).toBe(70);
+ // The routine can award while stopped; its CPlayerInfo caller separately skips zero speed.
+ r.counter=180001;step(0,4);expect(skill).toBe(25);expect(r.counter).toBe(0);
 });

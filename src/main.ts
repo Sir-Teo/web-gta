@@ -35,6 +35,7 @@ import {NativeStatReactions,readActionReactionStats,STAT_BIKE_SKILL,swimTraining
 import {NativeBodyExercise,applyBodyExercise} from './simulation/nativeBodyExercise';
 import {NativeDrivingTraining} from './simulation/nativeDrivingTraining';
 import {NativeCyclingTraining} from './simulation/nativeCyclingTraining';
+import {NativeMotorbikeTraining,motorbikeTrainingMoving} from './simulation/nativeMotorbikeTraining';
 import {bikeContactPointCount} from './simulation/nativeBikeControls';
 import {STAT_CALORIES,STAT_COST_OF_PROPERTY_DAMAGED,STAT_PROGRESS_MADE,ScmStats} from './engine/ScmGameState';
 import {NativeShinyTexts} from './render/NativeShinyTexts';
@@ -1474,10 +1475,12 @@ async function boot() {
   let statReactions:NativeStatReactions|undefined;
   let drivingTraining:NativeDrivingTraining|undefined;
   let cyclingTraining:NativeCyclingTraining|undefined;
+  let motorbikeTraining:NativeMotorbikeTraining|undefined;
   void fetch(new URL(`${import.meta.env.BASE_URL}play/world/files/data/ar_stats.dat`,location.href)).then(r=>r.ok?r.text():Promise.reject(new Error(`ar_stats.dat ${r.status}`))).then(text=>{
    const values=readActionReactionStats(text);
    drivingTraining=new NativeDrivingTraining(values);
    cyclingTraining=new NativeCyclingTraining(values);
+   motorbikeTraining=new NativeMotorbikeTraining(values);
    statReactions=new NativeStatReactions(values,(stat,value)=>{mission?.runtime.game.stats.increment(stat,value);displayStatUpdate(true,stat,value);});
    const bodyExercise=new NativeBodyExercise(values);
    statReactions.onExercise=(timeStep,rate)=>{
@@ -3917,7 +3920,15 @@ async function boot() {
           if(statFrameDue&&onFoot&&!sim.player.swimming&&sim.footMove==='sprint')statReactions.sprinting(1000/30);
           else if(statFrameDue&&onFoot&&!sim.player.swimming&&sim.footMove==='run')statReactions.running(1000/30);
           // CBike counts four wheel contact points; the quad's native appearance routes to automobile driving skill.
-          if(statFrameDue&&bike?.motorbike&&!bike.quad){const v=bike.body.linvel();statReactions.onMotorBike(1000/30,Math.hypot(v.x,v.y,v.z)/50,bike.airborne?0:4);}
+          if(statFrameDue&&motorbikeTraining&&bike?.motorbike&&!bike.quad){
+           const v=bike.body.linvel(),f=Math.fround,velocity:[number,number,number]=[f(v.x/50),f(-v.z/50),f(v.y/50)];
+           // The captured CPlayerInfo dispatch skips exact zero native squared speed.
+           if(motorbikeTrainingMoving(velocity)){
+            const contacts=bike.wheelContacts(),result=motorbikeTraining.step(50/30,{velocity,contactWheels:bikeContactPointCount(contacts.front,contacts.rear),skill:progression.bikeSkill},game.showUpdateStats);
+            if(result.skill!==progression.bikeSkill)game.stats.set(229,result.skill);
+            for(const message of result.messages)displayStatUpdate(message.increase,message.stat,message.value);
+           }
+          }
           const car=worldCar?.occupied?worldCar:fleet?.occupied,quad=bike?.quad?bike:undefined;
           if(statFrameDue&&drivingTraining&&!law.arrested&&(car||quad)){
            const v=(car?car.car.body:quad!.body).linvel(),f=Math.fround,velocity:[number,number,number]=[f(v.x/50),f(-v.z/50),f(v.y/50)];
@@ -4870,7 +4881,7 @@ async function boot() {
       for(const rider of scriptRiders)respondToVehicleDeath(rider);
       mission.step(gameTimeExact,scriptStepMs);
       if(!startupStatsBound&&(mission.stopped||mission.runtime.active.some(slot=>slot.thread.base>0&&slot.thread.name==='INTRO'))){
-        progression.bindBodyStats(mission.runtime.game.stats);progression.bindDrivingStats(mission.runtime.game.stats);progression.bindCyclingStats(mission.runtime.game.stats);startupStatsBound=true;rebuildPlayerIfNeeded();
+        progression.bindBodyStats(mission.runtime.game.stats);progression.bindDrivingStats(mission.runtime.game.stats);progression.bindCyclingStats(mission.runtime.game.stats);progression.bindBikeStats(mission.runtime.game.stats);startupStatsBound=true;rebuildPlayerIfNeeded();
       }
       // The script runtime stops at a command the port cannot run: say so once, with the command, rather than leave the
       // story silently frozen (the world and free roam go on).

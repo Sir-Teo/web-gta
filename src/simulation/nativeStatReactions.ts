@@ -26,8 +26,8 @@ export function readActionReactionStats(text:string){
 }
 
 export class NativeStatReactions {
- /** m_SprintStaminaCounter, m_RunningCounter and m_BikeCounter. */
- sprintStaminaCounter=0;runningCounter=0;bikeCounter=0;swimStaminaCounter=0;underwaterCounter=0;
+ /** Ground/swim training counters; motorbike and cycling own their captured controllers. */
+ sprintStaminaCounter=0;runningCounter=0;swimStaminaCounter=0;underwaterCounter=0;
  /** Native UpdateStatsWhen* calls body exercise before awarding its own stamina/lung gain. */
  onExercise?:(timeStep:number,rate:number)=>void;
  constructor(private values:readonly number[],private increment:(stat:number,value:number)=>void){}
@@ -66,13 +66,5 @@ export class NativeStatReactions {
   }else{
    const ms=unsignedFloat(f(f(timeStep/50)*1000));this[counter]=(this[counter]+ms)>>>0;
   }
- }
- /** CStats::UpdateStatsWhenOnMotorBike (0x55CD60): fast riding or a wheelie counts half again, steady riding half;
-  * `moveSpeed` is the bike's speed in units a frame. */
- onMotorBike(timeStepMs:number,moveSpeed:number,contactWheels:number){
-  if(this.v(AR.timeLimitMotorbikeSkill)*1000>=this.bikeCounter){
-   if(moveSpeed>.6||contactWheels<3&&moveSpeed>.1)this.bikeCounter=Math.trunc(timeStepMs*1.5+this.bikeCounter);
-   else if(moveSpeed>.2)this.bikeCounter=Math.trunc(timeStepMs*.5+this.bikeCounter);
-  }else{this.bikeCounter=0;this.increment(STAT_BIKE_SKILL,this.v(AR.incMotorbikeSkill));}
  }
 }

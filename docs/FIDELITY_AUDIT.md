@@ -9,6 +9,18 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Motorbike training and saved riding skill (October 27, 2026)
+
+- Motorbike skill now follows captured native float32/truncated-time counters,
+  raw integer awards and feedback gates, and saved stat 229 supplies the
+  riding-skill provider after MAIN/reload. The caller uses the captured
+  exact-zero speed gate and four suspension-point contact mapping.
+- All 247 fixed native training profiles, ten motorbike dispatch speed profiles
+  and 21 independently replayed live calls match. Quad exclusion, real
+  motorbike award/save/reload and cycling regressions pass. Full units:
+  9,976 passed / 51 skipped. TypeScript, build and production smoke pass.
+  [Source, validation and limits](research/MOTORBIKE_STAT_TRAINING.md).
+
 ## Cycling training and saved skill (October 27, 2026)
 
 - Player BMX, Chopper and Mountain Bike riding now runs captured stamina,

@@ -26,8 +26,9 @@ stubs; no appearance, speed or routing arithmetic is stubbed. A valid current
 vehicle/player context is declared. The pinned 14,226,544-byte binary has
 SHA256 `9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78`.
 
-Ten captured profiles cover stopped/moving quad, motorbike, BMX, automobile
-and train contexts. The moving quad routes to driving, the motorbike to
+Eighteen captured profiles cover stopped/moving quad, motorbike, BMX, automobile
+and train contexts, including signed/directional and float32-underflow
+motorbike speed inputs. The moving quad routes to driving, the motorbike to
 motorbike training, and the BMX/train contexts skip these callees in this
 block. Cycling has its own caller. Zero native speed skips all three here.
 This is a routing-block capture, not complete CPlayerInfo::Process or an
@@ -44,7 +45,10 @@ cmp tests/fixtures/vehicle-training-dispatch-reference.json artifacts/vehicle-tr
 The motorbike-training branch now excludes WorldBike.quad. The broad host
 motorbike property retains its other uses. Quad driving-skill training
 continues through the captured automobile counter; the native motorbike
-counter and its caller remain otherwise unchanged.
+counter and caller were initially otherwise unchanged. Subsequent
+[captured motorbike training](MOTORBIKE_STAT_TRAINING.md) now ports the
+counter precision, exact-zero gate, four-point contact mapping and saved
+skill ownership.
 
 All 368 focused stat/training/progression/ride checks and TypeScript validation
 pass. The new browser checks use real original vehicle creation/driver warp
