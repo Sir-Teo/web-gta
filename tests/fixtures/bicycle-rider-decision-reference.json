@@ -1,0 +1,7037 @@
+{
+  "source": "Selected CBmx rider gate/cadence plus actual existing-association playing-bit/speed writes; declared fully blended pedal/sprint associations, no animation-manager calls",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "entry": "0x100459cb0",
+  "cases": [
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.10000000149011612,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.30000001192092896,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.30000001192092896
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.10000000149011612,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.30000001192092896,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.30000001192092896
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.10000000149011612,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.30000001192092896,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.30000001192092896
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.10000000149011612,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.30000001192092896,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.30000001192092896
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.10000000149011612,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.30000001192092896,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.30000001192092896
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.10000000149011612,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.30000001192092896,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.30000001192092896
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.10000000149011612,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.30000001192092896,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.30000001192092896
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.5,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 1.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.5,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 1.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.5,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 1.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.5,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 1.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.5,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.5,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.5,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.5,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.5,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.8333333134651184,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.8333333134651184,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.8333333134651184,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.8333333134651184,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.8333333134651184,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.8333333134651184,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.8333333134651184,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.8333333730697632,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.8333333730697632,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.8333333730697632,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.8333333730697632,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.8333333730697632,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.8333333730697632,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.8333333730697632,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 1.0,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 3.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 3.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 1.0,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 3.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 3.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 1.0,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 3.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 3.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 1.0,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 3.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 3.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 3.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 3.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 1.0,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 3.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 3.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 1.0,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 3.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 3.0
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.010001000016927719,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.010001000016927719,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.010001000016927719,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.010001000016927719,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.010001000016927719,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.010001000016927719,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.010001000016927719,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.10000000149011612,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.30000001192092896,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.30000001192092896
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.10000000149011612,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.30000001192092896,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.30000001192092896
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.10000000149011612,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.30000001192092896,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.30000001192092896
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.10000000149011612,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.30000001192092896,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.30000001192092896
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.10000000149011612,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.30000001192092896,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.30000001192092896
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.10000000149011612,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.30000001192092896,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.30000001192092896
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.10000000149011612,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.30000001192092896,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.30000001192092896
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.20000000298023224,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.20000000298023224,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.20000000298023224,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.5,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 1.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.5,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 1.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.5,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 1.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.5,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 1.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.5,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.5,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.5,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.5,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.5,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.8333333134651184,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.8333333134651184,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.8333333134651184,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.8333333134651184,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.8333333134651184,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.8333333134651184,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.8333333134651184,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.8333333730697632,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.8333333730697632,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.8333333730697632,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.8333333730697632,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.8333333730697632,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.8333333730697632,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 0.8333333730697632,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.5,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.5
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 1.0,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 3.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 3.0
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 1.0,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 3.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 3.0
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 1.0,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 3.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 3.0
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 1.0,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 3.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 3.0
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 3.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 3.0
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 1.0,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 3.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 3.0
+    },
+    {
+      "input": {
+        "model": 509,
+        "speed": 1.0,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 3.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 3.0
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.010001000016927719,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.11112222820520401,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.11112222820520401
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.010001000016927719,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.11112222820520401,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.11112222820520401
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.010001000016927719,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.11112222820520401,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.11112222820520401
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.010001000016927719,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.11112222820520401,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.11112222820520401
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.010001000016927719,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.11112222820520401,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.11112222820520401
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.010001000016927719,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.11112222820520401,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.11112222820520401
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.010001000016927719,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.11112222820520401,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.11112222820520401
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.10000000149011612,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.1111111640930176,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 1.1111111640930176
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.10000000149011612,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.1111111640930176,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 1.1111111640930176
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.10000000149011612,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.1111111640930176,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 1.1111111640930176
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.10000000149011612,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.1111111640930176,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 1.1111111640930176
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.10000000149011612,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.1111111640930176,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.1111111640930176
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.10000000149011612,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.1111111640930176,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.1111111640930176
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.10000000149011612,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.1111111640930176,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.1111111640930176
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.222222328186035,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.222222328186035
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.222222328186035,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.222222328186035
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.222222328186035,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.222222328186035
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.222222328186035,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.222222328186035
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.222222328186035,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.222222328186035
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.222222328186035,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.222222328186035
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.222222328186035,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.222222328186035
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 5.555555820465088,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 5.555555820465088
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 5.555555820465088,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 5.555555820465088
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 5.555555820465088,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 5.555555820465088
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 5.555555820465088,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 5.555555820465088
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 5.555555820465088,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 5.555555820465088
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 5.555555820465088,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 5.555555820465088
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 5.555555820465088,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 5.555555820465088
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.8333333134651184,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 9.259259223937988,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 9.259259223937988
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.8333333134651184,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 9.259259223937988,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 9.259259223937988
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.8333333134651184,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 9.259259223937988,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 9.259259223937988
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.8333333134651184,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 9.259259223937988,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 9.259259223937988
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.8333333134651184,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 9.259259223937988,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 9.259259223937988
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.8333333134651184,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 9.259259223937988,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 9.259259223937988
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.8333333134651184,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 9.259259223937988,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 9.259259223937988
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.8333333730697632,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 9.259260177612305,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 9.259260177612305
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.8333333730697632,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 9.259260177612305,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 9.259260177612305
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.8333333730697632,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 9.259260177612305,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 9.259260177612305
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.8333333730697632,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 9.259260177612305,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 9.259260177612305
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.8333333730697632,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 9.259260177612305,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 9.259260177612305
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.8333333730697632,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 9.259260177612305,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 9.259260177612305
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.8333333730697632,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 9.259260177612305,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 9.259260177612305
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 11.111111640930176,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 11.111111640930176
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 11.111111640930176,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 11.111111640930176
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 11.111111640930176,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 11.111111640930176
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 11.111111640930176,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 11.111111640930176
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 11.111111640930176,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 11.111111640930176
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 6.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 11.111111640930176,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 11.111111640930176
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 10.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 11.111111640930176,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 11.111111640930176
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.019999999552965164,
+        "coefficient": 5.000100135803223,
+        "gear": 0,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.0,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.0
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 0,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.0,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.0
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 0,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.0,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.0
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 0,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.0,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.0
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.019999999552965164,
+        "coefficient": 5.000100135803223,
+        "gear": 0,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.0,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.0
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 0,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.0,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.0
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 0,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.0,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.0
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 0,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.0,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.0
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.019999999552965164,
+        "coefficient": 5.000100135803223,
+        "gear": 0,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.0,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.0
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 0,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.0,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.0
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 0,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.0,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.0
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 0,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.0,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.0
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.019999999552965164,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.3999999761581421,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.3999999761581421
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 4.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 4.0
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 10.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 10.0
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 20.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 20.0
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.019999999552965164,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.2222222089767456,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.2222222089767456
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.222222328186035,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.222222328186035
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 5.555555820465088,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 5.555555820465088
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 11.111111640930176,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 11.111111640930176
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.019999999552965164,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.13333332538604736,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.13333332538604736
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.3333333730697632,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.3333333730697632
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 3.3333332538604736,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 3.3333332538604736
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 6.666666507720947,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 6.666666507720947
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.019999999552965164,
+        "coefficient": 5.000100135803223,
+        "gear": 2,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.13333332538604736,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.13333332538604736
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 2,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.3333333730697632,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.3333333730697632
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 2,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 3.3333332538604736,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 3.3333332538604736
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 2,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 6.666666507720947,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 6.666666507720947
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.019999999552965164,
+        "coefficient": 5.000100135803223,
+        "gear": 2,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.08695651590824127,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.08695651590824127
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 2,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.8695652484893799,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.8695652484893799
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 2,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.17391300201416,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.17391300201416
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 2,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 4.34782600402832,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 4.34782600402832
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.019999999552965164,
+        "coefficient": 5.000100135803223,
+        "gear": 2,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.05714285373687744,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.05714285373687744
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 2,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.5714285969734192,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.5714285969734192
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 2,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.4285714626312256,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.4285714626312256
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 2,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.857142925262451,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.857142925262451
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.019999999552965164,
+        "coefficient": 5.000100135803223,
+        "gear": 3,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.07999999821186066,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.07999999821186066
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 3,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.800000011920929,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.800000011920929
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 3,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.0
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 3,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 4.0,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 4.0
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.019999999552965164,
+        "coefficient": 5.000100135803223,
+        "gear": 3,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.054054055362939835,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.054054055362939835
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 3,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.5405405759811401,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.5405405759811401
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 3,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.3513513803482056,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.3513513803482056
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 3,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.702702760696411,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.702702760696411
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.019999999552965164,
+        "coefficient": 5.000100135803223,
+        "gear": 3,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.036363635212183,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.036363635212183
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 3,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.3636363744735718,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.3636363744735718
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 3,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.9090909361839294,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.9090909361839294
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 3,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.8181818723678589,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.8181818723678589
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.019999999552965164,
+        "coefficient": 5.000100135803223,
+        "gear": 4,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.05714285373687744,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.05714285373687744
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 4,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.5714285969734192,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.5714285969734192
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 4,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.4285714626312256,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.4285714626312256
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 4,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.857142925262451,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.857142925262451
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.019999999552965164,
+        "coefficient": 5.000100135803223,
+        "gear": 4,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.039215683937072754,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.039215683937072754
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 4,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.3921568691730499,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.3921568691730499
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 4,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.9803921580314636,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.9803921580314636
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 4,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.9607843160629272,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.9607843160629272
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.019999999552965164,
+        "coefficient": 5.000100135803223,
+        "gear": 4,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.026666665449738503,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.026666665449738503
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 4,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.2666666805744171,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.2666666805744171
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 4,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6666666865348816,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6666666865348816
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 4,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.3333333730697632,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.3333333730697632
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.019999999552965164,
+        "coefficient": 5.000100135803223,
+        "gear": 5,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.04444444179534912,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.04444444179534912
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 5,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.4444444477558136,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.4444444477558136
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 5,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.1111111640930176,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.1111111640930176
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 5,
+        "maxFlatVelocity": 0.5,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 2.222222328186035,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 2.222222328186035
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.019999999552965164,
+        "coefficient": 5.000100135803223,
+        "gear": 5,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.0307692289352417,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.0307692289352417
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 5,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.3076923191547394,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.3076923191547394
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 5,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.7692307829856873,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.7692307829856873
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 5,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.5384615659713745,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.5384615659713745
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.019999999552965164,
+        "coefficient": 5.000100135803223,
+        "gear": 5,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.021052630618214607,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.021052630618214607
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 5,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.21052631735801697,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.21052631735801697
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 0.5,
+        "coefficient": 5.000100135803223,
+        "gear": 5,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.5263158082962036,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.5263158082962036
+    },
+    {
+      "input": {
+        "model": 510,
+        "speed": 1.0,
+        "coefficient": 5.000100135803223,
+        "gear": 5,
+        "maxFlatVelocity": 1.0,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 1.0526316165924072,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 1.0526316165924072
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 0.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 0.0,
+        "status": 2,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 0.0,
+        "status": 3,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 2,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 3,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": -1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": -1.0,
+        "status": 2,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": -1.0,
+        "status": 3,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 0.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 0.0,
+        "status": 2,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 0.0,
+        "status": 3,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 2,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 3,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": -1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": -1.0,
+        "status": 2,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": -1.0,
+        "status": 3,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 0.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 0.0,
+        "status": 2,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 0.0,
+        "status": 3,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 2,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 3,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": -1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": -1.0,
+        "status": 2,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": -1.0,
+        "status": 3,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 0.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 0.0,
+        "status": 2,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 0.0,
+        "status": 3,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 2,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 3,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": -1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": -1.0,
+        "status": 2,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": -1.0,
+        "status": 3,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": -0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.7000100016593933,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": -0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": -0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": -0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": -0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.3999899923801422,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": -0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": -0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.6999899744987488,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": -0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.0,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.7000100016593933,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.0,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.0,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.0,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.0,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.3999899923801422,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.0,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.0,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.6999899744987488,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.0,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009998999536037445,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.7000100016593933,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009998999536037445,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009998999536037445,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009998999536037445,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009998999536037445,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.3999899923801422,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009998999536037445,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009998999536037445,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.6999899744987488,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009998999536037445,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009999999776482582,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.7000100016593933,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009999999776482582,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009999999776482582,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009999999776482582,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009999999776482582,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.3999899923801422,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009999999776482582,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009999999776482582,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.6999899744987488,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009999999776482582,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.7000100016593933,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.3999899923801422,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.6999899744987488,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.7000100016593933,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.3999899923801422,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.6999899744987488,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": -1.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.3999899923801422,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.4000000059604645,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.6999899744987488,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.699999988079071,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 1.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": -0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.7000100016593933,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": -0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": -0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": -0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": -0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.3999899923801422,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": -0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": -0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.6999899744987488,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": -0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.0,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.7000100016593933,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.0,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.0,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.0,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.0,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.3999899923801422,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.0,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.0,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.6999899744987488,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.0,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009998999536037445,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.7000100016593933,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009998999536037445,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009998999536037445,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009998999536037445,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009998999536037445,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.3999899923801422,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009998999536037445,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009998999536037445,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.6999899744987488,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009998999536037445,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009999999776482582,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.7000100016593933,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009999999776482582,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009999999776482582,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009999999776482582,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009999999776482582,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.3999899923801422,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009999999776482582,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009999999776482582,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.6999899744987488,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.009999999776482582,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.7000100016593933,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.3999899923801422,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.6999899744987488,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.030003000050783157,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.030003000050783157
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.010001000016927719,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.7000100016593933,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": -0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.3999899923801422,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.4000000059604645,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.6999899744987488,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.699999988079071,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": -1.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.3999899923801422,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.4000000059604645,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.6999899744987488,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.699999988079071,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 1.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": true,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": true
+      },
+      "cadence": null,
+      "mode": "ride",
+      "playing": false,
+      "pedalSpeed": 1.0
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 4.900000095367432,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": false
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 5.000100135803223,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 1.0,
+        "status": 0,
+        "initialPlaying": false
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "sprint",
+      "playing": true,
+      "pedalSpeed": 0.6000000238418579
+    },
+    {
+      "input": {
+        "model": 481,
+        "speed": 0.20000000298023224,
+        "coefficient": 0.0,
+        "gear": 1,
+        "maxFlatVelocity": 0.699999988079071,
+        "lean": 0.0,
+        "leanFwd": 0.0,
+        "driveBy": false,
+        "gas": 0.0,
+        "status": 0,
+        "initialPlaying": false
+      },
+      "cadence": 0.6000000238418579,
+      "mode": "pedal",
+      "playing": false,
+      "pedalSpeed": 1.0
+    }
+  ]
+}

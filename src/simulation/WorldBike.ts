@@ -13,6 +13,7 @@ import {bindBikeWheelRoll} from '../render/bikeWheelRoll';
 import {bindBikeSteering} from '../render/bikeSteering';
 import {bindBicyclePedals} from '../render/bicyclePedals';
 import {stepBmxPedalControl} from './nativeBmxPedalControl';
+import {NativeBicycleRider} from './nativeBicycleRider';
 import {stepBicycleCrank} from './bicycleCrank';
 import {stepNativeBicycleHop,type BicycleHopState} from './nativeBicycleHop';
 import {stepBikeWheelRoll,type BikeWheelRoll} from './bikeWheelRoll';
@@ -194,6 +195,8 @@ export class WorldBike {
  /** Inputs at the native cycling call, before this controller integrates the bike's new velocity. */
  playerCyclingFrame?:{gas:number;boost:boolean;velocity:readonly [number,number,number]};
  private accelerateHeld=false;
+ private bicycleRider?:NativeBicycleRider;
+ private riderDriveBy=false;
  /** CBmx::m_fControlJump (0 to 25 steps of charge) and the time left before the hop launches. */
  controlJump=0;hopLaunch?:number;pillion?:{modelRef:number|string};
  private hopState?:BicycleHopState;
@@ -371,8 +374,10 @@ export class WorldBike {
   const check=this.enterCheck();if(check)return check;
   return this.finishEnter();
  }
- beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean;disabled?:boolean;sprint?:boolean;sprintJustPressed?:boolean;sprintDisabled?:boolean}={throttle:0,steer:0,brake:false}){
+ beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean;disabled?:boolean;sprint?:boolean;sprintJustPressed?:boolean;sprintDisabled?:boolean;driveBy?:boolean}={throttle:0,steer:0,brake:false}){
   this.wheelStepSeconds=0;
+  this.riderDriveBy=!!input.driveBy;
+  if(!this.motorbike&&!this.occupied&&!WorldBike.hasDriverPed?.(this)){this.bicycleRider=undefined;this.rideTime=0;}
   this.playerBoost=false;this.playerCyclingFrame=undefined;
   if(!this.occupied){this.accelerateHeld=false;this.pedalCoefficient=0;}
   this.previousSteer=this.steer;
@@ -438,7 +443,7 @@ export class WorldBike {
    if(state.steer===0)this.steer=0;
   }
   // Sprint-button memory can keep the rider pedalling after the accelerator is released.
-  if(Math.abs(gas)>.05)this.rideTime+=dt;
+  if(this.motorbike&&Math.abs(gas)>.05)this.rideTime+=dt;
   if(gas>.05)want=Math.min(top,speed+accelRate*dt*gas);
   else if(gas<-.05)want=Math.max(reverse,speed+accelRate*dt*gas);
   else want=speed>0?Math.max(0,speed-COAST_DECEL*dt):Math.min(0,speed+COAST_DECEL*dt);
@@ -652,6 +657,11 @@ export class WorldBike {
    if(this.body.isEnabled()){
     this.advanceWheelRoll(dt);
     if(this.pedals&&(this.occupied||WorldBike.hasDriverPed?.(this))){
+     if(!this.motorbike){
+      const clock=this.bicycleRider??=new NativeBicycleRider();
+      clock.step(dt,{model:this.modelId,speed:this.speed()/50,coefficient:this.pedalCoefficient,gear:this.gear,maxFlatVelocity:this.assets.handling.maxFlatVelocity,lean:this.lean,leanFwd:0,driveBy:this.riderDriveBy,gas:this.gasPedal,status:this.occupied?0:3},!!this.hopState?.animation);
+      this.rideTime=clock.time;
+     }
      const pose=this.riderPose(),duration=pose.idle.endsWith('_pedal')?WorldBike.riderClipSeconds?.(pose.block,pose.idle):undefined;
      this.crankAngle=stepBicycleCrank(this.crankAngle,dt*50,duration&&duration>0?{seconds:pose.time,duration}:undefined,this.hopState?.animation?.amount);
     }

@@ -14,12 +14,13 @@ test('riding a BMX updates native sprint energy and retained pedal input through
  await page.evaluate(async()=>{
   const path='/src/simulation/WorldBike.ts',{WorldBike}=await import(path),g=(window as any).__game;
   g.sim.player.stamina=100;g.sim.player.sprintButtonSpeed=0;
-  const t=(window as any).__bmxEnergy={original:WorldBike.prototype.beforeStep,rows:[] as any[]};
+  const t=(window as any).__bmxEnergy={original:WorldBike.prototype.beforeStep,afterOriginal:WorldBike.prototype.afterStep,pending:new WeakMap(),rows:[] as any[]};
   WorldBike.prototype.beforeStep=function(this:any,dt:number,input:any){
    const p=g.sim.player,before=p.stamina,button=p.sprintButtonSpeed,time=this.rideTime;
    const result=t.original.call(this,dt,input);
-   if(this.occupied)t.rows.push({dt,input,before,after:p.stamina,button,buttonAfter:p.sprintButtonSpeed,boost:this.playerBoost,gas:this.gasPedal,steer:this.steer,coefficient:this.pedalCoefficient,time,timeAfter:this.rideTime});return result;
+   if(this.occupied){const row={dt,input,before,after:p.stamina,button,buttonAfter:p.sprintButtonSpeed,boost:this.playerBoost,gas:this.gasPedal,steer:this.steer,coefficient:this.pedalCoefficient,time,timeAfter:this.rideTime};t.rows.push(row);t.pending.set(this,row);}return result;
   };
+  WorldBike.prototype.afterStep=function(this:any){const result=t.afterOriginal.call(this),row=t.pending.get(this);if(row){row.timeAfter=this.rideTime;t.pending.delete(this);}return result;};
  });
  let result:any,stage="idle";
  try{
@@ -49,7 +50,7 @@ test('riding a BMX updates native sprint energy and retained pedal input through
   result??=await page.evaluate(()=>(window as any).__bmxEnergy.rows);
   writeFileSync('artifacts/bmx-player-energy.json',JSON.stringify({stage,result,errors},null,2));
   await page.keyboard.up('KeyW');await page.keyboard.up('KeyD');await page.keyboard.up('ShiftLeft');
-  await page.evaluate(async()=>{const path='/src/simulation/WorldBike.ts',{WorldBike}=await import(path);WorldBike.prototype.beforeStep=(window as any).__bmxEnergy.original;});
+  await page.evaluate(async()=>{const path='/src/simulation/WorldBike.ts',{WorldBike}=await import(path);WorldBike.prototype.beforeStep=(window as any).__bmxEnergy.original;WorldBike.prototype.afterStep=(window as any).__bmxEnergy.afterOriginal;});
   writeFileSync('artifacts/bmx-player-energy.json',JSON.stringify({stage,result,errors},null,2));
  }
  expect(errors).toEqual([]);

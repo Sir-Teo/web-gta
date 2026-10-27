@@ -37,8 +37,10 @@ abandonment and repeated rendering. Focused units check timestep damping and
 interpolation across the phase wrap. Existing fourteen-model wheel checks pass.
 
 The association-selection state machine remains the browser's existing rider
-controller: speed selects pedal/still and throttle advances its clock. Native
-speed-dependent cadence, sprint selection, transition blending,
+controller: speed selects pedal/still. The subsequent
+[cadence port](BICYCLE_RIDER_CADENCE.md) now advances its available pedal clock
+with captured speed/gear/lean/playing decisions. Native
+sprint selection, transition blending,
 hand placement and full suspension geometry remain unported. Bunny-hop pose
 ownership was subsequently integrated in [the jump association slice](BICYCLE_HOP_POSES.md). This
 change implements the original crank/frame math for the available association;

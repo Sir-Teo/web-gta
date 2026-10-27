@@ -9,6 +9,19 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Bicycle rider cadence (October 27, 2026)
+
+- BMX, Chopper and Mountain Bike available pedal clips/cranks now follow
+  captured speed/gear cadence and playing decisions. Coasting, freeze and
+  rider absence hold/release the host clock through actual model checks.
+- All 370 fixed native decisions and 408 independently replayed live calls
+  match, including actual association playing flags and speed writes. Four
+  browser regressions and two affected reruns pass. Final full units:
+  10,346 passed / 51 skipped. TypeScript, build and production smoke pass.
+  Full sprint pose blending, ordinary rider
+  fallback and native animation-manager phase ownership remain open.
+  [Source, scope and validation](research/BICYCLE_RIDER_CADENCE.md).
+
 ## Motorbike training and saved riding skill (October 27, 2026)
 
 - Motorbike skill now follows captured native float32/truncated-time counters,
