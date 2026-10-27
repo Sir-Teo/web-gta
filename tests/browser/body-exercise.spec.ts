@@ -3,7 +3,7 @@ import {writeFileSync} from 'node:fs';
 import {endStoryMission} from './freeRoam';
 import reference from '../fixtures/body-exercise-reference.json' with {type:'json'};
 
-test('ordinary run, sprint and underwater tasks apply captured body exercise and pause while idle',async({page})=>{
+test('ordinary exercise applies captured body changes, pauses while idle and saves all earned stats across reload',async({page})=>{
  test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));let result:any;
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  await page.waitForFunction(()=>{const g=(window as any).__game;return !g.state().terrainHold&&g.sim.player.grounded&&g.sim.footMove==='still';},undefined,{timeout:60000});
@@ -38,5 +38,13 @@ test('ordinary run, sprint and underwater tasks apply captured body exercise and
   await page.keyboard.up('KeyW');await page.keyboard.up('ShiftLeft');await page.evaluate(async()=>{const path='/src/simulation/nativeBodyExercise.ts',{NativeBodyExercise}=await import(path);NativeBodyExercise.prototype.step=(window as any).__bodyExercise.original;});
   writeFileSync('artifacts/body-exercise.json',JSON.stringify({result,errors},null,2));
  }
+ // Ordinary pagehide saves the earned native values; a fresh MAIN must not replace them.
+ await page.reload();
+ const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('web-gta.progress.v1')??'null').trainingStats);
+ expect(stored).toMatchObject({fat:0,muscle:55,maxHealth:589});
+ await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
+ const restored=await page.evaluate(()=>{const game=(window as any).__game.missionForProfiling().runtime.game;return {stats:[21,23,24].map(id=>game.stats.get(id)),playerInfoMaxHealth:game.playerInfo.maxHealth};});
+ expect(restored).toEqual({stats:[0,55,589],playerInfoMaxHealth:100});
+ writeFileSync('artifacts/body-exercise.json',JSON.stringify({result,stored,restored,errors},null,2));
  expect(errors).toEqual([]);
 });

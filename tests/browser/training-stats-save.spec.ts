@@ -14,7 +14,7 @@ test('earned stamina, lungs and body stats survive pagehide/reload and initializ
  rows.push({mode:'earned before reload',...await read()});expect(rows[1]).toMatchObject({stamina:150,lung:50,fat:500,muscle:500,bodyModifier,capacity:1300});
  // pagehide invokes the game's ordinary save hook; do not write a synthetic save or call a debug save helper.
  await page.reload();
- const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('web-gta.progress.v1')??'null'));rows.push({mode:'stored',trainingStats:stored?.trainingStats});expect(stored?.trainingStats).toEqual({stamina:150,lungCapacity:50,fat:500,muscle:500});
+ const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('web-gta.progress.v1')??'null'));rows.push({mode:'stored',trainingStats:stored?.trainingStats});expect(stored?.trainingStats).toEqual({stamina:150,lungCapacity:50,fat:500,muscle:500,maxHealth:569});
  await play();await endStoryMission(page);
  const restored=await read();rows.push({mode:'restored',...restored});expect(restored).toEqual({stamina:150,lung:50,fat:500,muscle:500,bodyModifier,capacity:1300,breath:1300});
  await page.waitForFunction(()=>((window as any).__game.render().nativeCharacter?.snapshot().bodySwaps??0)>0,undefined,{timeout:30000});

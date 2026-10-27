@@ -15020,3 +15020,26 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   [Native arithmetic, feedback, caller order and live evidence](research/BODY_EXERCISE.md).
 - Production smoke passes save resume, walking, car entry, map waypoint,
   pause/resume, takeoff and landing gear without page errors or failed requests.
+
+## Preserve earned raw health stats (October 27, 2026)
+
+- Captured exercise trains raw maximum-health stat 24, which previously
+  disappeared on reload. The browser's saved training subset now retains it
+  alongside fat/muscle/stamina/lungs, following CStats::Save/Load's float-array
+  ownership. This does not change CPlayerInfo's separate maximum-health field.
+- Valid loaded floats survive temporary MAIN setup writes and early saves.
+  Missing/invalid values adopt completed setup, including the native 569
+  default; New Game ignores saved stats. Binding neither heals nor displays
+  gain messages. Script writes and exercise share the same authoritative value.
+- Nine of ten new regressions fail before repair. All 60 focused save,
+  exercise and progression checks pass, as does TypeScript validation.
+- Ordinary real-key exercise awards health stat 589, then pagehide/reload
+  restores fat 0, muscle 55 and health stat 589 through a fresh MAIN. The
+  separate player-info maximum remains 100. The existing training-save and
+  movement-provider browser regression passes too (two checks, 1.7 minutes).
+  Both have no page errors; distant water transfer reports terrain-support
+  warnings. [Save ownership and validation](research/TRAINING_STAT_PERSISTENCE.md).
+- The complete unit suite passes all 8,730 tests (51 skipped).
+- Final TypeScript validation and the production build pass.
+- Production smoke passes old-save resume, walking, car entry, map waypoint,
+  pause/resume, takeoff and landing gear without page errors or failed requests.

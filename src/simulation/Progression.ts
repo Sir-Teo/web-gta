@@ -18,11 +18,11 @@ export class Progression {
 /** Driving skill stat (0–1000): weak ride set below 50, standard below 100, pro above.
  * CStats::UpdateStatsWhenDriving port: +1 per 25 m driven (≈2.5 km to pro), weak/std/pro ride sets switch at the native bands. */
  drivingSkill=0;
- /** CStats::Save/Load (PC 0x5D3B40/0x5D3BF0) store fat/stamina/muscle (21–23) as floats and lungs (225) as int.
+ /** CStats::Save/Load (PC 0x5D3B40/0x5D3BF0) store fat/stamina/muscle/raw max health (21–24) as floats and lungs (225) as int.
   * This browser-save subset keeps their current values; native training counters are not serialized. */
- readonly trainingStats={stamina:100,lungCapacity:0,fat:0,muscle:0};
+ readonly trainingStats={stamina:100,lungCapacity:0,fat:0,muscle:0,maxHealth:569};
  /** Body fields belong to a loaded save, or to MAIN after its initial defaults have run. */
- private bodyStatsOwned=new Set<'fat'|'muscle'>();
+ private bodyStatsOwned=new Set<'fat'|'muscle'|'maxHealth'>();
  /** CTagManager::Save: sprayed tags' alphas by tag key. */
  tags:[string,number][]=[];
  /** Collected one-time pickups and collectables (CPickups states), by ScmPickup id. */
@@ -51,7 +51,7 @@ export class Progression {
    if(Number.isInteger(data.money)&&data.money>=-9999999&&data.money<=999999999)sim.money=data.money;
    if(finite(data.drivingSkill,1000))this.drivingSkill=data.drivingSkill;
    const training=data.trainingStats,lung=training?.lungCapacity;
-   for(const field of ['stamina','fat','muscle'] as const){const value=training?.[field];if(typeof value==='number'&&Number.isFinite(value)&&Number.isFinite(Math.fround(value))){this.trainingStats[field]=Math.fround(value);if(field!=='stamina')this.bodyStatsOwned.add(field);}}
+   for(const field of ['stamina','fat','muscle','maxHealth'] as const){const value=training?.[field];if(typeof value==='number'&&Number.isFinite(value)&&Number.isFinite(Math.fround(value))){this.trainingStats[field]=Math.fround(value);if(field!=='stamina')this.bodyStatsOwned.add(field);}}
    if(Number.isInteger(lung)&&lung>=-2147483648&&lung<=2147483647)this.trainingStats.lungCapacity=lung;
    // The clip is checked against the magazines once WEAPON.DAT has loaded (the inventory holds the rows until then).
    if(Array.isArray(data.ammo))inventory.restoreAmmo(data.ammo.filter((row:unknown):row is [number,number,number]=>Array.isArray(row)&&row.length===3&&WEAPONS.some(w=>w.id===row[0])&&finite(row[1],1000)&&finite(row[2],100000)&&Number.isInteger(row[1])&&Number.isInteger(row[2])));
@@ -78,15 +78,15 @@ export class Progression {
   stats.bind(225,{get:()=>this.trainingStats.lungCapacity,set:value=>{this.trainingStats.lungCapacity=value;}});
   if(!options.deferBody)this.bindBodyStats(stats);
  }
- /** MAIN gives a fresh CJ fat 200 and muscle 50 after CStats::Init zeroes them.
+ /** MAIN gives a fresh CJ fat 200 and muscle 50 after CStats::Init zeroes them (raw health stat starts at 569).
   * Apply saved fields after that setup, or adopt its current values when those fields were absent. */
  bindBodyStats(stats:ScmStats){
-  for(const [field,id] of [['fat',21],['muscle',23]] as const){
+  for(const [field,id] of [['fat',21],['muscle',23],['maxHealth',24]] as const){
    if(!this.bodyStatsOwned.has(field)){this.trainingStats[field]=stats.get(id);this.bodyStatsOwned.add(field);}
    stats.bind(id,{get:()=>this.trainingStats[field],set:value=>{this.trainingStats[field]=value;}});
   }
  }
- private savedTrainingStats(){const {stamina,lungCapacity,fat,muscle}=this.trainingStats;return {stamina,lungCapacity,...(this.bodyStatsOwned.has('fat')?{fat}:{}),...(this.bodyStatsOwned.has('muscle')?{muscle}:{})};}
+ private savedTrainingStats(){const {stamina,lungCapacity,fat,muscle,maxHealth}=this.trainingStats;return {stamina,lungCapacity,...(this.bodyStatsOwned.has('fat')?{fat}:{}),...(this.bodyStatsOwned.has('muscle')?{muscle}:{}),...(this.bodyStatsOwned.has('maxHealth')?{maxHealth}:{})};}
  /** AR_STATS.DAT's STAT_INC_*_SKILL increment per weapon type, once loaded. */
  skillIncrements?:ReadonlyMap<number,number>;
  /** A hit that trains the weapon: CWeapon::DoBulletImpact calls UpdateStatsWhenWeaponHit only for the types with skill

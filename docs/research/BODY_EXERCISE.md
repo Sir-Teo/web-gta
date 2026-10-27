@@ -59,7 +59,8 @@ An independent counter adds unweighted native milliseconds. Above AR 45 ×
 1,000 (600,000), stat 24 gains AR 11 (20), capped at 1,000, and the counter
 resets. This is the raw maximum-health stat (initially 569), not a claim that
 the player health cap increases by 20. Player-cap propagation and native
-stat-condition-check side effects remain separate work.
+stat-condition-check side effects remain separate work. Raw stat 24 now also
+uses the [saved training-stat binding](TRAINING_STAT_PERSISTENCE.md).
 
 ## Integration and checks
 
@@ -85,9 +86,9 @@ a retry/support warning during the distant water transfer. Evidence is
 
 The existing hour-based hunger routine is separate and unchanged. Cycling,
 fighting, other native exercise callers, full task scheduling, native HUD
-side effects, player maximum-health integration, maximum-health stat save
-ownership and complete original-PC matching remain separate work. Fresh
-browser worlds start fresh exercise counters; earned fat/muscle values use
+side effects, player maximum-health integration and complete original-PC
+matching remain separate work. Fresh browser worlds start fresh exercise counters;
+earned fat/muscle/raw maximum-health values use
 the existing save binding.
 
 All 8,720 unit tests pass (51 skipped).

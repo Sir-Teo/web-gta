@@ -3,7 +3,7 @@
 Natural swimming gains and script stat changes previously lived only in the
 current ScmStats instance. Reloading restored the browser's existing money,
 weapons and driving practice but discarded earned stamina and lung capacity.
-The browser save now includes stamina, lung capacity, fat and muscle and
+The browser save now includes stamina, lung capacity, fat, muscle and raw maximum-health stat 24 and
 binds them back to the actual script stat store when MAIN initializes.
 
 ## Source and scope
@@ -11,7 +11,7 @@ binds them back to the actual script stat store when MAIN initializes.
 In pinned gta-reversed revision
 `4281f82d8af83e14935ac84a69dfd1ceebb9f256`, CStats::Save
 (`0x5D3B40`) writes StatTypesFloat and StatTypesInt, and CStats::Load
-(`0x5D3BF0`) reads them back. Fat (21), stamina (22) and muscle (23) are float stats; lung capacity
+(`0x5D3BF0`) reads them back. Fat (21), stamina (22), muscle (23) and maximum health (24) are float stats; lung capacity
 (225) is an integer stat. The swimming and underwater training counters are
 separate statics and are absent from this save list. Earned stat values
 persist, while a fresh load starts fresh training counters.
@@ -23,7 +23,8 @@ all of CStats or the complete mission runtime.
 ## Behavior
 
 The optional version-1 trainingStats object stores stamina, lungCapacity,
-fat and muscle. Older saves retain stamina 100 and lungs 0. Missing body
+fat, muscle and maxHealth. The last is the raw stat, not CPlayerInfo's health cap.
+Older saves retain stamina 100 and lungs 0. Missing body
 fields adopt current startup values after MAIN finishes its setup.
 CStats::Init zeroes fat/muscle; the supplied MAIN then sets 200/50.
 Each incoming field is validated independently:
@@ -40,6 +41,35 @@ notifications or refill current breath. During the one-time MAIN/player
 initialization, reset breath then uses the restored stat-derived capacity.
 Later stat gains continue to preserve current breath. Saving before the
 script store has initialized retains the loaded training object.
+
+## Exercise health-stat persistence
+
+The captured body routine can raise raw stat 24 from its native initial 569
+to 589. This value now follows the same deferred ownership as fat and muscle:
+valid loaded values survive MAIN's temporary store, missing/invalid fields
+adopt completed setup, and early saves retain only established fields.
+Direct script changes and exercise writes share the binding. Restoration
+does not heal, emit gain notifications or change CPlayerInfo's separate
+maximum-health field. Native health-cap propagation remains separate work.
+
+Ten new checks cover captured exercise gains across a save/new store,
+float32 precision and uncapped script values, early saves, temporary setup
+writes, no healing/messages, independent malformed fields, older saves and
+fresh New Game. Nine fail before the persistence repair. All 60 focused
+save/exercise/progression checks pass.
+
+The real-key exercise browser check also reloads after its running,
+sprinting and underwater awards. Ordinary pagehide writes fat 0, muscle 55
+and raw maximum health 589; a fresh MAIN/world restores all three. The
+separate CPlayerInfo maximum remains 100. The same run verifies the native
+exercise profiles and idle pause behavior without page errors. Distant
+water transfer emits terrain-support warnings.
+The existing stamina/lung/body-save regression also passes, including a
+real restored-stat jump and the breath HUD (two browser checks, 1.7 minutes).
+The complete unit suite passes all 8,730 tests (51 skipped).
+Final TypeScript validation and the production build pass.
+Production smoke passes old-save resume, walking, car entry, map waypoint,
+pause/resume, aircraft takeoff and landing gear, without page errors or failed requests.
 
 The existing bounded-save limit, revision conflict handling, failed-write
 behavior, unchanged-write suppression and New Game flow continue to apply.
