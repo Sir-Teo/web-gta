@@ -208,8 +208,8 @@ export class WeaponSystem {
  /** Twin pistols alternate hands; true when the next shot leaves the left gun. */
  leftHand=false;lastHand:'right'|'left'='right';
  muzzle?:(left?:boolean)=>Vec3|undefined;
- /** Native hand rows and ped origin at the currently sampled rider pose. */
- bikeFirePose?:()=>{handMatrix:readonly (readonly number[])[];owner:readonly number[]}|undefined;
+ /** Native hand rows and ped origin at the currently sampled character pose. */
+ vehicleFirePose?:()=>{handMatrix:readonly (readonly number[])[];owner:readonly number[]}|undefined;
  /** Three CGeneral draw values per drive-by ray; engine-wide CRT lifetime is a caller boundary. */
  driveByRandom=()=>Math.floor(Math.random()*32768);
  /** Ordinary player FireInstantHit ignores its unflagged occupied/attached vehicle. Drive-by fire supplies its
@@ -614,12 +614,10 @@ export class WeaponSystem {
    this.explode(at,car.modelId===441||car.modelId===564?EXPLOSION_TYPE.quickCar:EXPLOSION_TYPE.car,car,car.explosionByPlayer);car.explosionByPlayer=false;
   }
  }
-  /** Drive-by fire (CTaskSimpleGangDriveBy port): one-handed
-   * weapons fire from the side window the camera faces. The driver pose stays in its ride
-   * clip because the chase camera hides the native character while driving. */
-  fireDriveby(car:import('../simulation/WorldCar').WorldCar,camera:{origin:Vec3;direction:Vec3}){
+  /** A loaded player car drive-by uses its native hand/vehicle ray when an explicit look side is supplied. */
+  fireDriveby(car:import('../simulation/WorldCar').WorldCar,camera:{origin:Vec3;direction:Vec3},look?:'left'|'right'){
    if(!car.occupied||car.wrecked)return false;
-   return this.drivebyShot({half:car.assets.collision?.bounds.max[0]??1,body:car.car.body,position:car.car.body.translation()},camera);
+   return this.drivebyShot({half:car.assets.collision?.bounds.max[0]??1,body:car.car.body,position:car.car.body.translation(),look,nativeDriveBy:look?{modelId:car.modelId,vehicleType:0,subtype:0}:undefined},camera);
   }
   /** Player drive-bys from boats (CVehicle::DoDriveByShootings runs for player
    * boats too): same one-handed set over the gunwale the camera faces. */
@@ -630,10 +628,10 @@ export class WeaponSystem {
   /** A rider's drive-by (the same SMG set): from the rider ahead of the bike, or out of the side he looks to. */
   fireDrivebyBike(bike:import('../simulation/WorldBike').WorldBike,camera:{origin:Vec3;direction:Vec3},look:'forward'|'left'|'right'){
    if(!bike.occupied||bike.wrecked)return false;
-   return this.drivebyShot({half:bike.assets.collision?.bounds.max[0]??.4,body:bike.body,position:bike.body.translation(),look,bike},camera);
+   return this.drivebyShot({half:bike.assets.collision?.bounds.max[0]??.4,body:bike.body,position:bike.body.translation(),look,nativeDriveBy:{modelId:bike.modelId,vehicleType:bike.quad?0:9,subtype:bike.quad?2:[481,509,510].includes(bike.modelId)?10:9}},camera);
   }
   /** CWorld query membership and ordering use the host's active ped/occupant pools. Native aim filters run afterward. */
-  private driveByAimQuery(start:readonly number[],end:readonly number[],own:import('../simulation/WorldBike').WorldBike){
+  private driveByAimQuery(start:readonly number[],end:readonly number[],own:RAPIER.RigidBody){
    const f=Math.fround,delta=end.map((v,i)=>f(v-start[i])),square=f(f(f(delta[0]*delta[0])+f(delta[1]*delta[1]))+f(delta[2]*delta[2])),radius=f(Math.sqrt(square)),radiusSq=f(radius*radius),out:DriveByAimTarget[]=[];
    const append=(p:Vec3,state=0,sameVehicle=false)=>{
     const position=[f(p.x),f(-p.z),f(p.y)],dx=f(position[0]-f(start[0])),dy=f(position[1]-f(start[1]));
@@ -641,20 +639,20 @@ export class WeaponSystem {
    };
    const crowd=this.pedestrians(),peds=crowd?.driveByAimCandidates?.()??crowd?.targets(true).map(p=>({position:p.position,state:0}))??[];
    for(const ped of peds)append(ped.position,ped.state);
-   for(const ped of this.seatedPeds?.()??[]){if(ped.car.disposed)continue;append(ped.hitOrigin?.()??seatWorldPoint(ped.car,ped.local),0,ped.car.car.body.handle===own.body.handle);}
+   for(const ped of this.seatedPeds?.()??[]){if(ped.car.disposed)continue;append(ped.hitOrigin?.()??seatWorldPoint(ped.car,ped.local),0,ped.car.car.body.handle===own.handle);}
    return out;
   }
-  private drivebyShot(vehicle:{half:number;body:RAPIER.RigidBody;position:Vec3;look?:'forward'|'left'|'right';bike?:import('../simulation/WorldBike').WorldBike},camera:{origin:Vec3;direction:Vec3}){
+  private drivebyShot(vehicle:{half:number;body:RAPIER.RigidBody;position:Vec3;look?:'forward'|'left'|'right';nativeDriveBy?:{modelId:number;vehicleType:number;subtype:number}},camera:{origin:Vec3;direction:Vec3}){
    const w=this.inventory.weapon;
    if(this.sim.player.health<=0||!DRIVEBY_WEAPONS.has(w.id))return false;
-   if(!(vehicle.bike&&this.inventory.driveByActive?this.inventory.fireFromCar():this.inventory.fire()))return false;
+   if(!(vehicle.nativeDriveBy&&this.inventory.driveByActive?this.inventory.fireFromCar():this.inventory.fire()))return false;
    this.lastHand='right';this.leftHand=false;
    this.onUse?.(w);
-   const bikePose=vehicle.bike&&this.bikeFirePose?.(),standard=vehicle.bike&&this.inventory.native&&nativeWeaponInfo(this.inventory.native,w.id,1),info=bikePose&&standard?standard:this.inventory.info();
-   if(vehicle.bike&&bikePose&&standard){
-    const bike=vehicle.bike,body=nativeMatrixOf(bike.body.rotation(),bike.body.translation()),v=bike.body.linvel(),left=vehicle.look==='left',right=vehicle.look==='right';
-    const input:BikeShotInput={vehicleMatrix:[body.right,body.forward,body.up,body.position],handMatrix:bikePose.handMatrix,velocity:[v.x/50,-v.z/50,v.y/50],fireOffset:standard.fireOffset,range:standard.weaponRange,timeStep:Math.fround(this.planeGunStepSeconds*50),left,right,vehicleType:bike.quad?0:9,random:[this.driveByRandom(),this.driveByRandom(),this.driveByRandom()]};
-    const seed=nativeBikeShot(input),peds=this.driveByAimQuery(seed.start,seed.end,bike),aim=driveByAutoAim({start:seed.start,end:seed.end,owner:bikePose.owner,vehicle:body.position,subtype:bike.quad?2:[481,509,510].includes(bike.modelId)?10:9,model:bike.modelId,hasOwner:true,aimVehicles:false,peds,vehicles:[]});
+   const firePose=vehicle.nativeDriveBy&&this.vehicleFirePose?.(),standard=vehicle.nativeDriveBy&&this.inventory.native&&nativeWeaponInfo(this.inventory.native,w.id,1),info=firePose&&standard?standard:this.inventory.info();
+   if(vehicle.nativeDriveBy&&firePose&&standard){
+    const metadata=vehicle.nativeDriveBy,body=nativeMatrixOf(vehicle.body.rotation(),vehicle.body.translation()),v=vehicle.body.linvel(),left=vehicle.look==='left',right=vehicle.look==='right';
+    const input:BikeShotInput={vehicleMatrix:[body.right,body.forward,body.up,body.position],handMatrix:firePose.handMatrix,velocity:[v.x/50,-v.z/50,v.y/50],fireOffset:standard.fireOffset,range:standard.weaponRange,timeStep:Math.fround(this.planeGunStepSeconds*50),left,right,vehicleType:metadata.vehicleType,random:[this.driveByRandom(),this.driveByRandom(),this.driveByRandom()]};
+    const seed=nativeBikeShot(input),peds=this.driveByAimQuery(seed.start,seed.end,vehicle.body),aim=driveByAutoAim({start:seed.start,end:seed.end,owner:firePose.owner,vehicle:body.position,subtype:metadata.subtype,model:metadata.modelId,hasOwner:true,aimVehicles:false,peds,vehicles:[]});
     const source={x:seed.start[0],y:seed.start[2],z:-seed.start[1]},target={x:aim.end[0],y:aim.end[2],z:-aim.end[1]},direction=normalize(add(target,source,-1)),range=distance(target,source);
     this.onSound?.('fire',w.id,{...vehicle.position});this.pedestrians()?.gunShot?.(source,false,undefined,target);this.onCrime?.(CRIME.fireWeapon,'player');
     return this.fireInstantHit(w,this.inventory.info()??standard,source,direction,vehicle.body,range,false);

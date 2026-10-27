@@ -42,7 +42,7 @@ test('the rider shoots ahead, or out of the side he looks to',()=>{
 
 const native=readWeaponData(new TextDecoder('windows-1252').decode(readFileSync('public/play/world/files/data/weapon.dat')));
 const handMatrix=[[1,0,0],[0,1,0],[0,0,1],[0,0,1]];
-function armNative(weapons:WeaponSystem){weapons.installNative(native);weapons.inventory.give(28,50);weapons.bikeFirePose=()=>({handMatrix,owner:[0,0,1]});weapons.driveByRandom=()=>128;}
+function armNative(weapons:WeaponSystem){weapons.installNative(native);weapons.inventory.give(28,50);weapons.vehicleFirePose=()=>({handMatrix,owner:[0,0,1]});weapons.driveByRandom=()=>128;}
 test('a loaded rider fires along the bike axes while the camera looks elsewhere, using three draws and one hand',()=>{
  const {sim,weapons,bike}=setup();try{
   armNative(weapons);let draws=0;weapons.driveByRandom=()=>{draws++;return 128;};weapons.lastHand='left';

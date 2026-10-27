@@ -155,9 +155,9 @@ test('the driver\'s steering clip plays from its first frame and the reverse loo
  const run=await page.evaluate(()=>{
   const h=(window as any).__entry;h.entry.warpIn(h.car);
   for(let i=0;i<30;i++)h.step();
-  const steer:any[]=[];for(let i=0;i<12;i++){h.step({axes:{x:-1,y:0}});steer.push(h.entry.pose().overlays.map((o:any)=>({...o})));}
+  const steer:any[]=[];for(let i=0;i<12;i++){h.step({axes:{x:-1,y:0}});steer.push(h.entry.pose().partials.map((o:any)=>({...o})));}
   h.render([-4,2,-4],[0,.8,0]);
-  const back:any[]=[];for(let i=0;i<40;i++){h.step({axes:{x:-1,y:-1}});back.push({gas:h.car.gasPedal,overlays:h.entry.pose().overlays.map((o:any)=>({...o}))});}
+  const back:any[]=[];for(let i=0;i<40;i++){h.step({axes:{x:-1,y:-1}});back.push({gas:h.car.gasPedal,partials:h.entry.pose().partials.map((o:any)=>({...o}))});}
   h.render([-4,2,-4],[0,.8,0]);h.dispose();return {steer,back};
  });
  // One steering clip, starting at its first frame and playing on (it is not frozen at its last).
@@ -165,8 +165,8 @@ test('the driver\'s steering clip plays from its first frame and the reverse loo
  expect(run.steer.at(-1)[0].seconds).toBeGreaterThan(first[0].seconds);
  // Reversing: a frame where the steering clip is fading while CAR_LB is fading in, both partly weighted.
  const reversing=run.back.filter((b:any)=>b.gas<0);expect(reversing.length).toBeGreaterThan(0);
- expect(reversing.some((b:any)=>b.overlays.length===2&&b.overlays.every((o:any)=>o.amount>0&&o.amount<1)),JSON.stringify(reversing.slice(0,6))).toBe(true);
- expect(reversing.at(-1).overlays.map((o:any)=>o.clip)).toEqual([expect.stringMatching(/^car_lb/)]);
+ expect(reversing.some((b:any)=>b.partials.length===2&&b.partials.every((o:any)=>o.amount>0&&o.amount<1)),JSON.stringify(reversing.slice(0,6))).toBe(true);
+ expect(reversing.at(-1).partials.map((o:any)=>o.clip)).toEqual([expect.stringMatching(/^car_lb/)]);
  expect(errors).toEqual([]);
 });
 test('a creeping NPC car CJ jacks stops at the door and stays put through the pull-out and his climb in',async({page})=>{

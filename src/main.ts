@@ -1369,9 +1369,9 @@ async function boot() {
   /** Out by a warp with a weapon still saved: nothing is given back until he has been at a vehicle's controls again. */
   let driverHeldAfterWarp=false;
   // CPad::GetLookLeft / GetLookRight: one shoulder held and not the other, refused on the frame it is pressed and on the
-  // frame the other is released; both held is the look-behind, which fires ahead.
+  // frame the other is released; both held is look-behind (bikes then fire ahead).
   let lookQ=false,lookE=false;
-  const bikeLookSide=():'left'|'right'|'forward'=>{
+  const driveByLookSide=():'left'|'right'|'forward'=>{
    const q=input.down('KeyQ'),e=input.down('KeyE'),side=q&&!e&&!(q&&!lookQ)&&!(lookE&&!e)?'left':e&&!q&&!(e&&!lookE)&&!(lookQ&&!q)?'right':'forward';
    lookQ=q;lookE=e;return side;
   };
@@ -1401,10 +1401,10 @@ async function boot() {
      driverSavedWeapon=undefined;
     }
   };
-  // A bike drive-by exposes the right-hand model while its shooting association blends in or out.
-  weaponView.visible=(left=false)=>!playerWeaponHiddenByScript&&!render.scriptPlayerHidden&&!phones.get('player')?.active&&!jetWeaponHidden&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&(!fleet?.occupiedBike||!left&&fleet.occupiedBike.riderDriveByActive)&&(!carEntry.active||carEntry.phase==='approach');
+  // Player car/bike drive-bys expose the right-hand model while the shooting association blends.
+  weaponView.visible=(left=false)=>!playerWeaponHiddenByScript&&!render.scriptPlayerHidden&&!phones.get('player')?.active&&!jetWeaponHidden&&(!worldCar?.occupied||!left&&carEntry.driveByActive)&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&(!fleet?.occupiedBike||!left&&fleet.occupiedBike.riderDriveByActive)&&(!carEntry.active||carEntry.phase==='approach'||carEntry.phase==='seated'&&!left&&carEntry.driveByActive);
   weapons.muzzle=left=>weaponView.muzzle(left);
-  weapons.bikeFirePose=()=>{
+  weapons.vehicleFirePose=()=>{
    const view=render.nativeCharacter;if(!view?.hasHitSpheres)return;
    const hand=view.boneMatrix(24,new Matrix4());if(!hand)return;
    const e=hand.elements,p=view.root.getWorldPosition(new Vector3());
@@ -3967,7 +3967,7 @@ async function boot() {
         {const canSkip=gameLogic.skipCanBeActivated(skipWorld);
          if(canSkip&&!tripSkipHelpShown){tripSkipHelpShown=true;hud.help(gxtHudText(gxtText('SKIP_1','')),5000);}else if(!canSkip)tripSkipHelpShown=false;
          hud.tripSkip(canSkip,canSkip?gxtHudText(gxtText('FEC_TSK','TRIP SKIP')):'');}
-        weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:aimDirection()}:undefined,fleet?.occupiedBike&&mission?.runtime.game.playerInfo.canDoDriveBy!==false?gameTimeMs:undefined);
+        weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:aimDirection()}:undefined,(fleet?.occupiedBike||worldCar?.occupied&&carEntry.phase==='seated'&&worldCar.modelId!==432&&worldCar.modelId!==601)&&mission?.runtime.game.playerInfo.canDoDriveBy!==false?gameTimeMs:undefined);
         // The touch controls' aim assist (input/aimAssist): an aimed gun in the follow camera eases onto the ped nearest
         // the crosshair that the camera can see. A swipe switches targets, as the mobile ports' lock-on does: while the
         // finger turns the camera the target held is not favoured, so the ped the swipe ends on is taken.
@@ -4037,9 +4037,12 @@ async function boot() {
         // Without pointer lock the left button also drags the camera round the vehicle: held still it is the trigger (an
         // automatic keeps firing), and a click fires one round.
         const drivebyPulled=()=>(weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||mouseFires&&input.down('MouseFire')||input.stillHold()||key||mouseFires&&mouse||click):key||mouseFires&&mouse||click||mouse)&&drivebyReady();
-        if(worldCar?.occupied&&!leavingCar&&worldCar.modelId!==432&&worldCar.modelId!==601&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth){
-         const drivebyTrigger=drivebyPulled();
-         if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDriveby(worldCar,{origin:render.camera.position,direction});}
+        const driveByLook=driveByLookSide();let carDriveByShot:{car:import('./simulation/WorldCar').WorldCar;look:'left'|'right'}|undefined;carEntry.driveByInput=undefined;
+        if(worldCar?.occupied&&carEntry.phase==='seated'&&!leavingCar&&worldCar.modelId!==432&&worldCar.modelId!==601){
+         const permitted=driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth,drivebyTrigger=permitted&&drivebyPulled(),look=permitted?driveByLook:'forward',inv=weapons.inventory;
+         if(driveByAllowed)inv.prepareDriveBy(gameTimeMs,look!=='forward');const ammo=inv.ammo.get(inv.selected);
+         carEntry.driveByInput={enabled:driveByAllowed&&DRIVER_DRIVEBY_WEAPONS.includes(inv.selected),fire:drivebyTrigger?1:0,left:look==='left',right:look==='right',ammo:ammo?ammo.clip+ammo.reserve:0,low:!!(worldCar.modelFlags&MODEL_FLAG.low)};
+         if(drivebyTrigger&&look!=='forward')carDriveByShot={car:worldCar,look};
         }
         // CAutomobile::TankControl: the Rhino's turret follows the camera and Ctrl fires the cannon every 800 ms.
         const tank=fleet?.occupied?.modelId===432?fleet.occupied:undefined;
@@ -4136,7 +4139,7 @@ async function boot() {
         // is held, which shoots out of that side (CVehicle::DoDriveByShootings is unreversed; the styles are its own).
         let bikeDriveBy:import('./simulation/nativeBikeDriveBy').BikeDriveByInput|undefined;
         if(fleet?.occupiedBike){
-         const bike=fleet.occupiedBike,permitted=!bikeMount.active&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth,drivebyTrigger=permitted&&drivebyPulled(),look=bikeLookSide(),inv=weapons.inventory;
+         const bike=fleet.occupiedBike,permitted=!bikeMount.active&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth,drivebyTrigger=permitted&&drivebyPulled(),look=driveByLook,inv=weapons.inventory;
          if(driveByAllowed)inv.prepareDriveBy(gameTimeMs,!!drivebyTrigger);const ammo=inv.ammo.get(inv.selected);
          bikeDriveBy={enabled:driveByAllowed&&DRIVER_DRIVEBY_WEAPONS.includes(inv.selected),fire:drivebyTrigger?1:0,left:look==='left',right:look==='right',ammo:ammo?ammo.clip+ammo.reserve:0,bicycle:BMX_MODELS.has(bike.modelId)};
         }
@@ -4379,6 +4382,7 @@ async function boot() {
         // CWorld::Process: after the collisions, CVehicleRecording puts each played-back car on its recording.
         mission?.processCarRecordings(gameTimeMs);
         for(const car of fleet?.cars??[])car.afterStep(step);
+        if(carDriveByShot&&carEntry.driveByShotReady){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDriveby(carDriveByShot.car,{origin:render.camera.position,direction},carDriveByShot.look);}
         // BreakManager_c::Update once per native frame at the PC frame limiter's 30 fps (APP_MAX_FPS).
         for(breakClock+=step;breakClock>=1/30;breakClock-=1/30)breakManager.update(50/30,worldFx.breakFx);
         // CGlass::Update and Render once per native frame at the PC frame limiter's 30 fps, CTimer's step 50/30: the
@@ -4758,7 +4762,7 @@ async function boot() {
       render.vehiclePose={frame:{position:{x:lerp(p.previous.x,p.position.x),y:lerp(p.previous.y,p.position.y)+1,z:lerp(p.previous.z,p.position.z)},heading:p.heading},pose:{clip:'climb_jump',seconds:climbJump,blend:1}};
     }else if(entryPose&&render.nativeCharacter?.hasVehicleClip(entryPose.clip)){
       const world=entryPose.world?{x:p.previous.x+(p.position.x-p.previous.x)*alpha,y:p.previous.y+(p.position.y-p.previous.y)*alpha+1,z:p.previous.z+(p.position.z-p.previous.z)*alpha}:undefined;
-      render.vehiclePose={frame:entryPose.car?{vehicle:entryPose.car.car.root,local:entryPose.local,headingOffset:entryPose.headingOffset}:{position:world,heading:entryPose.heading},pose:{clip:entryPose.clip,seconds:entryPose.seconds,blend:entryPose.blend,overlay:entryPose.overlay,overlays:entryPose.overlays}};
+      render.vehiclePose={frame:entryPose.car?{vehicle:entryPose.car.car.root,local:entryPose.local,headingOffset:entryPose.headingOffset}:{position:world,heading:entryPose.heading},pose:{clip:entryPose.clip,seconds:entryPose.seconds,blend:entryPose.blend,overlay:entryPose.overlay,overlays:entryPose.overlays,partials:entryPose.partials}};
     }else if(bikeMount.active&&render.nativeCharacter&&bikeMount.pose()){
       // Bike jump-on and get-off: bike space at the side point (the clip's root carries the body), or the world once a
       // get-off-back has set the rider out.

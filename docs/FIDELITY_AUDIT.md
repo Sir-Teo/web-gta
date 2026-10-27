@@ -9,6 +9,19 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Player car drive-bys (October 27, 2026)
+
+- Normal and low-car driver shooting poses blend, finish and hold before firing;
+  the right gun is visible, neutral fire is blocked, and release returns to the
+  steering controller. Steering and shooting use a shared native partial clump.
+  Loaded hand/vehicle-axis rays and native weapon timing also serve car drivers.
+- All 260 fixed native cases, 1,020 live composite frames and 66 live rays match
+  selected native output. Greenwood, Remington, Linerunner and Kart pass real
+  keyboard checks. Entry, driver-weapon, bike and boat steering regressions pass.
+  Full-body entry/idle task ownership, native render phase/IK and original-PC
+  ride-set differences remain open.
+  [Source, validation and limits](research/CAR_DRIVE_BY_POSES.md).
+
 ## Bike drive-by weapon state (October 27, 2026)
 
 - Player bike/quad SMGs use owner-null native weapon update, strict unsigned

@@ -10,14 +10,14 @@ test('real bike fire and look keys pose the rider with one visible SMG and retur
   const [{WeaponSystem},{nativeMatrixOf},{nativeWeaponInfo}]=await Promise.all(['/src/weapons/WeaponSystem.ts','/src/simulation/recordingBody.ts','/src/weapons/weaponData.ts'].map(p=>import(p)));
   g.__bikeRayOriginal=WeaponSystem.prototype.fireDrivebyBike;g.__bikeRayRows=[];
   WeaponSystem.prototype.fireDrivebyBike=function(this:any,bike:any,camera:any,look:any){
-   const originalPose=this.bikeFirePose,originalDraw=this.driveByRandom,originalQuery=this.driveByAimQuery,originalFire=this.fireInstantHit,body=nativeMatrixOf(bike.body.rotation(),bike.body.translation()),v={...bike.body.linvel()},info=this.inventory.native&&nativeWeaponInfo(this.inventory.native,this.inventory.selected,1),timeStep=Math.fround(this.planeGunStepSeconds*50),draws:number[]=[];
+   const originalPose=this.vehicleFirePose,originalDraw=this.driveByRandom,originalQuery=this.driveByAimQuery,originalFire=this.fireInstantHit,body=nativeMatrixOf(bike.body.rotation(),bike.body.translation()),v={...bike.body.linvel()},info=this.inventory.native&&nativeWeaponInfo(this.inventory.native,this.inventory.selected,1),timeStep=Math.fround(this.planeGunStepSeconds*50),draws:number[]=[];
    let pose:any,query:any,ray:any;
-   this.bikeFirePose=()=>{const value=originalPose?.();pose=value&&structuredClone(value);return value;};this.driveByRandom=()=>{const value=originalDraw();draws.push(value);return value;};
+   this.vehicleFirePose=()=>{const value=originalPose?.();pose=value&&structuredClone(value);return value;};this.driveByRandom=()=>{const value=originalDraw();draws.push(value);return value;};
    this.driveByAimQuery=function(this:any,start:any,end:any,own:any){const peds=originalQuery.call(this,start,end,own);query={start:[...start],end:[...end],peds:structuredClone(peds)};return peds;};
    this.fireInstantHit=function(this:any,...args:any[]){if(args[6]===false)ray={from:{...args[2]},direction:{...args[3]},range:args[5],spread:args[6]};return originalFire.apply(this,args);};
    try{const result=g.__bikeRayOriginal.call(this,bike,camera,look);
     if(pose&&query&&ray&&info)g.__bikeRayRows.push({model:bike.modelId,look,shotReady:bike.riderDriveByShotReady,seedInput:{vehicleMatrix:[body.right,body.forward,body.up,body.position],handMatrix:pose.handMatrix,velocity:[v.x/50,-v.z/50,v.y/50],fireOffset:info.fireOffset,range:info.weaponRange,timeStep,left:look==='left',right:look==='right',vehicleType:bike.quad?0:9,random:draws},actualSeed:{start:query.start,end:query.end},aimInput:{start:query.start,end:query.end,owner:pose.owner,vehicle:body.position,subtype:bike.quad?2:[481,509,510].includes(bike.modelId)?10:9,model:bike.modelId,hasOwner:true,aimVehicles:false,peds:query.peds,vehicles:[]},ray});return result;
-   }finally{this.bikeFirePose=originalPose;this.driveByRandom=originalDraw;this.driveByAimQuery=originalQuery;this.fireInstantHit=originalFire;}
+   }finally{this.vehicleFirePose=originalPose;this.driveByRandom=originalDraw;this.driveByAimQuery=originalQuery;this.fireInstantHit=originalFire;}
   };
   g.__bikeDriveByOriginal=WeaponView.prototype.update;
   WeaponView.prototype.update=function(this:any){g.__bikeDriveByOriginal.call(this);g.__bikeDriveByWeapon={selected:this.selected,rightVisible:this.held?.root.visible,leftVisible:this.leftHeld?.root.visible,rightMounted:!!this.held&&this.held.root.parent===this.owner?.hand(24),error:this.error};};

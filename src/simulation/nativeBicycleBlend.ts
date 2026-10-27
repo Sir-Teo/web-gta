@@ -8,9 +8,9 @@ export interface BicycleAssociation {
  identifier:number;group:number;amount:number;delta:number;time:number;speed:number;duration:number;flags:number;timeStep:number;
 }
 /** Narrow constructor values used by the rider's native animation descriptors. */
-export function newBicycleAssociation(identifier:number,duration:number,group=3):BicycleAssociation {
+export function newBicycleAssociation(identifier:number,duration:number,group=3,descriptorFlags:number=bicycleAssociationFlags(identifier)):BicycleAssociation {
  requireAsset(Number.isFinite(duration)&&duration>0,'Bicycle association needs a positive clip duration.');
- return {identifier,group,timeStep:0,amount:0,delta:0,time:0,speed:1,duration:f(duration),flags:bicycleAssociationFlags(identifier)|1};
+ return {identifier,group,timeStep:0,amount:0,delta:0,time:0,speed:1,duration:f(duration),flags:descriptorFlags|1};
 }
 /** CAnimBlendAssociation::SetCurrentTime (selected iOS 0x100138f50), scalar time portion. */
 export function setBicycleAssociationTime(a:BicycleAssociation,time:number){
@@ -22,7 +22,7 @@ export function setBicycleAssociationTime(a:BicycleAssociation,time:number){
 }
 /** CAnimManager::BlendAnimation, selected iOS 0x10013d5dc. `associations` is clump order, newest first.
  * Allocating pose nodes and decompressing assets are caller work; native scalar blend/sync rules apply here. */
-export function blendBicycleAssociation(associations:BicycleAssociation[],identifier:number,duration:number,blend=4,group=3,descriptorFlags=bicycleAssociationFlags(identifier)){
+export function blendBicycleAssociation(associations:BicycleAssociation[],identifier:number,duration:number,blend=4,group=3,descriptorFlags:number=bicycleAssociationFlags(identifier)){
  blend=f(blend);const targetFlags=descriptorFlags;let running:BicycleAssociation|undefined,moving:BicycleAssociation|undefined,fades=false;
  for(const a of associations){
   if(targetFlags&BICYCLE_ASSOC_FLAGS.synced&&a.flags&BICYCLE_ASSOC_FLAGS.synced)moving=a;
@@ -38,7 +38,7 @@ export function blendBicycleAssociation(associations:BicycleAssociation[],identi
   if(running.time===running.duration){running.flags|=BICYCLE_ASSOC_FLAGS.playing;setBicycleAssociationTime(running,0);}
   return running;
  }
- const a=newBicycleAssociation(identifier,duration,group);
+ const a=newBicycleAssociation(identifier,duration,group,targetFlags);
  a.flags=targetFlags|BICYCLE_ASSOC_FLAGS.playing;
  if(moving&&a.flags&BICYCLE_ASSOC_FLAGS.synced)setBicycleAssociationTime(a,f(f(moving.time/moving.duration)*a.duration));
  else setBicycleAssociationTime(a,0);

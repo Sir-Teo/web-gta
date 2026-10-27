@@ -6,6 +6,7 @@ import type {PedVitals} from '../ped/nativeCopVitals';
 import type {ShotCreator} from '../weapons/WeaponSystem';
 import {nativeCarSeatPose} from '../vehicle/nativeSeatPosition';
 import {NativeDrivingAnims} from './nativeDrivingAnims';
+import {carDrivingRideIds,CAR_DRIVING_CLIPS,type CarDriveByInput} from './nativeCarDriving';
 import {Vector3} from 'three';
 import type {NativeAnimation} from '../assets/ifp';
 import {rootMotion} from '../animation/rootMotion';
@@ -32,9 +33,10 @@ const LINE_UP_SECONDS=LINE_UP_SHARED;
 /** CTaskSimpleCarJumpOut for automobiles: door until 0.07 s, carried car speed until 0.45 s. */
 const JUMP_OUT_SET_OUT=JUMP_SET_SHARED,JUMP_OUT_CARRY=JUMP_CARRY_SHARED;
 const RIDE_SETS=[['CAR_sit','Drive_L','Drive_R','Drive_L_slow','Drive_R_slow','CAR_LB'],['CAR_sit_pro','Drive_L_pro','Drive_R_pro','Drive_L_pro_slow','Drive_R_pro_slow','CAR_LB_pro'],['CAR_Lsit','Drive_LO_l','Drive_LO_R'],['Drive_truck','DRIVE_truck_L','DRIVE_truck_R','DRIVE_truck_back'],['KART_drive','KART_L','KART_R','KART_LB']];
+const RIDE_NAMES=new Map(RIDE_SETS.flat().map(name=>[name.toLowerCase(),name]));
 export interface EntryPose {car?:WorldCar;local?:V3;headingOffset?:number;world?:V3;heading?:number;clip:string;seconds:number;blend:number;overlay?:{clip:string;amount:number};
  /** Partial clips laid over the idle in turn, each at its own time (the steering and look-back). */
- overlays?:{clip:string;amount:number;seconds:number}[]}
+ overlays?:{clip:string;amount:number;seconds:number}[];partials?:{clip:string;amount:number;seconds:number}[]}
 export interface NpcPose {car:WorldCar;seat:0|1;local:V3;clip:string;seconds:number;who?:LeavingDriver}
 /** The ped in a car's driver's seat as he leaves it, which the host draws on his clip and sets on the street after: the
  * model he was drawn with in the seat, and an officer's gun (a unit's cop stays a cop, CCopPed, once out). */
@@ -44,11 +46,8 @@ interface ClipUse {key:string;clip:NativeAnimation;group:number}
  * `_slow` at |m_vecMoveSpeed| ≤ 0.4 (`speed` in metres per second). The iOS build (0x100480518, sets at 0x100654260)
  * has two skill tiers, not the PC's three: under 50 the standard set, from 50 the pro one. It never picks the `_weak`
  * clips the PC gives a driver under 50. */
-export function nativeRideAnims(o:{low:boolean;kart:boolean;truck:boolean;drivingSkill:number;speed:number}){
- const [idle,left,right,back]=o.low?[...RIDE_SETS[2],'CAR_LB']:o.kart?RIDE_SETS[4]:o.truck?RIDE_SETS[3]:(()=>{
-  const set=RIDE_SETS[o.drivingSkill<50?0:1];
-  return o.speed/50<=.4?[set[0],set[3],set[4],set[5]]:[set[0],set[1],set[2],set[5]];
- })();
+export function nativeRideAnims(o:{low:boolean;kart:boolean;truck:boolean;drivingSkill:number;speed:number;velocity?:readonly number[]}){
+ const [idle,left,right,back]=carDrivingRideIds({low:o.low,kart:o.kart,truck:o.truck,skill:o.drivingSkill,velocity:o.velocity??[o.speed/50,0,0]}).map(id=>RIDE_NAMES.get(CAR_DRIVING_CLIPS[id])??CAR_DRIVING_CLIPS[id]);
  return {idle,left,right,back};
 }
 /** ProcessDrivingAnims' look-left/right blend: |m_fSteerAngle / 0.61| clamped to 1, the right clip for negative (rightward) steering. */
@@ -123,6 +122,9 @@ export class CarEntry {
  private get npc(){return this.npcs.find(n=>!n.done);}
  /** The steering and look-back clips' blends (ProcessDrivingAnims). */
  private readonly driving=new NativeDrivingAnims();
+ driveByInput?:CarDriveByInput;
+ get driveByActive(){return this.phase==='seated'&&this.driving.driveByActive;}
+ get driveByShotReady(){return this.phase==='seated'&&this.driving.driveByShotReady;}
   /** STAT_DRIVING_SKILL, accumulated by distance driven and persisted with progression. */
   drivingSkill=0;
   message?:string;
@@ -406,14 +408,14 @@ export class CarEntry {
  /** CVehicle::ProcessDrivingAnims set selection for the entered car. */
  rideAnims(){
   const car=this.car,v=car?car.car.body.linvel():{x:0,y:0,z:0};
-  return nativeRideAnims({low:!!car&&!!(car.modelFlags&MODEL_FLAG.low),kart:!!car&&!!(car.animGroup.special&VEHICLE_ANIM_SPECIAL.kart),truck:!!car&&!!(car.animGroup.special&VEHICLE_ANIM_SPECIAL.truckDrive),drivingSkill:this.drivingSkill,speed:Math.hypot(v.x,v.y,v.z)});
+  return nativeRideAnims({low:!!car&&!!(car.modelFlags&MODEL_FLAG.low),kart:!!car&&!!(car.animGroup.special&VEHICLE_ANIM_SPECIAL.kart),truck:!!car&&!!(car.animGroup.special&VEHICLE_ANIM_SPECIAL.truckDrive),drivingSkill:this.drivingSkill,speed:Math.hypot(v.x,v.y,v.z),velocity:[v.x/50,-v.z/50,v.y/50]});
  }
  /** Every clip this car's sequence can play, for binding on the player model; undefined until the IFP blocks load. */
  requiredClips(){
   const car=this.car;if(!car||!this.clips.loaded(car.animGroup))return undefined;
   const out:Record<string,NativeAnimation>={};
   for(const slot of Object.values(VEHICLE_ANIM)){const found=this.slotFor(car,slot);if(found)out[found.key]=found.clip;}
-  for(const name of [...RIDE_SETS.flat(),'CAR_LB','getup_front',CRAWL_OUT]){const clip=this.clips.ped(name);if(clip)out[name.toLowerCase()]=clip;}
+  for(const name of [...RIDE_SETS.flat(),'DRIVEBY_L','DRIVEBY_R','DRIVEBYL_L','DRIVEBYL_R','CAR_LB','getup_front',CRAWL_OUT]){const clip=this.clips.ped(name);if(clip)out[name.toLowerCase()]=clip;}
   return out;
  }
  private openDoor(car:WorldCar,door:number,kind:DoorAnimKind,time:number,group:number){
@@ -682,7 +684,7 @@ export class CarEntry {
    // CTaskComplexEnterCar orders the driver out and starts CTaskSimpleCarShuffle at once: CJ slides across while the
    // driver climbs out, holding the last frame only if he gets there first.
    case 'shuffle':if(finished){if(this.npcs.some(n=>!n.done&&n.kind==='getOut'&&n.car===car))this.time=previous;else this.setIn();}break;
-   case 'seated':this.driving.step(dt,{steer:car.steerAngle,reversing:car.gasPedal<0&&!(car.modelFlags&MODEL_FLAG.low),idleFull:this.time*this.blendDelta>=1,ride:this.rideAnims(),duration:name=>this.clips.ped(name)?.duration});break;
+   case 'seated':this.driving.step(dt,{steer:car.steerAngle,reversing:car.gasPedal<0&&!(car.modelFlags&MODEL_FLAG.low),idleFull:this.time*this.blendDelta>=1,driveByControl:this.driveByInput,ride:this.rideAnims(),duration:name=>this.clips.ped(name)?.duration});break;
    case 'waitSlow':
     // CTaskSimpleCarWaitToSlowDown ends once the car can be left; a get-out with no room then gives the car back
     // (a blocked car must not keep its driver pinned with the handbrake on and no controls).
@@ -741,7 +743,7 @@ export class CarEntry {
   const blend=Math.min(1,this.time*this.blendDelta);
   if(phase==='seated'||phase==='waitSlow'){
    const seat=car.seat('left');if(!seat)return;
-   return {car,local:seat,clip:clip.key,seconds:clip.clip.duration,blend,overlays:this.driving.overlays()};
+   return {car,local:seat,clip:clip.key,seconds:clip.clip.duration,blend,partials:this.driving.partials()};
   }
   if(phase==='jumpOut'&&!this.setOut){const seat=car.seat('left');return seat?{car,local:seat,clip:clip.key,seconds:this.time,blend}:undefined;}
   if(this.rolling||phase==='crawlOut'){const p=this.sim.player.position;return {world:{x:p.x,y:p.y+1,z:p.z},heading:this.sim.player.heading,clip:clip.key,seconds:this.time,blend};}
