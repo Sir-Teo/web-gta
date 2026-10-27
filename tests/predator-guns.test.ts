@@ -62,8 +62,13 @@ test('anonymous fixed rounds preserve defend/armour floats without applying frie
 for(const protection of [{onlyDamagedByPlayer:true},{proofs:{bullet:true}}])test(`fixed rounds respect native pedestrian protection ${JSON.stringify(protection)}`,()=>{
  const f=footVictim(protection);f.fire();expect(f.ped.health).toBe(100);expect(f.crowd.applyReaction).not.toHaveBeenCalled();
 });
-test('drive-by damage type 52 keeps the vest/head distinction and cannot create an ordinary gun head critical',()=>{
- const f=footVictim({bulletProofVest:true});f.fire(9);expect(f.ped.health).toBe(85);expect(f.crowd.onKill).not.toHaveBeenCalled();
+test('anonymous fixed head rounds bypass the vest and retain native critical/noncritical outcomes',()=>{
+ // The independently captured type-52 foot/head branch takes rand() & 7: zero forces death.
+ for(const sample of [0,1]){
+  const random=vi.spyOn(Math,'random').mockReturnValue(sample/32768);
+  try{const f=footVictim({bulletProofVest:true});f.fire(9);expect(f.ped.health).toBe(sample===0?0:85);expect(f.crowd.onKill).toHaveBeenCalledTimes(sample===0?1:0);expect(f.ped.lastDamagedBy).toEqual({});expect(random).toHaveBeenCalledOnce();}
+  finally{random.mockRestore();}
+ }
 });
 test('a fatal anonymous fixed round reports an uncredited kill once and leaves a corpse alone afterward',()=>{
  const f=footVictim({health:15});f.fire();expect(f.ped.health).toBe(0);expect(f.crowd.onKill).toHaveBeenCalledTimes(1);expect(f.crowd.onKill.mock.calls[0][0]).toMatchObject({byPlayer:false,recruit:true});f.fire();expect(f.crowd.onKill).toHaveBeenCalledTimes(1);expect(f.crowd.applyReaction).toHaveBeenCalledTimes(1);

@@ -87,3 +87,17 @@ captures and the host integration checks.
 The final build and production smoke also pass, including native car entry,
 saved-game return, walking, map/waypoint, pause/resume, Rustler takeoff and
 landing gear, with no page errors or failed requests.
+
+## Deterministic anonymous fixed-round regression (October 27, 2026)
+
+A later complete-suite run exposed a stale Predator head-hit fixture. It
+assumed damage type 52 could never force critical death and left the critical
+random draw uncontrolled. The captured foot/type-52/head profile has force
+mask 1 and one random call, so that fixture failed when the low three bits
+were zero. The damage implementation already follows the native capture.
+
+The regression now explicitly tests draws 0 and 1: the first forces death;
+the second leaves 85 HP after a 15-damage head hit. Both bypass the torso vest
+and retain anonymous source identity. The stale bridge comment is corrected.
+All 220 Predator/native-critical/critical-head focused checks pass, recorded
+in `artifacts/predator-critical-stable-focused.log`.
