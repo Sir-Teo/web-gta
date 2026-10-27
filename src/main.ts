@@ -3911,8 +3911,8 @@ async function boot() {
           const bike=fleet?.occupiedBike,onFoot=!worldCar?.occupied&&!fleet?.occupied&&!bike&&!fleet?.occupiedBoat&&!fleet?.occupiedPlane&&!playerPassenger;
           if(statFrameDue&&onFoot&&!sim.player.swimming&&sim.footMove==='sprint')statReactions.sprinting(1000/30);
           else if(statFrameDue&&onFoot&&!sim.player.swimming&&sim.footMove==='run')statReactions.running(1000/30);
-          // CBike counts four wheel contact points.
-          if(statFrameDue&&bike?.motorbike){const v=bike.body.linvel();statReactions.onMotorBike(1000/30,Math.hypot(v.x,v.y,v.z)/50,bike.airborne?0:4);}
+          // CBike counts four wheel contact points; the quad's native appearance routes to automobile driving skill.
+          if(statFrameDue&&bike?.motorbike&&!bike.quad){const v=bike.body.linvel();statReactions.onMotorBike(1000/30,Math.hypot(v.x,v.y,v.z)/50,bike.airborne?0:4);}
           const car=worldCar?.occupied?worldCar:fleet?.occupied,quad=bike?.quad?bike:undefined;
           if(statFrameDue&&drivingTraining&&!law.arrested&&(car||quad)){
            const v=(car?car.car.body:quad!.body).linvel(),f=Math.fround,velocity:[number,number,number]=[f(v.x/50),f(-v.z/50),f(v.y/50)];

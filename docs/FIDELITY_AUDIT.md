@@ -15155,3 +15155,26 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   ended without a completion result; the unchanged-source rerun passed.
 - Production smoke passes save resume, walking, car entry, map waypoint,
   pause/resume, takeoff and landing gear without page errors or failed requests.
+
+## Quad automobile stat ownership (October 27, 2026)
+
+- The host's broad WorldBike.motorbike property includes quads; the stat
+  caller incorrectly used it alone. A real model-471 W ride invokes motorbike
+  training 45 times before repair, and a seeded counter awards bike skill
+  0→25. The motorbike-training caller now excludes native automobile quads,
+  while quad driving skill remains connected.
+- Ten independent selected routing-block profiles execute actual vehicle
+  appearance and speed/classification instructions. Only training callees
+  are logged stubs. Packaged QUADBIKE/BIKE/BMX flags are verified with the
+  handling file hash. A moving quad calls driving, a motorbike calls bike
+  training; BMX/train contexts skip those callees in this block. The fixture
+  regenerates byte-identically. This does not port complete CPlayerInfo.
+- All 368 focused checks and TypeScript validation pass. Three live browser
+  checks pass (1.6 minutes) without page errors: quad exclusion, actual PCJ-600
+  25-point bike award, and retained car/quad driving awards plus save/reload.
+  The preceding complete unit baseline is 9,215 passed/51 skipped; the
+  single-condition caller guard is verified through focused/live checks.
+  [Native routing, packaged flags and before/after evidence](research/VEHICLE_STAT_DISPATCH.md).
+- Final TypeScript validation, production build and production smoke pass;
+  save resume, movement, car entry, map waypoint, pause/resume, takeoff and
+  landing gear report no page errors or failed requests.
