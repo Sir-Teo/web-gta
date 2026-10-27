@@ -174,8 +174,15 @@ contexts=[[base],[{'identifier':202,'amount':1,'time':.3,'duration':.3,'flags':0
 rows=[capture(fire,left,right,ammo,subtype,context) for fire in [0,1,2] for left,right in [(False,False),(True,False),(False,True)] for ammo in [0,1,100] for subtype in [9,10] for context in contexts]
 for key,value in [('driver',False),('playerData',False),('pad',False),('allowed',False),('slot',3)]:
  for context in contexts:rows.append(capture(fire=1,left=True,associations=context,**{key:value}))
-for amount in [.95,.95000006,1]:
+for amount in [.95,.95000006,.99,.99000007,1]:
  for now,nextShot in [(0,0),(100,100),(101,100)]:rows.append(capture(fire=1,associations=[{'identifier':204,'amount':amount,'time':.3,'duration':.3,'flags':0x1014},base],timeMs=now,nextShot=nextShot))
+for amount in [.99,.99000007,1]:
+ for flag in [0x1014,0x1015]:
+  for delta in [0,-8]:
+   for time in [.1,.3]:
+    for left,right in [(False,False),(True,False),(False,True),(True,True)]:
+     identifier=202 if left else 203 if right else 204
+     rows.append(capture(fire=1,left=left,right=right,associations=[{'identifier':identifier,'amount':amount,'delta':delta,'time':time,'duration':.3,'flags':flag},base]))
 if args.profiles:
  for row in json.loads(args.profiles.read_text()):rows.append(capture(**row['nativeInput']))
-args.output.write_text(json.dumps({'source':'Actual CVehicle::DoDriveByShootings bike/quad pose path and scalar clump; optional following ordinary/BMX rider stage with neutral geometry. External player/pad/weapon info/update/fire/look-at, ride-data virtual return, asset construction/decompression/allocation/frame effects and optional rider host-libm powf; frontend route to CPad look queries declared','sha256':sha256,'entry':'0x10049b674','cases':rows},indent=2)+'\n');print(json.dumps({'cases':len(rows)}))
+args.output.write_text(json.dumps({'source':'Actual CVehicle::DoDriveByShootings bike/quad pose path and scalar clump; optional following ordinary/BMX rider stage with neutral geometry. External player/pad/weapon info/update/fire/look-at, ride-data virtual return, asset construction/decompression/allocation/frame effects and optional rider host-libm powf; frontend route to CPad look queries declared','sha256':sha256,'entry':'0x10049b674','readinessThreshold':struct.unpack('<f',data(0x10058cb5c,4))[0],'cases':rows},indent=2)+'\n');print(json.dumps({'cases':len(rows)}))

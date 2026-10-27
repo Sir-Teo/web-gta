@@ -1,6 +1,6 @@
 import {blendBicycleAssociation,newBicycleAssociation,setBicycleAssociationTime,stepBicycleAssociations,BICYCLE_ASSOC_FLAGS,type BicycleAssociation} from './nativeBicycleBlend';
 import {controlOrdinaryBikeRider,type OrdinaryBikeRiderState} from './nativeBikeRiderController';
-import {controlBikeDriveBy,type BikeDriveByInput} from './nativeBikeDriveBy';
+import {controlBikeDriveBy,bikeDriveByAnimationReady,type BikeDriveByInput} from './nativeBikeDriveBy';
 const f=Math.fround;
 export interface BicycleRiderInput {
  model:number;
@@ -80,6 +80,7 @@ export function controlBmxRider(associations:BicycleAssociation[],state:Ordinary
 export class NativeBicycleRider {
  readonly associations:BicycleAssociation[];
  readonly state:OrdinaryBikeRiderState={lean:0,forward:0};
+ driveByShotReady=false;
  decision?:BicycleRiderDecision;crank:number|null=null;
  private hopping=false;
  constructor(private duration:(identifier:number)=>number){const base=newBicycleAssociation(194,duration(194));base.amount=1;this.associations=[base];}
@@ -87,7 +88,8 @@ export class NativeBicycleRider {
  get time(){return (this.associations.find(a=>a.identifier===207)??this.associations.find(a=>a.identifier===208))?.time??0;}
  get fastBlend(){return this.associations.find(a=>a.identifier===208)?.amount;}
  step(dt:number,input:Omit<BmxRiderControlInput,'timeStep'|'unclippedTimeStep'|'driveBy'>,hopActive=false,previousCrank=this.crank??0,driveBy?:BikeDriveByInput){
-  controlBikeDriveBy(this.associations,driveBy,this.duration);
+  const selected=controlBikeDriveBy(this.associations,driveBy,this.duration);
+  this.driveByShotReady=bikeDriveByAnimationReady(this.associations,selected);
   if(hopActive&&!this.hopping){
    // The independently owned partial hop requests BlendAnimation(206, 8).
    // Its unsynchronised time is advanced by the existing hop owner, once.

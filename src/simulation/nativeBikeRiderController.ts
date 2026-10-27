@@ -1,6 +1,6 @@
 import {bicycleAssociationFlags,blendBicycleAssociation,newBicycleAssociation,stepBicycleAssociations,type BicycleAssociation} from './nativeBicycleBlend';
 import {bikeRiderReversePedalling,controlBikeRiderLean,filterBikeRiderLean} from './nativeBikeRiderLean';
-import {controlBikeDriveBy,type BikeDriveByInput} from './nativeBikeDriveBy';
+import {controlBikeDriveBy,bikeDriveByAnimationReady,type BikeDriveByInput} from './nativeBikeDriveBy';
 const f=Math.fround;
 const RIDER_ROLES:Readonly<Record<number,string>>={194:'ride',195:'still',196:'left',197:'right',198:'back',199:'fwd',200:'pushes',206:'bunnyhop',207:'pedal',208:'sprint'};
 export interface OrdinaryBikeRiderState {lean:number;forward:number}
@@ -63,11 +63,13 @@ export function controlOrdinaryBikeRider(associations:BicycleAssociation[],state
 export class NativeBikeRiderController {
  readonly associations:BicycleAssociation[];
  readonly state:OrdinaryBikeRiderState={lean:0,forward:0};
+ driveByShotReady=false;
  constructor(private duration:(identifier:number)=>number){const base=newBicycleAssociation(194,duration(194));base.amount=1;this.associations=[base];}
  get filtered(){return this.state.lean;}
  get time(){return this.associations.find(a=>a.identifier===194)?.time??0;}
  step(dt:number,input:Omit<OrdinaryBikeRiderInput,'timeStep'|'unclippedTimeStep'>,driveBy?:BikeDriveByInput){
-  controlBikeDriveBy(this.associations,driveBy,this.duration);
+  const selected=controlBikeDriveBy(this.associations,driveBy,this.duration);
+  this.driveByShotReady=bikeDriveByAnimationReady(this.associations,selected);
   const timeStep=f(dt*50),result=controlOrdinaryBikeRider(this.associations,this.state,{...input,timeStep,unclippedTimeStep:timeStep},this.duration);
   stepBicycleAssociations(this.associations,dt);return result;
  }

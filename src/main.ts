@@ -4138,7 +4138,6 @@ async function boot() {
         if(fleet?.occupiedBike){
          const bike=fleet.occupiedBike,permitted=!bikeMount.active&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth,drivebyTrigger=permitted&&drivebyPulled(),look=bikeLookSide(),inv=weapons.inventory,ammo=inv.ammo.get(inv.selected);
          bikeDriveBy={enabled:driveByAllowed&&DRIVER_DRIVEBY_WEAPONS.includes(inv.selected),fire:drivebyTrigger?1:0,left:look==='left',right:look==='right',ammo:ammo?ammo.clip+ammo.reserve:0,bicycle:BMX_MODELS.has(bike.modelId)};
-         if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDrivebyBike(bike,{origin:render.camera.position,direction},look);}
         }
         const rocket=input.consume('KeyB')||input.down('KeyB');
         // The guns and the ordnance are separate buttons with separate clocks: both can fire together.
@@ -4420,6 +4419,10 @@ async function boot() {
         // Once each: afterStep hands back a pending BlowUpCar, which a second call would lose.
         for(const boat of fleet?.boats??[])if(boat.afterStep())weapons.vehicleExplosion(boat.body.translation(),'boat',undefined,boat.explosionByPlayer);
         for(const bike of fleet?.bikes??[]){bike.propFor??=scenePropFor;if(bike.afterStep())weapons.vehicleExplosion(bike.body.translation(),'bike',undefined,bike.explosionByPlayer);}
+        if(bikeDriveBy?.fire&&fleet?.occupiedBike?.riderDriveByShotReady){
+         const direction=render.camera.getWorldDirection(scratchAim),look=bikeDriveBy.left?'left':bikeDriveBy.right?'right':'forward';
+         weapons.fireDrivebyBike(fleet.occupiedBike,{origin:render.camera.position,direction},look);
+        }
         carEntry.syncPlayer();
         // The first-person weapon camera (iOS 0x100213714) swings its horizontal angle toward the angle
         // SET_HEADING_FOR_ATTACHED_PLAYER set, while the player hangs from something: by the turn a frame (at 30 a

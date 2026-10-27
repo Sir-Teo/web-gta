@@ -9,6 +9,15 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Bike drive-by animation readiness (October 27, 2026)
+
+- Player motorcycle, bicycle and quad shots wait for the selected shooting pose
+  to stop playing and blend above native float32 0.99. Readiness belongs to the
+  current simulation step and clears for frozen/inactive or departed riders.
+- Independent native cases cover threshold boundaries, playing/fading states
+  and direction changes. Repeat-shot cooldown/reload and full scheduling parity
+  remain open. [Source and validation](research/BIKE_DRIVE_BY_READINESS.md).
+
 ## Bike and quad drive-by rays (October 27, 2026)
 
 - Loaded player bike/quad shots now use the right hand, standard weapon offset,

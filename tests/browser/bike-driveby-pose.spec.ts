@@ -10,7 +10,7 @@ test('all fourteen bike groups blend loaded drive-by poses and release back to t
    const bicycle=input.model!==undefined,driveBy=bicycle?bmxDriveBy:hopOrDriveBy,associations=this.associations.map(({group,...a}:any)=>a),state={...this.state},durations=Object.fromEntries([194,195,196,197,198,199,200,202,203,204,...(bicycle?[206,207,208]:[])].map(id=>[id,this.duration(id)]));
    const output=original.call(this,dt,input,hopOrDriveBy,crank,bmxDriveBy),timeStep=Math.fround(dt*50);
    const nativeInput={fire:driveBy?.fire??0,left:driveBy?.left??false,right:driveBy?.right??false,ammo:driveBy?.ammo??0,allowed:driveBy?.enabled??false,subtype:bicycle?10:9,dt,associations,durations,rider:{...input,previousLean:state.lean,previousForward:state.forward,timeStep,unclippedTimeStep:timeStep,crank:crank??0}};
-   rows.push({nativeInput,output,state:{...this.state},crank:this.crank,frame:this.associations.map(({identifier,amount,delta,time,speed,timeStep,flags}:any)=>({identifier,amount,delta,time,speed,timeStep,flags}))});return output;
+   rows.push({nativeInput,shotReady:this.driveByShotReady,output,state:{...this.state},crank:this.crank,frame:this.associations.map(({identifier,amount,delta,time,speed,timeStep,flags}:any)=>({identifier,amount,delta,time,speed,timeStep,flags}))});return output;
   };
   NativeBikeRiderController.prototype.step=function(this:any,dt:number,input:any,driveBy?:any){return record.call(this,originalBike,dt,input,driveBy);};
   NativeBicycleRider.prototype.step=function(this:any,dt:number,input:any,hop?:boolean,crank?:number,driveBy?:any){return record.call(this,originalBmx,dt,input,hop,crank,driveBy);};
@@ -24,14 +24,14 @@ test('all fourteen bike groups blend loaded drive-by poses and release back to t
      const tick=(fire:number,left=false,right=false,ammo=100)=>{bike.beforeStep(1/60,{throttle:1,steer:.25,brake:false,driveBy:{enabled:true,fire,left,right,ammo,bicycle}});sim.world.step();bike.afterStep();bike.update(1);};
      const pose=()=>{const p=bike.riderPose();view.updateVehicle({vehicle:bike.root,local:p.seat!},{clip:p.idle,seconds:p.baseTime??p.time,partials:p.partials});return p;};
      bike.finishEnter();for(let i=0;i<40;i++)tick(0);
-     for(let i=0;i<18;i++)tick(1,true);const left=pose(),leftActive=bike.riderDriveByActive,leftMode=(bike as any).bicycleRider?.decision?.mode;
-     for(let i=0;i<18;i++)tick(1,false,true);const right=pose();
-     for(let i=0;i<18;i++)tick(1);const forward=pose();
-     const owner=(bike as any).bicycleRider??(bike as any).riderAnimation,beforeFreeze=structuredClone(owner.associations);bike.frozen=true;tick(1);pose();const afterFreeze=structuredClone(owner.associations);bike.frozen=false;
+     for(let i=0;i<24;i++)tick(1,true);const left=pose(),leftActive=bike.riderDriveByActive,leftReady=bike.riderDriveByShotReady,leftMode=(bike as any).bicycleRider?.decision?.mode;
+     for(let i=0;i<24;i++)tick(1,false,true);const right=pose(),rightReady=bike.riderDriveByShotReady;
+     for(let i=0;i<24;i++)tick(1);const forward=pose(),forwardReady=bike.riderDriveByShotReady;
+     const owner=(bike as any).bicycleRider??(bike as any).riderAnimation,beforeFreeze=structuredClone(owner.associations);bike.frozen=true;tick(1);pose();const afterFreeze=structuredClone(owner.associations),frozenReady=bike.riderDriveByShotReady;bike.frozen=false;
      for(let i=0;i<12;i++)tick(0);const released=pose(),releasedActive=bike.riderDriveByActive;
-     for(let i=0;i<18;i++)tick(1,true);for(let i=0;i<12;i++)tick(1,true,false,0);const empty=pose();
-     for(let i=0;i<18;i++)tick(1,true);bike.occupied=false;WorldBike.hasDriverPed=(b:any)=>b===bike;tick(0);const handoff=pose();WorldBike.hasDriverPed=undefined;
-     models.push({id,handoff,bicycle,left,leftActive,leftMode,right,forward,released,releasedActive,empty,beforeFreeze,afterFreeze,visible:view.root.visible});
+     for(let i=0;i<24;i++)tick(1,true);for(let i=0;i<12;i++)tick(1,true,false,0);const empty=pose();
+     for(let i=0;i<24;i++)tick(1,true);bike.occupied=false;WorldBike.hasDriverPed=(b:any)=>b===bike;tick(0);const handoff=pose();WorldBike.hasDriverPed=undefined;
+     models.push({id,handoff,bicycle,left,leftActive,leftReady,leftMode,right,rightReady,forward,forwardReady,frozenReady,released,releasedActive,empty,beforeFreeze,afterFreeze,visible:view.root.visible});
     }finally{bike.dispose();sim.dispose();}
    }
   }finally{view.dispose();WorldBike.hasDriverPed=undefined;WorldBike.riderClipSeconds=undefined;NativeBikeRiderController.prototype.step=originalBike;NativeBicycleRider.prototype.step=originalBmx;}
@@ -40,7 +40,7 @@ test('all fourteen bike groups blend loaded drive-by poses and release back to t
  writeFileSync('artifacts/bike-driveby-pose-live.json',JSON.stringify({result,errors},null,2));
  for(const r of result.models){
   const driveBy=(p:any)=>p.partials?.filter((a:any)=>/driveby/.test(a.clip))??[];
-  expect(r.visible).toBe(true);expect(r.leftActive).toBe(true);expect(driveBy(r.left).some((a:any)=>/lhs$/.test(a.clip)&&a.amount===1)).toBe(true);expect(driveBy(r.right).some((a:any)=>/rhs$/.test(a.clip)&&a.amount===1)).toBe(true);expect(driveBy(r.forward).some((a:any)=>/ft$/.test(a.clip)&&a.amount===1)).toBe(true);
+  expect(r.visible).toBe(true);expect(r.leftActive).toBe(true);expect(r.leftReady).toBe(true);expect(r.rightReady).toBe(true);expect(r.forwardReady).toBe(true);expect(r.frozenReady).toBe(false);expect(driveBy(r.left).some((a:any)=>/lhs$/.test(a.clip)&&a.amount===1)).toBe(true);expect(driveBy(r.right).some((a:any)=>/rhs$/.test(a.clip)&&a.amount===1)).toBe(true);expect(driveBy(r.forward).some((a:any)=>/ft$/.test(a.clip)&&a.amount===1)).toBe(true);
   expect(r.afterFreeze).toEqual(r.beforeFreeze);expect(r.releasedActive).toBe(false);expect(driveBy(r.released)).toEqual([]);expect(driveBy(r.empty)).toEqual([]);expect(driveBy(r.handoff)).toEqual([]);if(r.bicycle)expect(r.leftMode).toBe('ride');
  }
  expect(errors).toEqual([]);
