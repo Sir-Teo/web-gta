@@ -9,6 +9,18 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Bicycle player energy (October 27, 2026)
+
+- BMX, Chopper and Mountain Bike riding now runs the captured player pedal and
+  sprint-energy decision instead of leaving energy and button memory frozen.
+  All 217 selected native profiles agree exactly; the existing 741 sprint
+  profiles also pass. Full units: 9,432 passed/51 skipped; three browser
+  regressions, build and production smoke pass.
+  [Source and remaining scope](research/BMX_PLAYER_PEDALS.md).
+- The selected block captures native boost/coefficient decisions and pedal
+  fallback. Complete bicycle acceleration, BIKE_SPRINT association blending,
+  cycling training and independent original-PC traces remain open.
+
 ## Open compatibility requirements
 
 | System | Current evidence / difference | Required acceptance evidence |

@@ -12,6 +12,7 @@ import {bikeWheelSupports} from '../vehicle/nativeBikeWheels';
 import {bindBikeWheelRoll} from '../render/bikeWheelRoll';
 import {bindBikeSteering} from '../render/bikeSteering';
 import {bindBicyclePedals} from '../render/bicyclePedals';
+import {stepBmxPedalControl} from './nativeBmxPedalControl';
 import {stepBicycleCrank} from './bicycleCrank';
 import {stepNativeBicycleHop,type BicycleHopState} from './nativeBicycleHop';
 import {stepBikeWheelRoll,type BikeWheelRoll} from './bikeWheelRoll';
@@ -188,6 +189,9 @@ export class WorldBike {
  /** The quad's CAutomobile::m_fRawSteerAngle (right positive) and m_GasPedal, kept between frames for the smoothing
   * and the brake-before-reverse rule. */
  rawSteer=0;gasPedal=0;
+ /** CBmx player decision outputs; native CBike control clears boost each frame. */
+ playerBoost=false;pedalCoefficient=0;
+ private accelerateHeld=false;
  /** CBmx::m_fControlJump (0 to 25 steps of charge) and the time left before the hop launches. */
  controlJump=0;hopLaunch?:number;pillion?:{modelRef:number|string};
  private hopState?:BicycleHopState;
@@ -365,8 +369,10 @@ export class WorldBike {
   const check=this.enterCheck();if(check)return check;
   return this.finishEnter();
  }
- beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean;disabled?:boolean}={throttle:0,steer:0,brake:false}){
+ beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean;disabled?:boolean;sprint?:boolean;sprintJustPressed?:boolean;sprintDisabled?:boolean}={throttle:0,steer:0,brake:false}){
   this.wheelStepSeconds=0;
+  this.playerBoost=false;
+  if(!this.occupied){this.accelerateHeld=false;this.pedalCoefficient=0;}
   this.previousSteer=this.steer;
   this.previousCrankAngle=this.crankAngle;
   // A departed driver's association belongs to that ped, never the next rider of this vehicle.
@@ -390,8 +396,6 @@ export class WorldBike {
   if(this.recordingSlot>=0&&this.body.bodyType()===RAPIER.RigidBodyType.KinematicVelocityBased)return;
   if(this.skipPhysics(dt)){this.standLean(dt);return;}
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
-  // The ride clip's clock: the pedal cycle turns while the rider pedals and holds while he coasts.
-  if(Math.abs(input.throttle)>.05)this.rideTime+=dt;
   // The raw steer follows the pad a fifth of the way a frame: CAutomobile::ProcessControlInputs for the quad, whose
   // steer angle is the lock times its square, and CBike::ProcessControlInputs (iOS 0x100456178) for every other bike,
   // whose angle is the lock times the raw steer itself. A key press is not full lock at once: taken raw, each tap threw
@@ -408,7 +412,7 @@ export class WorldBike {
   // Prepared native per-step magnitudes become browser per-second rates at 50 Hz (×50 units × 50 steps).
   const top=this.assets.handling.maxFlatVelocity*50,reverse=this.assets.handling.maxReverseVelocity*50;
   const accelRate=h.engineAcceleration*2500,brakeRate=h.brakeDeceleration*2500;
-  let want=speed,gas=this.throttle,braking=this.brake?1:0;
+  let want=speed,gas=this.throttle,braking=this.brake?1:0,nativeBrake=0;
   // The quad's pedals are CAutomobile::ProcessControlInputs's: the reverse button brakes a quad still rolling
   // forward and only reverses it once it has all but stopped (nativePedals); the handbrake is the brake button.
   if(this.quad){
@@ -419,8 +423,19 @@ export class WorldBike {
    // CBike::ProcessControlInputs's pedals: the reverse button brakes a bike rolling forward (and the throttle one
    // rolling back), and reverses it only from all but a standstill; the handbrake is the brake button.
    const pedals=bikePedals({accelerate:Math.round(Math.max(0,Math.min(1,this.throttle))*255),brake:Math.round(Math.max(0,Math.min(1,-this.throttle))*255),forwardSpeed:speed/50,bmx:!this.motorbike,controlsDisabled:!!input.disabled});
-   gas=pedals.gas;braking=Math.max(pedals.brake,this.brake||pedals.handbrake?1:0);
+   gas=pedals.gas;nativeBrake=pedals.brake;braking=Math.max(pedals.brake,this.brake||pedals.handbrake?1:0);
   }
+  if(!this.motorbike&&this.occupied&&!this.scriptDriven&&this.sim.player.health>0){
+   const player=this.sim.player,accelerate=input.disabled?0:Math.round(Math.max(0,Math.min(1,this.throttle))*255),held=!!input.sprint&&!input.disabled;
+   const state={energy:player.stamina,buttonSpeed:player.sprintButtonSpeed,steer:this.steer*h.steeringLock*Math.PI/180,gas,brake:nativeBrake,boost:false,coefficient:this.pedalCoefficient};
+   stepBmxPedalControl(state,{accelerate,acceleratePressed:accelerate>0&&!this.accelerateHeld,held,justPressed:input.sprintJustPressed??(held&&!player.sprintInputHeld),capacity:this.sim.playerSprintCapacity(),neverTired:!!this.sim.neverTired?.(),adrenaline:player.adrenaline>0,sprintDisabled:input.sprintDisabled},dt*50);
+   this.accelerateHeld=accelerate>0;player.sprintInputHeld=held;player.stamina=state.energy;player.sprintButtonSpeed=state.buttonSpeed;player.sprintExhausted=state.energy<=0&&state.buttonSpeed<=0;
+   this.playerBoost=state.boost;this.pedalCoefficient=state.coefficient;gas=state.gas;
+   // The native decision snaps tiny steering angles to zero before testing straight acceleration.
+   if(state.steer===0)this.steer=0;
+  }
+  // Sprint-button memory can keep the rider pedalling after the accelerator is released.
+  if(Math.abs(gas)>.05)this.rideTime+=dt;
   if(gas>.05)want=Math.min(top,speed+accelRate*dt*gas);
   else if(gas<-.05)want=Math.max(reverse,speed+accelRate*dt*gas);
   else want=speed>0?Math.max(0,speed-COAST_DECEL*dt):Math.min(0,speed+COAST_DECEL*dt);

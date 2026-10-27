@@ -4301,7 +4301,7 @@ async function boot() {
         // While the rider waits or gets off, the bike only brakes.
         // DisablePlayerControls: no hop (CBmx refuses the press and drops the charge), gas off and the brakes on, as
         // CAutomobile::ProcessControlInputs does for the quad.
-        for(const bike of fleet?.bikes??[])bike.beforeStep(step,bike.occupied&&!bike.scriptDriven?(bikeMount.active&&bikeMount.bike===bike||controlsOff?{throttle:0,steer:0,brake:true,disabled:controlsOff}:{throttle:axes.y,steer:steerAxes.x,brake:input.down('Space'),hop:input.down('ControlLeft')}):bike.autopilotInput());
+        for(const bike of fleet?.bikes??[])bike.beforeStep(step,bike.occupied&&!bike.scriptDriven?(bikeMount.active&&bikeMount.bike===bike||controlsOff?{throttle:0,steer:0,brake:true,disabled:controlsOff}:{throttle:axes.y,steer:steerAxes.x,brake:input.down('Space'),hop:input.down('ControlLeft'),sprint:controls.sprint,sprintJustPressed:controls.sprintJustPressed,sprintDisabled:controls.playerSprintDisabled}):bike.autopilotInput());
         const tPlayer=performance.now();
         const riding=remoteMode()||!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||carEntry.pinned||bikeMount.pinned||playerPassenger||playerAttached);
         // A ride or entry sequence ending leaves CJ standing: neither move blend ratio carries over from before it.
