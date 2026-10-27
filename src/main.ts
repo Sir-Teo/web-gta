@@ -32,6 +32,7 @@ import {turnToward} from './simulation/nativePlayerLocomotion';
 import {NativeParachuteTimer,WEAPON_PARACHUTE} from './simulation/nativeParachuteTimer';
 import {sphereTouchingVehicle} from './vehicle/sphereTouchingVehicle';
 import {NativeStatReactions,readActionReactionStats,STAT_BIKE_SKILL,swimTrainingActive} from './simulation/nativeStatReactions';
+import {NativeBodyExercise,applyBodyExercise} from './simulation/nativeBodyExercise';
 import {STAT_CALORIES,STAT_COST_OF_PROPERTY_DAMAGED,STAT_PROGRESS_MADE,ScmStats} from './engine/ScmGameState';
 import {NativeShinyTexts} from './render/NativeShinyTexts';
 import {pedSignalQuad,type ShinyQuad} from './world/nativeShinyTexts';
@@ -1470,6 +1471,12 @@ async function boot() {
   void fetch(new URL(`${import.meta.env.BASE_URL}play/world/files/data/ar_stats.dat`,location.href)).then(r=>r.ok?r.text():Promise.reject(new Error(`ar_stats.dat ${r.status}`))).then(text=>{
    const values=readActionReactionStats(text);
    statReactions=new NativeStatReactions(values,(stat,value)=>{mission?.runtime.game.stats.increment(stat,value);displayStatUpdate(true,stat,value);});
+   const bodyExercise=new NativeBodyExercise(values);
+   statReactions.onExercise=(timeStep,rate)=>{
+    const game=mission?.runtime.game;if(!game)return;
+    const result=applyBodyExercise(bodyExercise,timeStep,rate,game.stats,game.showUpdateStats);
+    for(const message of result.messages)displayStatUpdate(message.increase,message.stat,message.value);
+   };
    // STAT_INC_PISTOL_SKILL (12) to STAT_INC_M4_SKILL (21) by weapon; the Tec-9 trains the Micro Uzi's stat at its rate.
    progression.skillIncrements=new Map([22,23,24,25,26,27,28,29,30,31,32].map(id=>[id,values[id===32?18:id-10]??5]));
   }).catch(error=>{console.error('ar_stats.dat failed to load',error);});

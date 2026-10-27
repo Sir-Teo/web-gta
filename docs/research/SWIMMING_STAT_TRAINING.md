@@ -40,9 +40,10 @@ The native routine delegates to UpdateFatAndMuscleStats with exercise rate
 The capture logs that external call at `0x100265280`, as well as
 CheckForStatsMessage (`0x100260300`) and DisplayScriptStatUpdateMessage
 (`0x1002b0620`), and returns from those stubs without executing them. Those
-physiology and HUD routine bodies are not captured. The host returns the
-exercise-rate argument for inspection but does not implement its separate
-physiology effect here. Existing stat increments do retain their native
+physiology and HUD routine bodies were outside this initial swimming capture.
+The [later body-exercise port](BODY_EXERCISE.md) independently captures the
+physiology arithmetic and invokes it before swimming awards. The rate remains
+available to observers. Existing stat increments retain their native
 negative-energy fat deduction and cap at 1,000.
 
 ## Integration and validation

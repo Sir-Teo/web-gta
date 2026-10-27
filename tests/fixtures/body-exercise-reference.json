@@ -1,0 +1,4355 @@
+{
+  "source": "Complete selected CStats::UpdateFatAndMuscleStats; actual counter/stat/message-state instructions, logged feedback stubs",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "function": "0x100265280",
+  "configuration": [
+    50.0,
+    50.0,
+    10.0,
+    5.0,
+    20.0,
+    50.0,
+    50.0,
+    25.0,
+    50.0,
+    10.0,
+    50.0,
+    20.0,
+    0.8,
+    5.0,
+    3.0,
+    0.6,
+    0.45,
+    0.6,
+    0.4,
+    1.5,
+    3.0,
+    2.0,
+    10.0,
+    15.0,
+    15.0,
+    10.0,
+    5.0,
+    15.0,
+    10.0,
+    15.0,
+    10.0,
+    5.0,
+    5.0,
+    300.0,
+    180.0,
+    300.0,
+    300.0,
+    300.0,
+    300.0,
+    120.0,
+    180.0,
+    300.0,
+    150.0,
+    150.0,
+    60.0,
+    600.0,
+    50.0,
+    20.0,
+    50.0,
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    50.0,
+    50.0,
+    50.0,
+    20.0,
+    5.0,
+    1000.0
+  ],
+  "arStatsSha256": "3f8a184d088dc25e166ff0bb067286b5dcac2398de21d3bb4e00b43956d31d25",
+  "cases": [
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 8,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 49,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150000,
+        "healthCounter": 600000,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 150008,
+      "healthCounter": 600016,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150000,
+        "healthCounter": 600000,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 150033,
+      "healthCounter": 600033,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150000,
+        "healthCounter": 600000,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 150049,
+      "healthCounter": 600033,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 185.0,
+      "muscle": 60.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 185.0,
+      "muscle": 60.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 185.0,
+      "muscle": 60.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 0,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 185.0,
+      "muscle": 60.0,
+      "maxHealth": 569.0,
+      "fatCounter": 0,
+      "healthCounter": 16,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 0,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 185.0,
+      "muscle": 60.0,
+      "maxHealth": 569.0,
+      "fatCounter": 0,
+      "healthCounter": 33,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 0,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 185.0,
+      "muscle": 60.0,
+      "maxHealth": 569.0,
+      "fatCounter": 0,
+      "healthCounter": 33,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 0,
+        "healthCounter": 600001,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 589.0,
+      "fatCounter": 8,
+      "healthCounter": 0,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 0,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 589.0,
+      "fatCounter": 33,
+      "healthCounter": 0,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 0,
+        "healthCounter": 600001,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 589.0,
+      "fatCounter": 49,
+      "healthCounter": 0,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 10.0,
+        "muscle": 995.0,
+        "maxHealth": 995.0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 10.0,
+      "muscle": 995.0,
+      "maxHealth": 995.0,
+      "fatCounter": 8,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 10.0,
+        "muscle": 995.0,
+        "maxHealth": 995.0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 10.0,
+      "muscle": 995.0,
+      "maxHealth": 995.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 10.0,
+        "muscle": 995.0,
+        "maxHealth": 995.0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 10.0,
+      "muscle": 995.0,
+      "maxHealth": 995.0,
+      "fatCounter": 49,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 10.0,
+        "muscle": 995.0,
+        "maxHealth": 995.0,
+        "fatCounter": 150000,
+        "healthCounter": 600000,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 10.0,
+      "muscle": 995.0,
+      "maxHealth": 995.0,
+      "fatCounter": 150008,
+      "healthCounter": 600016,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 10.0,
+        "muscle": 995.0,
+        "maxHealth": 995.0,
+        "fatCounter": 150000,
+        "healthCounter": 600000,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 10.0,
+      "muscle": 995.0,
+      "maxHealth": 995.0,
+      "fatCounter": 150033,
+      "healthCounter": 600033,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 10.0,
+        "muscle": 995.0,
+        "maxHealth": 995.0,
+        "fatCounter": 150000,
+        "healthCounter": 600000,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 10.0,
+      "muscle": 995.0,
+      "maxHealth": 995.0,
+      "fatCounter": 150049,
+      "healthCounter": 600033,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 10.0,
+        "muscle": 995.0,
+        "maxHealth": 995.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 1000.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 10.0,
+        "muscle": 995.0,
+        "maxHealth": 995.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 1000.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 10.0,
+        "muscle": 995.0,
+        "maxHealth": 995.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 1000.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 10.0,
+        "muscle": 995.0,
+        "maxHealth": 995.0,
+        "fatCounter": 150001,
+        "healthCounter": 0,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 1000.0,
+      "maxHealth": 995.0,
+      "fatCounter": 0,
+      "healthCounter": 16,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 10.0,
+        "muscle": 995.0,
+        "maxHealth": 995.0,
+        "fatCounter": 150001,
+        "healthCounter": 0,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 1000.0,
+      "maxHealth": 995.0,
+      "fatCounter": 0,
+      "healthCounter": 33,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 10.0,
+        "muscle": 995.0,
+        "maxHealth": 995.0,
+        "fatCounter": 150001,
+        "healthCounter": 0,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 1000.0,
+      "maxHealth": 995.0,
+      "fatCounter": 0,
+      "healthCounter": 33,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 10.0,
+        "muscle": 995.0,
+        "maxHealth": 995.0,
+        "fatCounter": 0,
+        "healthCounter": 600001,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 10.0,
+      "muscle": 995.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 8,
+      "healthCounter": 0,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 10.0,
+        "muscle": 995.0,
+        "maxHealth": 995.0,
+        "fatCounter": 0,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 10.0,
+      "muscle": 995.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 33,
+      "healthCounter": 0,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 10.0,
+        "muscle": 995.0,
+        "maxHealth": 995.0,
+        "fatCounter": 0,
+        "healthCounter": 600001,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 10.0,
+      "muscle": 995.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 49,
+      "healthCounter": 0,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 10.0,
+        "maxHealth": 1000.0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 10.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 8,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 10.0,
+        "maxHealth": 1000.0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 10.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 10.0,
+        "maxHealth": 1000.0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 10.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 49,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 10.0,
+        "maxHealth": 1000.0,
+        "fatCounter": 150000,
+        "healthCounter": 600000,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 10.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 150008,
+      "healthCounter": 600016,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 10.0,
+        "maxHealth": 1000.0,
+        "fatCounter": 150000,
+        "healthCounter": 600000,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 10.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 150033,
+      "healthCounter": 600033,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 10.0,
+        "maxHealth": 1000.0,
+        "fatCounter": 150000,
+        "healthCounter": 600000,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 10.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 150049,
+      "healthCounter": 600033,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 10.0,
+        "maxHealth": 1000.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 0.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 10.0,
+        "maxHealth": 1000.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 0.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 10.0,
+        "maxHealth": 1000.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 0.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 10.0,
+        "maxHealth": 1000.0,
+        "fatCounter": 150001,
+        "healthCounter": 0,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 0.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 0,
+      "healthCounter": 16,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 15.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 10.0,
+        "maxHealth": 1000.0,
+        "fatCounter": 150001,
+        "healthCounter": 0,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 0.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 0,
+      "healthCounter": 33,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 15.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 10.0,
+        "maxHealth": 1000.0,
+        "fatCounter": 150001,
+        "healthCounter": 0,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 0.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 0,
+      "healthCounter": 33,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 15.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 10.0,
+        "maxHealth": 1000.0,
+        "fatCounter": 0,
+        "healthCounter": 600001,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 10.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 8,
+      "healthCounter": 0,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 10.0,
+        "maxHealth": 1000.0,
+        "fatCounter": 0,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 10.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 33,
+      "healthCounter": 0,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 10.0,
+        "maxHealth": 1000.0,
+        "fatCounter": 0,
+        "healthCounter": 600001,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 10.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 49,
+      "healthCounter": 0,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": -1.0,
+        "muscle": -1.0,
+        "maxHealth": -1.0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": -1.0,
+      "muscle": -1.0,
+      "maxHealth": -1.0,
+      "fatCounter": 8,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": -1.0,
+        "muscle": -1.0,
+        "maxHealth": -1.0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": -1.0,
+      "muscle": -1.0,
+      "maxHealth": -1.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": -1.0,
+        "muscle": -1.0,
+        "maxHealth": -1.0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": -1.0,
+      "muscle": -1.0,
+      "maxHealth": -1.0,
+      "fatCounter": 49,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": -1.0,
+        "muscle": -1.0,
+        "maxHealth": -1.0,
+        "fatCounter": 150000,
+        "healthCounter": 600000,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": -1.0,
+      "muscle": -1.0,
+      "maxHealth": -1.0,
+      "fatCounter": 150008,
+      "healthCounter": 600016,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": -1.0,
+        "muscle": -1.0,
+        "maxHealth": -1.0,
+        "fatCounter": 150000,
+        "healthCounter": 600000,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": -1.0,
+      "muscle": -1.0,
+      "maxHealth": -1.0,
+      "fatCounter": 150033,
+      "healthCounter": 600033,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": -1.0,
+        "muscle": -1.0,
+        "maxHealth": -1.0,
+        "fatCounter": 150000,
+        "healthCounter": 600000,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": -1.0,
+      "muscle": -1.0,
+      "maxHealth": -1.0,
+      "fatCounter": 150049,
+      "healthCounter": 600033,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": -1.0,
+        "muscle": -1.0,
+        "maxHealth": -1.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": -1.0,
+      "muscle": 0.0,
+      "maxHealth": 19.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": -1.0,
+        "muscle": -1.0,
+        "maxHealth": -1.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": -1.0,
+      "muscle": 0.0,
+      "maxHealth": 19.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": -1.0,
+        "muscle": -1.0,
+        "maxHealth": -1.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": -1.0,
+      "muscle": 0.0,
+      "maxHealth": 19.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": -1.0,
+        "muscle": -1.0,
+        "maxHealth": -1.0,
+        "fatCounter": 150001,
+        "healthCounter": 0,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": -1.0,
+      "muscle": 0.0,
+      "maxHealth": -1.0,
+      "fatCounter": 0,
+      "healthCounter": 16,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 15.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": -1.0,
+        "muscle": -1.0,
+        "maxHealth": -1.0,
+        "fatCounter": 150001,
+        "healthCounter": 0,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": -1.0,
+      "muscle": 0.0,
+      "maxHealth": -1.0,
+      "fatCounter": 0,
+      "healthCounter": 33,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 15.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": -1.0,
+        "muscle": -1.0,
+        "maxHealth": -1.0,
+        "fatCounter": 150001,
+        "healthCounter": 0,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": -1.0,
+      "muscle": 0.0,
+      "maxHealth": -1.0,
+      "fatCounter": 0,
+      "healthCounter": 33,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 15.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": -1.0,
+        "muscle": -1.0,
+        "maxHealth": -1.0,
+        "fatCounter": 0,
+        "healthCounter": 600001,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": -1.0,
+      "muscle": -1.0,
+      "maxHealth": 19.0,
+      "fatCounter": 8,
+      "healthCounter": 0,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": -1.0,
+        "muscle": -1.0,
+        "maxHealth": -1.0,
+        "fatCounter": 0,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": -1.0,
+      "muscle": -1.0,
+      "maxHealth": 19.0,
+      "fatCounter": 33,
+      "healthCounter": 0,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": -1.0,
+        "muscle": -1.0,
+        "maxHealth": -1.0,
+        "fatCounter": 0,
+        "healthCounter": 600001,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": -1.0,
+      "muscle": -1.0,
+      "maxHealth": 19.0,
+      "fatCounter": 49,
+      "healthCounter": 0,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 1500.0,
+        "muscle": 1500.0,
+        "maxHealth": 1500.0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 1500.0,
+      "muscle": 1500.0,
+      "maxHealth": 1500.0,
+      "fatCounter": 8,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 1500.0,
+        "muscle": 1500.0,
+        "maxHealth": 1500.0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 1500.0,
+      "muscle": 1500.0,
+      "maxHealth": 1500.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 1500.0,
+        "muscle": 1500.0,
+        "maxHealth": 1500.0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 1500.0,
+      "muscle": 1500.0,
+      "maxHealth": 1500.0,
+      "fatCounter": 49,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 1500.0,
+        "muscle": 1500.0,
+        "maxHealth": 1500.0,
+        "fatCounter": 150000,
+        "healthCounter": 600000,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 1500.0,
+      "muscle": 1500.0,
+      "maxHealth": 1500.0,
+      "fatCounter": 150008,
+      "healthCounter": 600016,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 1500.0,
+        "muscle": 1500.0,
+        "maxHealth": 1500.0,
+        "fatCounter": 150000,
+        "healthCounter": 600000,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 1500.0,
+      "muscle": 1500.0,
+      "maxHealth": 1500.0,
+      "fatCounter": 150033,
+      "healthCounter": 600033,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 1500.0,
+        "muscle": 1500.0,
+        "maxHealth": 1500.0,
+        "fatCounter": 150000,
+        "healthCounter": 600000,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 1500.0,
+      "muscle": 1500.0,
+      "maxHealth": 1500.0,
+      "fatCounter": 150049,
+      "healthCounter": 600033,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 1500.0,
+        "muscle": 1500.0,
+        "maxHealth": 1500.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 1485.0,
+      "muscle": 1000.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 1500.0,
+        "muscle": 1500.0,
+        "maxHealth": 1500.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 1485.0,
+      "muscle": 1000.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 1500.0,
+        "muscle": 1500.0,
+        "maxHealth": 1500.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 1485.0,
+      "muscle": 1000.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 1500.0,
+        "muscle": 1500.0,
+        "maxHealth": 1500.0,
+        "fatCounter": 150001,
+        "healthCounter": 0,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 1485.0,
+      "muscle": 1000.0,
+      "maxHealth": 1500.0,
+      "fatCounter": 0,
+      "healthCounter": 16,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 1500.0,
+        "muscle": 1500.0,
+        "maxHealth": 1500.0,
+        "fatCounter": 150001,
+        "healthCounter": 0,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 1485.0,
+      "muscle": 1000.0,
+      "maxHealth": 1500.0,
+      "fatCounter": 0,
+      "healthCounter": 33,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 1500.0,
+        "muscle": 1500.0,
+        "maxHealth": 1500.0,
+        "fatCounter": 150001,
+        "healthCounter": 0,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 1485.0,
+      "muscle": 1000.0,
+      "maxHealth": 1500.0,
+      "fatCounter": 0,
+      "healthCounter": 33,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 1500.0,
+        "muscle": 1500.0,
+        "maxHealth": 1500.0,
+        "fatCounter": 0,
+        "healthCounter": 600001,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 1500.0,
+      "muscle": 1500.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 8,
+      "healthCounter": 0,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 1500.0,
+        "muscle": 1500.0,
+        "maxHealth": 1500.0,
+        "fatCounter": 0,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 1500.0,
+      "muscle": 1500.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 33,
+      "healthCounter": 0,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 1500.0,
+        "muscle": 1500.0,
+        "maxHealth": 1500.0,
+        "fatCounter": 0,
+        "healthCounter": 600001,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 1500.0,
+      "muscle": 1500.0,
+      "maxHealth": 1000.0,
+      "fatCounter": 49,
+      "healthCounter": 0,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 0,
+        "showUpdates": false,
+        "overrides": {}
+      },
+      "fat": 185.0,
+      "muscle": 60.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 0,
+        "showUpdates": false,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 35.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 185.0,
+      "muscle": 60.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 35.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 1,
+        "showUpdates": false,
+        "overrides": {}
+      },
+      "fat": 185.0,
+      "muscle": 60.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 2,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 1,
+        "showUpdates": false,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 35.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 1,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 185.0,
+      "muscle": 60.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 2,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 23,
+          "value": 10.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 1,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 35.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 2,
+        "showUpdates": false,
+        "overrides": {}
+      },
+      "fat": 185.0,
+      "muscle": 60.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 2,
+        "showUpdates": false,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 35.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 2,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 185.0,
+      "muscle": 60.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 2,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 35.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 3,
+        "showUpdates": false,
+        "overrides": {}
+      },
+      "fat": 185.0,
+      "muscle": 60.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 3,
+        "showUpdates": false,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 35.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 3,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 185.0,
+      "muscle": 60.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 3,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 35.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 0,
+        "timeStep": 0.0,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 4294967294,
+      "healthCounter": 4294967294,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 0,
+        "timeStep": 0.5,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 4294967294,
+      "healthCounter": 8,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 0,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 4294967294,
+      "healthCounter": 14,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 0,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 4294967294,
+      "healthCounter": 31,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 0,
+        "timeStep": 100000000.0,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 4294967294,
+      "healthCounter": 1999999998,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 1,
+        "timeStep": 0.0,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 4294967294,
+      "healthCounter": 4294967294,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 1,
+        "timeStep": 0.5,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 4294967295,
+      "healthCounter": 8,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 1,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 4294967295,
+      "healthCounter": 14,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 1,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 1,
+      "healthCounter": 31,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 1,
+        "timeStep": 100000000.0,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 199999998,
+      "healthCounter": 1999999998,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 5,
+        "timeStep": 0.0,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 4294967294,
+      "healthCounter": 4294967294,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 5,
+        "timeStep": 0.5,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 3,
+      "healthCounter": 8,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 5,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 6,
+      "healthCounter": 14,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 5,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 14,
+      "healthCounter": 31,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 5,
+        "timeStep": 100000000.0,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 141006538,
+      "healthCounter": 1999999998,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 10,
+        "timeStep": 0.0,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 4294967294,
+      "healthCounter": 4294967294,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 10,
+        "timeStep": 0.5,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 8,
+      "healthCounter": 8,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 10,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 14,
+      "healthCounter": 14,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 31,
+      "healthCounter": 31,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 10,
+        "timeStep": 100000000.0,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 282013079,
+      "healthCounter": 1999999998,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 15,
+        "timeStep": 0.0,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 4294967294,
+      "healthCounter": 4294967294,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 15,
+        "timeStep": 0.5,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 13,
+      "healthCounter": 8,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 15,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 22,
+      "healthCounter": 14,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 47,
+      "healthCounter": 31,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 15,
+        "timeStep": 100000000.0,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 423019620,
+      "healthCounter": 1999999998,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 100,
+        "timeStep": 0.0,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 4294967294,
+      "healthCounter": 4294967294,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 100,
+        "timeStep": 0.5,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 98,
+      "healthCounter": 8,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 100,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 158,
+      "healthCounter": 14,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 100,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 328,
+      "healthCounter": 31,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 100,
+        "timeStep": 100000000.0,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 243150436,
+      "healthCounter": 1999999998,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 4294967295,
+        "timeStep": 0.0,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 4294967294,
+      "healthCounter": 4294967294,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 4294967295,
+        "timeStep": 0.5,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 429496726,
+      "healthCounter": 8,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 4294967295,
+        "timeStep": 0.8333333134651184,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 429496726,
+      "healthCounter": 14,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 4294967295,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 429496724,
+      "healthCounter": 31,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 4294967294,
+        "healthCounter": 4294967294,
+        "exerciseRate": 4294967295,
+        "timeStep": 100000000.0,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 229496727,
+      "healthCounter": 1999999998,
+      "messageState": 0,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 1,
+        "showUpdates": true,
+        "overrides": {
+          "9": -1,
+          "11": -1,
+          "23": -1,
+          "24": -1
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 2,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 1,
+        "showUpdates": true,
+        "overrides": {
+          "9": -1,
+          "11": -1,
+          "23": -1,
+          "24": -1
+        }
+      },
+      "fat": 0.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 1,
+        "showUpdates": true,
+        "overrides": {
+          "9": 0,
+          "11": 0,
+          "23": 0,
+          "24": 0
+        }
+      },
+      "fat": 200.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 2,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 1,
+        "showUpdates": true,
+        "overrides": {
+          "9": 0,
+          "11": 0,
+          "23": 0,
+          "24": 0
+        }
+      },
+      "fat": 0.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": []
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 1,
+        "showUpdates": true,
+        "overrides": {
+          "9": 0.5,
+          "11": 0.5,
+          "23": 0.5,
+          "24": 0.5
+        }
+      },
+      "fat": 199.5,
+      "muscle": 50.5,
+      "maxHealth": 569.5,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 2,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 1,
+        "showUpdates": true,
+        "overrides": {
+          "9": 0.5,
+          "11": 0.5,
+          "23": 0.5,
+          "24": 0.5
+        }
+      },
+      "fat": 0.0,
+      "muscle": 49.5,
+      "maxHealth": 569.5,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 1,
+        "showUpdates": true,
+        "overrides": {
+          "9": 1,
+          "11": 1,
+          "23": 1,
+          "24": 1
+        }
+      },
+      "fat": 199.0,
+      "muscle": 51.0,
+      "maxHealth": 570.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 2,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 1,
+        "showUpdates": true,
+        "overrides": {
+          "9": 1,
+          "11": 1,
+          "23": 1,
+          "24": 1
+        }
+      },
+      "fat": 0.0,
+      "muscle": 49.0,
+      "maxHealth": 570.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 1,
+        "showUpdates": true,
+        "overrides": {
+          "9": 1.0001,
+          "11": 1.0001,
+          "23": 1.0001,
+          "24": 1.0001
+        }
+      },
+      "fat": 198.99989318847656,
+      "muscle": 51.000099182128906,
+      "maxHealth": 570.0001220703125,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 2,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 23,
+          "value": 1.000100016593933,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 1.000100016593933,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 1,
+        "showUpdates": true,
+        "overrides": {
+          "9": 1.0001,
+          "11": 1.0001,
+          "23": 1.0001,
+          "24": 1.0001
+        }
+      },
+      "fat": 0.0,
+      "muscle": 48.999900817871094,
+      "maxHealth": 570.0001220703125,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 1.000100016593933,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 1.000100016593933,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 1,
+        "showUpdates": true,
+        "overrides": {
+          "9": 20,
+          "11": 20,
+          "23": 20,
+          "24": 20
+        }
+      },
+      "fat": 180.0,
+      "muscle": 70.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 2,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 23,
+          "value": 20.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 10,
+        "timeStep": 1.0,
+        "messageState": 1,
+        "showUpdates": true,
+        "overrides": {
+          "9": 20,
+          "11": 20,
+          "23": 20,
+          "24": 20
+        }
+      },
+      "fat": 0.0,
+      "muscle": 30.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 20.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "exerciseRate": 5,
+        "timeStep": 1.6666666269302368,
+        "messageState": 0,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 185.0,
+      "muscle": 60.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 185.0,
+        "muscle": 60.0,
+        "maxHealth": 589.0,
+        "fatCounter": 150001,
+        "healthCounter": 0,
+        "exerciseRate": 10,
+        "timeStep": 1.6666666269302368,
+        "messageState": 1,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 170.0,
+      "muscle": 70.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 33,
+      "messageState": 2,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 23,
+          "value": 10.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 70.0,
+        "maxHealth": 589.0,
+        "fatCounter": 150001,
+        "healthCounter": 0,
+        "exerciseRate": 15,
+        "timeStep": 1.6666666269302368,
+        "messageState": 2,
+        "showUpdates": true,
+        "overrides": {}
+      },
+      "fat": 0.0,
+      "muscle": 55.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 33,
+      "messageState": 3,
+      "external": [
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 23,
+          "value": 15.0,
+          "max": 1000.0
+        }
+      ]
+    }
+  ]
+}

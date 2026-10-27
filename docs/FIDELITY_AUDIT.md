@@ -14989,3 +14989,34 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   older version-1 save and verifies movement, car entry, map/waypoint,
   pause/resume, takeoff and landing gear without page errors or failed
   requests.
+
+## Captured exercise counters and body-stat updates (October 27, 2026)
+
+- Running, sprinting and moving/underwater swimming now invoke captured
+  UpdateFatAndMuscleStats before their stamina/lung awards. The body routine
+  updates fat/muscle through their authoritative saved bindings and trains
+  raw maximum-health stat 24. This does not claim native player-cap propagation
+  or the separate stat-condition-check routine's side effects.
+- The independent complete selected routine capture contains 141 cases for
+  strict old-counter thresholds, weighted unsigned arithmetic, wrap,
+  direct float changes/caps, all message states, hidden/fractional feedback
+  and live frame profiles. Only condition-check/display calls are logged
+  stubs. Every counter/stat/state value, check count and feedback argument
+  matches exactly and regenerates byte-identically.
+- Three new caller-order checks expose the missing exercise hook and prove
+  body changes precede stamina's negative-energy fat reaction. A fourth
+  verifies bound ownership, retained work and feedback state. All 261
+  focused checks and 8,720 unit tests pass (51 full-suite skips).
+- Real W, W+Shift and underwater state 4 execute controlled counter awards
+  at rates 5/10/15. Run changes 200/50/569 to 185/60/589; sprint changes
+  body to 170/70; no-fat underwater work reduces muscle 70 to 55. Complete
+  seeded calls match independent native profiles. Idle calls pause, and the
+  existing swimming-training regression passes. Both browser checks have no
+  page errors; distant water streaming reports retry/support warnings.
+- TypeScript validation and production build pass. Hour-based hunger remains
+  separate. Cycling/fighting callers, broader task scheduling, native
+  condition/HUD effects, player health-cap integration, health-stat persistence
+  and matched original-PC traces remain separate work.
+  [Native arithmetic, feedback, caller order and live evidence](research/BODY_EXERCISE.md).
+- Production smoke passes save resume, walking, car entry, map waypoint,
+  pause/resume, takeoff and landing gear without page errors or failed requests.
