@@ -109,18 +109,18 @@ test('a bike under water drowns: CJ loses breath on the bottom and falls off onc
    const tick=()=>{bike.beforeStep(1/60,{throttle:0,steer:0,brake:false});sim.world.step();bike.afterStep();bike.update(1);};
    for(let i=0;i<30;i++)tick();bike.interact();
    // Three units of water over the floor: the bike drowns with its wheels down, and CJ holds his breath on it.
-   bike.waterLevel=()=>3;
+   const initialBreath=sim.player.breath;bike.waterLevel=()=>3;
    for(let i=0;i<60;i++)tick();
    const bottom={drowning:bike.drowning,occupied:bike.snapshot().occupied,breath:sim.player.breath};
    // Off the floor's edge in open water: no wheel touches, and he drops off (KNOCK_OFF_TYPE_FALL).
    bike.body.setTranslation({x:400,y:5,z:0},true);bike.body.setLinvel({x:0,y:0,z:0},true);bike.waterLevel=()=>8;
    for(let i=0;i<5&&bike.snapshot().occupied;i++)tick();
-   return {bottom,thrown:!bike.snapshot().occupied,airborne:!sim.player.grounded};
+   return {bottom,initialBreath,thrown:!bike.snapshot().occupied,airborne:!sim.player.grounded};
   }finally{bike.dispose();sim.dispose();}
  });
  expect(result.bottom.drowning).toBe(true);
  expect(result.bottom.occupied).toBe(true);
- expect(result.bottom.breath).toBeLessThan(100);
+ expect(result.initialBreath-result.bottom.breath).toBeCloseTo(50,6);
  expect(result.thrown).toBe(true);
  expect(result.airborne).toBe(true);
  expect(errors).toEqual([]);

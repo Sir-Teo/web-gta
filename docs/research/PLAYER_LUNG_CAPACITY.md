@@ -85,3 +85,11 @@ its host integration. Natural swimming stat training is integrated in the
 complete stat persistence beyond the
 [saved stamina/lung subset](TRAINING_STAT_PERSISTENCE.md), native animation blending and complete
 swim/drowning event behavior remain separate work.
+
+
+The bicycle drowning regression now checks the loss from its initial native
+breath amount. Sixty 60-Hz submerged vehicle steps consume 50 native units;
+the former assertion expected a percentage below 100, despite the captured
+default capacity being 1,150. This is a test correction; breath behavior is
+unchanged. The focused bike browser run passes after the correction
+(`artifacts/bike-rider-lean-browser-final.log`).
