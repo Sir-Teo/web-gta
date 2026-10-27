@@ -365,6 +365,30 @@ test('candidate support queries see unstepped colliders, ignore retiring terrain
  expect(world.colliders.len()).toBe(2);next.dispose();expect(world.colliders.len()).toBe(1);
 });
 
+test('a water-supported retained player needs capsule clearance but no floor in both query paths',()=>{
+ world=new RAPIER.World({x:0,y:0,z:0});const part=makePart(),surface={material:0,flags:0,brightness:0,light:0};part.placements=part.placements.slice(0,1);
+ part.collision={...part.collision!,spheres:[],boxes:[{min:[-20,-20,-30],max:[20,20,-29],surface}],mesh:{positions:new Float32Array(),indices:new Uint32Array(),materials:new Uint8Array(),lights:new Uint8Array()}};
+ const installed=installNativeScene(world,new Scene(),[part]);
+ for(const [center,water] of [[{x:0,y:-3.1,z:0},{waterLevel:0,swimming:false}],[{x:0,y:.1,z:0},{waterLevel:0,swimming:true}]] as const){
+  const foot={...center,y:center.y-.9};expect(()=>assertInstalledSceneSupport(world,installed.sources.keys(),center,false)).toThrow('does not support');
+  expect(assertInstalledSceneSupport(world,installed.sources.keys(),center,false,water)).toEqual(foot);
+  expect(assertNativeSceneSupport([part],center,false,water)).toEqual(foot);
+ }
+ installed.dispose();
+});
+for(const water of [{waterLevel:undefined,swimming:true},{waterLevel:0,swimming:false},{waterLevel:-2,swimming:true},{waterLevel:Infinity,swimming:true},{waterLevel:NaN,swimming:true}])test(`shallow/dry/invalid water cannot replace ground support: ${JSON.stringify(water)}`,()=>{
+ world=new RAPIER.World({x:0,y:0,z:0});const center={x:0,y:.1,z:0};
+ expect(()=>assertInstalledSceneSupport(world,[],center,false,water)).toThrow('does not support');
+});
+test('water support rejects obstruction, invalid coordinates and removed candidate collision',()=>{
+ world=new RAPIER.World({x:0,y:0,z:0});const part=makePart(),surface={material:0,flags:0,brightness:0,light:0};part.placements=part.placements.slice(0,1);
+ part.collision={...part.collision!,spheres:[],boxes:[{min:[-1,-1,-5],max:[1,1,-2],surface}],mesh:{positions:new Float32Array(),indices:new Uint32Array(),materials:new Uint8Array(),lights:new Uint8Array()}};
+ const installed=installNativeScene(world,new Scene(),[part]),center={x:0,y:-3.1,z:0},water={waterLevel:0,swimming:true};
+ expect(()=>assertInstalledSceneSupport(world,installed.sources.keys(),center,false,water)).toThrow('obstructs');
+ expect(()=>assertNativeSceneSupport([part],center,false,water)).toThrow('obstructs');
+ expect(()=>assertInstalledSceneSupport(world,installed.sources.keys(),{...center,x:NaN},false,water)).toThrow('Invalid');
+ const handles=[...installed.sources.keys()];installed.dispose();expect(()=>assertInstalledSceneSupport(world,handles,center,false,water)).toThrow('no longer available');
+});
 test('direct candidate clearance matches the isolated oracle for low ceilings and disabled collision',()=>{
  world=new RAPIER.World({x:0,y:-9.81,z:0});const scene=new Scene(),part=makePart(),surface={material:0,flags:0,brightness:0,light:0};
  part.placements=part.placements.slice(0,1);part.collision={...part.collision!,spheres:[],boxes:[{min:[-20,-20,-1],max:[20,20,0],surface},{min:[-20,-20,1.5],max:[20,20,2],surface}],mesh:{positions:new Float32Array(),indices:new Uint32Array(),materials:new Uint8Array(),lights:new Uint8Array()}};

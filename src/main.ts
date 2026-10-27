@@ -5383,18 +5383,22 @@ async function boot() {
       // Swap accounting for the dev state: what the window carried and how long the synchronous replacement took.
       const swapStart=performance.now();
       prepareWindow(data);
+      // Water supports an on-foot swimmer (or a just-teleported ped deep enough to enter the native swim task).
+      // Keep candidate capsule-clearance checks; waiting for a floor here only retries a valid ocean window.
+      const retainedWater=automatic&&importedScene.area===0&&sim.player.health>0&&!remoteMode()&&!worldCar?.occupied&&!fleet?.occupied&&!fleet?.occupiedBike&&!fleet?.occupiedBoat&&!playerAircraft()&&!playerPassenger
+       ?{waterLevel:render.lighting.water.levels?.level(sim.player.position.x,-sim.player.position.z,sim.player.position.y),swimming:sim.player.swimming}:undefined;
       // A pre-built window lets the support check run against the colliders the next window will own before
       // anything is assembled; a miss then keeps the pre-built window for the retry instead of rebuilding it.
       if(data.prebuilt&&automatic&&preserve&&!quiet&&!paused&&(data.supportRetries??0)<SUPPORT_RETRY_LIMIT&&!playerAircraft()){
         const handles=importedScene.previewHandles(data.prebuilt);
-        try{if(worldCar?.occupied)worldCar.car.assertTerrainSupport(handles);else assertInstalledSceneSupport(sim.world,handles,sim.playerBody.translation(),sim.player.crouched);}
+        try{if(worldCar?.occupied)worldCar.car.assertTerrainSupport(handles);else assertInstalledSceneSupport(sim.world,handles,sim.playerBody.translation(),sim.player.crouched,retainedWater);}
         catch(error){keepPrebuilt=true;throw new SupportRetry(error instanceof Error?error.message:String(error));}
       }
       const {payloadBytes,resident:residentCount}=data.transfer!;
       const next=importedScene.replace(data.parts,candidate=>{
         if(quiet){spawn={...sim.player.position};return;}
         if(!preserve){spawn=nativeSceneDestination(data.parts,data.preferredSpawn);return;}
-        try{spawn=playerAircraft()?{...sim.player.position}:worldCar?.occupied?worldCar.car.assertTerrainSupport(candidate.sources.keys()):assertInstalledSceneSupport(sim.world,candidate.sources.keys(),sim.playerBody.translation(),sim.player.crouched);}
+        try{spawn=playerAircraft()?{...sim.player.position}:worldCar?.occupied?worldCar.car.assertTerrainSupport(candidate.sources.keys()):assertInstalledSceneSupport(sim.world,candidate.sources.keys(),sim.playerBody.translation(),sim.player.crouched,retainedWater);}
         catch(error){
           // The check is advisory: CStreaming never refuses a sector. A miss while the game runs (an airborne car,
           // a brushed wall) retries briefly; then the window installs where the player stands and physics settles it.

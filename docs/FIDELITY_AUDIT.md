@@ -15068,3 +15068,29 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Final TypeScript validation and the production build pass.
 - Production smoke passes old-save resume, walking, car entry, map waypoint,
   pause/resume, takeoff and landing gear without page errors or failed requests.
+
+## Water-supported terrain replacement (October 27, 2026)
+
+- Automatic exterior on-foot windows now accept native-query water support
+  for existing swimmers or peds deep enough to enter the native swim task on
+  their first frame. Both prebuilt preflight and final candidate validation
+  retain capsule-clearance checks. Missing/shallow/dry/nonfinite water keeps
+  ground support; occupied-vehicle/interior transfer paths retain their policy.
+- The new browser regression fails before repair: an ordinary deep-water
+  script transfer adds a support override/warning and holds play for 6,551 ms.
+  After repair it enters underwater state 4 at the requested position with no
+  support override, warning or page error; its recorded hold is 2,645.8 ms.
+  These individual timings are not a controlled loading benchmark.
+- Seven new unit checks cover both query paths, pending/active swimming,
+  invalid water, obstruction, invalid positions and removed collision. Two
+  fail before repair. All 51 focused checks pass (two existing skips), along
+  with TypeScript validation.
+- Four browser regressions pass (3.5 minutes): water transfer, ordinary swim
+  training, dry-land teleport support and a fall into unloaded terrain. All
+  have no page errors; land/falling retain their advisory support warnings,
+  and the falling check reports zero follower failures.
+  [Host adapter policy, before/after traces and limits](research/SWIM_TERRAIN_TRANSFER.md).
+- The complete unit suite passes all 8,874 tests (51 skipped).
+- Final TypeScript validation and the production build pass.
+- Production smoke passes old-save resume, walking, car entry, map waypoint,
+  pause/resume, takeoff and landing gear without page errors or failed requests.
