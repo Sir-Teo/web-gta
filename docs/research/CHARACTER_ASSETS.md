@@ -239,7 +239,9 @@ checks player sprint move state and the sprint button on its first update, sets
 animation speed to 2 and subsequently applies the fat/muscle modifier. This
 adapter uses its last grounded gait as the available move-state representation;
 complete original task state and mid-air move-state transitions remain unverified.
-The separate fat/muscle speed modifier is still absent.
+The [later captured landing port](PLAYER_LANDING_PLAYBACK.md) applies the
+fat/muscle speed modifier at contact and reads the physical sprint button
+independently of retained button memory and resource exhaustion.
 
 Native-coordinate landing also uses the task's blend-in rate of 100 per second
 (0.01 seconds from zero to full weight), rather than the general 0.18-second

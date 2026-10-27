@@ -219,7 +219,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
      for(const [part,drawn] of parts)part.root.visible=drawn.everyDetail?result.detail!=='culled':result.detail==='high';
      return result;},
     setColors(colors:NativeCarColors){requireAsset(!disposed,'Native car is disposed.');paint!.setColors(colors);currentColors=colors;for(const part of parts.values())part.paint.setColors(colors);},
-    /** Active-light switching: brake pedal brightens rear lamps, night brightens fronts. */
+    /** Accepted pedal braking lights the rear lamps; night lights enable both front and rear slots. */
     setLightState(brake:boolean,headlights:boolean,broken?:readonly boolean[]){if(lights)setCarLightState(lights,{brake,headlights,broken});},
     setNight(amount:number){requireAsset(!disposed,'Native car is disposed.');visual!.setNight(amount);currentNight=amount;for(const part of parts.keys())part.setNight(amount);},
     /** CCustomCarEnvMapPipeline's per-frame inputs: `lighting` is SetupLightingForEntity's multiplier (gSpecIntensity);

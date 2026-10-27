@@ -1,0 +1,1159 @@
+{
+  "source": "Pinned iOS arm64 CBoat::PreRender and actual SetCompAlphaCB executed with Unicorn 2.1.4; descriptor bytes read directly",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "region": [
+    "0x10045b2d0",
+    "0x10045b354"
+  ],
+  "alphaCallback": "0x10047e758",
+  "descriptors": [
+    {
+      "name": "boat_moving_hi",
+      "node": 1,
+      "flags": 0
+    },
+    {
+      "name": "boat_rudder_hi",
+      "node": 3,
+      "flags": 0
+    },
+    {
+      "name": "boat_flap_left",
+      "node": 4,
+      "flags": 0
+    },
+    {
+      "name": "boat_flap_right",
+      "node": 5,
+      "flags": 0
+    },
+    {
+      "name": "boat_rearflap_left",
+      "node": 6,
+      "flags": 0
+    },
+    {
+      "name": "boat_rearflap_right",
+      "node": 7,
+      "flags": 0
+    },
+    {
+      "name": "static_prop",
+      "node": 8,
+      "flags": 262400
+    },
+    {
+      "name": "moving_prop",
+      "node": 9,
+      "flags": 263424
+    },
+    {
+      "name": "static_prop2",
+      "node": 10,
+      "flags": 262400
+    },
+    {
+      "name": "moving_prop2",
+      "node": 11,
+      "flags": 263424
+    },
+    {
+      "name": "windscreen_hi_ok",
+      "node": 2,
+      "flags": 3072
+    },
+    {
+      "name": "ped_frontseat",
+      "node": 0,
+      "flags": 9
+    },
+    {
+      "name": "extra1",
+      "node": 0,
+      "flags": 1537
+    },
+    {
+      "name": "extra2",
+      "node": 0,
+      "flags": 1537
+    },
+    {
+      "name": "extra3",
+      "node": 0,
+      "flags": 1537
+    },
+    {
+      "name": "extra4",
+      "node": 0,
+      "flags": 1537
+    },
+    {
+      "name": "extra5",
+      "node": 0,
+      "flags": 1537
+    },
+    {
+      "name": "extra6",
+      "node": 0,
+      "flags": 1537
+    }
+  ],
+  "cases": [
+    {
+      "engineSpeed": 0.0,
+      "angle": 0.0,
+      "timeStep": 0,
+      "nextAngle": 0.0,
+      "staticAlpha": 255,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.0,
+      "angle": 0.0,
+      "timeStep": 0.5,
+      "nextAngle": 0.0,
+      "staticAlpha": 255,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.0,
+      "angle": 0.0,
+      "timeStep": 1,
+      "nextAngle": 0.0,
+      "staticAlpha": 255,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.0,
+      "angle": 0.0,
+      "timeStep": 3,
+      "nextAngle": 0.0,
+      "staticAlpha": 255,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.0,
+      "angle": 6.25,
+      "timeStep": 0,
+      "nextAngle": 6.25,
+      "staticAlpha": 255,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.0,
+      "angle": 6.25,
+      "timeStep": 0.5,
+      "nextAngle": 6.25,
+      "staticAlpha": 255,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.0,
+      "angle": 6.25,
+      "timeStep": 1,
+      "nextAngle": 6.25,
+      "staticAlpha": 255,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.0,
+      "angle": 6.25,
+      "timeStep": 3,
+      "nextAngle": 6.25,
+      "staticAlpha": 255,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.0,
+      "angle": 6.2831854820251465,
+      "timeStep": 0,
+      "nextAngle": 6.2831854820251465,
+      "staticAlpha": 255,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.0,
+      "angle": 6.2831854820251465,
+      "timeStep": 0.5,
+      "nextAngle": 6.2831854820251465,
+      "staticAlpha": 255,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.0,
+      "angle": 6.2831854820251465,
+      "timeStep": 1,
+      "nextAngle": 6.2831854820251465,
+      "staticAlpha": 255,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.0,
+      "angle": 6.2831854820251465,
+      "timeStep": 3,
+      "nextAngle": 6.2831854820251465,
+      "staticAlpha": 255,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.009999999776482582,
+      "angle": 0.0,
+      "timeStep": 0,
+      "nextAngle": 0.0,
+      "staticAlpha": 242,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.009999999776482582,
+      "angle": 0.0,
+      "timeStep": 0.5,
+      "nextAngle": 0.004999999888241291,
+      "staticAlpha": 242,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.009999999776482582,
+      "angle": 0.0,
+      "timeStep": 1,
+      "nextAngle": 0.009999999776482582,
+      "staticAlpha": 242,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.009999999776482582,
+      "angle": 0.0,
+      "timeStep": 3,
+      "nextAngle": 0.029999999329447746,
+      "staticAlpha": 242,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.009999999776482582,
+      "angle": 6.25,
+      "timeStep": 0,
+      "nextAngle": 6.25,
+      "staticAlpha": 242,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.009999999776482582,
+      "angle": 6.25,
+      "timeStep": 0.5,
+      "nextAngle": 6.255000114440918,
+      "staticAlpha": 242,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.009999999776482582,
+      "angle": 6.25,
+      "timeStep": 1,
+      "nextAngle": 6.260000228881836,
+      "staticAlpha": 242,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.009999999776482582,
+      "angle": 6.25,
+      "timeStep": 3,
+      "nextAngle": 6.28000020980835,
+      "staticAlpha": 242,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.009999999776482582,
+      "angle": 6.2831854820251465,
+      "timeStep": 0,
+      "nextAngle": 6.2831854820251465,
+      "staticAlpha": 242,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.009999999776482582,
+      "angle": 6.2831854820251465,
+      "timeStep": 0.5,
+      "nextAngle": 0.005000114440917969,
+      "staticAlpha": 242,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.009999999776482582,
+      "angle": 6.2831854820251465,
+      "timeStep": 1,
+      "nextAngle": 0.010000228881835938,
+      "staticAlpha": 242,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.009999999776482582,
+      "angle": 6.2831854820251465,
+      "timeStep": 3,
+      "nextAngle": 0.03000020980834961,
+      "staticAlpha": 242,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.05000000074505806,
+      "angle": 0.0,
+      "timeStep": 0,
+      "nextAngle": 0.0,
+      "staticAlpha": 190,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.05000000074505806,
+      "angle": 0.0,
+      "timeStep": 0.5,
+      "nextAngle": 0.02500000037252903,
+      "staticAlpha": 190,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.05000000074505806,
+      "angle": 0.0,
+      "timeStep": 1,
+      "nextAngle": 0.05000000074505806,
+      "staticAlpha": 190,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.05000000074505806,
+      "angle": 0.0,
+      "timeStep": 3,
+      "nextAngle": 0.15000000596046448,
+      "staticAlpha": 190,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.05000000074505806,
+      "angle": 6.25,
+      "timeStep": 0,
+      "nextAngle": 6.25,
+      "staticAlpha": 190,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.05000000074505806,
+      "angle": 6.25,
+      "timeStep": 0.5,
+      "nextAngle": 6.275000095367432,
+      "staticAlpha": 190,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.05000000074505806,
+      "angle": 6.25,
+      "timeStep": 1,
+      "nextAngle": 0.016814708709716797,
+      "staticAlpha": 190,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.05000000074505806,
+      "angle": 6.25,
+      "timeStep": 3,
+      "nextAngle": 0.11681461334228516,
+      "staticAlpha": 190,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.05000000074505806,
+      "angle": 6.2831854820251465,
+      "timeStep": 0,
+      "nextAngle": 6.2831854820251465,
+      "staticAlpha": 190,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.05000000074505806,
+      "angle": 6.2831854820251465,
+      "timeStep": 0.5,
+      "nextAngle": 0.02500009536743164,
+      "staticAlpha": 190,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.05000000074505806,
+      "angle": 6.2831854820251465,
+      "timeStep": 1,
+      "nextAngle": 0.05000019073486328,
+      "staticAlpha": 190,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.05000000074505806,
+      "angle": 6.2831854820251465,
+      "timeStep": 3,
+      "nextAngle": 0.15000009536743164,
+      "staticAlpha": 190,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.08079999685287476,
+      "angle": 0.0,
+      "timeStep": 0,
+      "nextAngle": 0.0,
+      "staticAlpha": 150,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.08079999685287476,
+      "angle": 0.0,
+      "timeStep": 0.5,
+      "nextAngle": 0.04039999842643738,
+      "staticAlpha": 150,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.08079999685287476,
+      "angle": 0.0,
+      "timeStep": 1,
+      "nextAngle": 0.08079999685287476,
+      "staticAlpha": 150,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.08079999685287476,
+      "angle": 0.0,
+      "timeStep": 3,
+      "nextAngle": 0.24239999055862427,
+      "staticAlpha": 150,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.08079999685287476,
+      "angle": 6.25,
+      "timeStep": 0,
+      "nextAngle": 6.25,
+      "staticAlpha": 150,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.08079999685287476,
+      "angle": 6.25,
+      "timeStep": 0.5,
+      "nextAngle": 0.007214546203613281,
+      "staticAlpha": 150,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.08079999685287476,
+      "angle": 6.25,
+      "timeStep": 1,
+      "nextAngle": 0.04761457443237305,
+      "staticAlpha": 150,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.08079999685287476,
+      "angle": 6.25,
+      "timeStep": 3,
+      "nextAngle": 0.2092146873474121,
+      "staticAlpha": 150,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.08079999685287476,
+      "angle": 6.2831854820251465,
+      "timeStep": 0,
+      "nextAngle": 6.2831854820251465,
+      "staticAlpha": 150,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.08079999685287476,
+      "angle": 6.2831854820251465,
+      "timeStep": 0.5,
+      "nextAngle": 0.040400028228759766,
+      "staticAlpha": 150,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.08079999685287476,
+      "angle": 6.2831854820251465,
+      "timeStep": 1,
+      "nextAngle": 0.08080005645751953,
+      "staticAlpha": 150,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.08079999685287476,
+      "angle": 6.2831854820251465,
+      "timeStep": 3,
+      "nextAngle": 0.2424001693725586,
+      "staticAlpha": 150,
+      "movingAlpha": 0
+    },
+    {
+      "engineSpeed": 0.08089999854564667,
+      "angle": 0.0,
+      "timeStep": 0,
+      "nextAngle": 0.0,
+      "staticAlpha": 149,
+      "movingAlpha": 1
+    },
+    {
+      "engineSpeed": 0.08089999854564667,
+      "angle": 0.0,
+      "timeStep": 0.5,
+      "nextAngle": 0.040449999272823334,
+      "staticAlpha": 149,
+      "movingAlpha": 1
+    },
+    {
+      "engineSpeed": 0.08089999854564667,
+      "angle": 0.0,
+      "timeStep": 1,
+      "nextAngle": 0.08089999854564667,
+      "staticAlpha": 149,
+      "movingAlpha": 1
+    },
+    {
+      "engineSpeed": 0.08089999854564667,
+      "angle": 0.0,
+      "timeStep": 3,
+      "nextAngle": 0.24269999563694,
+      "staticAlpha": 149,
+      "movingAlpha": 1
+    },
+    {
+      "engineSpeed": 0.08089999854564667,
+      "angle": 6.25,
+      "timeStep": 0,
+      "nextAngle": 6.25,
+      "staticAlpha": 149,
+      "movingAlpha": 1
+    },
+    {
+      "engineSpeed": 0.08089999854564667,
+      "angle": 6.25,
+      "timeStep": 0.5,
+      "nextAngle": 0.007264614105224609,
+      "staticAlpha": 149,
+      "movingAlpha": 1
+    },
+    {
+      "engineSpeed": 0.08089999854564667,
+      "angle": 6.25,
+      "timeStep": 1,
+      "nextAngle": 0.0477147102355957,
+      "staticAlpha": 149,
+      "movingAlpha": 1
+    },
+    {
+      "engineSpeed": 0.08089999854564667,
+      "angle": 6.25,
+      "timeStep": 3,
+      "nextAngle": 0.20951461791992188,
+      "staticAlpha": 149,
+      "movingAlpha": 1
+    },
+    {
+      "engineSpeed": 0.08089999854564667,
+      "angle": 6.2831854820251465,
+      "timeStep": 0,
+      "nextAngle": 6.2831854820251465,
+      "staticAlpha": 149,
+      "movingAlpha": 1
+    },
+    {
+      "engineSpeed": 0.08089999854564667,
+      "angle": 6.2831854820251465,
+      "timeStep": 0.5,
+      "nextAngle": 0.040450096130371094,
+      "staticAlpha": 149,
+      "movingAlpha": 1
+    },
+    {
+      "engineSpeed": 0.08089999854564667,
+      "angle": 6.2831854820251465,
+      "timeStep": 1,
+      "nextAngle": 0.08090019226074219,
+      "staticAlpha": 149,
+      "movingAlpha": 1
+    },
+    {
+      "engineSpeed": 0.08089999854564667,
+      "angle": 6.2831854820251465,
+      "timeStep": 3,
+      "nextAngle": 0.24270009994506836,
+      "staticAlpha": 149,
+      "movingAlpha": 1
+    },
+    {
+      "engineSpeed": 0.10000000149011612,
+      "angle": 0.0,
+      "timeStep": 0,
+      "nextAngle": 0.0,
+      "staticAlpha": 125,
+      "movingAlpha": 25
+    },
+    {
+      "engineSpeed": 0.10000000149011612,
+      "angle": 0.0,
+      "timeStep": 0.5,
+      "nextAngle": 0.05000000074505806,
+      "staticAlpha": 125,
+      "movingAlpha": 25
+    },
+    {
+      "engineSpeed": 0.10000000149011612,
+      "angle": 0.0,
+      "timeStep": 1,
+      "nextAngle": 0.10000000149011612,
+      "staticAlpha": 125,
+      "movingAlpha": 25
+    },
+    {
+      "engineSpeed": 0.10000000149011612,
+      "angle": 0.0,
+      "timeStep": 3,
+      "nextAngle": 0.30000001192092896,
+      "staticAlpha": 125,
+      "movingAlpha": 25
+    },
+    {
+      "engineSpeed": 0.10000000149011612,
+      "angle": 6.25,
+      "timeStep": 0,
+      "nextAngle": 6.25,
+      "staticAlpha": 125,
+      "movingAlpha": 25
+    },
+    {
+      "engineSpeed": 0.10000000149011612,
+      "angle": 6.25,
+      "timeStep": 0.5,
+      "nextAngle": 0.016814708709716797,
+      "staticAlpha": 125,
+      "movingAlpha": 25
+    },
+    {
+      "engineSpeed": 0.10000000149011612,
+      "angle": 6.25,
+      "timeStep": 1,
+      "nextAngle": 0.06681442260742188,
+      "staticAlpha": 125,
+      "movingAlpha": 25
+    },
+    {
+      "engineSpeed": 0.10000000149011612,
+      "angle": 6.25,
+      "timeStep": 3,
+      "nextAngle": 0.2668147087097168,
+      "staticAlpha": 125,
+      "movingAlpha": 25
+    },
+    {
+      "engineSpeed": 0.10000000149011612,
+      "angle": 6.2831854820251465,
+      "timeStep": 0,
+      "nextAngle": 6.2831854820251465,
+      "staticAlpha": 125,
+      "movingAlpha": 25
+    },
+    {
+      "engineSpeed": 0.10000000149011612,
+      "angle": 6.2831854820251465,
+      "timeStep": 0.5,
+      "nextAngle": 0.05000019073486328,
+      "staticAlpha": 125,
+      "movingAlpha": 25
+    },
+    {
+      "engineSpeed": 0.10000000149011612,
+      "angle": 6.2831854820251465,
+      "timeStep": 1,
+      "nextAngle": 0.09999990463256836,
+      "staticAlpha": 125,
+      "movingAlpha": 25
+    },
+    {
+      "engineSpeed": 0.10000000149011612,
+      "angle": 6.2831854820251465,
+      "timeStep": 3,
+      "nextAngle": 0.3000001907348633,
+      "staticAlpha": 125,
+      "movingAlpha": 25
+    },
+    {
+      "engineSpeed": 0.18000000715255737,
+      "angle": 0.0,
+      "timeStep": 0,
+      "nextAngle": 0.0,
+      "staticAlpha": 21,
+      "movingAlpha": 129
+    },
+    {
+      "engineSpeed": 0.18000000715255737,
+      "angle": 0.0,
+      "timeStep": 0.5,
+      "nextAngle": 0.09000000357627869,
+      "staticAlpha": 21,
+      "movingAlpha": 129
+    },
+    {
+      "engineSpeed": 0.18000000715255737,
+      "angle": 0.0,
+      "timeStep": 1,
+      "nextAngle": 0.18000000715255737,
+      "staticAlpha": 21,
+      "movingAlpha": 129
+    },
+    {
+      "engineSpeed": 0.18000000715255737,
+      "angle": 0.0,
+      "timeStep": 3,
+      "nextAngle": 0.5400000214576721,
+      "staticAlpha": 21,
+      "movingAlpha": 129
+    },
+    {
+      "engineSpeed": 0.18000000715255737,
+      "angle": 6.25,
+      "timeStep": 0,
+      "nextAngle": 6.25,
+      "staticAlpha": 21,
+      "movingAlpha": 129
+    },
+    {
+      "engineSpeed": 0.18000000715255737,
+      "angle": 6.25,
+      "timeStep": 0.5,
+      "nextAngle": 0.05681467056274414,
+      "staticAlpha": 21,
+      "movingAlpha": 129
+    },
+    {
+      "engineSpeed": 0.18000000715255737,
+      "angle": 6.25,
+      "timeStep": 1,
+      "nextAngle": 0.14681434631347656,
+      "staticAlpha": 21,
+      "movingAlpha": 129
+    },
+    {
+      "engineSpeed": 0.18000000715255737,
+      "angle": 6.25,
+      "timeStep": 3,
+      "nextAngle": 0.5068144798278809,
+      "staticAlpha": 21,
+      "movingAlpha": 129
+    },
+    {
+      "engineSpeed": 0.18000000715255737,
+      "angle": 6.2831854820251465,
+      "timeStep": 0,
+      "nextAngle": 6.2831854820251465,
+      "staticAlpha": 21,
+      "movingAlpha": 129
+    },
+    {
+      "engineSpeed": 0.18000000715255737,
+      "angle": 6.2831854820251465,
+      "timeStep": 0.5,
+      "nextAngle": 0.09000015258789062,
+      "staticAlpha": 21,
+      "movingAlpha": 129
+    },
+    {
+      "engineSpeed": 0.18000000715255737,
+      "angle": 6.2831854820251465,
+      "timeStep": 1,
+      "nextAngle": 0.17999982833862305,
+      "staticAlpha": 21,
+      "movingAlpha": 129
+    },
+    {
+      "engineSpeed": 0.18000000715255737,
+      "angle": 6.2831854820251465,
+      "timeStep": 3,
+      "nextAngle": 0.5399999618530273,
+      "staticAlpha": 21,
+      "movingAlpha": 129
+    },
+    {
+      "engineSpeed": 0.19634950160980225,
+      "angle": 0.0,
+      "timeStep": 0,
+      "nextAngle": 0.0,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.19634950160980225,
+      "angle": 0.0,
+      "timeStep": 0.5,
+      "nextAngle": 0.09817475080490112,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.19634950160980225,
+      "angle": 0.0,
+      "timeStep": 1,
+      "nextAngle": 0.19634950160980225,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.19634950160980225,
+      "angle": 0.0,
+      "timeStep": 3,
+      "nextAngle": 0.5890485048294067,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.19634950160980225,
+      "angle": 6.25,
+      "timeStep": 0,
+      "nextAngle": 6.25,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.19634950160980225,
+      "angle": 6.25,
+      "timeStep": 0.5,
+      "nextAngle": 0.06498908996582031,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.19634950160980225,
+      "angle": 6.25,
+      "timeStep": 1,
+      "nextAngle": 0.1631641387939453,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.19634950160980225,
+      "angle": 6.25,
+      "timeStep": 3,
+      "nextAngle": 0.5558629035949707,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.19634950160980225,
+      "angle": 6.2831854820251465,
+      "timeStep": 0,
+      "nextAngle": 6.2831854820251465,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.19634950160980225,
+      "angle": 6.2831854820251465,
+      "timeStep": 0.5,
+      "nextAngle": 0.0981745719909668,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.19634950160980225,
+      "angle": 6.2831854820251465,
+      "timeStep": 1,
+      "nextAngle": 0.1963496208190918,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.19634950160980225,
+      "angle": 6.2831854820251465,
+      "timeStep": 3,
+      "nextAngle": 0.5890483856201172,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.25,
+      "angle": 0.0,
+      "timeStep": 0,
+      "nextAngle": 0.0,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.25,
+      "angle": 0.0,
+      "timeStep": 0.5,
+      "nextAngle": 0.125,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.25,
+      "angle": 0.0,
+      "timeStep": 1,
+      "nextAngle": 0.25,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.25,
+      "angle": 0.0,
+      "timeStep": 3,
+      "nextAngle": 0.75,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.25,
+      "angle": 6.25,
+      "timeStep": 0,
+      "nextAngle": 6.25,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.25,
+      "angle": 6.25,
+      "timeStep": 0.5,
+      "nextAngle": 0.09181451797485352,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.25,
+      "angle": 6.25,
+      "timeStep": 1,
+      "nextAngle": 0.21681451797485352,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.25,
+      "angle": 6.25,
+      "timeStep": 3,
+      "nextAngle": 0.7168145179748535,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.25,
+      "angle": 6.2831854820251465,
+      "timeStep": 0,
+      "nextAngle": 6.2831854820251465,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.25,
+      "angle": 6.2831854820251465,
+      "timeStep": 0.5,
+      "nextAngle": 0.125,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.25,
+      "angle": 6.2831854820251465,
+      "timeStep": 1,
+      "nextAngle": 0.25,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.25,
+      "angle": 6.2831854820251465,
+      "timeStep": 3,
+      "nextAngle": 0.75,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.3400000035762787,
+      "angle": 0.0,
+      "timeStep": 0,
+      "nextAngle": 0.0,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.3400000035762787,
+      "angle": 0.0,
+      "timeStep": 0.5,
+      "nextAngle": 0.17000000178813934,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.3400000035762787,
+      "angle": 0.0,
+      "timeStep": 1,
+      "nextAngle": 0.3400000035762787,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.3400000035762787,
+      "angle": 0.0,
+      "timeStep": 3,
+      "nextAngle": 1.0199999809265137,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.3400000035762787,
+      "angle": 6.25,
+      "timeStep": 0,
+      "nextAngle": 6.25,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.3400000035762787,
+      "angle": 6.25,
+      "timeStep": 0.5,
+      "nextAngle": 0.13681459426879883,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.3400000035762787,
+      "angle": 6.25,
+      "timeStep": 1,
+      "nextAngle": 0.30681467056274414,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.3400000035762787,
+      "angle": 6.25,
+      "timeStep": 3,
+      "nextAngle": 0.9868144989013672,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.3400000035762787,
+      "angle": 6.2831854820251465,
+      "timeStep": 0,
+      "nextAngle": 6.2831854820251465,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.3400000035762787,
+      "angle": 6.2831854820251465,
+      "timeStep": 0.5,
+      "nextAngle": 0.1700000762939453,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.3400000035762787,
+      "angle": 6.2831854820251465,
+      "timeStep": 1,
+      "nextAngle": 0.3400001525878906,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.3400000035762787,
+      "angle": 6.2831854820251465,
+      "timeStep": 3,
+      "nextAngle": 1.0199999809265137,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.5,
+      "angle": 0.0,
+      "timeStep": 0,
+      "nextAngle": 0.0,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.5,
+      "angle": 0.0,
+      "timeStep": 0.5,
+      "nextAngle": 0.25,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.5,
+      "angle": 0.0,
+      "timeStep": 1,
+      "nextAngle": 0.5,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.5,
+      "angle": 0.0,
+      "timeStep": 3,
+      "nextAngle": 1.5,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.5,
+      "angle": 6.25,
+      "timeStep": 0,
+      "nextAngle": 6.25,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.5,
+      "angle": 6.25,
+      "timeStep": 0.5,
+      "nextAngle": 0.21681451797485352,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.5,
+      "angle": 6.25,
+      "timeStep": 1,
+      "nextAngle": 0.4668145179748535,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.5,
+      "angle": 6.25,
+      "timeStep": 3,
+      "nextAngle": 1.4668145179748535,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.5,
+      "angle": 6.2831854820251465,
+      "timeStep": 0,
+      "nextAngle": 6.2831854820251465,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.5,
+      "angle": 6.2831854820251465,
+      "timeStep": 0.5,
+      "nextAngle": 0.25,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.5,
+      "angle": 6.2831854820251465,
+      "timeStep": 1,
+      "nextAngle": 0.5,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    },
+    {
+      "engineSpeed": 0.5,
+      "angle": 6.2831854820251465,
+      "timeStep": 3,
+      "nextAngle": 1.5,
+      "staticAlpha": 0,
+      "movingAlpha": 150
+    }
+  ]
+}

@@ -49,12 +49,12 @@ export function worldBikeAudioInput(bike:WorldBike,playerAlive:boolean):NativeVe
   wheels:wheels?{...(bike.quad?bike.quadWheels:a),contactWheels:a.contactWheels,driveOnGround:a.driveOnGround,driveOnGroundLastFrame:a.driveOnGroundLastFrame,spinForAudio:a.spinForAudio}:undefined,
   bike:bike.quad?undefined:{leanAngle:bike.lean,playerBoost:false},bmx:bike.motorbike?undefined:{freewheeling:wheels&&bike.freewheeling}};
 }
-/** CBoat state for the vehicle audio entity. Only CJ drives boats here, so an empty one's engine is off (bEngineOn). */
+/** CBoat state for vehicle audio: script physics status and its engine flag are independent of CJ's occupancy. */
 export function worldBoatAudioInput(boat:WorldBoat,playerAlive:boolean):NativeVehicleAudioInput{
  const body=boat.body,lin=body.linvel();
  return {position:native(body.translation()),...axes(body.rotation()),moveSpeed:{x:lin.x/50,y:-lin.z/50,z:lin.y/50},
-  status:boat.wrecked?'wrecked':boat.occupied?'player':'abandoned',playerDriver:boat.occupied,playerInVehicle:boat.occupied,playerAlive,
-  engineOn:boat.occupied&&!boat.wrecked,gasPedal:boat.gasPedal,brakePedal:boat.brakePedal,handbrake:false,gear:0,
+  status:boat.wrecked?'wrecked':boat.occupied?'player':boat.pilot?.physics?'physics':'abandoned',playerDriver:boat.occupied,playerInVehicle:boat.occupied,playerAlive,
+  engineOn:!boat.wrecked&&(boat.occupied||!!boat.pilot?.engineOn),gasPedal:boat.gasPedal,brakePedal:boat.brakePedal,handbrake:false,gear:0,
   padAccelerate:boat.occupied?Math.max(0,boat.throttle):0,padBrake:boat.occupied?Math.max(0,-boat.throttle):0,
   health:boat.health,drowning:false,underwater:false,towing:false,horn:{counter:0,pattern:0},sirenOrAlarm:false,alarmState:0,
   boat:{engineSpeed:boat.engineSpeed,inWater:boat.inWater}};

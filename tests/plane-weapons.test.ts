@@ -31,8 +31,9 @@ test('both checks require a forward dot greater than 0.8; weapon selection gates
 
 function setup(){
  const sim=new Simulation();
- sim.player.position={x:0,y:99.1,z:-100};sim.player.previous={...sim.player.position};
- sim.playerBody.setTranslation({x:0,y:100,z:-100},true);
+ // The Rustler's first native gun hard point is on its right wing, not the fuselage centreline.
+ sim.player.position={x:2.19,y:99.1,z:-100};sim.player.previous={...sim.player.position};
+ sim.playerBody.setTranslation({x:2.19,y:100,z:-100},true);
  const body=sim.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,100,0));
  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(2,1,4),body);
  const plane={body,modelId:476,occupied:false,health:1000,armed:true,helicopter:false,frozen:false,weaponSelection:0,
@@ -76,7 +77,7 @@ test('guns hit the first obstacle, with per-vehicle clocks retained when control
 for(const victim of ['ped','boat'] as const)test(`enemy gun damage to a ${victim} preserves attribution`,()=>{
  const f=setup();
  try{
-  const b=f.sim.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,100,-50));
+  const b=f.sim.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(2.19,100,-50));
   const c=f.sim.world.createCollider(RAPIER.ColliderDesc.cuboid(2,2,2),b);
   const damage=vi.fn(()=>true);
   if(victim==='ped')f.crowd.damageCollider.mockImplementation(h=>h===c.handle?{id:7,officer:true}:false);
@@ -114,7 +115,7 @@ test('attack missions require a vehicle target, and follow, crashed, frozen, des
  try{
   for(const mission of [35,59,37,57,58,0]){f.plane.planePilot!.mission=mission;f.weapons.tick(.02);}
   expect(f.weapons.aircraftShots).toBe(0);
-  const b=f.sim.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,100,-100));
+  const b=f.sim.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(2.19,100,-100));
   const damage=vi.fn(()=>false);f.sim.world.createCollider(RAPIER.ColliderDesc.cuboid(2,2,2),b);
   f.boats.push({body:b,occupied:true,wrecked:false,damage});f.sim.playerCollider.setEnabled(false);f.sim.world.step();
   for(const mission of [35,59]){f.plane.planePilot!.mission=mission;f.weapons.tick(.1);}

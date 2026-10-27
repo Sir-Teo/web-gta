@@ -1,0 +1,5138 @@
+{
+  "source": "Pinned iOS arm64 CVehicle::DoFixedMachineGuns/FireFixedMachineGuns; pad/RNG/aim/shot/audio logged stubs, actual matrix-transform instructions executed",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "wrapper": "0x10049b9f8",
+  "fire": "0x10049baa4",
+  "transformPoint": "0x1002cb450",
+  "aiming": "Endpoints are captured before DoTankDoomAiming; aiming stub leaves them unchanged",
+  "cases": [
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            12.079999923706055,
+            52.58000183105469,
+            1.440000057220459
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            12.079999923706055,
+            52.58000183105469,
+            1.440000057220459
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            8.079999923706055,
+            52.58000183105469,
+            1.440000057220459
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            8.079999923706055,
+            52.58000183105469,
+            1.440000057220459
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          255,
+          255,
+          255,
+          255,
+          255,
+          255
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            15.904999732971191,
+            56.404998779296875,
+            6.539999961853027
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            15.904999732971191,
+            56.404998779296875,
+            6.539999961853027
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            11.904999732971191,
+            56.404998779296875,
+            6.539999961853027
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            11.904999732971191,
+            56.404998779296875,
+            6.539999961853027
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          1,
+          128,
+          254,
+          65535,
+          32768,
+          127
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 1
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 254
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            12.095000267028809,
+            54.5,
+            6.519999980926514
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            12.095000267028809,
+            54.5,
+            6.519999980926514
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 65535
+        },
+        {
+          "call": "random",
+          "value": 32768
+        },
+        {
+          "call": "random",
+          "value": 127
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            11.904999732971191,
+            52.58000183105469,
+            3.9800000190734863
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            11.904999732971191,
+            52.58000183105469,
+            3.9800000190734863
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          6.123234262925839e-17,
+          1.0,
+          0.0,
+          0.0,
+          -1.0,
+          6.123234262925839e-17,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            9.5,
+            -6.0,
+            4.0
+          ],
+          "end": [
+            -50.5,
+            -6.0,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            9.5,
+            -6.0,
+            4.0
+          ],
+          "end": [
+            -50.5,
+            -6.0,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            9.5,
+            -10.0,
+            4.0
+          ],
+          "end": [
+            -50.5,
+            -10.0,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            9.5,
+            -10.0,
+            4.0
+          ],
+          "end": [
+            -50.5,
+            -10.0,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          6.123234262925839e-17,
+          1.0,
+          0.0,
+          0.0,
+          -1.0,
+          6.123234262925839e-17,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "aim",
+          "start": [
+            9.5,
+            -6.0,
+            4.0
+          ],
+          "end": [
+            -52.41999816894531,
+            -7.920000076293945,
+            1.440000057220459
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            9.5,
+            -6.0,
+            4.0
+          ],
+          "end": [
+            -52.41999816894531,
+            -7.920000076293945,
+            1.440000057220459
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "aim",
+          "start": [
+            9.5,
+            -10.0,
+            4.0
+          ],
+          "end": [
+            -52.41999816894531,
+            -11.920000076293945,
+            1.440000057220459
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            9.5,
+            -10.0,
+            4.0
+          ],
+          "end": [
+            -52.41999816894531,
+            -11.920000076293945,
+            1.440000057220459
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          6.123234262925839e-17,
+          1.0,
+          0.0,
+          0.0,
+          -1.0,
+          6.123234262925839e-17,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          255,
+          255,
+          255,
+          255,
+          255,
+          255
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "aim",
+          "start": [
+            9.5,
+            -6.0,
+            4.0
+          ],
+          "end": [
+            -48.595001220703125,
+            -4.095000267028809,
+            6.539999961853027
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            9.5,
+            -6.0,
+            4.0
+          ],
+          "end": [
+            -48.595001220703125,
+            -4.095000267028809,
+            6.539999961853027
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "aim",
+          "start": [
+            9.5,
+            -10.0,
+            4.0
+          ],
+          "end": [
+            -48.595001220703125,
+            -8.095000267028809,
+            6.539999961853027
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            9.5,
+            -10.0,
+            4.0
+          ],
+          "end": [
+            -48.595001220703125,
+            -8.095000267028809,
+            6.539999961853027
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          6.123234262925839e-17,
+          1.0,
+          0.0,
+          0.0,
+          -1.0,
+          6.123234262925839e-17,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          1,
+          128,
+          254,
+          65535,
+          32768,
+          127
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 1
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 254
+        },
+        {
+          "call": "aim",
+          "start": [
+            9.5,
+            -6.0,
+            4.0
+          ],
+          "end": [
+            -52.404998779296875,
+            -6.0,
+            6.519999980926514
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            9.5,
+            -6.0,
+            4.0
+          ],
+          "end": [
+            -52.404998779296875,
+            -6.0,
+            6.519999980926514
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 65535
+        },
+        {
+          "call": "random",
+          "value": 32768
+        },
+        {
+          "call": "random",
+          "value": 127
+        },
+        {
+          "call": "aim",
+          "start": [
+            9.5,
+            -10.0,
+            4.0
+          ],
+          "end": [
+            -48.595001220703125,
+            -11.920000076293945,
+            3.9800000190734863
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            9.5,
+            -10.0,
+            4.0
+          ],
+          "end": [
+            -48.595001220703125,
+            -11.920000076293945,
+            3.9800000190734863
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          6.123234262925839e-17,
+          -1.0,
+          0.0,
+          0.0,
+          1.0,
+          6.123234262925839e-17,
+          0.0,
+          0.0,
+          -0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.5,
+            -10.0,
+            4.0
+          ],
+          "end": [
+            74.5,
+            -10.0,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.5,
+            -10.0,
+            4.0
+          ],
+          "end": [
+            74.5,
+            -10.0,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.5,
+            -6.0,
+            4.0
+          ],
+          "end": [
+            74.5,
+            -6.0,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.5,
+            -6.0,
+            4.0
+          ],
+          "end": [
+            74.5,
+            -6.0,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          6.123234262925839e-17,
+          -1.0,
+          0.0,
+          0.0,
+          1.0,
+          6.123234262925839e-17,
+          0.0,
+          0.0,
+          -0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.5,
+            -10.0,
+            4.0
+          ],
+          "end": [
+            72.58000183105469,
+            -11.920000076293945,
+            1.440000057220459
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.5,
+            -10.0,
+            4.0
+          ],
+          "end": [
+            72.58000183105469,
+            -11.920000076293945,
+            1.440000057220459
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.5,
+            -6.0,
+            4.0
+          ],
+          "end": [
+            72.58000183105469,
+            -7.920000076293945,
+            1.440000057220459
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.5,
+            -6.0,
+            4.0
+          ],
+          "end": [
+            72.58000183105469,
+            -7.920000076293945,
+            1.440000057220459
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          6.123234262925839e-17,
+          -1.0,
+          0.0,
+          0.0,
+          1.0,
+          6.123234262925839e-17,
+          0.0,
+          0.0,
+          -0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          255,
+          255,
+          255,
+          255,
+          255,
+          255
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.5,
+            -10.0,
+            4.0
+          ],
+          "end": [
+            76.40499877929688,
+            -8.095000267028809,
+            6.539999961853027
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.5,
+            -10.0,
+            4.0
+          ],
+          "end": [
+            76.40499877929688,
+            -8.095000267028809,
+            6.539999961853027
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.5,
+            -6.0,
+            4.0
+          ],
+          "end": [
+            76.40499877929688,
+            -4.095000267028809,
+            6.539999961853027
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.5,
+            -6.0,
+            4.0
+          ],
+          "end": [
+            76.40499877929688,
+            -4.095000267028809,
+            6.539999961853027
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          6.123234262925839e-17,
+          -1.0,
+          0.0,
+          0.0,
+          1.0,
+          6.123234262925839e-17,
+          0.0,
+          0.0,
+          -0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          1,
+          128,
+          254,
+          65535,
+          32768,
+          127
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 1
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 254
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.5,
+            -10.0,
+            4.0
+          ],
+          "end": [
+            72.59500122070312,
+            -10.0,
+            6.519999980926514
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.5,
+            -10.0,
+            4.0
+          ],
+          "end": [
+            72.59500122070312,
+            -10.0,
+            6.519999980926514
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 65535
+        },
+        {
+          "call": "random",
+          "value": 32768
+        },
+        {
+          "call": "random",
+          "value": 127
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.5,
+            -6.0,
+            4.0
+          ],
+          "end": [
+            76.40499877929688,
+            -7.920000076293945,
+            3.9800000190734863
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.5,
+            -6.0,
+            4.0
+          ],
+          "end": [
+            76.40499877929688,
+            -7.920000076293945,
+            3.9800000190734863
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          -1.0,
+          1.2246468525851679e-16,
+          0.0,
+          0.0,
+          -1.2246468525851679e-16,
+          -1.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -10.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            -70.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -10.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            -70.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -10.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            -70.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -10.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            -70.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          -1.0,
+          1.2246468525851679e-16,
+          0.0,
+          0.0,
+          -1.2246468525851679e-16,
+          -1.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -10.5,
+            4.0
+          ],
+          "end": [
+            8.079999923706055,
+            -72.41999816894531,
+            1.440000057220459
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -10.5,
+            4.0
+          ],
+          "end": [
+            8.079999923706055,
+            -72.41999816894531,
+            1.440000057220459
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -10.5,
+            4.0
+          ],
+          "end": [
+            12.079999923706055,
+            -72.41999816894531,
+            1.440000057220459
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -10.5,
+            4.0
+          ],
+          "end": [
+            12.079999923706055,
+            -72.41999816894531,
+            1.440000057220459
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          -1.0,
+          1.2246468525851679e-16,
+          0.0,
+          0.0,
+          -1.2246468525851679e-16,
+          -1.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          255,
+          255,
+          255,
+          255,
+          255,
+          255
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -10.5,
+            4.0
+          ],
+          "end": [
+            11.904999732971191,
+            -68.59500122070312,
+            6.539999961853027
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -10.5,
+            4.0
+          ],
+          "end": [
+            11.904999732971191,
+            -68.59500122070312,
+            6.539999961853027
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -10.5,
+            4.0
+          ],
+          "end": [
+            15.904999732971191,
+            -68.59500122070312,
+            6.539999961853027
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -10.5,
+            4.0
+          ],
+          "end": [
+            15.904999732971191,
+            -68.59500122070312,
+            6.539999961853027
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          -1.0,
+          1.2246468525851679e-16,
+          0.0,
+          0.0,
+          -1.2246468525851679e-16,
+          -1.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          1,
+          128,
+          254,
+          65535,
+          32768,
+          127
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 1
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 254
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -10.5,
+            4.0
+          ],
+          "end": [
+            8.095000267028809,
+            -70.5,
+            6.519999980926514
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -10.5,
+            4.0
+          ],
+          "end": [
+            8.095000267028809,
+            -70.5,
+            6.519999980926514
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 65535
+        },
+        {
+          "call": "random",
+          "value": 32768
+        },
+        {
+          "call": "random",
+          "value": 127
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -10.5,
+            4.0
+          ],
+          "end": [
+            15.904999732971191,
+            -72.41999816894531,
+            3.9800000190734863
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -10.5,
+            4.0
+          ],
+          "end": [
+            15.904999732971191,
+            -72.41999816894531,
+            3.9800000190734863
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          0.7648422122001648,
+          0.6442176699638367,
+          0.0,
+          0.0,
+          -0.5933637619018555,
+          0.7044662833213806,
+          0.3894183337688446,
+          0.0,
+          0.2508701980113983,
+          -0.2978435754776001,
+          0.9210609793663025,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            12.297144889831543,
+            -5.248242378234863,
+            4.894606590270996
+          ],
+          "end": [
+            -26.355918884277344,
+            40.64229202270508,
+            4.894606590270996
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            12.297144889831543,
+            -5.248242378234863,
+            4.894606590270996
+          ],
+          "end": [
+            -26.355918884277344,
+            40.64229202270508,
+            4.894606590270996
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            9.237775802612305,
+            -7.825113296508789,
+            4.894606590270996
+          ],
+          "end": [
+            -29.4152889251709,
+            38.06542205810547,
+            4.894606590270996
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            9.237775802612305,
+            -7.825113296508789,
+            4.894606590270996
+          ],
+          "end": [
+            -29.4152889251709,
+            38.06542205810547,
+            4.894606590270996
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          0.7648422122001648,
+          0.6442176699638367,
+          0.0,
+          0.0,
+          -0.5933637619018555,
+          0.7044662833213806,
+          0.3894183337688446,
+          0.0,
+          0.2508701980113983,
+          -0.2978435754776001,
+          0.9210609793663025,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "aim",
+          "start": [
+            12.297144889831543,
+            -5.248242378234863,
+            4.894606590270996
+          ],
+          "end": [
+            -28.27591896057129,
+            38.722293853759766,
+            2.334606647491455
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            12.297144889831543,
+            -5.248242378234863,
+            4.894606590270996
+          ],
+          "end": [
+            -28.27591896057129,
+            38.722293853759766,
+            2.334606647491455
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "aim",
+          "start": [
+            9.237775802612305,
+            -7.825113296508789,
+            4.894606590270996
+          ],
+          "end": [
+            -31.335289001464844,
+            36.145423889160156,
+            2.334606647491455
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            9.237775802612305,
+            -7.825113296508789,
+            4.894606590270996
+          ],
+          "end": [
+            -31.335289001464844,
+            36.145423889160156,
+            2.334606647491455
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          0.7648422122001648,
+          0.6442176699638367,
+          0.0,
+          0.0,
+          -0.5933637619018555,
+          0.7044662833213806,
+          0.3894183337688446,
+          0.0,
+          0.2508701980113983,
+          -0.2978435754776001,
+          0.9210609793663025,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          255,
+          255,
+          255,
+          255,
+          255,
+          255
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "aim",
+          "start": [
+            12.297144889831543,
+            -5.248242378234863,
+            4.894606590270996
+          ],
+          "end": [
+            -24.450918197631836,
+            42.54729080200195,
+            7.434606552124023
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            12.297144889831543,
+            -5.248242378234863,
+            4.894606590270996
+          ],
+          "end": [
+            -24.450918197631836,
+            42.54729080200195,
+            7.434606552124023
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "aim",
+          "start": [
+            9.237775802612305,
+            -7.825113296508789,
+            4.894606590270996
+          ],
+          "end": [
+            -27.51028823852539,
+            39.970420837402344,
+            7.434606552124023
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            9.237775802612305,
+            -7.825113296508789,
+            4.894606590270996
+          ],
+          "end": [
+            -27.51028823852539,
+            39.970420837402344,
+            7.434606552124023
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          0.7648422122001648,
+          0.6442176699638367,
+          0.0,
+          0.0,
+          -0.5933637619018555,
+          0.7044662833213806,
+          0.3894183337688446,
+          0.0,
+          0.2508701980113983,
+          -0.2978435754776001,
+          0.9210609793663025,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          1,
+          128,
+          254,
+          65535,
+          32768,
+          127
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 1
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 254
+        },
+        {
+          "call": "aim",
+          "start": [
+            12.297144889831543,
+            -5.248242378234863,
+            4.894606590270996
+          ],
+          "end": [
+            -28.26091957092285,
+            40.64229202270508,
+            7.41460657119751
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            12.297144889831543,
+            -5.248242378234863,
+            4.894606590270996
+          ],
+          "end": [
+            -28.26091957092285,
+            40.64229202270508,
+            7.41460657119751
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 65535
+        },
+        {
+          "call": "random",
+          "value": 32768
+        },
+        {
+          "call": "random",
+          "value": 127
+        },
+        {
+          "call": "aim",
+          "start": [
+            9.237775802612305,
+            -7.825113296508789,
+            4.894606590270996
+          ],
+          "end": [
+            -27.51028823852539,
+            36.145423889160156,
+            4.874606609344482
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            9.237775802612305,
+            -7.825113296508789,
+            4.894606590270996
+          ],
+          "end": [
+            -27.51028823852539,
+            36.145423889160156,
+            4.874606609344482
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          6.123234262925839e-17,
+          1.0,
+          0.0,
+          0.0,
+          -1.0,
+          6.123234262925839e-17,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -9.0,
+            5.5
+          ],
+          "end": [
+            14.0,
+            -9.0,
+            5.5
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -9.0,
+            5.5
+          ],
+          "end": [
+            14.0,
+            -9.0,
+            5.5
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -9.0,
+            5.5
+          ],
+          "end": [
+            10.0,
+            -9.0,
+            5.5
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -9.0,
+            5.5
+          ],
+          "end": [
+            10.0,
+            -9.0,
+            5.5
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          6.123234262925839e-17,
+          1.0,
+          0.0,
+          0.0,
+          -1.0,
+          6.123234262925839e-17,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -9.0,
+            5.5
+          ],
+          "end": [
+            12.079999923706055,
+            -10.920000076293945,
+            2.940000057220459
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -9.0,
+            5.5
+          ],
+          "end": [
+            12.079999923706055,
+            -10.920000076293945,
+            2.940000057220459
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "random",
+          "value": 0
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -9.0,
+            5.5
+          ],
+          "end": [
+            8.079999923706055,
+            -10.920000076293945,
+            2.940000057220459
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -9.0,
+            5.5
+          ],
+          "end": [
+            8.079999923706055,
+            -10.920000076293945,
+            2.940000057220459
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          6.123234262925839e-17,
+          1.0,
+          0.0,
+          0.0,
+          -1.0,
+          6.123234262925839e-17,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          255,
+          255,
+          255,
+          255,
+          255,
+          255
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -9.0,
+            5.5
+          ],
+          "end": [
+            15.904999732971191,
+            -7.095000267028809,
+            8.039999961853027
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -9.0,
+            5.5
+          ],
+          "end": [
+            15.904999732971191,
+            -7.095000267028809,
+            8.039999961853027
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "random",
+          "value": 255
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -9.0,
+            5.5
+          ],
+          "end": [
+            11.904999732971191,
+            -7.095000267028809,
+            8.039999961853027
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -9.0,
+            5.5
+          ],
+          "end": [
+            11.904999732971191,
+            -7.095000267028809,
+            8.039999961853027
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          6.123234262925839e-17,
+          1.0,
+          0.0,
+          0.0,
+          -1.0,
+          6.123234262925839e-17,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          1,
+          128,
+          254,
+          65535,
+          32768,
+          127
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 1
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 254
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -9.0,
+            5.5
+          ],
+          "end": [
+            12.095000267028809,
+            -9.0,
+            8.020000457763672
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -9.0,
+            5.5
+          ],
+          "end": [
+            12.095000267028809,
+            -9.0,
+            8.020000457763672
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 65535
+        },
+        {
+          "call": "random",
+          "value": 32768
+        },
+        {
+          "call": "random",
+          "value": 127
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -9.0,
+            5.5
+          ],
+          "end": [
+            11.904999732971191,
+            -10.920000076293945,
+            5.480000019073486
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -9.0,
+            5.5
+          ],
+          "end": [
+            11.904999732971191,
+            -10.920000076293945,
+            5.480000019073486
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 0,
+        "lastShotMs": 0,
+        "clip": 1,
+        "pressed": false,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        }
+      ],
+      "lastShotMs": 0,
+      "clip": 1
+    },
+    {
+      "input": {
+        "nowMs": 0,
+        "lastShotMs": 0,
+        "clip": 1,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        }
+      ],
+      "lastShotMs": 0,
+      "clip": 1
+    },
+    {
+      "input": {
+        "nowMs": 150,
+        "lastShotMs": 0,
+        "clip": 1,
+        "pressed": false,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        }
+      ],
+      "lastShotMs": 0,
+      "clip": 1
+    },
+    {
+      "input": {
+        "nowMs": 150,
+        "lastShotMs": 0,
+        "clip": 1,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        }
+      ],
+      "lastShotMs": 0,
+      "clip": 1
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 1,
+        "pressed": false,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        }
+      ],
+      "lastShotMs": 0,
+      "clip": 1
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 1,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 1551,
+      "clip": 20
+    },
+    {
+      "input": {
+        "nowMs": 1400,
+        "lastShotMs": 0,
+        "clip": 1,
+        "pressed": false,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        }
+      ],
+      "lastShotMs": 0,
+      "clip": 1
+    },
+    {
+      "input": {
+        "nowMs": 1400,
+        "lastShotMs": 0,
+        "clip": 1,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 2800,
+      "clip": 20
+    },
+    {
+      "input": {
+        "nowMs": 1401,
+        "lastShotMs": 0,
+        "clip": 1,
+        "pressed": false,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        }
+      ],
+      "lastShotMs": 0,
+      "clip": 20
+    },
+    {
+      "input": {
+        "nowMs": 1401,
+        "lastShotMs": 0,
+        "clip": 1,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 2801,
+      "clip": 20
+    },
+    {
+      "input": {
+        "nowMs": 1550,
+        "lastShotMs": 0,
+        "clip": 1,
+        "pressed": false,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        }
+      ],
+      "lastShotMs": 0,
+      "clip": 20
+    },
+    {
+      "input": {
+        "nowMs": 1550,
+        "lastShotMs": 0,
+        "clip": 1,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 2950,
+      "clip": 20
+    },
+    {
+      "input": {
+        "nowMs": 1551,
+        "lastShotMs": 0,
+        "clip": 1,
+        "pressed": false,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        }
+      ],
+      "lastShotMs": 0,
+      "clip": 20
+    },
+    {
+      "input": {
+        "nowMs": 1551,
+        "lastShotMs": 0,
+        "clip": 1,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 2951,
+      "clip": 20
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 0,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 255
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 1,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 1551,
+      "clip": 20
+    },
+    {
+      "input": {
+        "nowMs": 151,
+        "lastShotMs": 0,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": true,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "pad",
+          "index": 1
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 151,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 2000,
+        "lastShotMs": 0,
+        "clip": 3,
+        "pressed": true,
+        "forward": false,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [],
+      "lastShotMs": 0,
+      "clip": 3
+    },
+    {
+      "input": {
+        "nowMs": 1401,
+        "lastShotMs": 0,
+        "clip": 3,
+        "pressed": true,
+        "forward": true,
+        "gunOff": true,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        }
+      ],
+      "lastShotMs": 0,
+      "clip": 20
+    },
+    {
+      "input": {
+        "nowMs": 10,
+        "lastShotMs": 4294967280,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        }
+      ],
+      "lastShotMs": 4294967280,
+      "clip": 20
+    },
+    {
+      "input": {
+        "nowMs": 135,
+        "lastShotMs": 4294967280,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 135,
+      "clip": 19
+    },
+    {
+      "input": {
+        "nowMs": 4294967295,
+        "lastShotMs": 4294967280,
+        "clip": 20,
+        "pressed": true,
+        "forward": true,
+        "gunOff": false,
+        "player2": false,
+        "matrix": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          -0.0,
+          1.0,
+          0.0,
+          12.0,
+          -8.0,
+          3.0,
+          0.0
+        ],
+        "random": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128
+        ]
+      },
+      "calls": [
+        {
+          "call": "pad",
+          "index": 0
+        },
+        {
+          "call": "trigger"
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            14.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            14.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "random",
+          "value": 128
+        },
+        {
+          "call": "aim",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ]
+        },
+        {
+          "call": "shot",
+          "start": [
+            10.0,
+            -5.5,
+            4.0
+          ],
+          "end": [
+            10.0,
+            54.5,
+            4.0
+          ],
+          "intensity": 15
+        },
+        {
+          "call": "audio",
+          "event": 149,
+          "weapon": 31
+        },
+        {
+          "call": "playerVehicle"
+        }
+      ],
+      "lastShotMs": 4294967295,
+      "clip": 19
+    }
+  ]
+}

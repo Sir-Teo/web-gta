@@ -1,0 +1,7143 @@
+{
+  "source": "Complete selected CTaskSimpleLand::ProcessPed and actual CStats mode 2; declared animation/player/pad stubs, upright ped",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "function": "0x100416148",
+  "modifierFunction": "0x100266300 mode 2",
+  "modifiers": [
+    {
+      "fat": -100.0,
+      "muscle": -100.0,
+      "modifier": 1.01578950881958
+    },
+    {
+      "fat": -100.0,
+      "muscle": 0.0,
+      "modifier": 1.0052632093429565
+    },
+    {
+      "fat": -100.0,
+      "muscle": 49.999996185302734,
+      "modifier": 1.0
+    },
+    {
+      "fat": -100.0,
+      "muscle": 50.0,
+      "modifier": 1.0
+    },
+    {
+      "fat": -100.0,
+      "muscle": 50.000003814697266,
+      "modifier": 1.0
+    },
+    {
+      "fat": -100.0,
+      "muscle": 500.0,
+      "modifier": 0.9526315927505493
+    },
+    {
+      "fat": -100.0,
+      "muscle": 1000.0,
+      "modifier": 0.8999999761581421
+    },
+    {
+      "fat": -100.0,
+      "muscle": 3000.0,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 0.0,
+      "muscle": -100.0,
+      "modifier": 1.01578950881958
+    },
+    {
+      "fat": 0.0,
+      "muscle": 0.0,
+      "modifier": 1.0052632093429565
+    },
+    {
+      "fat": 0.0,
+      "muscle": 49.999996185302734,
+      "modifier": 1.0
+    },
+    {
+      "fat": 0.0,
+      "muscle": 50.0,
+      "modifier": 1.0
+    },
+    {
+      "fat": 0.0,
+      "muscle": 50.000003814697266,
+      "modifier": 1.0
+    },
+    {
+      "fat": 0.0,
+      "muscle": 500.0,
+      "modifier": 0.9526315927505493
+    },
+    {
+      "fat": 0.0,
+      "muscle": 1000.0,
+      "modifier": 0.8999999761581421
+    },
+    {
+      "fat": 0.0,
+      "muscle": 3000.0,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 199.99998474121094,
+      "muscle": -100.0,
+      "modifier": 1.01578950881958
+    },
+    {
+      "fat": 199.99998474121094,
+      "muscle": 0.0,
+      "modifier": 1.0052632093429565
+    },
+    {
+      "fat": 199.99998474121094,
+      "muscle": 49.999996185302734,
+      "modifier": 1.0
+    },
+    {
+      "fat": 199.99998474121094,
+      "muscle": 50.0,
+      "modifier": 1.0
+    },
+    {
+      "fat": 199.99998474121094,
+      "muscle": 50.000003814697266,
+      "modifier": 1.0
+    },
+    {
+      "fat": 199.99998474121094,
+      "muscle": 500.0,
+      "modifier": 0.9526315927505493
+    },
+    {
+      "fat": 199.99998474121094,
+      "muscle": 1000.0,
+      "modifier": 0.8999999761581421
+    },
+    {
+      "fat": 199.99998474121094,
+      "muscle": 3000.0,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 200.0,
+      "muscle": -100.0,
+      "modifier": 1.01578950881958
+    },
+    {
+      "fat": 200.0,
+      "muscle": 0.0,
+      "modifier": 1.0052632093429565
+    },
+    {
+      "fat": 200.0,
+      "muscle": 49.999996185302734,
+      "modifier": 1.0
+    },
+    {
+      "fat": 200.0,
+      "muscle": 50.0,
+      "modifier": 1.0
+    },
+    {
+      "fat": 200.0,
+      "muscle": 50.000003814697266,
+      "modifier": 1.0
+    },
+    {
+      "fat": 200.0,
+      "muscle": 500.0,
+      "modifier": 0.9526315927505493
+    },
+    {
+      "fat": 200.0,
+      "muscle": 1000.0,
+      "modifier": 0.8999999761581421
+    },
+    {
+      "fat": 200.0,
+      "muscle": 3000.0,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 200.00001525878906,
+      "muscle": -100.0,
+      "modifier": 1.01578950881958
+    },
+    {
+      "fat": 200.00001525878906,
+      "muscle": 0.0,
+      "modifier": 1.0052632093429565
+    },
+    {
+      "fat": 200.00001525878906,
+      "muscle": 49.999996185302734,
+      "modifier": 1.0
+    },
+    {
+      "fat": 200.00001525878906,
+      "muscle": 50.0,
+      "modifier": 1.0
+    },
+    {
+      "fat": 200.00001525878906,
+      "muscle": 50.000003814697266,
+      "modifier": 1.0
+    },
+    {
+      "fat": 200.00001525878906,
+      "muscle": 500.0,
+      "modifier": 0.9526315927505493
+    },
+    {
+      "fat": 200.00001525878906,
+      "muscle": 1000.0,
+      "modifier": 0.8999999761581421
+    },
+    {
+      "fat": 200.00001525878906,
+      "muscle": 3000.0,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 500.0,
+      "muscle": -100.0,
+      "modifier": 0.9407894611358643
+    },
+    {
+      "fat": 500.0,
+      "muscle": 0.0,
+      "modifier": 0.9302631616592407
+    },
+    {
+      "fat": 500.0,
+      "muscle": 49.999996185302734,
+      "modifier": 0.925000011920929
+    },
+    {
+      "fat": 500.0,
+      "muscle": 50.0,
+      "modifier": 0.925000011920929
+    },
+    {
+      "fat": 500.0,
+      "muscle": 50.000003814697266,
+      "modifier": 0.925000011920929
+    },
+    {
+      "fat": 500.0,
+      "muscle": 500.0,
+      "modifier": 0.8776316046714783
+    },
+    {
+      "fat": 500.0,
+      "muscle": 1000.0,
+      "modifier": 0.824999988079071
+    },
+    {
+      "fat": 500.0,
+      "muscle": 3000.0,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 1000.0,
+      "muscle": -100.0,
+      "modifier": 0.8157894611358643
+    },
+    {
+      "fat": 1000.0,
+      "muscle": 0.0,
+      "modifier": 0.8052631616592407
+    },
+    {
+      "fat": 1000.0,
+      "muscle": 49.999996185302734,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 1000.0,
+      "muscle": 50.0,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 1000.0,
+      "muscle": 50.000003814697266,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 1000.0,
+      "muscle": 500.0,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 1000.0,
+      "muscle": 1000.0,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 1000.0,
+      "muscle": 3000.0,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 3000.0,
+      "muscle": -100.0,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 3000.0,
+      "muscle": 0.0,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 3000.0,
+      "muscle": 49.999996185302734,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 3000.0,
+      "muscle": 50.0,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 3000.0,
+      "muscle": 50.000003814697266,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 3000.0,
+      "muscle": 500.0,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 3000.0,
+      "muscle": 1000.0,
+      "modifier": 0.800000011920929
+    },
+    {
+      "fat": 3000.0,
+      "muscle": 3000.0,
+      "modifier": 0.800000011920929
+    }
+  ],
+  "cases": [
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 0.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 0.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 0.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0052632093429565,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0052632093429565,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 0.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 0.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 0.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 0.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0052632093429565,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0052632093429565,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 0.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 0.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 0.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 0.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0052632093429565,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0052632093429565,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 0.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 0.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 0.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 0.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 2.010526418685913,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 2.010526418685913,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 0.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.0,
+        "muscle": 50.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.00001525878906,
+        "muscle": 50.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.00001525878906,
+        "muscle": 50.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.00001525878906,
+        "muscle": 50.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.00001525878906,
+        "muscle": 50.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.00001525878906,
+        "muscle": 50.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.00001525878906,
+        "muscle": 50.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.00001525878906,
+        "muscle": 50.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.00001525878906,
+        "muscle": 50.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.00001525878906,
+        "muscle": 50.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.00001525878906,
+        "muscle": 50.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.00001525878906,
+        "muscle": 50.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.00001525878906,
+        "muscle": 50.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.00001525878906,
+        "muscle": 50.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.00001525878906,
+        "muscle": 50.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.00001525878906,
+        "muscle": 50.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 200.00001525878906,
+        "muscle": 50.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 0.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 0.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 0.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 0.8052631616592407,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 0.8052631616592407,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 0.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 0.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 0.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 0.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 0.8052631616592407,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 0.8052631616592407,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 0.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 0.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 0.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 0.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 0.8052631616592407,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 0.8052631616592407,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 0.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 0.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 0.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 0.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.6105263233184814,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.6105263233184814,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 0.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 0.8999999761581421,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 0.8999999761581421,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 0.8999999761581421,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 0.8999999761581421,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 0.8999999761581421,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 0.8999999761581421,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.7999999523162842,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.7999999523162842,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 0.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 0.800000011920929,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 0.800000011920929,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 0.800000011920929,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 0.800000011920929,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 0.800000011920929,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 0.800000011920929,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.600000023841858,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.600000023841858,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": -100.0,
+        "muscle": -100.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": -100.0,
+        "muscle": -100.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": -100.0,
+        "muscle": -100.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.01578950881958,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.01578950881958,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": -100.0,
+        "muscle": -100.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": -100.0,
+        "muscle": -100.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": -100.0,
+        "muscle": -100.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": -100.0,
+        "muscle": -100.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.01578950881958,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.01578950881958,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": -100.0,
+        "muscle": -100.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": -100.0,
+        "muscle": -100.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": -100.0,
+        "muscle": -100.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": -100.0,
+        "muscle": -100.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.01578950881958,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.01578950881958,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": -100.0,
+        "muscle": -100.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": -100.0,
+        "muscle": -100.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": -100.0,
+        "muscle": -100.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": -100.0,
+        "muscle": -100.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 2.03157901763916,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 2.03157901763916,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": -100.0,
+        "muscle": -100.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 500.0,
+        "muscle": 500.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 500.0,
+        "muscle": 500.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 500.0,
+        "muscle": 500.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 0.8776316046714783,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 0.8776316046714783,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 500.0,
+        "muscle": 500.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 500.0,
+        "muscle": 500.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 500.0,
+        "muscle": 500.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 500.0,
+        "muscle": 500.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 0.8776316046714783,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 0.8776316046714783,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 500.0,
+        "muscle": 500.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 500.0,
+        "muscle": 500.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 500.0,
+        "muscle": 500.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 500.0,
+        "muscle": 500.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 0.8776316046714783,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 0.8776316046714783,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 500.0,
+        "muscle": 500.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 500.0,
+        "muscle": 500.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 500.0,
+        "muscle": 500.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 500.0,
+        "muscle": 500.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.7552632093429565,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.7552632093429565,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 500.0,
+        "muscle": 500.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 3000.0,
+        "muscle": 3000.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 3000.0,
+        "muscle": 3000.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 3000.0,
+        "muscle": 3000.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 0.800000011920929,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 0.800000011920929,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 3000.0,
+        "muscle": 3000.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 3000.0,
+        "muscle": 3000.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 3000.0,
+        "muscle": 3000.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 3000.0,
+        "muscle": 3000.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 0.800000011920929,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 0.800000011920929,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 3000.0,
+        "muscle": 3000.0,
+        "moveState": 6,
+        "held": true,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 3000.0,
+        "muscle": 3000.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 3000.0,
+        "muscle": 3000.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 3000.0,
+        "muscle": 3000.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 0.800000011920929,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 0.800000011920929,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 3000.0,
+        "muscle": 3000.0,
+        "moveState": 7,
+        "held": false,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 3000.0,
+        "muscle": 3000.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": false,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 3000.0,
+        "muscle": 3000.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": false,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": false
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 3000.0,
+        "muscle": 3000.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 1.600000023841858,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 119,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.600000023841858,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 3000.0,
+        "muscle": 3000.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 10,
+        "initialSpeed": 1.0,
+        "existing": false
+      },
+      "first": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x10013d5dc",
+            "name": "BlendAnimation",
+            "animation": 10,
+            "initialSpeed": 1.0,
+            "result": 536883200
+          },
+          {
+            "address": "0x100139088",
+            "name": "SetFinishCallback",
+            "stub": "no callback execution during this call"
+          },
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 2.0,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 0.5,
+        "existing": true
+      },
+      "first": {
+        "speed": 0.4000000059604645,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 0.4000000059604645,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 0.5,
+        "existing": true
+      },
+      "first": {
+        "speed": 1.600000023841858,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.600000023841858,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": true
+      },
+      "first": {
+        "speed": 0.800000011920929,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 0.800000011920929,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 1.0,
+        "existing": true
+      },
+      "first": {
+        "speed": 1.600000023841858,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.600000023841858,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 6,
+        "held": false,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 2.0,
+        "existing": true
+      },
+      "first": {
+        "speed": 1.600000023841858,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.600000023841858,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    },
+    {
+      "input": {
+        "fat": 1000.0,
+        "muscle": 1000.0,
+        "moveState": 7,
+        "held": true,
+        "isPlayer": true,
+        "animId": 119,
+        "initialSpeed": 2.0,
+        "existing": true
+      },
+      "first": {
+        "speed": 1.600000023841858,
+        "flags": 0,
+        "return": 0,
+        "external": [
+          {
+            "address": "0x1003235a4",
+            "name": "IsPlayer",
+            "result": true
+          },
+          {
+            "address": "0x10035f8e4",
+            "name": "GetPadFromPlayer",
+            "result": 536887296
+          },
+          {
+            "address": "0x1002466d0",
+            "name": "GetSprint",
+            "result": true
+          }
+        ]
+      },
+      "second": {
+        "speed": 1.600000023841858,
+        "flags": 0,
+        "return": 0,
+        "external": []
+      }
+    }
+  ]
+}

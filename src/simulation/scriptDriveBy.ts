@@ -2,6 +2,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import {Vector3} from 'three';
 import {stepNpcGun,npcShotEnd,type NpcGunState} from './npcGun';
 import {bulletTyreHit,pushShotVehicle} from '../weapons/bulletVehicle';
+import type {SeatedShot} from '../vehicle/nativeDieInCar';
 import type {NativeWeaponInfo} from '../weapons/weaponData';
 import type {Simulation} from './Simulation';
 import type {WorldCar} from './WorldCar';
@@ -27,11 +28,16 @@ export interface ScriptDriveByWorld {
  sim:Simulation;cars:()=>Iterable<WorldCar>;
  /** Where a ped or car target is now, renderer coordinates; nothing once it has gone. */
  targetPosition:(target:DriveByTarget)=>{x:number;y:number;z:number}|undefined;
- hitPed:(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3)=>boolean;
+ hitPed:(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3,piece?:number,shooter?:NonNullable<Parameters<SeatedShot>[5]>['shooter'])=>boolean;
+ /** CEventDamage's raw ped-source guards for CJ, including script/player group membership. */
+ canDamagePlayer?:(shooter:NonNullable<Parameters<SeatedShot>[5]>['shooter'],weapon:number)=>boolean;
+ friendlyWithPlayer?:(shooter:NonNullable<Parameters<SeatedShot>[5]>['shooter'])=>boolean;
+ bulletLine?:import('../weapons/skinnedPedBulletLine').NpcBulletLine;
+ prepareBulletImpact?:import('../weapons/skinnedPedBulletLine').NpcBulletImpact;
  onShot?:(from:Vector3,to:Vector3,weapon:number,hit:boolean)=>void;
  /** CheckForShootingVehicleOccupant for a line whose first hit is `hitBody`: the occupant of that car whose head sphere
   * the line enters within `range`, how far along, and the hit to apply to it. `own` is the shooter's car. */
- seatedShot?:(from:Vector3,direction:Vector3,range:number,own:WorldCar,hitBody:unknown)=>{t:number;hit:(damage:number,weapon:number)=>void}|undefined;
+ seatedShot?:SeatedShot;
  random:()=>number;
 }
 /** CTaskSimpleGangDriveBy's clip for a bike's pillion (iOS 0x1003b7830): the target's heading against the bike's
@@ -48,7 +54,7 @@ export function newScriptDriveBy(target:DriveByTarget,radius:number,fireRate:num
  return {target,radius,fireRate,side:rightSide?'right':'left',gun:{time:0,rounds:-1,reload:0,active:false},seconds:0,shots:0,firing:false};
 }
 /** One frame of the drive-by from `car`. */
-export function stepScriptDriveBy(d:ScriptDriveBy,car:WorldCar,info:NativeWeaponInfo,reloadSeconds:number,dt:number,world:ScriptDriveByWorld){
+export function stepScriptDriveBy(d:ScriptDriveBy,car:WorldCar,info:NativeWeaponInfo,reloadSeconds:number,dt:number,world:ScriptDriveByWorld,shooter?:NonNullable<Parameters<SeatedShot>[5]>['shooter']){
  d.seconds+=dt;
  if(d.gun.rounds<0)d.gun.rounds=info.clip;
  const target=world.targetPosition(d.target);if(!target)return;
@@ -71,11 +77,11 @@ export function stepScriptDriveBy(d:ScriptDriveBy,car:WorldCar,info:NativeWeapon
   // CWeapon::FireInstantHit for the rider (a ped, accuracy 60): on to the weapon's range, three times it at a car.
   const endPoint=npcShotEnd(muzzle,aim,info,60,{rangeMultiplier:d.target.kind==='vehicle'?3:1});
   const direction=new Vector3(endPoint.x,endPoint.y,endPoint.z).sub(muzzle),lineLength=direction.length();direction.divideScalar(lineLength||1);
-  const shot=world.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),lineLength,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
+  const shot:import('../weapons/skinnedPedBulletLine').PedBulletIntersection|null|undefined=world.bulletLine?world.bulletLine(muzzle,direction,lineLength,car.car.body):world.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),lineLength,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
   const cars=[...world.cars()].filter(c=>c!==car);
   const reach=shot?.timeOfImpact??lineLength,tyre=bulletTyreHit(cars,muzzle,direction,reach);
   // A line whose first hit is a car may hand the hit on to one of its occupants, along the whole line.
-  const seated=tyre||!shot?undefined:world.seatedShot?.(muzzle,direction,lineLength,car,shot.collider.parent());
+  const seated=world.seatedShot?.(muzzle,direction,lineLength,car,shot?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre,shooter});
   if(seated&&seated.t<=lineLength){
    const at=muzzle.clone().addScaledVector(direction,seated.t);d.shots++;world.onShot?.(muzzle,at,info.type,true);seated.hit(info.damage,info.type);
    if(d.gun.active&&d.gun.time<oldTime)d.aimPoint={...aim};
@@ -83,13 +89,15 @@ export function stepScriptDriveBy(d:ScriptDriveBy,car:WorldCar,info:NativeWeapon
   }
   const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:reach);d.shots++;
   world.onShot?.(muzzle,end,info.type,!!shot||!!tyre);
+  const finish=shot&&!tyre?world.prepareBulletImpact?.(shot,end,info.type,direction,shooter):undefined;let accepted=false;
   if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
-  else if(shot?.collider.handle===world.sim.playerCollider.handle)world.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z}});
+  else if(shot?.collider.handle===world.sim.playerCollider.handle)accepted=world.canDamagePlayer?.(shooter,info.type)!==false&&world.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z},piece:shot.pedPiece,friendly:world.friendlyWithPlayer?.(shooter)});
   else if(shot){
    const hitCar=cars.find(c=>shot.collider.parent()?.handle===c.car.body.handle);
    if(hitCar){pushShotVehicle(hitCar,shot.normal,end,info.type);if(!hitCar.onlyDamagedByPlayer)hitCar.damage(info.damage,undefined,false,undefined,{weapon:info.type});}
-   else world.hitPed(shot.collider.handle,info.damage,info.type,{x:direction.x,z:direction.z},end);
+   else accepted=world.hitPed(shot.collider.handle,info.damage,info.type,{x:direction.x,z:direction.z},end,shot.pedPiece,shooter);
   }
+  finish?.(accepted);
  }
  if(d.gun.active&&d.gun.time<oldTime)d.aimPoint={...aim};
 }

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { afterEach, beforeAll, expect, test, vi } from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { NativeCharacter, type CharacterSource } from '../src/render/NativeCharacter';
+import {withHiddenVehicle} from '../src/render/vehicleRenderOwnership';
 import { readDff } from '../src/assets/dff';
 import { readIfp } from '../src/assets/ifp';
 import {Mesh} from 'three';
@@ -9,11 +10,21 @@ import {Matrix4,Object3D,Vector3} from 'three';
 import {readPlayerBaseBody,PLAYER_CLASSIC_FILES} from '../src/assets/readPlayerBaseBody';
 import {playerShoulderMatrix} from '../src/animation/playerShoulders';
 import { Simulation } from '../src/simulation/Simulation';
+import {nativeBodyMovementModifier,DEFAULT_BODY_MOVEMENT_MODIFIER} from '../src/simulation/nativeBodyMovement';
+import jumpReference from './fixtures/player-jump-stats-reference.json';
 let sim: Simulation, character: NativeCharacter;
 beforeAll(async () => RAPIER.init()); afterEach(() => { character?.dispose(); sim?.dispose();character=undefined!;sim=undefined!; });
 const source = (): CharacterSource => ({model:readDff(new Uint8Array(readFileSync('tests/fixtures/dragonff-skin.dff'))),textures:[],clip:readIfp(new Uint8Array(readFileSync('tests/fixtures/animation-rig.ifp'))).animations[0],track:0});
 const controls = { x:0,y:1,cameraYaw:Math.PI,sprint:false,jump:false,handbrake:false };
 function setup() { sim=new Simulation(); sim.player.grounded=true; character=new NativeCharacter(source()); }
+test('independent entry/exit poses keep drawing, and seated render ownership clears on foot',()=>{
+ setup();const vehicle=new Object3D(),clip=source().clip,pose={clip:'seat',seconds:0};character.installVehicleClips({seat:clip});
+ character.updateVehicle({vehicle,local:{x:0,y:0,z:0},renderWithVehicle:false},pose);
+ withHiddenVehicle(vehicle,()=>expect(character.root.visible).toBe(true));
+ character.updateVehicle({vehicle,local:{x:0,y:0,z:0}},pose);
+ withHiddenVehicle(vehicle,()=>expect(character.root.visible).toBe(false));
+ character.update(sim,1);withHiddenVehicle(vehicle,()=>expect(character.root.visible).toBe(true));
+});
 test('scorched character lighting survives normal ambient updates and thermal replacement, then restores per-material uniforms',()=>{
  setup();const materials=new Set<import('three').Material>();character.root.traverse(o=>{if(o instanceof Mesh)for(const material of [o.material].flat())materials.add(material);});expect(materials.size).toBeGreaterThan(0);
  character.setScorched(true);character.setAmbient([1,1,1],4,2);expect([...materials].every(m=>m.userData.nativeRenderScorched.value)).toBe(true);character.setThermal(true);character.setScorched(false);character.setThermal(false);expect([...materials].every(m=>m.userData.nativeRenderScorched.value===false)).toBe(true);
@@ -151,13 +162,14 @@ test('assigned idle loops without moving and walk/run use their own root speeds'
   expect(character.snapshot()).toMatchObject({action:'run'});expect(character.snapshot().seconds).toBeCloseTo(.6);
   const back=character.step(.1,controls,sim);expect(back.animationMotion!.z).toBeGreaterThan(.2); expect(back.animationMotion!.z).toBeLessThan(.4);expect(character.snapshot().seconds).toBeCloseTo(1.3);
 });
-test('exhaustion gates running until recovery and missing run never drains sprint stamina', () => {
+test('native exhaustion gates a new sprint until energy is positive and missing run never requests sprint', () => {
   roles(); sim.player.stamina=0;
   expect(character.step(.1,{...controls,sprint:true},sim).sprint).toBe(false);expect(character.snapshot().action).toBe('walk');
-  sim.player.stamina=29;sim.player.sprintExhausted=true;character.step(.1,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('walk');
-  sim.player.stamina=30;character.step(.1,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('run');
+  sim.player.stamina=Math.fround(.01);sim.player.sprintExhausted=true;character.step(.1,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('run');
+  sim.player.stamina=-150;sim.player.sprintButtonSpeed=0;character.step(.1,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('walk');
   character.dispose();character=new NativeCharacter(source());
-  expect(character.step(.1,{...controls,sprint:true},sim).sprint).toBe(false);
+  sim.resetSprintEnergy();const unavailable=character.step(.1,{...controls,sprint:true},sim);
+  expect(unavailable.sprint).toBe(false);sim.step(.1,unavailable);expect(sim.player.stamina).toBe(sim.playerSprintCapacity());
 });
 test('role changes restore bones that the next clip does not animate', () => {
   roles(); character.step(.5,{...controls,sprint:true},sim);character.update(sim,1);
@@ -333,8 +345,8 @@ test('three native gaits separate running from stamina-consuming sprint and reco
  expect(Math.hypot(sprinting.x,sprinting.z)).toBeGreaterThan(Math.hypot(running.x,running.z));
  sim.player.stamina=0;sim.player.sprintExhausted=true;
  expect(character.step(.2,{...controls,sprint:true},sim).sprint).toBe(false);expect(character.snapshot().action).toBe('run');
- sim.player.stamina=29;character.step(.2,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('run');
- sim.player.stamina=30;character.step(.2,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('sprint');
+ sim.player.stamina=Math.fround(.01);character.step(.2,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('sprint');
+ sim.player.stamina=-150;sim.player.sprintButtonSpeed=0;character.step(.2,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('run');
  expect(()=>new NativeCharacter({...data,sprint:{clip:sprint,track:0}})).toThrow('run clip before sprint');
 });
 
@@ -388,13 +400,42 @@ for(const mode of ['run','sprint','released'] as const)test(`native landing spee
  const moving={...controls,sprint:mode!=='run'};
  character.step(.7,moving,sim);sim.player.grounded=false;sim.playerInAir=true;character.step(.1,moving,sim);sim.player.grounded=true;
  const contact={...moving,sprint:mode==='sprint'};
- const result=character.step(.1,contact,sim),speed=mode==='sprint'?2:1;
+ const result=character.step(.1,contact,sim),speed=Math.fround((mode==='sprint'?2:1)*DEFAULT_BODY_MOVEMENT_MODIFIER);
  expect(character.snapshot()).toMatchObject({action:'landing',playbackSpeed:speed,seconds:.1*speed});
  expect(Math.hypot(result.animationMotion!.x,result.animationMotion!.z)).toBeCloseTo(.05*speed);
  const end=character.step(3,{...contact,sprint:!contact.sprint},sim);
  expect(character.snapshot()).toMatchObject({playbackSpeed:speed,seconds:2});
  expect(Math.hypot(result.animationMotion!.x+end.animationMotion!.x,result.animationMotion!.z+end.animationMotion!.z)).toBeCloseTo(1);
  character.step(.1,{...controls,y:0},sim);expect(character.snapshot()).toMatchObject({action:'idle',playbackSpeed:1});
+});
+
+for(const [i,row] of jumpReference.starts.entries())test(`captured launch playback starts and stays latched ${i}`,()=>{
+ setup();character.dispose();const data=source(),v=row.input;
+ character=new NativeCharacter({...data,convention:'san-andreas-ped',launch:{clip:data.clip,track:0},airborne:{clip:data.clip,track:0}});
+ let calls=0,modifier=nativeBodyMovementModifier(v.fat,v.muscle);sim.playerBodyMovementModifier=()=>{calls++;return modifier;};
+ const actor=v.player?sim:{player:sim.player};character.step(.05,{...controls,jump:true},actor);
+ expect(character.snapshot()).toMatchObject({action:'launch',playbackSpeed:row.speed,seconds:.05*row.speed});
+ modifier=modifier===DEFAULT_BODY_MOVEMENT_MODIFIER?nativeBodyMovementModifier(1000,1000):DEFAULT_BODY_MOVEMENT_MODIFIER;
+ character.step(.05,{...controls,jump:false},actor);
+ expect(character.snapshot()).toMatchObject({action:'launch',playbackSpeed:row.speed,seconds:.1*row.speed});expect(calls).toBe(v.player?1:0);
+});
+
+for(const mode of ['stats','exhausted','released','npc'] as const)test(`landing captures stat speed and physical input at contact: ${mode}`,()=>{
+ setup();character.dispose();const data=source();
+ character=new NativeCharacter({...data,convention:'san-andreas-ped',run:{clip:data.clip,track:0},sprint:{clip:data.clip,track:0},airborne:{clip:data.clip,track:0},landing:{clip:data.clip,track:0}});
+ let modifier=nativeBodyMovementModifier(1000,1000),calls=0;
+ (sim as any).playerBodyMovementModifier=()=>{calls++;return modifier;};
+ const actor=mode==='npc'?{player:sim.player}:sim,input={...controls,sprint:mode!=='stats'};
+ character.step(.7,input,actor);sim.player.grounded=false;sim.playerInAir=true;character.step(.1,input,actor);sim.player.grounded=true;
+ if(mode==='exhausted'){sim.player.stamina=-150;sim.player.sprintButtonSpeed=0;sim.player.sprintExhausted=true;}
+ if(mode==='released')sim.player.sprintButtonSpeed=8;
+ const contact={...input,sprint:mode!=='stats'&&mode!=='released'};
+ character.step(.05,contact,actor);
+ const expected=mode==='npc'?1:Math.fround((mode==='exhausted'?2:1)*modifier);
+ expect(character.snapshot()).toMatchObject({action:'landing',playbackSpeed:expected,seconds:.05*expected});
+ expect(calls).toBe(mode==='npc'?0:1);
+ modifier=nativeBodyMovementModifier(0,0);character.step(.05,{...contact,sprint:!contact.sprint},actor);
+ expect(character.snapshot().playbackSpeed).toBe(expected);expect(calls).toBe(mode==='npc'?0:1);
 });
 
 test('native landing uses the source blend-in rate instead of the ordinary movement transition',()=>{
@@ -454,7 +495,7 @@ for(const sprint of [false,true])test(`native landing foot contacts follow sourc
  character=new NativeCharacter({...data,convention:'san-andreas-ped',run:{clip:data.clip,track:0},sprint:{clip:data.clip,track:0},airborne:{clip:data.clip,track:0},landing:{clip:data.clip,track:0}});
  const input={...controls,sprint};character.step(.7,input,sim);
  sim.player.grounded=false;sim.playerInAir=true;character.step(.01,input,sim);expect(character.landingFootContacts).toEqual([]);
- sim.player.grounded=true;const speed=sprint?2:1;
+ sim.player.grounded=true;const speed=Math.fround((sprint?2:1)*DEFAULT_BODY_MOVEMENT_MODIFIER);
  character.step(.099/speed,input,sim);expect(character.landingFootContacts).toEqual([]);
  character.step(.002/speed,input,sim);expect(character.landingFootContacts).toEqual(['right']);
  character.update(sim,.5);character.update(sim,1);expect(character.landingFootContacts).toEqual(['right']);

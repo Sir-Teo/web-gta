@@ -9,6 +9,17 @@ import {resolveVehicleProps,type VehicleProp} from './vehiclePropContacts';
 import {randomSeed} from './nativeVehicleLights';
 import {vehicleDestroyed} from './vehicleDestroyed';
 import {bikeWheelSupports} from '../vehicle/nativeBikeWheels';
+import {bindBikeWheelRoll} from '../render/bikeWheelRoll';
+import {bindBikeSteering} from '../render/bikeSteering';
+import {bindBicyclePedals} from '../render/bicyclePedals';
+import {stepBmxPedalControl} from './nativeBmxPedalControl';
+import {NativeBicycleRider} from './nativeBicycleRider';
+import type {BikeDriveByInput} from './nativeBikeDriveBy';
+import {NativeBikeRiderController,bikeRiderClipName} from './nativeBikeRiderController';
+import {stepBicycleCrank} from './bicycleCrank';
+import {stepNativeBicycleHop,type BicycleHopState} from './nativeBicycleHop';
+import {stepBikeWheelRoll,type BikeWheelRoll} from './bikeWheelRoll';
+import {stepWheelAnimation} from './nativeWheelAnimation';
 import {bindNativeCarLod} from '../render/nativeCarLod';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {syncFrozenVehicle} from './nativeFrozenVehicle';
@@ -45,11 +56,6 @@ const WHEELBASE=1.4;
 const COAST_DECEL=3;
 /** The CBmx models (vehicles.ide class bmx): the BMX, Chopper and Mountain Bike. */
 const BMX_MODELS:ReadonlySet<number>=new Set([481,509,510]);
-/** The rest of BIKE_BUNNYHOP after the charged pose, played at 1.5 speed until LaunchBunnyHopCB. The clip is not
- * published with the world, so its length is authored. */
-const HOP_RELEASE_SECONDS=.3;
-/** LaunchBunnyHopCB's g_hopCooldown (iOS only, 0x10045a3f0 = 0.5 s). */
-const HOP_COOLDOWN_SECONDS=.5;
 /** CBmx::ProcessAI's airborne spin: 0x10058fd38 = 0.002 rad a step per step at full stick, to 0.04 rad a step. */
 const BMX_AIR_SPIN_RATE=.002,BMX_AIR_SPIN_CAP=.04;
 /** CBike::ProcessControl on the side stand (iOS 0x100451f48 at rest, 0x1004537e4 under physics): the drawn lean eases to
@@ -76,6 +82,8 @@ export class WorldBike {
  static playerOnStairs?:()=>boolean;
  /** Whether a ped of the script's sits on the bike's saddle: such a bike is not abandoned, so it never rests. */
  static hasDriverPed?:(bike:WorldBike)=>boolean;
+ /** Presence of the first passenger pointer, including a passenger dead in the seat. */
+ static hasPassengerPed?:(bike:WorldBike)=>boolean;
  /** CEventKnockOffBike's response for the player: the host plays the fall clip CalcForcesAndAnims picked and the
   * get-up after it (CTaskComplexFallAndGetUp). */
  static onKnockedOff?:(clip:string)=>void;
@@ -111,6 +119,8 @@ export class WorldBike {
  }
  private contactPairs(){if(!this.stepPairsRead)this.readStepPairs();return this.stepPairs;}
  readonly body:RAPIER.RigidBody;readonly root=new Group();
+ /** Process_1stPerson adds body position separately from the lean matrix's wheel-placement translation. */
+ readonly renderBodyPosition=new Vector3();
  /** CCustomCarEnvMapPipeline's reflection state (every vehicle model uses the car pipeline). */
  readonly reflection=new NativeCarReflection();readonly name:string;readonly modelId:number;
  private physical:ReturnType<typeof installNativeVehicleBody>;
@@ -120,6 +130,33 @@ export class WorldBike {
  /** Set by blowUp until the weapon system spawns its explosion. */
  pendingExplosion=false;
  occupied=false;throttle=0;steer=0;brake=false;message?:string;
+ /** A pillion is an occupant without owning the bike's controls, AI or recording. */
+ playerPassengerSeat=0;
+ get playersVehicle(){return this.occupied||this.playerPassengerSeat>0;}
+ get maximumPassengers(){return this.backSeat()?1:0;}
+ setPlayerInAsPassenger(seat:number){
+  this.playerPassengerSeat=seat;this.sim.setCrouched(false);this.sim.cameraExcludedBody=this.body;this.sim.playerCollider.setEnabled(false);
+  this.sim.player.moveBlend=0;this.sim.player.speed=0;this.sim.player.jumpMomentum={x:0,z:0};this.syncPlayer();
+ }
+ setPlayerOutAsPassenger(foot:{x:number;y:number;z:number},heading=this.sim.player.heading){
+  this.playerPassengerSeat=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);
+  this.sim.player.position={...foot};this.sim.player.previous={...foot};this.sim.player.heading=heading;this.sim.player.moveBlend=0;
+  this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.jumpMomentum={x:0,z:0};this.sim.player.grounded=false;
+  const centre={...foot,y:foot.y+.9};this.sim.playerBody.setTranslation(centre,true);this.sim.playerBody.setNextKinematicTranslation(centre);
+ }
+ worldPoint(local:{x:number;y:number;z:number}){return new Vector3(local.x,local.z,-local.y).applyQuaternion(new Quaternion().copy(this.body.rotation())).add(this.body.translation());}
+ canStepOut(){const v=this.body.linvel(),w=this.body.angvel(),s=1/50;return Math.hypot(v.x,v.z)*s<=.01&&Math.abs(v.y)*s<=.05&&(w.x*w.x+w.y*w.y+w.z*w.z)*s*s<=.0004;}
+ /** CVehicle::CanPedJumpOutCar (0x6D2030): a pillion may jump at v2D squared >= 0.07; the quad is an automobile. */
+ canJumpOut(seconds=1/50){
+  const v=this.body.linvel(),s=1/50,v2=(v.x*v.x+v.z*v.z)*s*s;
+  if(!this.quad)return v2>=.07;
+  const up=rotate(this.body.rotation(),{x:0,y:1,z:0});
+  if(!(up.y<.3&&this.lastCollisionSeconds<=1))return v2>=.1&&v2<=.5;
+  if(v2>=.1)return true;if(this.canStepOut())return false;
+  const tenth=Math.pow(.9,seconds*30),w=this.body.angvel();this.body.setAngvel({x:w.x*tenth,y:w.y*tenth,z:w.z*tenth},true);
+  const ts=seconds*50,m2=(v.x*v.x+v.y*v.y+v.z*v.z)*s*s,mult=m2/100>(ts*.008)**2?tenth:Math.max(0,1-ts/Math.sqrt(m2)*.016);
+  this.body.setLinvel({x:v.x*mult,y:v.y*mult,z:v.z*mult},true);return false;
+ }
  /** CAutoPilot's pedals while a script drives the bike (ScriptCarMissions), and whether the player's own bike is on a
   * script's driving task. */
  autopilot?:import('./WorldCar').WorldCar['autopilot'];scriptDriven?:boolean;
@@ -158,9 +195,23 @@ export class WorldBike {
  riderLean=0;
  /** The quad's CAutomobile::m_fRawSteerAngle (right positive) and m_GasPedal, kept between frames for the smoothing
   * and the brake-before-reverse rule. */
- rawSteer=0;gasPedal=0;
+ rawSteer=0;gasPedal=0;brakePedal=0;
+ /** CBmx player decision outputs; native CBike control clears boost each frame. */
+ playerBoost=false;pedalCoefficient=0;
+ /** Inputs at the native cycling call, before this controller integrates the bike's new velocity. */
+ playerCyclingFrame?:{gas:number;boost:boolean;velocity:readonly [number,number,number]};
+ private accelerateHeld=false;
+ private bicycleRider?:NativeBicycleRider;
+ private riderAnimation?:NativeBikeRiderController;
+ private riderDriveBy?:BikeDriveByInput;
+ private playerDriveByOwner=false;
+ private riderDriveByReady=false;
+ /** Readiness sampled by the rider controller before its single clump update this step. */
+ get riderDriveByShotReady(){return this.occupied&&this.riderDriveByReady;}
+ get riderDriveByActive(){return !!(this.bicycleRider??this.riderAnimation)?.associations.some(a=>a.identifier>=202&&a.identifier<=204&&a.amount>0);}
  /** CBmx::m_fControlJump (0 to 25 steps of charge) and the time left before the hop launches. */
  controlJump=0;hopLaunch?:number;pillion?:{modelRef:number|string};
+ private hopState?:BicycleHopState;
  /** The hop button's state last frame: CBmx::ProcessBunnyHop starts a charge on a press (IsLeftShoulder1Pressed), not on a hold. */
  private hopHeld=false;
  /** Engine speed for audio (pedal cadence on bicycles, rpm on motorbikes). */
@@ -196,6 +247,10 @@ export class WorldBike {
  /** Props destroyed or knocked loose by this bike, for diagnostics. */
  propsSmashed=0;propsUprooted=0;
  private previous:{x:number;y:number;z:number};private previousRotation:RAPIER.Rotation;
+ private wheelRoll?:ReturnType<typeof bindBikeWheelRoll>;
+ private forkSteering?:ReturnType<typeof bindBikeSteering>;private previousSteer=0;
+ private pedals?:ReturnType<typeof bindBicyclePedals>;private crankAngle=0;private previousCrankAngle=0;
+ private wheelPoses:BikeWheelRoll[]=[];private previousWheelAngles:number[]=[];private wheelStepSeconds=0;
  /** CVehicleModelInfo's detail switch: chassis_vlo stands in for the full model only past the LOD distance. */
  private lod?:ReturnType<typeof bindNativeCarLod>;
  /** The camera's squared distance this frame, which picks the bike's detail (as for cars). */
@@ -220,6 +275,12 @@ export class WorldBike {
   for(let i=0;i<this.body.numColliders();i++){const c=this.body.collider(i);c.setSolverGroups(vehicleSolverGroups(c));}
   if(assets.model&&assets.textures){
    try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);try{this.lod=bindNativeCarLod(this.visual.root,assets.model,[...assets.wheelFrames.front,...assets.wheelFrames.rear]);}catch{this.lod=undefined;}this.root.add(this.visual.root);}catch{this.visual=undefined;}
+  }
+  if(this.visual){
+   this.wheelRoll=bindBikeWheelRoll(this.visual.root,assets.wheelFrames);
+   if(!this.quad)this.forkSteering=bindBikeSteering(this.visual.root,assets.model,assets.vehicle.misc??-1);
+   if(BMX_MODELS.has(this.modelId))this.pedals=bindBicyclePedals(this.visual.root,assets.model);
+   this.wheelPoses=[...assets.wheelFrames.front,...assets.wheelFrames.rear].map(()=>({rotation:0,speed:0}));this.previousWheelAngles=this.wheelPoses.map(()=>0);
   }
   // Bike TXDs carry no vehiclelights128 texture, so the lamp pass mounts glow
   // sprites at the hull ends instead of textured lamp atomics.
@@ -251,7 +312,7 @@ export class WorldBike {
   *   otherwise takes playerVehicleDamage's share;
   * - only health left is taken. Damage that takes the last of it destroys the vehicle and returns true. A blast's
   *   victim waits on the bomb timer; anything else blows it up at once (BlowUpCar). */
- damage(amount:number,_collider?:number,explosive=false,_shotDir?:unknown,options:{kind?:'bullet'|'fire'|'melee';byPlayer?:boolean;weapon?:number;by?:VehicleDamager}={}){
+ damage(amount:number,_collider?:number,explosive=false,_shotDir?:unknown,options:{kind?:'bullet'|'fire'|'melee';byPlayer?:boolean;weapon?:number;by?:VehicleDamager|null}={}){
   const weapon=options.weapon??(explosive?51:options.kind==='fire'?37:options.kind==='melee'?0:22);
   if(this.wrecked||vehicleRefusesWeaponDamage(this,weapon,options.byPlayer))return false;
   recordVehicleDamage(this,options.weapon??(explosive?51:options.kind==='fire'?37:-1),options.byPlayer,options.by);
@@ -269,7 +330,7 @@ export class WorldBike {
   * blow-up-cars cheat and a wreck included). */
  blowUp(byPlayer=false){
   if(this.wrecked||!this.motorbike||this.canBeDamaged===false)return;this.explosionByPlayer=byPlayer;this.wrecked=true;this.health=0;this.bombTimerMs=0;this.pendingExplosion=true;vehicleDestroyed.report?.('road',this.modelId);
-  if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
+  if(this.playersVehicle){this.occupied=false;this.playerPassengerSeat=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
  }
  /** Set upright at its heading, still, just clear of the ground: the end of a pick-up (CBike's bGettingPickedUp). */
  standUpright(){
@@ -325,7 +386,25 @@ export class WorldBike {
   const check=this.enterCheck();if(check)return check;
   return this.finishEnter();
  }
- beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean;disabled?:boolean}={throttle:0,steer:0,brake:false}){
+ beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean;disabled?:boolean;sprint?:boolean;sprintJustPressed?:boolean;sprintDisabled?:boolean;driveBy?:BikeDriveByInput}={throttle:0,steer:0,brake:false}){
+  this.wheelStepSeconds=0;this.riderDriveByReady=false;
+  // These associations were requested on the player's clump, never the next NPC's.
+  if(!this.occupied&&this.playerDriveByOwner){
+   const associations=(this.bicycleRider??this.riderAnimation)?.associations;
+   if(associations)for(let i=associations.length-1;i>=0;i--)if(associations[i].identifier>=202&&associations[i].identifier<=204)associations.splice(i,1);
+   this.playerDriveByOwner=false;
+  }
+  this.riderDriveBy=this.occupied?input.driveBy:undefined;
+  if(this.riderDriveBy)this.playerDriveByOwner=true;
+  if(!this.motorbike&&!this.occupied&&!WorldBike.hasDriverPed?.(this)){this.bicycleRider=undefined;this.rideTime=0;}
+  if(this.motorbike&&!this.occupied&&!WorldBike.hasDriverPed?.(this))this.riderAnimation=undefined;
+  this.playerBoost=false;this.playerCyclingFrame=undefined;
+  if(!this.occupied){this.accelerateHeld=false;this.pedalCoefficient=0;}
+  this.previousSteer=this.steer;
+  this.previousCrankAngle=this.crankAngle;
+  // A departed driver's association belongs to that ped, never the next rider of this vehicle.
+  if(!this.occupied){this.hopState=undefined;this.controlJump=0;this.hopLaunch=undefined;}
+  if(this.wheelRoll)this.previousWheelAngles=this.wheelPoses.map(p=>p.rotation);
   this.clumpAlpha.step(dt);
   // ProcessDelayedExplosion, which CBike::ProcessControl runs too, whether or not the body is in the world: a blast's
   // victim carried out of range still goes up on time.
@@ -336,6 +415,7 @@ export class WorldBike {
   const frozen=syncFrozenVehicle(this.body,this.frozen),nearby=Math.hypot(focus.x-at.x,focus.y-at.y,focus.z-at.z)<250,active=nearby&&this.collisionLoaded(dt);this.body.setEnabled(active);this.root.visible=nearby;if(!active)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
   if(frozen)return;
+  this.wheelStepSeconds=dt;
   // Attached to another vehicle (ATTACH_CAR_TO_CAR): a kinematic body the host sets on it after the step.
   if(this.body.bodyType()===RAPIER.RigidBodyType.KinematicPositionBased)return;
   // A playback without car AI owns the body (bDisableCollisionForce, a velocity-driven body here): the bike's own
@@ -343,8 +423,6 @@ export class WorldBike {
   if(this.recordingSlot>=0&&this.body.bodyType()===RAPIER.RigidBodyType.KinematicVelocityBased)return;
   if(this.skipPhysics(dt)){this.standLean(dt);return;}
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
-  // The ride clip's clock: the pedal cycle turns while the rider pedals and holds while he coasts.
-  if(Math.abs(input.throttle)>.05)this.rideTime+=dt;
   // The raw steer follows the pad a fifth of the way a frame: CAutomobile::ProcessControlInputs for the quad, whose
   // steer angle is the lock times its square, and CBike::ProcessControlInputs (iOS 0x100456178) for every other bike,
   // whose angle is the lock times the raw steer itself. A key press is not full lock at once: taken raw, each tap threw
@@ -361,19 +439,34 @@ export class WorldBike {
   // Prepared native per-step magnitudes become browser per-second rates at 50 Hz (×50 units × 50 steps).
   const top=this.assets.handling.maxFlatVelocity*50,reverse=this.assets.handling.maxReverseVelocity*50;
   const accelRate=h.engineAcceleration*2500,brakeRate=h.brakeDeceleration*2500;
-  let want=speed,gas=this.throttle,braking=this.brake?1:0;
+  let want=speed,gas=this.throttle,braking=this.brake?1:0,nativeBrake=0;
   // The quad's pedals are CAutomobile::ProcessControlInputs's: the reverse button brakes a quad still rolling
   // forward and only reverses it once it has all but stopped (nativePedals); the handbrake is the brake button.
   if(this.quad){
    const pedals=nativePedals({accelerate:Math.round(Math.max(0,Math.min(1,this.throttle))*255),brake:Math.round(Math.max(0,Math.min(1,-this.throttle))*255),forwardSpeed:speed/50,previousGas:this.gasPedal,
     automaticallyHandbrake:!!input.disabled,handbrake:this.brake,engineOn:true,drowning:false,driveByAim:false,rightShoulder:0,leftShoulder:0,unloadModel:false,forwardAllowed:true,reverseAllowed:true});
-   this.gasPedal=gas=pedals.gas;braking=Math.max(pedals.brake,pedals.handbrake?1:0);
+   this.gasPedal=gas=pedals.gas;nativeBrake=pedals.brake;braking=Math.max(pedals.brake,pedals.handbrake?1:0);
   }else{
    // CBike::ProcessControlInputs's pedals: the reverse button brakes a bike rolling forward (and the throttle one
    // rolling back), and reverses it only from all but a standstill; the handbrake is the brake button.
    const pedals=bikePedals({accelerate:Math.round(Math.max(0,Math.min(1,this.throttle))*255),brake:Math.round(Math.max(0,Math.min(1,-this.throttle))*255),forwardSpeed:speed/50,bmx:!this.motorbike,controlsDisabled:!!input.disabled});
-   gas=pedals.gas;braking=Math.max(pedals.brake,this.brake||pedals.handbrake?1:0);
+   gas=pedals.gas;nativeBrake=pedals.brake;braking=Math.max(pedals.brake,this.brake||pedals.handbrake?1:0);
   }
+  this.brakePedal=nativeBrake;
+  if(!this.motorbike&&this.occupied&&!this.scriptDriven&&this.sim.player.health>0){
+   const player=this.sim.player,accelerate=input.disabled?0:Math.round(Math.max(0,Math.min(1,this.throttle))*255),held=!!input.sprint&&!input.disabled;
+   const state={energy:player.stamina,buttonSpeed:player.sprintButtonSpeed,steer:this.steer*h.steeringLock*Math.PI/180,gas,brake:nativeBrake,boost:false,coefficient:this.pedalCoefficient};
+   stepBmxPedalControl(state,{accelerate,acceleratePressed:accelerate>0&&!this.accelerateHeld,held,justPressed:input.sprintJustPressed??(held&&!player.sprintInputHeld),capacity:this.sim.playerSprintCapacity(),fastBlend:this.bicycleRider?.fastBlend,neverTired:!!this.sim.neverTired?.(),adrenaline:player.adrenaline>0,sprintDisabled:input.sprintDisabled},dt*50);
+   this.accelerateHeld=accelerate>0;player.sprintInputHeld=held;player.stamina=state.energy;player.sprintButtonSpeed=state.buttonSpeed;player.sprintExhausted=state.energy<=0&&state.buttonSpeed<=0;
+   this.playerBoost=state.boost;this.pedalCoefficient=state.coefficient;gas=state.gas;
+   this.playerCyclingFrame={gas,boost:state.boost,velocity:[v.x/50,-v.z/50,v.y/50]};
+   // The native decision snaps tiny steering angles to zero before testing straight acceleration.
+   if(state.steer===0)this.steer=0;
+  }
+  // Rider associations read the vehicle's current pedal state, including script riders without an audio tick.
+  this.gasPedal=Math.max(-1,Math.min(1,gas));
+  // Sprint-button memory can keep the rider pedalling after the accelerator is released.
+  if(this.motorbike&&Math.abs(gas)>.05)this.rideTime+=dt;
   if(gas>.05)want=Math.min(top,speed+accelRate*dt*gas);
   else if(gas<-.05)want=Math.max(reverse,speed+accelRate*dt*gas);
   else want=speed>0?Math.max(0,speed-COAST_DECEL*dt):Math.min(0,speed+COAST_DECEL*dt);
@@ -382,7 +475,8 @@ export class WorldBike {
   const lock=h.steeringLock*Math.PI/180,speedF=Math.min(1,Math.abs(speed)/15);
   const effLock=lock*(1+(this.assets.bike.speedSteer-1)*speedF);
   // Positive steer (D) turns right, which is negative yaw about world up.
-  let yaw=-speed*Math.tan(Math.max(-1,Math.min(1,this.steer))*effLock)/WHEELBASE;
+  const steerAngle=-Math.max(-1,Math.min(1,this.steer))*effLock;
+  let yaw=speed*Math.tan(steerAngle)/WHEELBASE;
   yaw=Math.max(-2.5,Math.min(2.5,yaw));
   // With no wheel touching (CBike's four wheel ratios all 1) no tyre turns the bike: it keeps the spin it left the
   // ground with. A ridden CBmx spins with the stick (CBmx::ProcessAI, iOS 0x100458ddc): ApplyTurnForce(R × x/128 ×
@@ -413,7 +507,8 @@ export class WorldBike {
    const target=this.quad?0:bikeLeanTarget(this.steer,Math.abs(speed),this.assets.bike.maxLean);
    this.lean=approachBikeLean(this.lean,target,this.assets.bike.desLean,dt);
   }
-  if(this.quad)this.riderLean=quadRiderLean(this.riderLean,this.steer,this.assets.bike.fullAnimLean,this.assets.bike.desLean,dt);
+  // CQuadBike::ProcessAI leaves this vehicle-owned lean untouched for NPC/empty quads.
+  if(this.quad&&this.occupied){const f=Math.fround,full=f(f(this.assets.bike.fullAnimLean)*f(Math.PI/180));this.riderLean=quadRiderLean(this.riderLean,steerAngle,h.steeringLock,full,this.assets.bike.desLean,f(dt*50));}
   this.floatOnWater(dt);
   this.stepVelocity={...this.body.linvel()};this.stepTurn={...this.body.angvel()};
   this.mountTimer=Math.max(0,this.mountTimer-dt);
@@ -441,7 +536,6 @@ export class WorldBike {
   }
   const k=Math.pow(rate>=a.spinForAudio?.95:.7,timeStep);a.spinForAudio=a.spinForAudio*k+(1-k)*rate;a.brake=braking;
   this.freewheeling=!this.motorbike&&front+rear>0&&braking<=.5&&Math.abs(gas)<=.05;
-  if(!this.quad)this.gasPedal=Math.max(-1,Math.min(1,gas));
   const velocity=speed/50,h=this.assets.handling;
   if(velocity>=h.maxReverseVelocity&&velocity<=h.values.maxVelocity&&timeStep<=3){
    try{this.gear=stepNativeTransmission(h,{gear:this.gear},{velocity,throttle:Math.max(-1,Math.min(1,gas)),timeStep,hasDriveWheelContact:rear>0}).state.gear;}catch{/* The gear stays. */}
@@ -453,31 +547,23 @@ export class WorldBike {
   * that tips the nose is left out: this controller keeps the bike from pitching. */
  /** The ANIM_ID_BIKE_BUNNYHOP clip's length for a CBmx model's ride group, once loaded. */
  static hopClipSeconds?:(modelId:number)=>number|undefined;
+ /** Metadata for the same loaded IFP association the rider renderer samples. */
+ static riderClipSeconds?:(block:string,clip:string)=>number|undefined;
  /** CBmx::ProcessBunnyHop. Under DisablePlayerControls the press is refused and the charge dropped. */
- /** iOS g_hopCooldown (0x100aacc58), seconds: LaunchBunnyHopCB sets it to 0.5, and each CBmx's ProcessControl takes
-  * its frame off it (one counter for every BMX); while it runs ProcessBunnyHop is not called at all. */
- static hopCooldown=0;
  private bunnyHop(dt:number,held:boolean,disabled=false){
-  if(BMX_MODELS.has(this.modelId))WorldBike.hopCooldown=Math.max(0,Math.min(HOP_COOLDOWN_SECONDS,WorldBike.hopCooldown-dt));
-  if(WorldBike.hopCooldown>0&&this.hopLaunch===undefined){this.hopHeld=held;return;}
   const pressed=held&&!this.hopHeld;this.hopHeld=held;
-  if(disabled&&this.hopLaunch===undefined)this.controlJump=0;
-  if(!BMX_MODELS.has(this.modelId)||!this.occupied){this.controlJump=0;this.hopLaunch=undefined;return;}
-  if(this.hopLaunch!==undefined){
-   this.hopLaunch-=dt;
-   if(this.hopLaunch<=0){
-    // CBmx::LaunchBunnyHopCB: the Huge Bunny Hop cheat multiplies the hop's power by 5.
-    const power=(Math.min(this.controlJump/25,1)+1)*(CHEATS.isActive('hugeBunnyHop')?5:1);this.controlJump=0;this.hopLaunch=undefined;
-    // A front wheel and a rear wheel must both be touching (m_WheelCounts); GetFatAndMuscleModifier(STAT_MOD_6) is a
-    // retail stub, taken as 1.
-    if(this.wheelsDown(.5)&&this.wheelsDown(-.5)){const up=rotate(this.body.rotation(),{x:0,y:1,z:0}),v=this.body.linvel(),dv=.06*power*50;this.body.setLinvel({x:v.x+up.x*dv,y:v.y+up.y*dv,z:v.z+up.z*dv},true);}
-    WorldBike.hopCooldown=HOP_COOLDOWN_SECONDS;
-   }
-  }else if(held&&(this.controlJump>0||pressed&&!disabled))this.controlJump=Math.min(25,this.controlJump+dt*50);
-  // On release the bunny-hop clip jumps to (0.2 − t)/0.2 × (T − 0.2) + 0.2, t being the charge's 0..0.2 hold time, and
-  // plays out at speed 1.5, so the launch comes (T − 0.2) × charge/25 / 1.5 later: a tap hops at once.
-  else if(this.controlJump>0){const clip=WorldBike.hopClipSeconds?.(this.modelId);this.hopLaunch=clip!==undefined?Math.max(0,clip-.2)*(this.controlJump/25)/1.5:HOP_RELEASE_SECONDS;}
-  if(this.controlJump>0)this.throttle=0;
+  if(!BMX_MODELS.has(this.modelId)){this.hopState=undefined;this.controlJump=0;this.hopLaunch=undefined;return;}
+  const result=stepNativeBicycleHop(this.hopState??{charge:0},{pressed,held,disabled,ridden:this.occupied,duration:WorldBike.hopClipSeconds?.(this.modelId)},dt);
+  this.hopState=result.state;this.controlJump=result.state.charge;
+  const animation=result.state.animation;
+  this.hopLaunch=animation?.released&&animation.seconds<animation.duration?(animation.duration-animation.seconds)/1.5:undefined;
+  if(result.launchCharge!==undefined)this.launchBunnyHop(result.launchCharge);
+  if(result.cutGas)this.throttle=0;
+ }
+ private launchBunnyHop(charge:number){
+  // CBmx::LaunchBunnyHopCB: both axles must touch. STAT_MOD_6 is a retail stub; the cheat multiplies power by five.
+  const power=(Math.min(charge/25,1)+1)*(CHEATS.isActive('hugeBunnyHop')?5:1);
+  if(this.wheelsDown(.5)&&this.wheelsDown(-.5)){const up=rotate(this.body.rotation(),{x:0,y:1,z:0}),v=this.body.linvel(),dv=.06*power*50;this.body.setLinvel({x:v.x+up.x*dv,y:v.y+up.y*dv,z:v.z+up.z*dv},true);}
  }
  /** CColStore::HasCollisionLoaded for the bike's spot: a vehicle out where the world's collision has not streamed in
   * waits for it (bIsStaticWaitingForCollision) rather than falling through the map. Asked twice a second, as fixed
@@ -590,6 +676,31 @@ export class WorldBike {
  }
  /** Pin the embarked player to the bike; knock-offs eject through the reversed force formula. */
  afterStep(){
+  if(this.wheelRoll&&this.wheelStepSeconds>0){
+   const dt=this.wheelStepSeconds;this.wheelStepSeconds=0;
+   if(this.body.isEnabled()){
+    this.advanceWheelRoll(dt);
+    if(this.motorbike&&(this.occupied||WorldBike.hasDriverPed?.(this))){
+     const block=this.assets.vehicle.animation,duration=(id:number)=>WorldBike.riderClipSeconds?.(block,bikeRiderClipName(block,id));
+     if(this.riderAnimation||[194,195,196,197,198,199,200,202,203,204].every(id=>(duration(id)??0)>0)){
+      const owner=this.riderAnimation??=new NativeBikeRiderController(id=>duration(id)!),full=Math.fround(Math.fround(this.assets.bike.fullAnimLean)*Math.fround(Math.PI/180));
+      owner.step(dt,{speed:this.speed()/50,lean:this.quad?this.riderLean:this.lean,leanFwd:0,fullAnimLean:full,maxFlatVelocity:this.assets.handling.maxFlatVelocity,maxReverseVelocity:this.assets.handling.maxReverseVelocity,gas:this.gasPedal,brake:this.brakePedal,player:this.occupied,passenger:!!this.pillion||!!WorldBike.hasPassengerPed?.(this),quad:this.quad},this.riderDriveBy);
+      this.riderDriveByReady=owner.driveByShotReady;this.rideTime=owner.time;
+     }
+    }
+    if(this.pedals&&(this.occupied||WorldBike.hasDriverPed?.(this))){
+     if(!this.motorbike){
+      const block=this.assets.vehicle.animation,duration=(id:number)=>WorldBike.riderClipSeconds?.(block,bikeRiderClipName(block,id));
+      if(this.bicycleRider||[194,195,196,197,198,199,200,202,203,204,206,207,208].every(id=>(duration(id)??0)>0)){
+       const clock=this.bicycleRider??=new NativeBicycleRider(id=>duration(id)!),full=Math.fround(Math.fround(this.assets.bike.fullAnimLean)*Math.fround(Math.PI/180));
+       clock.step(dt,{model:this.modelId,speed:this.speed()/50,coefficient:this.pedalCoefficient,gear:this.gear,maxFlatVelocity:this.assets.handling.maxFlatVelocity,maxReverseVelocity:this.assets.handling.maxReverseVelocity,fullAnimLean:full,lean:this.lean,leanFwd:0,gas:this.gasPedal,brake:this.brakePedal,player:this.occupied,passenger:!!this.pillion||!!WorldBike.hasPassengerPed?.(this),status:this.occupied?0:3},!!this.hopState?.animation,this.crankAngle,this.riderDriveBy);
+       this.riderDriveByReady=clock.driveByShotReady;this.rideTime=clock.time;
+      }
+     }
+     this.crankAngle=this.bicycleRider?.crank!=null&&!this.hopState?.animation?this.bicycleRider.crank:stepBicycleCrank(this.crankAngle,dt*50,undefined,this.hopState?.animation?.amount);
+    }
+   }
+  }
   // A new step: its pairs are read when first asked for (a resting bike with no step speed has no props pass).
   this.stepPairsRead=false;
   if(this.body.isEnabled()){
@@ -600,12 +711,26 @@ export class WorldBike {
   }
   this.collisionKnockOff();
   if(this.pendingExplosion){this.pendingExplosion=false;return true;}
-  if(!this.occupied)return false;
+  if(!this.playersVehicle)return false;
   const up=rotate(this.body.rotation(),{x:0,y:1,z:0});
   if(up.y<0){this.finishExit();this.message='The bike tipped over.';return false;}
+  this.syncPlayer();return false;
+ }
+ private advanceWheelRoll(dt:number){
+  const frontCount=this.assets.wheelFrames.front.length,front=this.wheelsDown(.5),rear=this.wheelsDown(-.5),speed=this.speed()/50;
+  this.wheelPoses=this.wheelPoses.map((p,i)=>{
+   const isFront=i<frontCount,contact=isFront?front:rear,radius=(isFront?this.assets.vehicle.frontWheelSize??this.assets.vehicle.rearWheelSize??.6:this.assets.vehicle.rearWheelSize??this.assets.vehicle.frontWheelSize??.6)/2;
+   const state=isFront?'normal':this.audio.states[1];
+   if(!this.quad)return stepBikeWheelRoll(p,state,speed,radius,contact,dt*50);
+   const drive=this.assets.handling.values.driveType,driven=drive==='4'||(isFront?drive==='F':drive==='R');
+   // The quad shares the automobile's wheel update, including its driven airborne branch. Suspension remains the bike controller's axle probes.
+   return stepWheelAnimation({...p,steering:0,height:0},{timeStep:dt*50,state:!isFront&&this.brake&&Math.abs(speed)>.04?'fixed':'normal',forwardSpeed:speed,radius,contactCount:contact?1:0,driven,acceleration:this.throttle,steering:0,startHeight:0,springLength:1,compression:0});
+  });
+ }
+ private syncPlayer(){
   const p=this.body.translation(),player=this.sim.player;
   player.previous={...player.position};player.position={...p};player.heading=this.heading();player.speed=Math.abs(this.speed());player.grounded=true;
-  this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});return false;
+  this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});
  }
  /** WATER.DAT's level at a native (x, y), which the fleet hands its bikes. */
  waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean,normal?:number[])=>number|undefined;
@@ -627,7 +752,7 @@ export class WorldBike {
   if(!result.inWater)return;
   const [mx,my,mz]=state.moveSpeed;this.body.setLinvel({x:mx*50,y:mz*50,z:-my*50},true);this.body.setAngvel({x:w.x,y:state.turnSpeed[2]*50,z:w.z},true);
   if(!result.drowning)return;
-  if(!this.occupied){this.throttle=0;return;}
+  if(!this.playersVehicle){this.throttle=0;return;}
   if(this.sim.player.health<=0)return;
   this.sim.handlePlayerBreath(dt);
   if(offGround)this.fallOff();
@@ -653,7 +778,7 @@ export class WorldBike {
   // CBike::DamageKnockOffRider: a rider the script keeps on (CANT_BE_KNOCKED_OFF_NEVER) is never thrown, and the
   // force is zeroed for the player on stairs (CamStairsForPlayer and a stairs zone holding him).
   const mass=this.assets.handling.values.mass;let knocked=false;
-  if(hit&&this.occupied&&!WorldBike.riderStaysOn?.()&&!WorldBike.playerOnStairs?.()){
+  if(hit&&this.playersVehicle&&!WorldBike.riderStaysOn?.()&&!WorldBike.playerOnStairs?.()){
    const q=this.body.rotation(),right=rotate(q,{x:1,y:0,z:0}),forward=rotate(q,{x:0,y:0,z:-1}),up=rotate(q,{x:0,y:1,z:0}),n=hit.normal;
    const dir={fwd:n.x*forward.x+n.y*forward.y+n.z*forward.z,up:n.x*up.x+n.y*up.y+n.z*up.z,right:n.x*right.x+n.y*right.y+n.z*right.z};
    const force=knockOffForce({intensity:hit.intensity,mass,player:true,skill:WorldBike.ridingSkill?.()??0,dir,worldZ:n.y,upZ:up.y,sanchez:this.modelId===468,quad:this.quad});
@@ -732,7 +857,7 @@ export class WorldBike {
   * bike and 5 up it over his 70 kg (ApplyMoveForce); faster, he keeps the ride's speed. It is not forced, so a rider
   * the script keeps on stays on. Returns whether he came off. */
  explosionKnockOff(){
-  if(!this.occupied||WorldBike.riderStaysOn?.())return false;
+  if(!this.playersVehicle||WorldBike.riderStaysOn?.())return false;
   const spot=this.knockOffSpot();if(!spot)return false;
   const v={...this.body.linvel()};this.leave(spot);
   if(Math.hypot(v.x,v.y,v.z)/50<.3){
@@ -763,17 +888,23 @@ export class WorldBike {
  }
  /** CTaskSimpleCarSetPedOut: the rider is off the bike at `spot`. */
  private leave(spot:{x:number;y:number;z:number}){
+  if(this.playerPassengerSeat){this.setPlayerOutAsPassenger(spot);return;}
   this.occupied=false;this.throttle=0;this.steer=0;this.rawSteer=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.player.position=spot;this.sim.player.previous={...spot};this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});this.sim.playerCollider.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z});
  }
  update(alpha:number){
+  this.forkSteering?.update((this.previousSteer+(this.steer-this.previousSteer)*alpha)*this.assets.handling.values.steeringLock*Math.PI/180);
+  this.wheelRoll?.update(this.previousWheelAngles,this.wheelPoses.map(p=>p.rotation),alpha);
+  this.pedals?.update(this.previousCrankAngle,this.crankAngle,alpha);
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
+  this.renderBodyPosition.copy(this.root.position);
   const lit=this.lightsOn&&!this.wrecked;
   if(this.lamp)this.lamp.visible=lit;
   if(this.tailLamp){this.tailLamp.visible=lit;this.tailLamp.scale.setScalar(this.brake?0.45:0.3);}
   // CalculateLeanMatrix: GetMatrix() × RotateY(lean) × RotateX(−0.05·|lean|), so the nose dips a twentieth of the
   // lean before the roll about the forward axis, then the wheels drop (1-cos) × bbox min.
+  const up=new Vector3(0,1,0).applyQuaternion(this.root.quaternion);
   this.root.quaternion.multiply(new Quaternion().setFromAxisAngle(new Vector3(0,0,1),-this.lean)).multiply(new Quaternion().setFromAxisAngle(new Vector3(1,0,0),-.05*Math.abs(this.lean)));
-  this.root.position.y+=bikeLeanDrop(this.lean,this.assets.collision!.bounds.min[2]);
+  this.root.position.addScaledVector(up,bikeLeanDrop(this.lean,this.assets.collision!.bounds.min[2]));
   // interpolateVehiclePose owns the root matrix; the lean is added after it, so recompose.
   composeVehicleRoot(this.root);
  }
@@ -782,10 +913,14 @@ export class WorldBike {
   * BMX rider sat frozen mid-stroke with one knee up, leaning to the side. */
  rideTime=0;
  riderPose(){
-  const prefix=this.assets.vehicle.animation,bicycle=BICYCLES.has(prefix),speed=Math.abs(this.speed());
-  const idle=speed>.5?(bicycle?`${prefix}_pedal`:`${prefix}_ride`):`${prefix}_still`;
+  const prefix=this.assets.vehicle.animation,clipPrefix=prefix==='wayfarer'?'wf':prefix,bicycle=BICYCLES.has(prefix),speed=Math.abs(this.speed());
+  const hop=this.hopState?.animation;
+  // aQuadAnimations maps both BIKE_RIDE and BIKE_STILL to QUAD_ride; quad.ifp has no QUAD_still.
+  const owner=bicycle?this.bicycleRider:this.riderAnimation,partials=owner?.associations.filter(a=>a.identifier!==194&&a.amount>0).map(a=>({clip:bikeRiderClipName(prefix,a.identifier),seconds:a.time,amount:a.amount}));
+  const riding=this.quad||owner||bicycle&&hop;
+  const idle=riding?`${clipPrefix}_ride`:speed>.5?(bicycle?`${clipPrefix}_pedal`:`${clipPrefix}_ride`):`${clipPrefix}_still`;
   const lean=this.quad?this.riderLean:this.lean,amount=bikeRiderLean(lean,this.assets.bike.fullAnimLean),right=this.quad?lean>0:this.steer>0;
-  return {block:prefix,seat:this.seat(),time:this.rideTime,idle:prefix?idle.toLowerCase():idle,overlay:amount>.05?{clip:`${prefix}_${right?'right':'left'}`.toLowerCase(),amount}:undefined};
+  return {block:prefix,seat:this.seat(),time:this.rideTime,baseTime:bicycle?this.bicycleRider?.baseTime:this.riderAnimation?.time,idle:prefix?idle.toLowerCase():idle,partials,passenger:`${clipPrefix}_${bicycle?'ride':'passenger'}`.toLowerCase(),overlay:!owner&&amount>.05?{clip:`${clipPrefix}_${right?'right':'left'}`.toLowerCase(),amount}:undefined,hop:bicycle&&hop?{clip:`${clipPrefix}_bunnyhop`,seconds:hop.seconds,amount:hop.amount}:undefined};
  }
  /** SetupLightingForEntity's multiplier, GetLightingFromCol(true) × 0.95 + 0.05: the object ambient's mean with a
   * contact brightness of 0.5 stands in (this vehicle keeps no contact lighting). */

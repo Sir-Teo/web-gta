@@ -9,8 +9,8 @@ test('swim starts with the ped origin (a unit above the feet) 0.6 under the surf
 });
 
 test('PC breath recovery overshoots capacity and drowning events truncate damage',()=>{
- expect(swimBreath(99,false,1,1)).toEqual({breath:101,damage:0});
- expect(swimBreath(101,false,1,1)).toEqual({breath:101,damage:0});
+ expect(swimBreath(99,false,1,1,100)).toEqual({breath:101,damage:0});
+ expect(swimBreath(101,false,1,1,100)).toEqual({breath:101,damage:0});
  expect(swimBreath(0,true,1,50/60)).toEqual({breath:0,damage:2});
  // Exhaustion does not inflict damage until the subsequent call.
  const exhausted=swimBreath(.5,true,1,1);
@@ -61,7 +61,7 @@ test('the submerge servo holds the waterline without snapping',()=>{
 
 test('breath recovers at the surface, drains underwater and kills empty lungs',()=>{
  expect(swimBreath(50,false,1,1)).toEqual({breath:52,damage:0});
- expect(swimBreath(100,false,1,1).breath).toBe(100);
+ expect(swimBreath(100,false,1,1,100).breath).toBe(100);
  expect(swimBreath(50,true,2,1)).toEqual({breath:48,damage:0});
  expect(swimBreath(0,true,1,1)).toEqual({breath:0,damage:3});
 });

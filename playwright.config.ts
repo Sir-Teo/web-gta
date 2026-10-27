@@ -2,6 +2,8 @@ import { defineConfig } from '@playwright/test';
 
 // PW_PORT lets a second checkout (a worktree running the whole suite) keep its own server beside this one.
 const port = Number(process.env.PW_PORT ?? 5189);
+// CI and cloud workspaces can use their installed Chromium without a separate test configuration.
+const executablePath = process.env.PW_CHROMIUM_EXECUTABLE || undefined;
 // Specs that miss their window under parallel load and pass with the machine to themselves. The first eight
 // were found when this list was made; the rest were measured on 2026-09-21 by running the parallel project at
 // three, four and five workers — the failure count tracked the worker count (7, 9, 10) and the same specs kept
@@ -28,7 +30,7 @@ export default defineConfig({
   // A few interaction specs time their key presses against game time and can miss under four-page load; one retry
   // reruns them (reported as flaky, not hidden).
   retries: 1,
-  use: { baseURL, viewport: { width: 1440, height: 900 }, browserName: 'chromium', channel: 'chrome', screenshot: 'only-on-failure' },
+  use: { baseURL, viewport: { width: 1440, height: 900 }, browserName: 'chromium', channel: executablePath ? undefined : 'chrome', launchOptions: { executablePath }, screenshot: 'only-on-failure' },
   // Specs that time key presses against game time (walking into a pickup, an idle after 20 s, a crew's fight) miss
   // under four-page load; `npm run test:browser` (scripts/test-browser.mjs) runs them after the rest, with the
   // machine to themselves. They are not a dependency of the parallel project: Playwright skips a dependent project

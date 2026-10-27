@@ -1,4 +1,5 @@
 import {applyScriptVehicleForce,type ScriptVehicleForceBasis} from './nativeScriptVehicleForce';
+import {nativeSeatPosition,nativeCarSeatPose} from '../vehicle/nativeSeatPosition';
 import {NativeClumpAlpha} from './nativeClumpAlpha';
 import {createSwingingChassis,type NativeSwingingChassis} from './nativeSwingingChassis';
 import {NativeMovingComponent,movingComponentSpec,movingComponentCollision,movingComponentPivot,stepCementDrum,applyMovingCollisionShapes} from './nativeMovingComponent';
@@ -423,7 +424,7 @@ export class WorldCar {
   * health one for one (the player's own car takes 0.95 of it, 0.42 once progress reaches 100%), plus
   * CAutomobile::VehicleDamage's component progression for the hit COL piece. Returns true only when the car is
   * wrecked. */
- damage(amount:number,collider?:number,explosive=false,shotDir?:{x:number;y:number;z:number},options:{kind?:Exclude<CarDamageKind,'explosion'>;byPlayer?:boolean;weapon?:number;by?:CarDamager;point?:{x:number;y:number;z:number}}={}){
+ damage(amount:number,collider?:number,explosive=false,shotDir?:{x:number;y:number;z:number},options:{kind?:Exclude<CarDamageKind,'explosion'>;byPlayer?:boolean;weapon?:number;by?:CarDamager|null;point?:{x:number;y:number;z:number}}={}){
   const kind:CarDamageKind=explosive?'explosion':options.kind??'bullet';
   if(this.wrecked||carRefusesDamage(this,kind)||options.weapon!==undefined&&!physicalCanBeDamaged(this.proofs,options.weapon))return false;
   // CVehicle::CanVehicleBeDamaged: a car only the player may damage (bInvulnerable) refuses anyone else's harm, and the
@@ -723,6 +724,10 @@ export class WorldCar {
  doorFullyOpen(door:number){return this.doors[door].fullyOpen||this.doorMissing(door);}
  /** Driver seat (`ped_frontseat` mirrored, GetSeatPositionInVehicle) or front passenger seat, in native car space. */
  seat(side:'left'|'right'){const p=this.car.nativeFramePosition('ped_frontseat');return p?{x:side==='left'?-Math.abs(p.x):Math.abs(p.x),y:p.y,z:p.z}:undefined;}
+ /** CPed::GetSeatPositionInVehicle: script passenger indices are zero based, including both rear seats. */
+ seatPosition(seat:'driver'|number){return nativeSeatPosition({front:this.car.nativeFramePosition('ped_frontseat'),back:this.car.nativeFramePosition('ped_backseat'),quad:this.assets.vehicle.type==='quad'},seat);}
+ /** The seat dummy plus SetPedPositionInCar's van-specific position and facing. */
+ seatPose(seat:'driver'|number){return nativeCarSeatPose(this.seatPosition(seat),seat,this.animGroup.id);}
  /** World position of a native car-space point. */
  worldPoint(local:{x:number;y:number;z:number}){const p=this.car.body.translation();return this.worldOffset(local).add(new Vector3(p.x,p.y,p.z));}
  /** Native heading of the car: the browser yaw used by the player controller. */
@@ -1672,7 +1677,9 @@ export class WorldCar {
  setLighting(worldAmbient:readonly number[]|undefined,objectAmbient:readonly number[]|undefined,sunMultiplier:number,night:number){
   const contact=worldAmbient?nativeContactLightMultiplier(worldAmbient,nativeCarContactBrightness(this.collisionLighting,night)):1;
   this.car.setAmbient(objectAmbient,sunMultiplier*contact,contact);
-  this.car.setLightState(this.input.pedals.brake>0||this.input.pedals.handbrake,this.lightsOn,this.damageState.lights);
+  // DoTailLightEffect: dynamic brake emission requires a driver, pedal pressure and no handbrake.
+  const brake=this.input.pedals.brake>0&&!this.input.pedals.handbrake&&(this.occupied||!!this.autopilot&&!this.driverOut||!!WorldCar.hasDriverPed?.(this));
+  this.car.setLightState(brake,this.lightsOn,this.damageState.lights);
   this.car.setDirtLevel(this.dirtLevel);
   // SetupLightingForEntity's multiplier feeds the car pipeline's reflection strength (gSpecIntensity).
   this.car.setReflection(contact);

@@ -59,7 +59,7 @@ test('vehicle drowning bypasses armour and seated death can finish without on-fo
   expect(releases).toBe(0);
   expect(sim.advancePlayerDeath(duration/2,()=>releases++)).toBe(true);
   expect(releases).toBe(1);expect(sim.player.health).toBe(100);
-  expect(sim.player.breath).toBe(100);expect(sim.player.requireHandleBreath).toBe(false);
+  expect(sim.player.breath).toBe(1150);expect(sim.player.requireHandleBreath).toBe(false);
   expect(sim.playerCollider.isEnabled()).toBe(true);
   expect(sim.advancePlayerDeath(1,()=>releases++)).toBe(false);expect(releases).toBe(1);
  }finally{sim.dispose();}

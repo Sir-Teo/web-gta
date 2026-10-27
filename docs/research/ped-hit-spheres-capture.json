@@ -1,0 +1,141 @@
+{
+  "source": {
+    "url": "https://raw.githubusercontent.com/Google61/gta3sa.app/67f70cb72eb207aeca650ea9e8c10b0e7dda166a/gta3sa",
+    "bytes": 14226544,
+    "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78"
+  },
+  "table": "CPedModelInfo::m_pColNodeInfos",
+  "pcAddress": "0x8A6308",
+  "arm64Address": "0x10064afc8",
+  "arm64Stride": 32,
+  "armv7FileOffset": "0x5c7180",
+  "armv7Stride": 28,
+  "consumer": "https://github.com/gta-reversed/gta-reversed/blob/4281f82d8af83e14935ac84a69dfd1ceebb9f256/source/game_sa/Models/PedModelInfo.cpp",
+  "notes": [
+    "CreateHitColModelSkinned copies these radii and body-piece IDs; AnimatePedColModelSkinnedWorld transforms each center by its current skeleton bone.",
+    "The first unused name/pointer field takes eight bytes on ARM64, four on ARMv7. All twelve table records agree across the two slices.",
+    "CWorld::ProcessLineOfSightSectorList permits the animated model with bIncludeBikers and bTestForShotInVehicle even while ordinary ped collision is off. This capture does not establish the writer of that eligibility flag."
+  ],
+  "records": [
+    {
+      "bone": 5,
+      "piece": 9,
+      "center": [
+        0.05000000074505806,
+        0,
+        0
+      ],
+      "radius": 0.15000000596046448
+    },
+    {
+      "bone": 3,
+      "piece": 3,
+      "center": [
+        0.20000000298023224,
+        0,
+        0
+      ],
+      "radius": 0.20000000298023224
+    },
+    {
+      "bone": 3,
+      "piece": 3,
+      "center": [
+        0,
+        0,
+        0
+      ],
+      "radius": 0.20000000298023224
+    },
+    {
+      "bone": 2,
+      "piece": 4,
+      "center": [
+        -0.10000000149011612,
+        0,
+        0
+      ],
+      "radius": 0.20000000298023224
+    },
+    {
+      "bone": 32,
+      "piece": 5,
+      "center": [
+        0.05999999865889549,
+        0,
+        0
+      ],
+      "radius": 0.14000000059604645
+    },
+    {
+      "bone": 22,
+      "piece": 6,
+      "center": [
+        0.05999999865889549,
+        0,
+        0
+      ],
+      "radius": 0.14000000059604645
+    },
+    {
+      "bone": 33,
+      "piece": 5,
+      "center": [
+        0.05000000074505806,
+        0,
+        0
+      ],
+      "radius": 0.14000000059604645
+    },
+    {
+      "bone": 23,
+      "piece": 6,
+      "center": [
+        0.05000000074505806,
+        0,
+        0
+      ],
+      "radius": 0.14000000059604645
+    },
+    {
+      "bone": 42,
+      "piece": 7,
+      "center": [
+        -0.10000000149011612,
+        0,
+        0
+      ],
+      "radius": 0.18000000715255737
+    },
+    {
+      "bone": 52,
+      "piece": 8,
+      "center": [
+        -0.10000000149011612,
+        0,
+        0
+      ],
+      "radius": 0.18000000715255737
+    },
+    {
+      "bone": 43,
+      "piece": 7,
+      "center": [
+        -0.18000000715255737,
+        0,
+        0
+      ],
+      "radius": 0.1599999964237213
+    },
+    {
+      "bone": 53,
+      "piece": 8,
+      "center": [
+        -0.18000000715255737,
+        0,
+        0
+      ],
+      "radius": 0.1599999964237213
+    }
+  ]
+}

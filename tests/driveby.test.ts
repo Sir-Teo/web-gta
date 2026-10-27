@@ -1,3 +1,5 @@
+import {readFileSync} from 'node:fs';
+import {readWeaponData} from '../src/weapons/weaponData';
 import {expect,test,beforeAll} from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Simulation} from '../src/simulation/Simulation';
@@ -68,4 +70,17 @@ test('drive-by fires over the gunwale of an occupied boat',()=>{
     weapons.tick(1);
     expect(weapons.fireDrivebyBoat(boat,camera)).toBe(false);
   }finally{sim.dispose();}
+});
+
+test('loaded player car drive-bys fire left/right from the hand despite an unrelated camera direction',()=>{
+ const {sim,weapons,car}=setup();try{
+  weapons.installNative(readWeaponData(readFileSync('public/play/world/files/data/weapon.dat','utf8')));weapons.inventory.select(28);weapons.inventory.setTotalAmmo(28,100);
+  weapons.vehicleFirePose=()=>({handMatrix:[[1,0,0],[0,1,0],[0,0,1],[0,0,1]],owner:[0,0,1]});weapons.driveByRandom=()=>128;
+  for(const x of [-10,10])sim.world.createCollider(RAPIER.ColliderDesc.cuboid(.5,.5,.5).setTranslation(x,1,0));sim.world.step();
+  for(const [index,look] of (['left','right'] as const).entries()){
+   weapons.tick(.1,undefined,100+index*100);weapons.inventory.prepareDriveBy(100+index*100,true);
+   expect(weapons.fireDriveby(car,{origin:{x:0,y:4,z:0},direction:{x:0,y:1,z:0}},look)).toBe(true);const ray=weapons.effects.filter(e=>e.kind==='tracer').at(-1)!;expect(ray.to.x).toBeCloseTo(look==='left'?-9.5:9.5,4);
+  }
+  expect(weapons.inventory.shots).toBe(2);expect(weapons.inventory.cooldown).toBe(.07);
+ }finally{sim.dispose();}
 });

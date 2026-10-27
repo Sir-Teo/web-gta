@@ -2,6 +2,7 @@
  * six swim states, the entry depth rule, resistance blending, the submerge
  * servo and breath/drowning. Animation selection, input mapping, FX and audio
  * arrive in later slices; speeds come from the swim clips' root motion. */
+import {DEFAULT_LUNG_CAPACITY} from './nativeLungCapacity';
 export const SWIM={tread:0,sprint:1,sprinting:2,diveUnderwater:3,underwaterSprinting:4,backToSurface:5} as const;
 /** The surface strokes' root-motion speeds, measured from swim.ifp (m/s): Swim_Breast 3.011 m over 1.3 s, SWIM_crawl
  * 2.505 m over 0.9 s. */
@@ -73,8 +74,8 @@ export function swimBreathMultiplier(state:number,under?:SwimStrokeAssociation){
 /** CPlayerPed::HandlePlayerBreath (0x60A8D0), pinned gta-reversed
  * 0076f9017b4aeef7433957ac2bd8b6988e9df166. Recovery may overshoot the
  * capacity; the damage-event argument truncates to an integer. The default
- * capacity remains an approximation until STAT_MOD_AIR_IN_LUNG is ported. */
-export function swimBreath(breath:number,decrease:boolean,multiplier:number,timeStep:number,lungCap=100,infiniteOxygen=false,drownsInWater=true){
+ * capacity is the native initial-stat value; the live host supplies current stats. */
+export function swimBreath(breath:number,decrease:boolean,multiplier:number,timeStep:number,lungCap=DEFAULT_LUNG_CAPACITY,infiniteOxygen=false,drownsInWater=true){
  const amount=timeStep*multiplier;
  if(!decrease||infiniteOxygen)return {breath:lungCap>breath?breath+amount*2:breath,damage:0};
  if(breath>0&&drownsInWater)return {breath:Math.max(0,breath-amount),damage:0};

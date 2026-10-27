@@ -1,0 +1,6486 @@
+{
+  "source": "Selected actual CBike lean normalization/filter 0x100457c8c..0x100457cf8; imported powf declared external boundary evaluated by host libm float powf; its arguments and result included",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "cases": [
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.8145276308059692
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.741889476776123
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.8236216306686401
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.705513596534729
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.828000009059906
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.8444533348083496
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.9059146642684937
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.07263815402984619
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.11810803413391113
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.13999998569488525
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.2222665548324585
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.5295729637145996
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.6692513227462769
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.741889476776123
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.5874055624008179
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.705513596534729
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.5480000376701355
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.3999202251434326
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.15323129296302795
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.8145276308059692
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.741889476776123
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.8236216306686401
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.705513596534729
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.828000009059906
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.8444533348083496
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.9059146642684937
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.07263815402984619
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.11810803413391113
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.13999998569488525
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.2222665548324585
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.5295729637145996
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.6692513227462769
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.741889476776123
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.5874055624008179
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.705513596534729
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.5480000376701355
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.3999202251434326
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": -1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.15323129296302795
+    },
+    {
+      "input": {
+        "lean": -1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": -0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": -0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.7709447145462036
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.741889476776123
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": -0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.7527568340301514
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.705513596534729
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": -0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.7440000176429749
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": -0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.7110934257507324
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": -0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.5881708860397339
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": -0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": -0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.029055261984467506
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": -0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.04724321514368057
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": -0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.0559999942779541
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": -0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.08890662342309952
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": -0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.21182918548583984
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": -0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": -0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.7128342390060425
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.741889476776123
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": -0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.6582703590393066
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.705513596534729
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": -0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.6320000290870667
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": -0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.5332801342010498
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": -0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.1645124852657318
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": -0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": -0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.7612469792366028
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.741889476776123
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": -0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.7369884252548218
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.705513596534729
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": -0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.725308895111084
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": -0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.6814190149307251
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": -0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.5174686312675476
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": -0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": -0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.019357485696673393
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": -0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.03147484362125397
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": -0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.03730887174606323
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": -0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.05923225358128548
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": -0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.14112694561481476
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": -0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": -0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.7225319743156433
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.741889476776123
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": -0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.6740387678146362
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.705513596534729
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": -0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.6506911516189575
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": -0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.5629545450210571
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": -0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.2352147251367569
+    },
+    {
+      "input": {
+        "lean": -0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.741889476776123
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.741889476776123
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.705513596534729
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.705513596534729
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.741889476776123
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.741889476776123
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.705513596534729
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.705513596534729
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.741889476776123
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.741889476776123
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.705513596534729
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.705513596534729
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.741889476776123
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.741889476776123
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.705513596534729
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.705513596534729
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": 0.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": 0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": 0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.7128342390060425
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.741889476776123
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": 0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.6582703590393066
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.705513596534729
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": 0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.6320000290870667
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": 0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.5332801342010498
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": 0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.1645124852657318
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": 0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": 0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.029055261984467506
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": 0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.04724321514368057
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": 0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.0559999942779541
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": 0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.08890662342309952
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": 0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.21182918548583984
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": 0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": 0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.7709447145462036
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.741889476776123
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": 0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.7527568340301514
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.705513596534729
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": 0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.7440000176429749
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": 0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.7110934257507324
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": 0.4000000059604645,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.5881708860397339
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": 0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": 0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.7225319743156433
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.741889476776123
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": 0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.6740387678146362
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.705513596534729
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": 0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.6506911516189575
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": 0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.5629545450210571
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": 0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.2352147251367569
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": 0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": 0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.019357485696673393
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": 0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.03147484362125397
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": 0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.03730887174606323
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": 0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.05923225358128548
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": 0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.14112694561481476
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": 0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": 0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.7612469792366028
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.741889476776123
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": 0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.7369884252548218
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.705513596534729
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": 0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.725308895111084
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": 0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.6814190149307251
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": 0.26649197936058044,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.5174686312675476
+    },
+    {
+      "input": {
+        "lean": 0.20000000298023224,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.6692513227462769
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.741889476776123
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.5874055624008179
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.705513596534729
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.5480000376701355
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.3999202251434326
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.15323129296302795
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.07263815402984619
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.11810803413391113
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.13999998569488525
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.2222665548324585
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.5295729637145996
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.8145276308059692
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.741889476776123
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.8236216306686401
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.705513596534729
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.828000009059906
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.8444533348083496
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.9059146642684937
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.5,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": -0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.6692513227462769
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": -0.741889476776123
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.5874055624008179
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": -0.705513596534729
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.5480000376701355
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": -0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.3999202251434326
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": -0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.15323129296302795
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": -0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": -0.37634167075157166
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.07263815402984619
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.11810803413391113
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.13999998569488525
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.2222665548324585
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.5295729637145996
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.0,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.0
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ],
+      "filtered": 0.800000011920929
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.8145276308059692
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.5,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.5,
+          "result": 0.9273618459701538
+        }
+      ],
+      "filtered": 0.741889476776123
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.8236216306686401
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 0.8333333134651184,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 0.8333333134651184,
+          "result": 0.8818919658660889
+        }
+      ],
+      "filtered": 0.705513596534729
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.828000009059906
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.0,
+          "result": 0.8600000143051147
+        }
+      ],
+      "filtered": 0.6880000233650208
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.8444533348083496
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 1.6666666269302368,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 1.6666666269302368,
+          "result": 0.7777334451675415
+        }
+      ],
+      "filtered": 0.6221867799758911
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": false
+      },
+      "target": 1.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.9059146642684937
+    },
+    {
+      "input": {
+        "lean": 1.0,
+        "fullAnimLean": 0.7504916191101074,
+        "previous": 0.800000011920929,
+        "timeStep": 5.0,
+        "reverse": true
+      },
+      "target": 0.0,
+      "calls": [
+        {
+          "base": 0.8600000143051147,
+          "exponent": 5.0,
+          "result": 0.4704270660877228
+        }
+      ],
+      "filtered": 0.37634167075157166
+    }
+  ]
+}

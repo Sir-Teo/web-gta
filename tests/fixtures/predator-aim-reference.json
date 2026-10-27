@@ -1,0 +1,2570 @@
+{
+  "source": "Pinned iOS arm64 DoTankDoomAiming with explicit FindObjectsInRange candidates; actual native line-segment distance and aim calculations",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "function": "0x10049a930",
+  "lineDistance": "0x10017fd10",
+  "cases": [
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": []
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              0,
+              10,
+              0
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        -4.410915374755859
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              0,
+              10,
+              5
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              0,
+              10,
+              15
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              0,
+              30,
+              0
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        -0.523249626159668
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              0,
+              30,
+              5
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        10.357105255126953
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              0,
+              30,
+              15
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              0,
+              55,
+              0
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        0.2005799412727356
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              0,
+              55,
+              5
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        5.910723686218262
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              0,
+              55,
+              15
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        17.331010818481445
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              10,
+              0
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        -4.599999904632568
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              10,
+              5
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              10,
+              15
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              30,
+              0
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        -0.5272727012634277
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              30,
+              5
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        10.381818771362305
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              30,
+              15
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              55,
+              0
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        0.19999998807907104
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              55,
+              5
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        5.914286136627197
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              55,
+              15
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        17.342857360839844
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              8,
+              10,
+              0
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              8,
+              10,
+              5
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              8,
+              10,
+              15
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              8,
+              30,
+              0
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              8,
+              30,
+              5
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              8,
+              30,
+              15
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              8,
+              55,
+              0
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              8,
+              55,
+              5
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              8,
+              55,
+              15
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              8.01,
+              10,
+              0
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              8.01,
+              10,
+              5
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              8.01,
+              10,
+              15
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              8.01,
+              30,
+              0
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              8.01,
+              30,
+              5
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              8.01,
+              30,
+              15
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              8.01,
+              55,
+              0
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              8.01,
+              55,
+              5
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              8.01,
+              55,
+              15
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              15,
+              10,
+              0
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              15,
+              10,
+              5
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              15,
+              10,
+              15
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              15,
+              30,
+              0
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              15,
+              30,
+              5
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              15,
+              30,
+              15
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              15,
+              55,
+              0
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              15,
+              55,
+              5
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              15,
+              55,
+              15
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": true,
+            "self": false,
+            "position": [
+              2,
+              30,
+              2
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 5,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              30,
+              2
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        3.8363635540008545
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 6,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              30,
+              2
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 7,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              30,
+              2
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": true,
+            "position": [
+              2,
+              30,
+              2
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        1.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 0.5,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              30,
+              2
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        3.8363635540008545
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 5,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              30,
+              2
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        3.8363635540008545
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              10,
+              0
+            ]
+          },
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              30,
+              3
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        -4.599999904632568
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          1
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              30,
+              3
+            ]
+          },
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              10,
+              0
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        -4.599999904632568
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          7
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              30,
+              2
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        3.8363635540008545
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          2,
+          2.5,
+          1
+        ],
+        "end": [
+          2,
+          62.5,
+          7
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              30,
+              8
+            ]
+          }
+        ]
+      },
+      "end": [
+        2.0,
+        62.5,
+        7.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    },
+    {
+      "input": {
+        "vehicle": [
+          0,
+          0,
+          0
+        ],
+        "start": [
+          0,
+          0,
+          0
+        ],
+        "end": [
+          60,
+          0,
+          0
+        ],
+        "candidates": [
+          {
+            "radius": 2,
+            "status": 3,
+            "scorched": false,
+            "self": false,
+            "position": [
+              2,
+              30,
+              0
+            ]
+          }
+        ]
+      },
+      "end": [
+        60.0,
+        0.0,
+        0.0
+      ],
+      "query": {
+        "max": 15,
+        "twoD": 1,
+        "buildings": 0,
+        "vehicles": 1,
+        "peds": 0
+      }
+    }
+  ]
+}

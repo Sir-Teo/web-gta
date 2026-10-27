@@ -105,9 +105,9 @@ test('adrenaline keeps a sprint from spending stamina for 20 s (HandleSprintEner
   setup(); sim.world.createCollider(RAPIER.ColliderDesc.cuboid(400,.5,400).setTranslation(0,-.5,0)); sim.world.step(); advance(10,0,0);
   sim.player.adrenaline = 20;
   for(let i=0;i<60*5;i++) sim.step(1/60,{...controls,y:-1,sprint:true});
-  expect(sim.player.stamina).toBe(100); expect(sim.player.adrenaline).toBeCloseTo(15, 3);
+  expect(sim.player.stamina).toBe(sim.playerSprintCapacity()); expect(sim.player.adrenaline).toBeCloseTo(15, 3);
   for(let i=0;i<60*16;i++) sim.step(1/60,{...controls,y:-1,sprint:true});
-  expect(sim.player.adrenaline).toBe(0); expect(sim.player.stamina).toBeLessThan(100);
+  expect(sim.player.adrenaline).toBe(0); expect(sim.player.stamina).toBeLessThan(sim.playerSprintCapacity());
 });
 
 test('a long fall below the spawn height lands; leaving the world puts him back over the nearest path node', () => {

@@ -9,6 +9,213 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Vehicle bumper source precision (October 27, 2026)
+
+- Car, boat and bike bumper sources now use the captured float32 dummy,
+  transform, body-origin and boat-lift order. All 144 fixed cases agree with both
+  actual native output and the source-compiled PC fragment with declared scalar
+  primitives. All 274 live base sources across bikes/quads, ten boats and
+  passenger roles match both references exactly; 139 bike height-stage sources,
+  53 banked/moving camera sources and 12 NPC-driver sources also match native
+  output exactly. Quaternion-derived bases, interpolation, model/bone/query
+  services and complete retail-PC/FPU ownership remain explicit boundaries.
+  [Evidence and validation](research/VEHICLE_BUMPER_SOURCE_PRECISION.md).
+
+## Bike bumper body origin (October 27, 2026)
+
+- Bike bumper sources now combine the selected lean orientation with the
+  interpolated physical body origin before the wheel-placement lean shift.
+  Rendered bike/rider poses retain that shift. All 53 controlled and moving
+  browser observations pass; maximum native horizontal disagreement falls from
+  3.80 cm to 0.12 mm, with zero height disagreement. Quad control cases remain
+  aligned. The retained double transform and full native camera/interpolation
+  ownership are explicit limits. [Evidence](research/BIKE_BUMPER_ORIGIN.md).
+
+## Passenger bumper camera selection (October 27, 2026)
+
+- Real V now selects the bumper source for car and bike passengers, including
+  quads. Bike passengers use the current rendered NPC driver's neck; a bike
+  without a driver retains its base source. Q/E looks and forward-only seated
+  body culling use the same existing camera paths as driven vehicles.
+- All 84 browser observations pass. All 12 NPC-driver height sources match the
+  selected native stage exactly; 15 base-source samples agree within 0.12 mm.
+  Full retail-PC camera target/task ownership and aircraft bumper views remain
+  open. [Evidence and limits](research/PASSENGER_BUMPER_CAMERA.md).
+
+## Bumper camera ground lift (October 27, 2026)
+
+- The bumper source now receives the captured world-height lift when physical
+  vehicle up-Z reaches −0.9, preserving the per-call 0.03 increase, transient
+  overshoot, cap and upright clear. Host mode entry resets it and paused redraws
+  hold it. All 180 fixed captures, 38 live state transitions and 34 forward
+  camera heights match the selected native routines exactly. Reversed-PC source
+  agrees on the scalar logic; full camera lifecycle and wheelie ownership remain
+  open. [Evidence and limits](research/BUMPER_GROUND_LIFT.md).
+
+## Selected native bumper side/rear looks (October 27, 2026)
+
+- Real Q/E and look-behind inputs now change the bumper camera's source,
+  direction, up and near clip, with separate car/quad, bike/bicycle and boat
+  rules. Releasing the look restores forward view; script clip priority stays.
+- All 432 fixed native cases and 54 real-key sources match selected native
+  output exactly. Displayed axes agree within 1.56e-7. All six representative
+  vehicle classes and existing height, ten-boat, car-control and culling checks
+  pass. The PC look routines remain unreversed; retail-PC equivalence and full
+  camera ownership remain open.
+  [Source, validation and limits](research/VEHICLE_BUMPER_LOOK.md).
+
+## Forward bumper vehicle/body culling (October 27, 2026)
+
+- Forward bumper draws suppress the occupied vehicle and its seated bodies,
+  including NPC passengers. Each root's visibility is restored after drawing;
+  current posing, bones and queries remain available. Independent entry, exit
+  and attached poses retain their own draws.
+- Draw-time checks cover Greenwood with an NPC passenger, Wayfarer, Squalo and
+  CJ getting out from bumper view. Camera and seven crew/transition checks pass.
+  The prior camera-exit ten-wall-second wait failed on both the unchanged
+  checkpoint and current game; readiness/game-clock checks pass on both.
+- All 17,995 units pass / 51 skipped. The rule follows the reversed-PC renderer;
+  wheelie exceptions, side/rear ordering and full render ownership remain open.
+  [Source, validation and limits](research/FIRSTPERSON_VEHICLE_CULLING.md).
+
+## Selected native bike bumper height (October 27, 2026)
+
+- Motorcycle/bicycle bumper views sample the current rendered neck, add native
+  vertical movement lead and use the captured building-visibility fallback.
+  Pauses and streaming holds add no game-clock movement lead. Quads retain
+  their automobile source.
+- All 240 fixed captures and 139 live height sources/sightlines match the
+  selected native stage exactly, including five blocked and four moving frames.
+  All 14 models and car/boat regressions pass. Original-PC sightline behavior,
+  complete task/render ownership and host query membership remain boundaries.
+  [Source, validation and limits](research/BIKE_BUMPER_HEIGHT.md).
+
+## Bike/quad bumper camera offsets (October 27, 2026)
+
+- Bike views now include their front-seat dummy; quads keep the automobile's
+  transformed camera height instead of taking the motorcycle neck override.
+  Measured baseline horizontal errors were 20–48 cm across the 14 models.
+- All 14 models and the ten-boat regression pass. The 140 bike/quad frames agree
+  with the native source stage within 0.14 mm for the tested coordinates;
+  native/compiled-PC float32 outputs agree for their declared inputs.
+  Motorcycle neck timing/lead, visibility and full camera ownership remain open.
+  [Source, validation and limits](research/BIKE_BUMPER_CAMERA.md).
+
+## Boat bumper camera source (October 27, 2026)
+
+- The boat bumper view uses the helm dummy (boat dummy slot 0), applies its
+  half-metre lift vertically in world space and samples the current hull render
+  pose. The previous bounds substitution placed Squalo/Reefer views 8.3/6.2 metres
+  from the source position in the measured baseline.
+- All ten boats and the existing car bumper controls pass browser checks.
+  All 110 recorded boat frames agree with the compiled PC source within
+  0.14 mm. This is source/coordinate evidence; complete camera task, ground
+  protection, look handlers and matched retail-PC captures remain open.
+  [Source, validation and limits](research/BOAT_BUMPER_CAMERA.md).
+
+## Original-PC driving skill poses (October 27, 2026)
+
+- Drivers now use weak/standard/pro sets at raw stat 160 thresholds 50 and 100;
+  weak clips are loaded, full 3D native speed supplies the slow/fast choice, and
+  seated boats use the same policy. Standing boats retain their own set.
+- All 512 source-compiled cases and 1,620 live selections agree. With explicitly
+  declared PC ride tables, the native partial/weapon routine matches all 1,620
+  live frames and 100 shot rays. The PC selector is source-validated; retail PC
+  executable/FPU identity and full-body idle task transitions remain open.
+  [Source, validation and limits](research/PC_DRIVING_RIDE_SETS.md).
+
+## Player car drive-bys (October 27, 2026)
+
+- Normal and low-car driver shooting poses blend, finish and hold before firing;
+  the right gun is visible, neutral fire is blocked, and release returns to the
+  steering controller. Steering and shooting use a shared native partial clump.
+  Loaded hand/vehicle-axis rays and native weapon timing also serve car drivers.
+- All 260 fixed native cases, 1,020 live composite frames and 66 live rays match
+  selected native output. Greenwood, Remington, Linerunner and Kart pass real
+  keyboard checks. Entry, driver-weapon, bike and boat steering regressions pass.
+  Full-body entry/idle task ownership, native render phase/IK and original-PC
+  ride-set differences remain open.
+  [Source, validation and limits](research/CAR_DRIVE_BY_POSES.md).
+
+## Bike drive-by weapon state (October 27, 2026)
+
+- Player bike/quad SMGs use owner-null native weapon update, strict unsigned
+  retry timestamps, the 70 ms attempt overwrite, clip refill on release and
+  captured ammo preservation rules. All 889 fixed cases and 1,113 live
+  weapon decisions match native output exactly; all 49 live rays still match.
+- Full units: 16,977 passed / 51 skipped. The real-key bike, all-model pose,
+  ordinary weapon/reload/pause and corrected game-clock Molotov checks pass.
+  On-foot timer entry/exit and full original-PC scheduling remain boundaries.
+  [Source, validation and limits](research/BIKE_DRIVE_BY_WEAPON_STATE.md).
+
+## Bike drive-by animation readiness (October 27, 2026)
+
+- Player motorcycle, bicycle and quad shots wait for the selected shooting pose
+  to stop playing and blend above native float32 0.99. Readiness belongs to the
+  current simulation step and clears for frozen/inactive or departed riders.
+- Independent native cases cover threshold boundaries, playing/fading states
+  and direction changes. Repeat-shot cooldown/reload and full scheduling parity
+  remain open. [Source and validation](research/BIKE_DRIVE_BY_READINESS.md).
+
+## Bike and quad drive-by rays (October 27, 2026)
+
+- Loaded player bike/quad shots now use the right hand, standard weapon offset,
+  vehicle-axis direction, movement lead, three native scatter draws and captured
+  pedestrian auto-aim scoring. Handheld spread is no longer added afterward.
+- All 1,100 independent fixed native cases and 50 real-game rays match selected
+  native output, including 12 accepted targets. Query membership/order, global
+  RNG, shot timing and full impact parity remain open.
+  [Source, validation and limits](research/BIKE_DRIVE_BY_RAYS.md).
+
+## Bicycle rider cadence (October 27, 2026)
+
+- BMX, Chopper and Mountain Bike available pedal clips/cranks now follow
+  captured speed/gear cadence and playing decisions. Coasting, freeze and
+  rider absence hold/release the host clock through actual model checks.
+- All 370 fixed native decisions and 408 independently replayed live calls
+  match, including actual association playing flags and speed writes. Four
+  browser regressions and two affected reruns pass. Final full units:
+  10,346 passed / 51 skipped. TypeScript, build and production smoke pass.
+  Full sprint pose blending, ordinary rider
+  fallback and native animation-manager phase ownership remain open.
+  [Source, scope and validation](research/BICYCLE_RIDER_CADENCE.md).
+
+## Motorbike training and saved riding skill (October 27, 2026)
+
+- Motorbike skill now follows captured native float32/truncated-time counters,
+  raw integer awards and feedback gates, and saved stat 229 supplies the
+  riding-skill provider after MAIN/reload. The caller uses the captured
+  exact-zero speed gate and four suspension-point contact mapping.
+- All 247 fixed native training profiles, ten motorbike dispatch speed profiles
+  and 21 independently replayed live calls match. Quad exclusion, real
+  motorbike award/save/reload and cycling regressions pass. Full units:
+  9,976 passed / 51 skipped. TypeScript, build and production smoke pass.
+  [Source, validation and limits](research/MOTORBIKE_STAT_TRAINING.md).
+
+## Cycling training and saved skill (October 27, 2026)
+
+- Player BMX, Chopper and Mountain Bike riding now runs captured stamina,
+  cycling-skill and shared body-exercise counters. Raw integer stat 230 shares
+  script/save ownership after MAIN startup. All 259 fixed native profiles and
+  27 independently replayed live calls match exactly.
+- Full units: 9,703 passed/51 skipped before the final contact mapping;
+  494 focused checks and three browser regressions pass after it. TypeScript,
+  build and production smoke pass. Full original-PC physics/task/HUD
+  equivalence remains open.
+  [Source, arithmetic, validation and limits](research/CYCLING_STAT_TRAINING.md).
+
+## Bicycle player energy (October 27, 2026)
+
+- BMX, Chopper and Mountain Bike riding now runs the captured player pedal and
+  sprint-energy decision instead of leaving energy and button memory frozen.
+  All 217 selected native profiles agree exactly; the existing 741 sprint
+  profiles also pass. Full units: 9,432 passed/51 skipped; three browser
+  regressions, build and production smoke pass.
+  [Source and remaining scope](research/BMX_PLAYER_PEDALS.md).
+- The selected block captures native boost/coefficient decisions and pedal
+  fallback. Complete bicycle acceleration, BIKE_SPRINT association blending,
+  and independent original-PC traces remain open.
+
 ## Open compatibility requirements
 
 | System | Current evidence / difference | Required acceptance evidence |
@@ -23,6 +230,208 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 | Saves, stats and progression | Selected state persists; complete native world/script state is not established. | Reload equivalence for original progress, stats, entities and script state; original save compatibility or explicitly verified semantic equivalence. |
 | Complete content | Vehicle/weapon/archive counts do not establish playable coverage. | Versioned inventory of campaign, side activities, interiors, UI, customization and special vehicle systems, each with end-to-end evidence. |
 | Runtime reliability | Passing units coexist with browser failures. | Reproductions resolved and regression-tested; sustained traversal, cold launch and resource-lifetime checks. |
+
+## On-foot victim type propagation (October 25, 2026)
+
+- All nine WorldPedestrians kill callbacks, death-cash gates and selected cop
+  crime/targeting predicates now resolve CREATE_CHAR's native ped type before
+  the model type. A script cop in a civilian model and a civilian in a police
+  model no longer inherit the wrong victim classification. Native gang indices
+  also reach the kill counters. [Source, checks and limits](research/PEDESTRIAN_FIREARM_CRIMES.md#native-victim-types-across-on-foot-deaths).
+- Eight live model/type cases verify emitted kills, actual kill-stat deltas,
+  cop gun-aim reports and cash callbacks. Existing firearm, damage-scaling and
+  scripted corpse regressions pass. Actor-role/task behavior and complete
+  kill/respect parity remain open.
+
+## Recruitment capacity from native respect (October 25, 2026)
+
+- Recruitment, room for mission members, the script's maximum-group query and
+  the gang-strength HUD bar now read STAT_TOTAL_RESPECT (64). The separate
+  authored respect store starting at 40 is removed. [Source and scope](research/GROUP_RESPECT.md).
+- Live recruit attempts match all 14 threshold samples, including zero, lowered
+  respect, script limits and city restrictions. Keyboard and touch recruitment
+  controls pass with explicit native respect in their fixtures. Complete native
+  stat calculation and group/task parity remain open.
+
+## Pedestrian bullet blood timing (October 25, 2026)
+
+- WeaponSystem samples on-foot victim health after damage for blood FX, retaining
+  head/fatal scaling, shotgun body counts and instant-hit rejection. Flying
+  sniper rounds retain their independent eight-particle rule. Ordinary and
+  sniper vehicle-to-head transfers now emit blood too. [Source and scope](research/PEDESTRIAN_BULLET_BLOOD.md).
+- Real-ray units cover damage/FX order, proof flags, corpses, shotgun and seated
+  transfers. The later animated trace supplies native pieces in these paths.
+  Native brightness and complete NPC/task/localisation/render parity remain open.
+
+## Animated on-foot bullet collision (October 25, 2026)
+
+- Handheld, sniper, mounted, foot-NPC and drive-by bullet queries now use the
+  drawn ped's twelve native spheres inside its animated spine-centred bound
+  box. Body pieces reach vest gates, critical hits, reactions and blood; CJ's
+  on-foot skeleton supplies incoming hit pieces too. [Source and limits](research/SKINNED_PED_BULLETS.md).
+- Six original model/pose cases verify ordinary torso/arm/leg damage, actual
+  capsule gaps, cover, once-only sniper damage and fatal head hits. Incoming
+  mounted rounds and a real cop verify CJ's pieces, armour and proof behavior.
+  Existing eight drive-by/rider/seated regressions pass. Full native eligibility,
+  damage/task/aiming behavior and matched PC captures remain open.
+
+## NPC bullet impact acceptance (October 25, 2026)
+
+- Foot, script/gang drive-by and mounted physical hits share blood/surface FX
+  with accepted damage results. NPC corpse hits no longer recount kills;
+  script/gang rounds account for victim weakness and actual ped types.
+  NPC gunflash queries now compose current bone/weapon transforms, fixing stale
+  muzzle origins. [Source, verification and scope](research/NPC_BULLET_IMPACTS.md).
+- Nine real NPC muzzle cases verify native blood counts, proof/vest/type gates,
+  health and once-only kill stats. Incoming mounted hits verify CJ's head blood
+  and proof behavior. Complete NPC calculator/task, lighting
+  and matched PC capture parity remain open.
+
+## NPC seated bullet effects (October 25, 2026)
+
+- NPC hits on CJ, mission riders and recruited passengers now report pedestrian
+  contact audio and emit blood after accepted damage. Transferred heads and
+  direct bike body pieces retain their separate native counts and normals;
+  protected script riders no longer report an accepted wound.
+  [Source and verification scope](research/NPC_SEATED_BULLET_EFFECTS.md).
+- Live car/bike fixtures exercise the public mounted gun against surviving,
+  fatal and protected targets. Complete damage/force-death,
+  ambient-crew NPC damage, lighting and matched PC captures
+  remain open.
+
+## Mission-rider bullet proofs (October 25, 2026)
+
+- SET_CHAR_PROOFS now reaches a mission ped's seated record and its live bullet
+  damage adapter. Player/NPC rounds respect physical bullet proof, including
+  precomputed head-death damage; clearing it enables wounds and blood again.
+  The existing script pool restores the flags through enter/exit rebuilds.
+  [Source and verification scope](research/SCRIPT_RIDER_PROOFS.md).
+- Car and motorcycle mounted-shot cases check protected/cleared health, blood
+  and vehicle health. Full damage/armour/force-death and exact source/group
+  identities remain open.
+
+## Recruited-passenger protection (October 26, 2026)
+
+- Followers retain physical proofs, the only-player flag and vest when boarding
+  and on exit. Their seated bullet handler applies those gates before ordinary
+  or forced-head damage, with the native weapon and piece passed through the
+  player and NPC paths. [Source and scope](research/RECRUITED_PASSENGER_PROOFS.md).
+- Unit round trips and a live drawn FAM1 passenger check health, accepted blood,
+  flag changes, exposed heads, vehicle health and restored protection. Complete
+  damage/armour/force-death, source/group and matched retail parity remain open.
+
+## Seated bullet creator distinctions (October 26, 2026)
+
+- Seated callbacks retain player-ped, CJ-driven vehicle and remote creator
+  metadata. Remote sources cannot satisfy only-player protection; the retained
+  follower damage reduction applies to player-ped creators. Recruit kill
+  accounting uses the separate player-ped/player-vehicle/nonplayer branches.
+  [PC sources, mobile scaling evidence and scope](research/SEATED_BULLET_CREATORS.md).
+- Units and live adapters compare protected health, accepted blood, source
+  propagation, respect, kill and recruit counters, including repeated fatal
+  calls. Complete native calculator, full Darkel coverage, opaque NPC/group
+  identities and matched PC captures remain open.
+
+## Mission-rider bullet kill accounting (October 26, 2026)
+
+- Accepted bullet deaths now report one transition from the mission rider into
+  the existing pedestrian kill handler. Actual ped type, player-group membership
+  and creator classification survive the seated adapter. Proofed hits,
+  surviving wounds and repeated corpse contacts produce no new kill event.
+  [Source and verification scope](research/SCRIPT_RIDER_KILL_ACCOUNTING.md).
+- Unit transitions and live civilian/COP/gang/group cases check the script's
+  death state, basic kill/respect counters and repeats. Full Darkel/event timing,
+  other death entries, damage calculator and matched PC parity remain open.
+
+## Seated NPC ped-type exclusion (October 26, 2026)
+
+- Foot bullets carry their actual shooter into the seated bridge. Equal
+  noncivilian ped types reject damage and impact effects before application;
+  the recognized contact still stops the round. Script types override models,
+  and NPC vehicle-mounted creators retain their separate path.
+  [PC source and scope](research/NPC_SEATED_PED_TYPES.md).
+- A live officer muzzle verifies COP/CIVMALE occupants in original civilian/cop
+  models, health, contact audio, blood and unchanged car health; the mounted
+  creator check and existing seated/kill regressions pass. Complete opaque NPC
+  identity/group rules, damage calculation and matched PC parity remain open.
+
+## Player seated bullet contact audio (October 26, 2026)
+
+- Player instant-hit and mounted seated contacts now report pedestrian audio
+  before damage; flying sniper contacts report after damage/blood. The shared
+  native facing/angle condition also applies to NPC seated contacts. Protection
+  keeps ordinary contact sound, while the earlier NPC type exclusion is silent.
+  [PC source, verification and limits](research/PLAYER_SEATED_BULLET_AUDIO.md).
+- Eight live pistol/sniper car/bike cases check callback order, blood, protected
+  health and vehicle health alongside mounted/type/kill/crime regressions.
+  Physical-collider sniper audio timing, contact lighting, mixing and matched
+  retail captures remain open.
+
+## NPC groupmate bullet acceptance (October 26, 2026)
+
+- Known foot NPC groupmate bullets now stop at AffectsPed acceptance before
+  damage calculation, including the seated bridge's script/player groups.
+  Contact audio remains before rejection; wounds, blood and kill callbacks are
+  suppressed. Corpse acceptance and the independent calculator rule remain.
+  [PC source and scope](research/NPC_GROUP_BULLET_ACCEPTANCE.md).
+- Live civilian group leaders fire at foot/car/bike groupmates before and after
+  membership removal, alongside existing impact/type/drive-by/kill regressions.
+  Opaque sources, full group/task/calculator and matched PC parity remain open.
+
+## Seated ordinary death threshold (October 26, 2026)
+
+- Mission riders, recruits, police/gang crews and traffic drivers now use the
+  existing ordinary ped health rule: one HP survives, a smaller remainder dies.
+  The walking helper remains available through its prior export and a pure
+  damage module. [Reversed PC source and scope](research/SEATED_HEALTH_THRESHOLD.md).
+- Seven-role unit boundaries and live noncritical mission/recruit head shots
+  check death state, resulting blood, counters and measured vehicle health.
+  Full damage/armour/forced death, float32 ordering and matched PC parity remain
+  open.
+
+## Scripted rear car passengers (October 25, 2026)
+
+- Rear script riders now render and enter seated-head bullet checks at the same
+  native front/back dummy positions used by GetSeatPositionInVehicle. Native
+  seat indices remain distinct, and attachments keep their explicit offsets.
+  [Source and verification scope](research/CAR_PASSENGER_SEATS.md).
+- A live Greenwood check covers all four rendered heads, seat-specific rays,
+  own-car exclusion, shot immunity, nonfatal/fatal damage and transport.
+  Full passenger task and combat parity remains unverified.
+
+## Street followers taking damage in cars (October 25, 2026)
+
+- Recruited street passengers now enter seated-head bullet checks. Boarding and
+  exit preserve health, weakness and targeting/critical-hit flags. NPC foot and
+  gang-car shooters share the existing occupant transfer for mission riders and
+  street recruits. [Source and limits](research/STREET_PASSENGER_COMBAT.md).
+- Moving-car passenger deaths retain their corpse and seat; stationary deaths
+  rebuild a dead pedestrian at the door. Group/kill accounting occurs once,
+  and the corpse does not regain health or create cash on exit.
+- Eight new unit checks and 12 browser regressions pass, including a real cop's
+  muzzle ray, wound preservation, both death branches and retained-corpse
+  cleanup. Complete native task/event choreography remains unverified.
+
+## Van rear-seat transforms (October 25, 2026)
+
+- CPed::SetPedPositionInCar's animation-group-13 rear-seat offset and inward
+  quarter turns now feed script, player, street-follower and police poses and
+  targets. Head fallbacks rotate with the occupant. Enforcer rear corpses use
+  the native passenger death clip. [Source and checks](research/VAN_PASSENGER_POSES.md).
+- The live Burrito check measures all four script poses, CJ's rear passenger
+  pose and both street followers. Ordinary-car and passenger-combat regressions
+  pass alongside it. Complete native vehicle-task choreography remains unverified.
+
+## Sniper vehicle-occupant transfer (October 25, 2026)
+
+- CBulletInfo's vehicle-to-occupant handoff now reaches the shared head-sphere
+  test before bodywork damage. Sniper crime selection follows its PC handler;
+  head-critical and shot-immunity gates remain active. Stable seat keys extend
+  the browser's existing once-per-bullet rule. [Source and limits](research/SNIPER_VEHICLE_OCCUPANTS.md).
+- The regression fails with the transfer disabled and passes when restored.
+  A live native sniper round damages a noncritical seated mission ped once,
+  with its original 125 damage. Crew hits no longer grant weapon practice.
+  Full penetration, corpse and audio/FX parity remains unverified.
 
 ## Decisions on the remaining iOS gaps (October 7, 2026)
 
@@ -2572,7 +2981,7 @@ reVC (mrxenginner/reVC, miami branch).
 - Associations follow the reversed `CAnimManager::BlendAnimation` /
   `AddAnimation` and `CAnimBlendAssociation::UpdateBlend` / `UpdateTime`:
   - WALK, RUN and SPRINT are synchronised. `RpAnimBlendClumpUpdateAnimations`
-    advances them at one phase rate, Σ blend / Σ blend × length, and a newly
+    advances them at one phase rate, Σ blend / Σ (blend × length / speed), and a newly
     blended one joins the moving anim's phase.
   - The ped moves by the blend-weighted sum of each clip's root travel over
     the frame (`FrameUpdateCallBackSkinnedWithVelocityExtraction`), not
@@ -2585,10 +2994,12 @@ reVC (mrxenginner/reVC, miami branch).
   - Sprint builds to about 9.6 m/s over 0.5 s.
   - A sprint stop slides 2.2–2.3 units in 0.9 s.
 - Known differences:
-  - `CPlayerPed::ControlButtonSprint` (sprint tapping) is a stub, so a held
-    sprint plays at speed 1. The tired idle (IDLE_tired), adrenaline speeds
-    and the stamina rules (`HandleSprintEnergy` depends on a stubbed stat
-    modifier) keep the browser's model.
+  - Captured sprint input/resource and ground tapping playback now replace
+    the original authored meter and fixed sprint playback. See
+    [sprint energy](research/PLAYER_SPRINT_ENERGY.md) and
+    [ground playback](research/GROUND_SPRINT_PLAYBACK.md). The tired partial
+    idle, adrenaline animation/time-scale lifecycle and full movement
+    association-manager equivalence remain open.
   - Turning: `CPed::CalculateNewVelocity` is a stub. Its Vice City ancestor
     turns toward the aimed heading by at most DEGTORAD(rate) × TimeStep a
     frame, and pedstats.dat gives STAT_PLAYER 9 (450° per second). The
@@ -11648,8 +12059,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   makes it STATUS_PLAYER again. A boat on its way steps beyond 250 m, as a piloted heli does. WUZI2's two boats sat at
   their first point for good; a Reefer told to go 80 m behind it turns, holds about its cruise speed and arrives.
   - A wrecked boat is STATUS_WRECKED, which the autopilot never drives.
-  - Not ported: SteerAICarWithPhysics' temp actions before the mission (reversing out when stuck), CCarAI::UpdateCarAI,
-    and the boat's engine sound under the autopilot (the engine is still on exactly while CJ is at the helm).
+  - Not ported: SteerAICarWithPhysics' temp actions before the mission (reversing out when stuck) and CCarAI::UpdateCarAI.
+    The propeller/audio occupancy gap is subsequently repaired with [script boat engine lifecycle checks](research/BOAT_PILOT_ENGINE_AUDIO.md).
 - A script rider's TASK_DRIVE_BY at a ped the script then deletes stops shooting at it; it threw "Script ped handle
   names nothing" every frame in the drive-by step (SWEET4 deletes its Ballas under Sweet's drive-by). Natively the
   task's target is a registered reference, which the deletion clears.
@@ -11732,8 +12143,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   (anim 120) that comes down at all takes 15. A long fall now kills: 100 m at 0.6+ units a frame is 500.
 - The player's damage is scaled by iOS's 0.33, not STAT_PLAYER's 0.4. iOS CPedDamageResponseCalculator::
   AccountForPedDamageStats (0x10028a070, run first by ComputeDamageResponse 0x100289cc0 for every weapon) multiplies the
-  player's damage factor by a constant 0.33 (0x100593cb0) and another ped's by its pedstats defend weakness; PC reads the
-  0.4 from pedstats.dat for the player too. Armour is skipped for drowning and falls (weapons 53, 54) after it. So CJ
+  player's damage factor by a constant 0.33 (0x100593cb0) and another ped's by its pedstats defend weakness. The PC
+  entry remains a retail delegate; the 0.4 pedstats data row does not independently establish its player branch. Armour is skipped for drowning and falls (weapons 53, 54) after it. So CJ
   takes 0.33 of the landing damage (1e45ef7d) and of a blast's 250: a grenade at his feet costs him 82.5.
   (The bump response still compares pedstats defend weaknesses, where the player's is 0.4.)
 - A ped takes every weapon's damage times its pedstats defend weakness, not only a fist's: iOS
@@ -13551,3 +13962,1541 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - All 5,360 unit tests pass (51 skipped), and the build passes. Full Interdiction,
   manual aircraft door entry, native task choreography and complete passenger
   combat/rendering parity remain unverified.
+
+## Player bike and quad passengers (October 25, 2026)
+
+- CJ can occupy the native rear dummy with the ride group's passenger pose
+  without taking the NPC driver's controls or playback. Bike occupancy follows
+  physics and restores collision on warp-out, destruction and ejection.
+- Jump eligibility follows the PC pillion threshold or the quad's automobile
+  branch. Full boarding/exit task and dynamics parity remains open.
+  [Source and validation scope](research/PLAYER_BIKE_PASSENGERS.md).
+
+## Bike wheel rendering (October 25, 2026)
+
+- Native imported motorcycle, bicycle and quad wheel frames now roll, preserve
+  their centers and hold rear angles under braking. A frozen vehicle holds its
+  wheel pose without replaying the previous interpolation interval.
+- The shared PC rotation scalar and captured ARM64 bike contact/angle/render
+  instructions back the integration. Body velocity and the existing axle probes
+  still approximate native contact-point velocity and suspension; fork, handlebar,
+  pedal and burst-wheel articulation remain open.
+  [Source, capture and live scope](research/BIKE_WHEEL_ROLL.md).
+
+## Bike fork steering (October 25, 2026)
+
+- Thirteen native motorcycle/bicycle forks now steer about their vehicles.ide
+  rake axes, with their front wheels retained beneath the original fork frames.
+- The PC loader establishes the rake data and an ARM64 PreRender capture backs
+  the quaternion and mounting transform. Hand tasks/handlebar placement, native
+  suspension and retail PC comparison remain open.
+  [Source and verification scope](research/BIKE_STEERING.md).
+
+## Seated script offset matrices and quad idle riders (October 25, 2026)
+
+- GET_OFFSET_FROM_CHAR_IN_WORLD_COORDS now receives supported seated player/NPC
+  matrices, including van rear-seat facing and bike lean. The native
+  GET_CHAR_COORDINATES/GET_CHAR_HEADING vehicle shortcuts are retained.
+- Live cases compare all four matrix vectors to rendered player and NPC roots.
+  The quad uses the original QUAD_ride association at rest, restoring the
+  previously missing stationary script driver; Wayfarer uses its WF_* clip names.
+  [Exact command semantics, source and validation scope](research/SEATED_PED_MATRICES.md).
+
+## Bicycle crank and pedal frames (October 25, 2026)
+
+- BMX, Chopper and Mountain Bike cranks now follow their rider's loaded IFP
+  phase. Pedals counter-rotate within the original hierarchy to keep treads
+  level, preserve their mounting points and replace the native rest basis.
+- The native association-phase, rest-damping and frame math are captured from
+  the pinned executable. Live checks cover all three original models, script
+  drivers, frozen/abandoned bikes and repeated rendering. The existing rider
+  selection/cadence controller remains approximate; sprint and bunny-hop
+  association blending remain open.
+  [Source and verification scope](research/BICYCLE_PEDALS.md).
+
+## Bicycle bunny-hop rider associations (October 25, 2026)
+
+- The native bunny-hop clip now follows the physical charge/release timer,
+  blends over CJ's riding pose and fades away after launch. Its association
+  owns the crank while active. Departure clears it before another rider boards.
+- PC ProcessBunnyHop establishes the timing and rates. The pinned executable
+  supplies the missing descriptor entries, including finish-auto-remove.
+  Units, all three original bicycle models and the live touch button validate
+  charge, release, freeze, jump, fade and remount. The later PC control slice
+  below replaces the older iOS-derived cooldown and release countdown.
+  [Source, descriptor capture and scope](research/BICYCLE_HOP_POSES.md).
+
+## PC bicycle hop association lifecycle (October 25, 2026)
+
+- PC ProcessBunnyHop now owns charge, held clip time, release playback,
+  blend-gated gas cutoff, the physical finish callback and charge reset after
+  association removal. The global iOS half-second cooldown and authored
+  missing-clip delay are removed. Each bicycle progresses independently.
+- Focused state/integration units and seven live bicycle/touch checks pass.
+  Launch turn force, original suspension/contact dynamics, native task cleanup
+  and matched retail PC traces remain open.
+  [Exact lifecycle, source and limits](research/BICYCLE_HOP_POSES.md).
+
+## Animated direct collision for script bike riders (October 25, 2026)
+
+- Player instant-hit and sniper rounds can strike the original twelve
+  bone-bound spheres of motorcycle/bicycle riders without hitting the vehicle
+  first. NPC and drive-by muzzle adapters use the same direct query with world
+  and tyre occlusion. Body/limb hits retain ordinary damage; head hits use the
+  critical-hit gate. Dead-seat riders stop using their live riding pose.
+- The pinned executable's two architecture slices agree on the sphere table;
+  PC CWorld and CPedModelInfo establish its transform and collision branch.
+  Live original-model cases cover drivers, pillion, body/sniper/NPC damage,
+  head/arm occlusion, cover, protection and dead-seat posing. Quad eligibility,
+  player/on-foot collision, complete death tasks and retail comparison remain
+  open. [Source, captured table and scope](research/BIKER_BULLET_COLLISION.md).
+
+## Pedestrian firearm crime reports (October 25, 2026)
+
+- Seated shots now retain GenerateDamageEvent's generic report, queue the
+  firearm criminal event and emit the caller's impact report in native order.
+  Scripted cops and gang victims retain their actual type; occupants of one
+  vehicle keep separate crime identities. A surviving active drive-by skips
+  the queued event, as in the PC source.
+- Street passengers retain identity/type on exit. Accepted on-foot damage uses
+  the same event order, including CBulletInfo's cop-specific impact report.
+  Source-backed units, actual CWanted queue checks and live civilian/cop/gang,
+  drive-by and recruit-exit cases cover the integration. Full event scheduling,
+  rejected-hit/corpse gates and retail pursuit comparison remain open.
+  [Exact calls, identity and remaining scope](research/PEDESTRIAN_FIREARM_CRIMES.md).
+
+## Incoming player vehicle shots (October 25, 2026)
+
+- NPC muzzle rays now transfer a vehicle hit to CJ's rendered head when he is
+  the nearest eligible occupant. Existing player armour, proofs and friendly
+  damage rules apply. SET_CHAR_CAN_BE_SHOT_IN_VEHICLE now supports CJ and also
+  protects him on the existing bike collision path.
+- Raw script-command units and live Greenwood/Burrito driver/passenger checks
+  cover damage, head piece, cover, own-vehicle exclusion and a real cop muzzle.
+  Direct animated player bike collision, full reaction/death tasks and retail
+  comparison remain open. [Source and scope](research/PLAYER_VEHICLE_SHOTS.md).
+
+## Animated player bike bullet collision (October 25, 2026)
+
+- Incoming foot-NPC, script-drive-by and gang-drive-by shot queries now test
+  CJ's twelve animated body spheres on motorcycles/bicycles. The standing
+  capsule is removed. The nearest body piece wins before vehicle/head transfer,
+  and shotgun pellets accumulate against the same direct victim.
+- Live original BMX/PCJ driver and pillion checks cover body/arm pieces, missed
+  pose gaps, cover, armour, protection and actual cop pistol/shotgun muzzles.
+  Quad eligibility, ordinary on-foot collision, full shooter engagement/tasks
+  and retail traces remain open. [Source and limits](research/PLAYER_VEHICLE_SHOTS.md).
+
+## Enemy mounted-gun occupant queries (October 25, 2026)
+
+- Enemy aircraft and scripted Hunter guns now reach the shared NPC seated-hit
+  query before bodywork damage. CJ's head and direct bike model can take the
+  hit with his physical collider off; cover, own-car and protection gates apply.
+  A nearer tyre consumes the round and tracers end at the chosen recipient.
+- Real-physics units cover armour, body pieces, cover, protection, tyres and
+  enemy attribution. Full mounted impact FX, player-owned occupant transfer,
+  native muzzle/spread/barrel parity and retail combat traces remain open.
+  [Call chain and verification scope](research/AIRCRAFT_WEAPONS.md).
+
+## Player-mounted occupant shots and vehicle crime sources (October 25, 2026)
+
+- Player-controlled aircraft and Hunter guns now reach NPC heads and animated
+  biker body pieces before bodywork damage. Tyres, cover, protection and own-car
+  exclusion apply; accepted hits emit ped blood metadata.
+- Vehicle creators queue the native victim crime only when CJ is their driver,
+  without the two immediate player-ped reports or weapon practice. RC damage
+  without a CJ driver is not a criminal damage event. Existing handheld/sniper
+  calls retain their source semantics. Full mounted FX, spread, barrel and kill
+  attribution parity remain open. [Exact source rules](research/AIRCRAFT_WEAPONS.md).
+
+## Aircraft gun hard points (October 25, 2026)
+
+- Ordinary aircraft gun traces now use the model gun dummy or captured native
+  hard point, including the Hunter's underslung gun and Rustler's cycling wing
+  position. World origins include one timestep of creator velocity. Scripted
+  Hunter firing keeps its separate native offset.
+- Captured constants/descriptors, transform/cycle units and live original armed
+  models verify the positions. PC dummy precedence is preserved where the mobile
+  branch differs. Second-barrel behavior, attached FX and retail comparison
+  remain open. [Exact source, capture and scope](research/PLANE_GUN_POSITIONS.md).
+
+## On-foot victim type and mounted damage crimes (October 25, 2026)
+
+- Accepted on-foot damage now carries CREATE_CHAR's actual type into crime and
+  kill reports. A civilian model typed as COP receives cop crime selection;
+  a police model typed as civilian receives civilian selection. Police-care
+  classification follows the resolved type.
+- Mounted on-foot hits now use the same vehicle-driver criminal-event rule as
+  seated hits, including the remote-vehicle exception. Source-backed units
+  cover type precedence, sniper selection, exempt types and CWanted deduplication.
+  Complete actor roles, other kill paths and pursuit parity remain open.
+  [Source and scope](research/PEDESTRIAN_FIREARM_CRIMES.md).
+
+## Explicit on-foot script armour (October 26, 2026)
+
+- ADD_ARMOUR_TO_CHAR now reaches the live pedestrian, GET_CHAR_ARMOUR reads its
+  remaining armour, and script vehicle rebuilds retain that live value.
+  On-foot accepted damage spends stat-scaled armour before health, retaining
+  drowning/fall bypasses and subsequent forced-death behavior. Damage animation
+  receives both absorbed armour and actual lost health.
+- Pending creation, ordinary/NPC damage and rejection units accompany a live
+  script trial covering ten damage outcomes, a mounted-gun impact and both
+  vehicle transitions. The seated extension below adds spending while riding;
+  ambient cop starting armour, ongoing fire and matched retail PC traces remain open.
+  [Reference, verification and limits](research/SCRIPT_PED_ARMOUR.md).
+
+## Seated script armour and model weakness (October 26, 2026)
+
+- Mission riders and recruits spend stat-scaled armour before forced head death,
+  retaining the original bullet factor for absorption. Mission riders load the
+  model defence weakness used on foot and preserve it through vehicle rebuilds.
+  MALE01 now receives its native 1.1 weakness while seated.
+- Fifteen live car/bike/source cases verify full absorption, overflow, friendly
+  scaling, forced death above 1,000 health, resulting blood and unchanged vehicle
+  health during each measured impact. Transition, ordinary death threshold,
+  sniper/audio, group/proof and once-only kill/creator regressions pass. The
+  full suite has 5,652 passing tests and 51 skipped. Ambient crew armour, ongoing
+  fire and complete PC damage/task parity remain open.
+  [Reference and scope](research/SCRIPT_PED_ARMOUR.md#seated-spending-and-retained-weakness).
+
+## Direct script damage (October 26, 2026)
+
+- DAMAGE_CHAR now forwards its armour flag to walking and seated NPCs, and CJ
+  uses direct script arithmetic. The command bypasses normal stat/proof/weapon
+  processing, preserves a positive fractional remainder and retains the native
+  negative-amount subtraction behavior. Zero uses the scripted death bridges.
+- A live native-opcode trial checks fifteen outcomes across walking peds,
+  riders and protected CJ, including armour queries, death state, last weapon
+  and unchanged weapon kill counters. Existing reaction, choking and script-kill
+  checks pass; the full suite has 5,663 passing tests and 51 skipped.
+  Native arithmetic is from the pinned mobile executable; independent PC 1.0
+  validation and full task/event parity remain open.
+  [Exact handler and scope](research/SCRIPT_PED_DAMAGE.md).
+
+## Cop armour and crew wounds (October 26, 2026)
+
+- Ambient officers now start with 100 health and separate native cop-type armour:
+  SWAT 50, FBI/army 100, ordinary cops zero. Police seats spend the original hit
+  factor before forced death; a dead driver's coast reports a corpse contact
+  without spending armour again. Live exits, roadblock placement, returns and
+  drag-out descriptions preserve current health/armour across body changes.
+- Original LAPD/SWAT/FBI/army models pass body, fall, drowning and head checks.
+  An actual dispatched FBI unit retains spent armour through animated exit
+  and return, then a real pistol head shot kills with 25 armour left and no
+  vehicle damage during that impact. The full suite has 5,672 passing tests
+  and 51 skipped. Native source/group/task parity and ambient crew death
+  accounting/reconstruction remain open.
+  [PC constructor, trials and limits](research/COP_ARMOUR.md).
+
+## Seated police bullet kill timing (October 26, 2026)
+
+- Police crews now register their first accepted fatal bullet at the hit, using
+  the existing creator-specific counter/respect paths. A retained marker and
+  armour follow a counted death through coast, exit and drag-out descriptions;
+  body reconstruction restores the corpse without another weapon hit.
+- A dispatched FBI trial checks player-ped, driven-vehicle and remote deltas,
+  repeated contacts and the remote driver's delayed body. A separate actual
+  dead-cop jack preserves the corpse, suppresses cash and leaves counters
+  unchanged. Armour/transition, living jack and driver-death regressions pass;
+  the full suite has 5,681 passing tests and 51 skipped. Other ambient crews,
+  complete native source identity and all native accounting fields remain open.
+  [Reference, tests and limits](research/POLICE_SEATED_KILLS.md).
+
+## Gang drive-by death reporting and setup (October 26, 2026)
+
+- Gang drivers and gunners now report the first accepted fatal hit with their
+  gang and mapped creator, before later coast/body tasks. Death descriptions
+  suppress duplicate reconstruction damage. Forced head death is separate from
+  the raw weapon factor, and killed gunners stop firing before the callback.
+- The manager's async creation now installs both kill and death-exit hooks;
+  the previous early if(driveby) exit hook was skipped during startup. A live
+  diagnostic exposed zero counters and no body despite a completed coast.
+- Six Families/rival and creator cases verify twelve deaths, immediate
+  counter/respect deltas, repeat suppression and unchanged totals after every
+  delayed driver body. One real pistol head kills a 5,000-HP driver with fatal
+  blood. The full suite has 5,690 passing tests and 51 skipped. Complete source
+  identity, other ambient crews and native task/retail parity remain open.
+  [Source, lifecycle repair and checks](research/GANG_SEATED_KILLS.md).
+
+## Traffic-driver bullet deaths and model metadata (October 26, 2026)
+
+- Traffic drivers use the drawn model's native weakness and ped type, with
+  float32 damage arithmetic preserving the exact-one-HP survival boundary.
+  Forced instant-hit head death remains separate from the original factor.
+- The first accepted fatal hit reports its mapped creator immediately. Coast,
+  exit, drag-out and later vehicle destruction retain the accounting marker.
+  Dead occupants cannot take the live vehicle-fire flee bridge.
+- Generated traffic drivers pass actual pistol/mounted-weapon trials for all
+  three mapped creators: immediate counters, repeated contacts and delayed
+  bodies agree. The full suite has 5,712 passing tests and 51 skipped; the build
+  passes. Complete source identity, NPC-to-ambient seat routing and native
+  task/retail parity remain open.
+  [Native metadata, source and checks](research/TRAFFIC_SEATED_KILLS.md).
+
+## Gang-war car lifetime and release (October 26, 2026)
+
+- Wave drive-by cars no longer inherit the ambient drive-by's 45-second
+  removal branch. The native release hook now clears their wave membership
+  and blips while retaining crew wounds and the existing driving task.
+- The browser's population budget still retires unseen random wave cars
+  beyond their existing active radius, forgetting the associated car mission.
+  Taking a car releases manager ownership without deleting the player vehicle.
+- A live car retains both crew members and the same driving task at 50.1
+  seconds and again at 55.3 seconds after war-end release; its wave blip clears.
+  Normal territory progression, 25 focused checks, a build and all 5,720 unit
+  tests pass (51 skipped). Native removal and async cancellation remain open.
+  [Native range trace, release and browser budget](research/GANG_WAVE_CAR_LIFETIME.md).
+
+## Gang-wave async ownership and script-car cleanup (October 26, 2026)
+
+- Releasing a wave now invalidates pending character, metadata, weapon and
+  host completion work. Stale callbacks cannot restore old readiness or make
+  late attackers, pickups or a drive-by car. Every car request has its own
+  marker, checked after placement and after car loading.
+- A live overlapping-load trial exposed that traffic-only removal ignored
+  script-created wave cars. Stale-car rejection, distant wave retirement and
+  manager disposal now use general vehicle removal and clear car missions.
+  The unit fleet fixture also respects the actual traffic-origin guard.
+- Deferred units and live host trials verify cancelled model/placement loads,
+  a later war's six- and eight-member waves, independent overlapping car
+  requests, stale resource disposal and actual distant-car retirement.
+  The build and all 5,729 unit tests pass (51 skipped); the full rerun follows
+  an isolated pass of a cutscene decoder that timed out during build overlap.
+  [Lifecycle, native release and checks](research/GANG_WAVE_ASYNC_OWNERSHIP.md).
+
+## Surviving traffic and gang wounds through exits (October 26, 2026)
+
+- Generic exit descriptions now carry current vitals for traffic drivers and
+  gang drivers/gunners. The host forwards them through drag-out, delayed crew
+  exit, traffic fire/flee and road-rage reconstruction. The shared foot-body
+  path restores wounds before callbacks and reactions, without new damage.
+- Named-model and roster-index tests expose nine failures before the fix;
+  52 focused checks now pass. Three live door-entry cases preserve the
+  traffic driver's 72.5 HP and each gang occupant's 75/60 HP from either door.
+  A burning driver retains his model and 75 HP at the 15-unit flee handoff.
+  The build and all 5,741 unit tests pass (51 skipped), as do the existing
+  fire-exit, counted dead-cop jack and fatal-driver coast checks. Other CPed
+  fields and emergency seated damage remain open.
+  [Native drag-out contract, handoffs and checks](research/OCCUPANT_EXIT_VITALS.md).
+
+## Seated emergency-crew damage and transitions (October 26, 2026)
+
+- Actual seated medics and firefighters now enter the bullet target list with
+  their drawn models' native type and weakness (MEDIC 1.4, FIREMAN 0.8). The
+  accepted fatal hit reports its mapped creator once, before driver coast or
+  corpse reconstruction. Dead seats use the existing car-death poses.
+- Seat wounds follow foot exits, medic returns and live/dead drag descriptions.
+  A killed driver stops its mission/cannon; a drag-out cancels a pending death
+  exit, and player ownership precedes the NPC brake controller.
+- Fifty-three focused checks, the build, six live model/creator cases and both
+  corpse-jack cases pass. Twelve deaths and six delayed bodies preserve their
+  counters; a fireman's living driver retains 80 HP. Healthy CPR/revival and
+  cannon/extinguishing regressions pass after separating the native dispatch
+  cooldown from the fixtures' original arrival budget. The full suite passes
+  5,769 tests (51 skipped).
+- NPC-to-ambient seated routing, full surviving-hit personality responses,
+  non-bullet emergency deaths and complete native source/task parity remain
+  open. [Source, body ownership and checks](research/EMERGENCY_SEATED_DAMAGE.md).
+
+## NPC bullets reaching ambient vehicle seats (October 26, 2026)
+
+- The shared NPC bridge now retains recognized traffic, police, gang and
+  emergency seat contacts and invokes their existing damage/accounting
+  handlers. A seat without a script actor has a stable contact identity and
+  does not enter script-group lookups or dereference a missing rider.
+- Police targets supply COP; ambient gang gunners and scripted/recruited
+  drive-bys supply their actual native ped type. Equal noncivilian contacts
+  remain blocked before pedestrian audio/damage, while vehicle-mounted
+  creators retain their native source distinction.
+- Real LAPD1 muzzle trials cover all four roles at 5,000 HP, including blocked
+  COP contact and accepted mounted damage. Fatal hits spare vehicle health,
+  register kills by others immediately once and give no player credit. A
+  real-frame TASK_DRIVE_BY trial reaches the same gang driver twice: equal
+  type preserves 5,000 HP and different type kills him. Each round records its
+  actual seat intersection with centered native random spread draws.
+- The build, 65 focused checks and all 5,773 unit tests pass (51 skipped).
+  Existing CJ, mission-rider, group, proof and bullet-effect regressions pass.
+  Full source identity, NPC nonfatal response tasks, non-bullet deaths and
+  matched retail traces remain open.
+  [Reference, contact ownership and checks](research/NPC_AMBIENT_SEATS.md).
+
+## Production Rustler takeoff piloting (October 26, 2026)
+
+- Production samples expose a 101 km/h rotation peaking at 15 m while full
+  elevator loses speed to 58 km/h. Development telemetry shows approximately
+  45-degree pitch under that continuous input; regular polling alone had not
+  resolved the intermittent check.
+- The verifier now rotates above 115 km/h and releases elevator at 5 m, while
+  retaining the original requirement to clear 15 m within 20 seconds. The
+  corrected production run clears 16 m in 2.846 seconds after rotation and
+  passes the surrounding walking/car/map/save/gear checks without errors.
+  This changes the authored test pilot; aircraft physics/data remain unchanged.
+  [Trace comparison, failed trial and limits](research/PLAYABLE_AIRCRAFT.md#production-takeoff-piloting-follow-up-october-26-2026).
+
+## Drive-by foot-victim source gates and impact order (October 26, 2026)
+
+- Scripted and ambient gang drive-bys now retain source type and known group
+  membership for physical pedestrian hits, as their seated contacts do.
+  Equal noncivilian hits, including corpses, are excluded before impact audio;
+  known live groupmate hits retain audio but reject wounds and blood.
+- Foot use-gun impact preparation now receives the actual shooter too. Native
+  type overrides resolve before the equal-type test; civilian exceptions,
+  proofs, corpse acceptance and mounted-vehicle source behavior are retained.
+- Fourteen initial source/ordering cases expose nine failures before repair;
+  fifteen source cases now pass, with 54 focused tests and the build. A real-frame scripted drive-by reaches
+  the same head three times: equal gang is silent, a different-gang groupmate
+  is audible but unharmed, and removing membership permits 22 damage followed
+  by 16 blood particles. Existing foot/car/bike group and seated type tests pass.
+- All 5,788 unit tests pass (51 skipped), together with six live checks, the
+  final build and full production smoke. The muzzle trial now explicitly
+  requires zero COP-to-COP impact audio.
+- External rider context establishes acceptance, without casting riders into
+  live foot records. Complete damage-source/event identity, retaliation tasks
+  and matched PC damage calculation remain open.
+  [Native ordering, source scope and verification](research/NPC_BULLET_IMPACTS.md#drive-by-source-identity-and-on-foot-contact-ordering-october-26-2026).
+
+## NPC ped-source protection when damaging CJ (October 26, 2026)
+
+- The player acceptance rule now resolves actual PED_TYPE_GANG2 before the
+  native grenade-and-higher weapon boundary and known KillPedOnFoot target.
+  Known player-group membership includes script riders/peds without the street
+  follow flag. Raw vehicle creators retain their separate native behavior.
+- Scripted and ambient drive-bys consult the same rule for physical CJ hits;
+  the shared seated-player bridge does so for car and exposed-bike contacts.
+  The foot adapter uses actual native type instead of a model's gang label.
+- Nine initial foot-adapter cases expose five failures before repair. The
+  build, 41 focused tests and five live checks pass, including mounted
+  physical/seated player regressions. All 5,801 unit tests pass (51 skipped),
+  together with the final build and production smoke. Nine real task shots
+  check on-foot, Greenwood and PCJ-600 contacts: Families and group protections
+  retain audio without wounds/blood; removing membership enables damage and
+  16 post-damage head particles. No page errors occur.
+- Complete native task-tree/damager identity and matched damage calculation
+  remain open; the retained foot kill-task mapping is still the host's.
+  [PC acceptance rules, source distinctions and checks](research/NPC_PLAYER_DAMAGE_ACCEPTANCE.md).
+
+## Nonplayer-source critical firearm hits on foot (October 26, 2026)
+
+- Accepted ordinary NPC bullets now apply the native firearm critical decision
+  after armour. Ordinary gun heads force death on zero low-three-bit RNG;
+  rifles skip that draw, critical-disabled targets keep ordinary wounds,
+  body contacts consume the appropriate draw and player types reject forced
+  head death in this branch.
+- PC ComputeWillForceDeath remains a retail delegate. The selected iOS arm64
+  function was executed independently for 5,760 controlled inputs; 180 compact
+  standing/player captures match the helper, including RNG call counts. A
+  binary-hash-checked regeneration script is included without the executable.
+- Twenty-five host tests expose sixteen failures before repair. The build,
+  251 focused checks and three live tests pass. Real COP muzzles check selected
+  pistol critical/noncritical, rifle, no-critical and body contacts with
+  5,000 HP and armour; two fatal shots count once even after corpse contacts.
+  Existing NPC blood/proof/type and mounted CJ checks pass without page errors.
+- All 6,006 unit tests pass (51 skipped), including the saved native captures,
+  together with the final build and full production smoke.
+- The PC CRT stream, player-creator aim flags, non-firearm force rules, legacy
+  vehicle-to-foot entries and matched PC traces remain open.
+  [Native execution, scope and checks](research/NPC_CRITICAL_HEADS.md).
+
+## Native float fields in foot-ped bullet damage (October 26, 2026)
+
+- Bullet damage now rounds native input fields, weakness multiplication,
+  armour subtraction and health remainder to float32. This repairs a concrete
+  exact-one-HP kill: 28.5 minus a 25-damage hit at weakness 1.1 previously left
+  a double remainder just below one. Native factor 27.5 leaves exactly one.
+- NPC accepted bullet calculation and player/nonplayer physical bullet entries
+  use the native fields, including player friendly scaling. Non-bullet generic
+  entries retain their existing behavior.
+- Six initial integration checks expose all six failures before repair;
+  thirteen precision cases and 72 focused checks pass. The build and twelve
+  real pistol/NPC/mounted-gun shots pass, including post-frame one-HP survival,
+  partial armour, exact armour and genuine below-one death. The critical-head
+  live regression passes too, with no page errors. All 6,019 unit tests pass
+  (51 skipped), together with the final build and production smoke.
+  [Native math, boundaries and checks](research/PED_BULLET_FLOAT_FIELDS.md).
+
+## Native float fields in mission/recruit seats (October 26, 2026)
+
+- Mission rider and retained recruit damage now reuse the native float factor,
+  armour and health operations. Player-friendly scaling rounds its native
+  factor/product too; existing source/proof and critical/exit behavior remain.
+- Fourteen new role-specific tests expose ten failures before repair. Sixty-six
+  focused checks and the build pass. Both live role cases pass four actual NPC
+  muzzle hits plus a group-friendly adapter check each, covering exact one HP,
+  partial/exact armour, below-one death, post-frame health and blood/accounting.
+- Both armour/rebuild and recruit wounded-exit/dead-seat regressions pass.
+  All 6,033 unit tests pass (51 skipped), together with the final build and
+  production smoke.
+- Recruit muzzle selection now checks the full incoming-seat contact including
+  CJ, after the initial fixture accidentally selected the nearer driver. The
+  native contact filter was preserved.
+  [Native math and seated follow-up](research/PED_BULLET_FLOAT_FIELDS.md#seated-mission-riders-and-retained-recruits-october-26-2026).
+
+## Native player damage float fields (October 26, 2026)
+
+- CJ's damage now rounds its native profile, friendly product, armour split,
+  intro1 factor and health remainder to float32. Exact-one survivors no longer
+  incorrectly enter death recovery, and damage events report native float losses.
+- Seven new cases expose six failures before repair. Twenty-five focused checks
+  and the build pass, including existing safety, armour bypass, source/group
+  acceptance and below-one/repeated-hit recovery behavior.
+- Twelve actual mounted hits preserve one HP and exact armour across physical,
+  car-head and biker contacts, with correct loss events, blood and timer state.
+  Families/group regressions pass in all three modes; all six live checks and
+  eleven additional intro/mounted/burning unit regressions pass. All 6,040
+  unit tests pass (51 skipped).
+- PC ComputeWillKillPed reports the remaining factor on survival, independently
+  of quantized HP loss, and pre-hit health on death. Two additional failing
+  cases expose this distinction, including sub-ULP hits. The corrected
+  response passes 38 focused checks, all fifteen expanded mounted contacts
+  and all 6,042 unit tests (51 skipped), followed by the final build and
+  production smoke without page errors or failed requests.
+- The PC multiplier branch is not available in the inspected AccountForPedDamageStats
+  wrapper. The older claim that it reads STAT_PLAYER's 0.4 row was corrected;
+  the retained 0.33 iOS profile and its unresolved PC equivalence are explicit.
+  [Evidence, arithmetic and limits](research/PLAYER_DAMAGE.md#player-float-fields-and-one-hp-survival-october-26-2026).
+
+## Accepted drive-by and baton friendship against CJ (October 26, 2026)
+
+- Scripted and ambient gang physical hits, and the shared seated-CJ fallback,
+  now carry source friendship to the existing native player calculator after
+  the source/group acceptance gate. A friendly accepted hit receives the
+  selected iOS tenth/cap rule; raw vehicle creators have no ped friendship.
+- Four new emitter cases fail before repair. Eight expanded cases cover both
+  emitters and ensure rejected hits never look up friendship. The live fixture
+  changes the actual script rider's acquaintance through hate/respect/clear
+  commands, checking real foot/car/bike contacts and native float responses.
+- The same omission in police baton damage is repaired. All three native
+  BBALLBAT stages retain their damage/fall metadata and source guard. Two
+  accepted combo cases fail before repair; four expanded combo cases and all
+  45 focused checks pass afterward.
+- All seven live relationship/protection/baton scenarios pass, retaining exact
+  float responses, body/head blood, contact audio and protected-group rejection.
+  Mounted CJ body/seat regressions pass too, with no page errors. All 6,054
+  unit tests pass (51 skipped).
+- The final build and full production smoke pass, including saved-game return,
+  walking, native car entry, map/waypoint, pause/resume, Rustler takeoff and gear,
+  with no page errors or failed requests.
+- PC AccountForPedDamageStats remains a retail delegate in the inspected
+  source; complete calculator equivalence and raw source/event bookkeeping
+  remain open. [Evidence and scope](research/NPC_PLAYER_DAMAGE_ACCEPTANCE.md#accepted-drive-by-friendship-october-26-2026).
+
+## NPC fist armour and float response (October 26, 2026)
+
+- On-foot NPC fist blows now spend native float armour before health, retain
+  exact-one survivors and pass the native health/armour response to animation.
+  Mega punch spends the ordinary armour factor before forcing death. Known
+  nonplayer groupmates are rejected before damage; equal ped type alone does
+  not reject melee, and native player-source exceptions remain.
+- Independent execution of the pinned iOS armour instructions supplies 120
+  saved captures. Five initial host cases, two group cases and one attack-field
+  rounding case expose eight failures across the staged repair. All 135 new
+  cases and 180 focused checks pass, together with the build.
+- The native MALE01 kickboxing fixture passes exact-one survival with and
+  without partial armour, full absorption, script-group rejection and genuine
+  below-one death. All twelve accepted blows retain their move and native
+  damage/armour response, with one fatal callback and post-frame health checks.
+  The police baton live regression passes too, without page errors.
+- The player mouse combo/ground-kick regression passes twice after the
+  fixture stops serializing the whole world between native chain inputs and
+  removes duplicate reads. Its saved trace retains actual inputs, queued
+  strikes and move timing. All 6,189 unit tests pass (51 skipped).
+- The final build and full production smoke pass, including saved-game return,
+  walking, native car entry, map/waypoint, pause/resume, Rustler takeoff and gear,
+  with no page errors or failed requests.
+- Player melee, armed NPC-to-NPC melee, complete task cadence, other generic
+  damage classes and matched retail PC traces remain separate work.
+  [Native captures, arithmetic, checks and scope](research/NPC_MELEE_ARMOUR.md).
+
+## Player melee floats and foot damage responses (October 26, 2026)
+
+- Physical player melee now uses native float attack/weakness, friendly,
+  armour and health operations. A friendly 82.5 factor now becomes native
+  8.25 rather than double 8.250000122929, preserving a 9.25-HP target at one.
+  Existing multipliers, caps, proof and critical/mega-punch order are retained.
+- Physical player/raw-vehicle bullets and NPC bullets now pass the native
+  remaining factor on survival, or pre-hit HP on death, to animation and
+  last-weapon tracking. Quantized HP loss no longer erases a positive response.
+- Twenty-two new cases expose ten failures before repair. All 198 focused
+  checks and the build pass. Fifteen real player/NPC/mounted contacts verify
+  native response amounts, blood, armour, post-frame health and fatal counts.
+- Six real ground kicks pass one-HP, partial/full armour, actual recruitment
+  friendship, large-health response and below-one death checks. NPC kickboxing
+  and player mouse combo/ground-kick regressions pass without page errors.
+- The ground fixture now waits for the fallen body's native position and
+  faces CJ toward it; range/cone and hit-frame rules are retained. The mouse
+  fixture uses a single click action with saved press/release/fire traces.
+- All 6,211 unit tests pass (51 skipped).
+- The final build and full production smoke pass, including saved-game return,
+  walking, native car entry, map/waypoint, pause/resume, Rustler takeoff and gear,
+  with no page errors or failed requests.
+- Mission group sync can restore the follow flag after its immediate damage
+  clear; complete group-event ownership/removal, other generic damage classes
+  and matched retail PC calculator equivalence remain open.
+  [Arithmetic, source, actual contacts and limits](research/PED_BULLET_FLOAT_FIELDS.md#player-melee-and-shared-foot-damage-responses-october-26-2026).
+
+## Direct on-foot script death tasks (October 26, 2026)
+
+- TASK_DIE and the named/missing-clip variants now set health zero directly,
+  preserving armour and prior damage metadata without synthetic bullet events
+  or damage kill credit. High health/armour or zero weakness no longer prevent
+  task death. The death/removal clock and corpse-hit readiness reset at start.
+- Late named loads ignore removed/dead/disposed bodies before installing an
+  animation. Eleven initial cases expose ten failures, and a twelfth exposes
+  stale death clocks. All 74 focused checks and the build pass.
+- Four live SCM-adapter cases verify direct death, preserved armour/metadata,
+  allocated held poses, fresh clocks and zero damage/kill-credit deltas. The
+  original CASINO1 die/detach and explosion-corpse rebuild regression passes
+  too, without page errors.
+- An all-recordings test exceeded its existing timeout while scanning 426
+  filesystem-backed slices. Its full sweep now uses a single 2.3 MB snapshot;
+  disk-backed index/individual checks and every signed-byte assertion remain.
+  All 85 focused checks pass in about 2.2 seconds, followed by all 6,223 unit
+  tests (51 skipped).
+- The final build and full production smoke pass, including saved-game return,
+  walking, native car entry, map/waypoint, pause/resume, Rustler takeoff and gear,
+  with no page errors or failed requests.
+- PC direct-death/task/event source is available; later SimpleDead::ProcessPed
+  remains a retail delegate. Existing authored death-contact/nearby reactions,
+  full event scheduling and every ownership transition remain separate work.
+  [Source, checks and limits](research/SCRIPT_PED_DEATH_REBUILD.md#direct-on-foot-script-death-october-26-2026).
+
+## Combat identity for waiting script group members (October 26, 2026)
+
+- Foot friendly scaling, weapon-practice eligibility and all seven kill
+  callbacks now resolve actual player-group membership, with a street-follow
+  fallback for actors without script identity. The damage entry captures
+  membership before the wound for both scaling and accounting.
+- Known script removal also overrides a stale true follow flag. Main's
+  resolver checks script membership first; the incoming foot-ped guard shares
+  that decision. Follow-task behavior and SCM group ownership remain separate.
+- Twelve initial cases expose eight failures; four additional removal/source
+  cases expose their stale-flag errors. All 255 focused checks and the build pass.
+- Six live cases use the actual stand-still script allocator and member/remove
+  commands. Real player/NPC pistols and a ground kick verify friendly factors,
+  practice exclusion, full damage/practice after removal, native recruited
+  kill/respect deltas and incoming source acceptance with a stale follow flag.
+- The six-case melee precision/recruitment regression and all three real
+  drive-by family/group protection scenarios pass, without page errors.
+- All 6,239 unit tests pass (51 skipped), followed by the final build.
+  Two initial production runs fail the pilot's wall-time flight gates; the
+  follow-up clock-budget repair below passes the normal production bundle.
+- Complete native group events, ownership/removal behavior and matched PC
+  damage calculation remain separate compatibility work.
+  [Source, actual membership transitions and checks](research/PLAYER_GROUP_COMBAT_CONTEXT.md).
+
+## Production flight smoke uses the game clock (October 26, 2026)
+
+- Two production failures and isolated dev/optimized telemetry expose a
+  wall-time budget mismatch: fixed simulation catch-up runs in slow motion
+  under software rendering. The diagnostic optimized trace covers 11.47
+  simulated seconds in 40.14 wall seconds with no holds or subsystem faults.
+- The smoke samples visible flight/clock text together and budgets 15 game
+  seconds for acceleration and ten for climb, retaining 90/60-second wall
+  deadlines for stalls. Speed, altitude, elevator release and gear assertions
+  remain; aircraft physics and controls are unchanged.
+- The normal production bundle passes saved-game return, movement, car entry,
+  map/waypoint, pause, takeoff and gear with no page errors, failed requests or
+  inspection hook. Acceleration takes seven game seconds / 51.99 wall seconds,
+  exceeding the old 45-second gate; climb takes two / 11.80 seconds.
+  [Timing evidence, budgets and limits](research/PRODUCTION_FLIGHT_CLOCK.md).
+
+## Rear lamp night and pedal activation (October 26, 2026)
+
+- Native rear material slots now select their lit texture for night lighting
+  or accepted pedal braking. Daytime dynamic braking requires a player, active
+  AI or known script driver and excludes handbrake use. Driver lookup runs
+  only for an eligible pedal request; fronts and existing damaged slots retain
+  their inputs. Original maps, RGB/alpha and surface values restore when off.
+- Eight new checks expose six failures before repair; all 22 focused checks,
+  all 6,247 unit tests (51 skipped), the build and final typecheck pass.
+- A loaded Greenwood's two rear slots pass seven live day/pedal/handbrake/
+  night/damage/restoration states, selecting native ambient 5/diffuse 1 when
+  lit. Paintjob coverage passes. A headlight fixture initially fails before
+  lighting during entry; explicit placement beside its loaded car restores
+  keyboard entry and the unchanged beam/road-pool checks. The night image
+  also shows the lit rear texture, without page errors.
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and gear with no page errors, failed
+  requests or inspection hook. Flight stages consume six/two game seconds.
+- Full camera/corona, engine/alarm/override, bumper and original damage-status
+  behavior remain separate compatibility work.
+  [Native branches, actual materials, checks and scope](research/CAR_LAMP_ACTIVATION.md).
+
+## Script boat engine speed and audio (October 26, 2026)
+
+- Physics-controlled script boats now enter the existing native propeller
+  update without requiring CJ aboard. The audio adapter passes physics status
+  and the pilot's engine flag, retaining wrecked/player precedence and separate
+  pad inputs. Stopped physics boats still approach the pedal target, while
+  their engine flag silences only the engine loops.
+- Twelve new adapter/propeller checks expose six failures; a real native
+  audio-engine integration also exposes zero propeller speed before repair.
+  All 66 focused checks, 6,260 unit tests (51 skipped), build and final
+  TypeScript validation pass.
+- Real SCM create/navigation/stop/restart commands drive a loaded Speeder
+  through five live states. Native bank 21 and engine sound type 2 start and
+  stop with its flag while CJ remains outside; propeller speed rises/falls and
+  hull-skimming sound survives engine stop. The player-driven engine/skimming
+  regression passes too, without page errors.
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and gear with no page errors, failed
+  requests or inspection hook.
+- Exact PC flight/dynamics captures, AI temporary actions, all engine ownership
+  transitions and retained propeller arithmetic/cadence remain separate work.
+  [Source, script transitions and real sound lifecycle](research/BOAT_PILOT_ENGINE_AUDIO.md).
+
+## Native boat moving components (October 26, 2026)
+
+- Boat render updates now drive supplied rudder/rear-flap frames, paired
+  static/blurred propellers and model-specific scanning hardware. Native axis,
+  sign, absolute-basis/translation and strict angle-wrap rules are retained.
+  Per-frame simulation time drives animation, with no offscreen accumulation.
+- Component alpha replaces source alpha before existing clump fading and
+  enables stored native material RGB. Only the last drawn atomic directly on
+  each frame is selected. Other materials keep their original-opacity path.
+- The pinned executable supplies 132 independently executed propeller/alpha
+  captures and 18 descriptor entries. Regeneration is byte-identical. All 167
+  focused checks, 6,403 unit tests (51 skipped), build and final typecheck pass.
+- All ten original boat models pass transform/material/lifetime checks: eight
+  rear-flap frames, twenty propeller frames and the Reefer's one scan frame.
+  Missing nodes remain optional. Rendered native-painted Predator idle,
+  running and faded views change correctly; all diagnostic GPU geometries
+  and scene children release. No page errors are reported.
+- Real SCM engine navigation/stop/restart still passes. Its fixture now uses
+  SCM's no-offset teleport and waits for streaming/audio readiness; direct
+  debug placement had suspended audio behind a terrain hold before navigation.
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and gear with no page errors, failed
+  requests or inspection hook.
+- Marquis door/flap dynamics, propeller particles, complete atomic/LOD/alpha
+  pipelines and matched original-PC motion remain separate compatibility work.
+  [Native functions, captures, model inventory and scope](research/BOAT_RENDER_COMPONENTS.md).
+
+## Physics boat anchor and propeller-water lifecycle (October 26, 2026)
+
+- STATUS_PHYSICS boats now release their constructor anchor and saved heading
+  alongside player boats. Native engine-off physics status also releases it;
+  wrecked/abandoned hulls retain their branches. This removes the horizontal
+  velocity clamp that could leave a navigating script boat pinned in place.
+- Each supplied static-propeller frame now owns a lazily created boat_prop
+  system, with entity basis, actual frame origin, local particles and copied
+  parent matrix. Native submersion and capped movement-speed constant time
+  drive play/stop/restart independently of engine/occupancy/wrecked flags.
+  Missing/hidden frames retain prerender behavior; ordinary bounds checks
+  and existing FX culling remain. Removal/world disposal kill both slots.
+- Six initial effect checks and two physics-anchor checks expose their gaps.
+  A hierarchy query also exposes cached world matrices and now refreshes the
+  model hierarchy before reading origins. All 191 focused checks, 6,417 unit
+  tests (51 skipped), final build and TypeScript validation pass.
+- Real Speeder physics releases the anchor and moves about 21 metres in three
+  simulated seconds without CJ aboard. Two local native systems emit particles,
+  stop dry, restart wet on the same objects, survive engine stop and fully
+  retire on removal. All scene children/GPU geometries release. All-ten-model
+  rendering and whole-game script engine audio regressions pass too.
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and gear without page errors, failed
+  requests or inspection hook.
+- Full AI status/recovery, campaign routes and matched PC dynamics/water/render
+  captures remain separate work.
+  [Native control gates, actual movement and particle lifecycle](research/BOAT_PROP_WATER_FX.md).
+
+## Marquis boom hinge (October 26, 2026)
+
+- The actual Marquis boat_flap_left frame now uses CBoat's render-time CDoor
+  motion: point-speed acceleration, tilted gravity, .98 boat damping, ±.5
+  angular speed cap, ±PI/10 limits and unequal stop rebounds. Its current
+  attachment position survives basis replacement. Other boats and missing
+  optional frames retain their component behavior.
+- The selected executable initializes native Z, while the published constructor
+  names Y. The adapter follows the selected instructions and records the
+  discrepancy. Current point speed includes the handling COM offset; the
+  previous-speed expression deliberately uses the frame offset as CDoor does.
+- An optional Unicorn harness captures both native constructor branches and
+  120 integration cases from the pinned executable. All match exactly and
+  regenerate byte-identically. Point-speed/matrix/trigonometric inputs are
+  source-contract checked rather than presented as independently captured.
+- All 431 focused checks and 6,689 unit tests pass (51 skipped), as does the
+  final TypeScript/build validation. An existing aggregate cutscene inventory
+  exceeded its 15-second deadline under the full run; its unchanged assertions
+  now run as 147 individually timed package cases and all pass under full load.
+- Actual painted/textured Marquis browser renders match small movement and
+  both native stops, including ±PI/2 hull headings, zero-timestep inertia,
+  hidden-frame behavior and full scene/GPU cleanup. All-ten-model rendering
+  and propeller-water regressions pass.
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and landing gear without page errors,
+  failed requests or development inspection hook.
+- Native PC motion captures, original friction accumulators, complete atomic
+  callbacks and LOD/transparency behavior remain separate work.
+  [Sources, captured regions and integration boundaries](research/BOAT_MARQUIS_FLAP.md).
+
+## Native boat fire ownership and PC offsets (October 26, 2026)
+
+- Boat fire now follows CBoat's own 250-health creation and 460-health
+  recovery boundaries. Existing fire survives partial repairs and camera
+  movement out of range. The actual camera gates creation and timer growth
+  inside the strict native 200-by-axis square; altitude is ignored.
+- Speeder, Reefer and other boats use explicit PC fire offsets, independent
+  of engine/exhaust frames. The boat path no longer requests car overheat
+  smoke or adds engine velocity to fire particles. Native fire blueprints,
+  ordinary bounds culling, creation retry and parent-matrix ownership remain.
+- The burn timer preserves PC float millisecond additions and a strict
+  greater-than-5000 explosion threshold. Default camera lookup stays on the
+  fire path, preserving offscreen delayed-explosion ordering and attribution.
+- A pinned executable harness captures 37 branch/ownership cases, with
+  external FX/events/explosions logged as stubs. The selected iOS build's
+  fire Z offsets are one unit higher and its timer truncates milliseconds;
+  those differences are recorded while the port retains the PC profile.
+- Fourteen initial checks expose the old car routing. All 242 focused checks,
+  6,774 unit tests (51 skipped) and final TypeScript/build validation pass.
+  The first full pass caught an eager camera default in delayed-bomb tests;
+  the corrected lookup and full rerun pass.
+- Actual painted/textured Predator, Speeder and Reefer verify camera gates,
+  particle emission, PC positions, no car smoke/velocity, retained system
+  identity through repairs, reignition, destruction and complete cleanup.
+  Hinge/water effects, boarding/driving and whole-game SCM audio regressions
+  pass without page errors.
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and landing gear without page errors,
+  failed requests or development inspection hook.
+- Native event audience/occupant reactions, matched original-PC captures,
+  full status transitions and campaign recovery remain separate work.
+  [Native branches, captured regions and profile differences](research/BOAT_FIRE_LIFECYCLE.md).
+
+## Predator fixed twin guns and anonymous rounds (October 26, 2026)
+
+- The player-controlled Predator now fires its fixed twin guns from the
+  existing vehicle fire input, independently of held ammo and drive-by
+  permission. The selected native mechanism supplies two model origins,
+  spread, strict 150 ms volleys, 20-volley clip/reload state and vehicle M4
+  audio. Camera look, disabled controls and the gun switch retain their gates.
+- Separate harnesses execute 46 gun-state/origin/spread cases and 58 native
+  aiming cases. Original transform and line-distance helpers execute too;
+  external pad/RNG/shot/audio calls and the returned vehicle query are explicit
+  stubs. All 104 captured numerical cases match and regenerate identically.
+- The original vehicle-only aim query, 15-entry budget, train/scorch filters,
+  height window, collision-radius test and projected target height are
+  represented. Host candidate order remains distinct from native sectors.
+  Matrix work waits until a volley is due.
+- The two rounds resolve in native order, with the second spread/query after
+  the first hit. Two regression tests expose eager random draws and a stale
+  target retired by the first round; the corrected adapter passes both.
+- A shared FireOneInstantHitRound backend now also serves FIRE_SINGLE_BULLET:
+  animated pedestrian lines, heavy trace, anonymous type-52 living-ped damage
+  and type-28 vehicle damage, armor/proofs and no corpse treatment or player
+  ammo/crime/skill credit. Ordinary gunshot/blood FX are not added.
+- All 167 focused checks and 6,895 unit tests pass (51 skipped), including
+  actual boat protection, NPC floats,
+  fatal attribution, CJ hits and Hunter regressions. Final TypeScript/build
+  validation passes. Live original-model Ctrl
+  fire produces a twin volley with drive-bys disabled, native origins, vehicle
+  audio, unchanged inventory and the expected NPC wound. Side look/disabled
+  controls suppress firing; SCM's shared backend hits the current animated
+  body too. Final ordering rerun passes, with no page errors.
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and landing gear without page errors,
+  failed requests or a development inspection hook.
+- Selected FireFixedMachineGuns/DoTankDoomAiming instructions support this
+  profile; their pinned PC bodies are retail delegates. Full original-PC
+  captures, complete line-test flags, start point lights, surface/water hit
+  audio and exact sector/seated behavior remain separate work.
+  [Native functions, captured calculations and represented scope](research/PREDATOR_FIXED_GUNS.md).
+
+## Anonymous round surface and water sounds (October 26, 2026)
+
+- The shared Predator/SCM FireOneInstantHitRound backend now reports native
+  contact audio after damage. Strictly facing normals use asin(−dot); tangent
+  and back-facing hits remain silent. Proofed/dead ped contacts retain flesh
+  audio without extra wounds, corpse treatment or impact particles.
+- Misses query the original endpoint XY and Z + 10 with touching-water true,
+  report water-shallow 39 at the sampled height, and keep the original vertical
+  window. Existing two-argument water callers retain their behavior.
+- Vehicle kind crosses the damage call as a hint, so a retired Rapier body is
+  not dereferenced during audio classification. Ordinary traces read parent
+  identity once and now recognize boats/bikes/trains alongside cars/planes.
+- Eight initial checks expose missing reports. All 176 focused checks and
+  6,908 unit tests pass (51 skipped), including actual SURFAUD.DAT and the
+  native collision/sound manager's water/flesh sample, position and volume.
+  Final TypeScript/build validation passes.
+- Live Ctrl/SCM rounds start actual slot-3 flesh, water and metal samples.
+  Water uses its +6 dB offset and rolloff 2; a bullet-proof hull keeps health
+  while playing metal. A high unobstructed miss correctly has no water sound.
+  Original gun input gates, ammo/anonymous damage and no-page-error checks pass.
+- The first hull check used only-player protection, whose native occupied-player
+  exception permits the hit; the fixture now uses bullet proofing. The game
+  damage rule was not changed to satisfy that mistaken expectation.
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and gear without page errors, failed
+  requests or a development inspection hook.
+- Original start-point lighting, full material flags, exact sector/seated
+  behavior and matched original-PC captures remain separate work.
+  [Source, water windows, safe classification and native playback](research/INSTANT_ROUND_AUDIO.md).
+
+## Explicit null attacker history for vehicles (October 26, 2026)
+
+- Anonymous FireOneInstantHitRound vehicle hits now carry an explicit null
+  attacker alongside non-player eligibility. Cars, bikes, boats and aircraft
+  preserve the prior damager reference while recording the new accepted weapon.
+  Unknown non-player callers and known entity replacements retain their paths.
+- The existing pinned executable storage captures show the null-source skip.
+  Seventeen new checks expose the prior conflation; null, unknown and known
+  sources, proofs/player-only/dead targets and actual round routing are covered
+  across the four hosts. All 657 focused checks and 6,937 unit tests pass
+  (51 skipped), including existing damage/bomb attribution regressions. Final
+  TypeScript/build validation passes.
+- The live SCM fixture first causes real player damage, then an anonymous hull
+  round. Health decreases and weapon 28 is stored while the exact old reference
+  and HAS_CAR_BEEN_DAMAGED_BY_CHAR result stay intact. Gun gates, native audio,
+  protected hull and water-window checks continue to pass without page errors.
+- A full run caught an unrelated 5-second camera-test deadline. The unchanged
+  file passes in isolation. Its helper decoded all original MAIN/mission blocks
+  for each lookup; one shared decoded catalog now supplies fresh script-memory
+  copies to the same six behavioral checks, without increasing their timeout.
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and landing gear without page errors,
+  failed requests or a development inspection hook.
+- Complete native reference lifetime, source identity for other damage paths
+  and matched original-PC InflictDamage captures remain separate work.
+  [Captured storage and live history-query behavior](research/ANONYMOUS_VEHICLE_SOURCE.md).
+
+## Boat AI angle range and float controls (October 26, 2026)
+
+- Script boat heading now uses CGeneral::GetATanOfXY's float quadrants and
+  0..2PI range. The boat's closed [-PI, PI] wrap makes that range observable:
+  west-facing boats targeting east choose positive half-radian steering,
+  where the old atan2 controller chose negative. Reverse throttle retains
+  the native steering reversal.
+- Normalization, target subtraction, angle difference/wrap and cruise-speed
+  easing round at the selected native float operations. Other vehicle
+  controllers retain their independently scoped angle handling.
+- A new executable harness captures 149 cases. Native heading/GetATanOfXY
+  instructions execute unchanged; imported _atanf is explicitly supplied by
+  host libm rounded to float32 and logged. Its library implementation is not
+  captured. The axis-direction regression only needs signed-zero atan.
+  Regeneration is byte-identical. Seventy-four checks fail before repair;
+  all 149 pass after it. All 7,086 unit tests pass (51 skipped), together with
+  TypeScript validation and the production build.
+- The live SCM Speeder uses real heading/navigation state and its actual
+  Rapier quaternion. Synchronous controls verify the exact-astern turn and
+  its reversal above cruise speed. Ordinary navigation, engine stop/restart,
+  player engine/skimming, anchor/propeller-water lifecycle and Predator
+  gun/contact-audio/source-history regressions pass without page errors.
+- Matched original-PC trajectories, platform atanf equivalence, all AI
+  temporary actions/recovery and complete boat physics remain separate work.
+  [Captured arithmetic and live adapter boundary](research/BOAT_AI_HEADING.md).
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and landing gear without page errors,
+  failed requests or a development inspection hook.
+
+## Current-stat player breath capacity (October 26, 2026)
+
+- Player breath initialization/reset, dry recovery, vehicle handling, swim
+  recovery and HUD scaling now use the selected native mode-8 stat modifier.
+  Integer lung-capacity stat 225 and float stamina stat 22 contribute to the
+  capacity: 1,150 at initial stats, 4,000 when both are 1,000. Stat changes
+  retain current breath; the native recovery overshoot remains intact.
+- The pinned PC modifier at 0x559AF0 remains a retail delegate. Independent
+  captures execute selected iOS 0x100266300 and its actual ResetPlayerBreath
+  caller at 0x100366508 without replacing arithmetic or external calls. All
+  63 cases pass, including fractional, negative, above-cap and float-precision
+  inputs. Regeneration is byte-identical. Seven new integration checks fail
+  before the wiring repair and pass afterward; all 99 focused checks and
+  7,156 unit tests pass (51 skipped). Final TypeScript/build validation passes.
+- The real-game browser starts at 1,150, retains about 945 breath and full
+  health after four underwater simulated seconds, and observes capacity
+  4,000 after actual script-stat updates without a refill. Dry recovery
+  continues above 2,000 with the visible HUD near 50.7%; reset fills 4,000
+  and hides the full bar on land. Existing car, helicopter, overturned-boat
+  and dry-land jump regressions pass without page errors.
+- Matched original-PC modifier captures, natural swimming stat training,
+  complete stat persistence, animation-manager parity and complete swim/
+  drowning events remain separate work.
+  [Captured modifier, native reset and live integration](research/PLAYER_LUNG_CAPACITY.md).
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and landing gear without page errors,
+  failed requests or a development inspection hook.
+
+## Natural swimming stat training (October 26, 2026)
+
+- Moving surface swimming now trains stamina, while underwater swimming
+  trains both stamina and lung capacity. Separate native counters retain
+  partial training out of the water and during idle treading. Their strict
+  old-counter thresholds, unsigned storage and truncated float milliseconds
+  follow the selected executable. Foot running/sprint training is suppressed
+  while the swim task is active.
+- The independent harness executes selected iOS CStats::UpdateStatsWhenSwimming
+  (0x100265a34) using the packaged AR_STATS.DAT. Its PC body at 0x55C990 remains
+  a retail delegate; the PC ProcessSwimAnims caller is reversed. Ninety-six
+  captured cases cover both flags, exact/exceeded thresholds, separate
+  counters, fractional frames, capped gains and negative-energy fat reactions.
+  All match, regeneration is byte-identical, all 108 focused checks pass,
+  and all 7,254 unit tests pass (51 skipped). Final TypeScript validation and
+  the production build pass too.
+- The live fixture seeds counters beyond their original thresholds and lets
+  ordinary game frames award the gains. Underwater stamina 100→150 and lungs
+  0→50 raise breath capacity 1,150→1,300 without refilling breath. Dry land
+  and idle treading pause training. Keyboard surface swimming then raises
+  stamina to 200, retains lungs 50 and the partial underwater counter, and
+  gives capacity 1,375. The native stat-update HUD is visible, no foot-running
+  training leaks through swimming, and no page errors occur. The prior live
+  breath/recovery/HUD regression passes too.
+- External UpdateFatAndMuscleStats, CheckForStatsMessage and stat-message
+  routine calls are explicitly logged capture stubs. The separate delegated
+  physiology body is not implemented here. Controlled awards do not establish
+  uninterrupted multi-minute PC trials, full animation-manager readiness or
+  complete persistence/task equivalence.
+  [Native counters, actual awards and scope](research/SWIMMING_STAT_TRAINING.md).
+- Normal production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and landing gear without page errors,
+  failed requests or a development inspection hook.
+
+## Saved stamina and lung-capacity gains (October 26, 2026)
+
+- Earned stamina and lung capacity now survive ordinary browser saves and
+  reloads. Both bind to the actual script stat store, so natural awards,
+  SET/INCREMENT_STAT, breath capacity and the save use the same values.
+  The one-time world/script initialization resets breath to restored capacity;
+  later gains retain current breath.
+- CStats::Save/Load (PC 0x5D3B40/0x5D3BF0) serialize float stamina and integer
+  lungs in their native stat arrays; swimming training counters are separate
+  statics absent from that save list. This browser-save subset retains the
+  values and starts fresh counters after reload, without claiming full native
+  save or mission-runtime coverage.
+- The optional version-1 fields accept finite float32 stamina and signed-int32
+  lungs, including valid negative/above-1,000 script values. Invalid fields
+  retain independent defaults; older saves and fresh New Game keep native
+  initial values. Saving before script binding retains loaded training.
+  Existing save bounds, revision conflicts, failures and unchanged-write
+  suppression retain their checks.
+- Thirteen new tests cover these paths; ten expose the original loss. All 199
+  focused checks and 7,267 unit tests pass (51 skipped). The live browser uses
+  actual stat increments and ordinary pagehide/reload, restores stamina 150
+  and lungs 50, starts with breath 1,300, updates the HUD maximum and hides its
+  full bar on land. The ordinary swimming-training regression passes with
+  the new binding. There are no page errors.
+  [Save ownership, compatibility and real reload evidence](research/TRAINING_STAT_PERSISTENCE.md).
+- Final TypeScript validation and the production build pass.
+- Normal production smoke returns from an older version-1 save without the
+  new fields and passes movement, car entry, map/waypoint, pause/resume,
+  takeoff and landing gear with no page errors, failed requests or
+  development inspection hook.
+
+## Captured player sprint input and resource (October 26, 2026)
+
+- Ground and swim sprint input now use native button memory, current-stat
+  resource capacity, the -150 floor and native recovery instead of the
+  authored 0–100/30%-threshold meter. Stat 22 initially gives 450 resource
+  units and gives 3,150 at maximum. Stat changes retain the current budget;
+  reset/fill paths use the current capacity. Saved stat values therefore
+  affect the player's actual sprint resource.
+- The independent selected-executable harness contains 741 cases: 560 pad
+  controller profiles, five capacity/reset cases, 144 energy cases and 32
+  sprint-result cases. Native float/state/table instructions run unchanged;
+  external pad and vehicle queries are explicit logged input stubs. Actual
+  browser-frame timestep profiles are included. All match exactly and
+  regenerate byte-identically. The PC modifier/controller/result bodies
+  remain retail delegates; their callers and energy/reset paths are cited
+  separately without claiming matched original-PC traces.
+- Animation and state selection preview the controller without changing its
+  state; the simulation commits once. Raw input remains separate from the
+  association's chosen move state. WALK_START/stop recovery, released-button
+  memory and below-zero sprint continuation remain observable. Ground
+  eligibility, water input and the native player-data flag are separate.
+  Underwater non-positive energy becomes 0.1 before its zero-cost row runs.
+  Surface/underwater stroke selection and loop-restart playback use native
+  sprint results. Full ground tapping playback and BMX vehicle integration
+  remain outside this change.
+- The first full run caught an adapter regression in untouched-controls
+  identity plus old percentage assertions. The same identity checks pass
+  after the repair. Two additional checks exposed a raw-input debit when
+  run clips were absent or a non-arm gun task owned movement; those paths
+  now retain no debit. All 870 focused checks pass (one existing skip),
+  together with all 8,018 unit tests (51 skipped).
+- In the live game, maximum stamina resets energy to 3,150 and reaches about
+  9.48 m/s after two simulated seconds. A controlled seed while real keyboard
+  sprint is held matches the captured frame exactly at -150. The following
+  frame returns factor 0, clears button speed and selects running; subsequent
+  frames recover. A newly positive budget starts another real sprint without
+  a percentage gate. Natural swim training, ordinary saved-stat reload,
+  swim effects/dive, jump-out and dry-land jumping also pass without page
+  errors. The initial browser run needed an explicit JSON import attribute;
+  its loader repair precedes these successful live checks.
+- Complete task/air/weapon ownership, native animation-manager equivalence,
+  ground tapping playback, fixed-camera/adrenaline animation behavior and
+  actual BMX pedal/controller integration remain separate work.
+  [Executable routines, resource/pose wiring and limits](research/PLAYER_SPRINT_ENERGY.md).
+- Final TypeScript validation and production build pass. All four final
+  targeted browser checks pass, including script-disabled sprint and both
+  surface restrictions. Production smoke passes saved-game return, movement,
+  car entry, map/waypoint, pause/resume, takeoff and landing gear with no page
+  errors or failed requests.
+
+## Captured ground sprint playback (October 26, 2026)
+
+- Ground sprint now applies the captured button result to the SPRINT
+  association's playback. Repeated presses can reach float32 1.3; ordinary
+  held input returns to 1. The character supplies its read-only controller
+  preview and Simulation still commits the resource once.
+- The independent harness executes the entire selected SetRealMoveAnim
+  (`0x10035eaa4`) with established walk/run/sprint associations. Its 48 cases
+  cover threshold-adjacent button values, MODE_FIXED and ordinary cameras,
+  and steady/resuming sprint deltas. Lookup supplies declared association
+  objects and the external sprint-training call is a logged stub. All
+  playback and delta results match exactly and regenerate byte-identically;
+  this is not a complete animation-manager or original-PC comparison.
+- Synchronised associations now use the PC implementation's weighted
+  duration divided by playback speed. Their phase remains shared while
+  blended root travel responds to tapping. Fifty new checks expose the
+  missing speed behavior; all 129 focused checks pass (one existing skip),
+  including the unchanged ordinary blends, stops and character regressions.
+- Live keyboard movement extracts 9.564 m/s across ordinary sprint strides
+  and 12.340 m/s during frame-scheduled DOM key taps. All 119 boosted frames
+  match native playback; button speed reaches 10 and held decay returns to
+  1. The rapid taps use the existing SCM time-scale adapter at 0.1 to keep
+  input cadence independent of software rendering's fixed-step catch-up.
+  Ordinary movement and final held decay run at normal scale. There are no
+  page errors. Root travel is measured before scenery blocks displacement.
+- The pure adapter also matches MODE_FIXED's 0.7 override; live camera-mode
+  ownership, adrenaline animation/time-scale behavior, tired partial idle,
+  fallback single-role rigs and complete SetRealMoveAnim equivalence remain
+  separate work.
+  [Full routine, stubs, phase formula and browser method](research/GROUND_SPRINT_PLAYBACK.md).
+- All 8,068 unit tests pass (51 skipped). Final TypeScript validation and
+  production build pass. The existing live keyboard resource/exhaustion
+  regression also passes with the playback change.
+- Production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and landing gear with no page errors or
+  failed requests.
+
+## Active camera mode for sprint playback (October 26, 2026)
+
+- The host now forwards the mode applied with the active camera transform
+  to the movement associations. MODE_FIXED uses the captured 0.7 playback;
+  attached and entity-follow transforms retain their own modes. A pending
+  script request does not change animation before its camera is applied.
+  The existing stunt camera declares MODE_FIXED with its transform.
+- The browser first reproduced ordinary speed 1 after a fixed camera had
+  visibly taken control. After the repair, follow mode 4 plays at 1, fixed
+  mode 15 plays at float32 0.7, attached mode 47 plays at 1 despite its fixed
+  renderer transform, and restoring returns to follow mode 4 at 1. Energy
+  keeps spending while the fixed camera slows playback.
+- All 147 focused animation/controller/camera checks pass (one existing
+  skip), as do the new browser check and existing script-camera regression.
+  TypeScript, production build and production smoke pass; saved-game return,
+  movement, car entry, map/waypoint, pause/resume, takeoff and landing gear
+  have no page errors or failed requests. The complete 8,068-test unit run
+  preceded this small camera-mode plumbing change. Stunt-camera integration
+  is wired through its existing owner; a new stunt playthrough is not claimed.
+  [Active configuration and camera transition evidence](research/GROUND_SPRINT_PLAYBACK.md#active-fixed-camera-integration).
+
+## Captured player landing body modifier and pad input (October 26, 2026)
+
+- Landing playback now multiplies the initial association speed by current
+  fat/muscle modifier 2 on the first player update and keeps that speed for
+  the rest of the landing. The default is 1.0052632093429565; maximum fat and
+  muscle give float32 0.8. SPRINT move state doubles the speed only when the
+  physical sprint button is held, independently of exhaustion or retained
+  button memory. NPC hosts without the player provider retain speed 1.
+- The independent harness executes the complete selected landing ProcessPed
+  (`0x100416148`) and actual stat modifier (`0x100266300`, mode 2). Its 64
+  modifier profiles and 150 first-update landing profiles match exactly and
+  regenerate byte-identically. A second native call changes stats/input and
+  confirms the first-update latch. Fresh/reused associations, players/NPCs,
+  input/state combinations and IDLE_tired's multiplier exception are covered.
+  Declared animation, identity and pad queries are logged stubs; no callback,
+  tilted-ped or complete task/animation manager equivalence is claimed.
+- Four new host checks expose and verify the missing factor, exhausted held
+  input, released input with positive button memory and NPC speed. They also
+  verify one provider read and retained speed after later changes. Three old
+  speed expectations now use the captured default factor while retaining
+  their source-time, integrated travel and latch checks. All 303 focused
+  animation/controller/swim checks pass (one existing skip).
+- Two real Space-key jumps retain the selected factor for all 35 and 28
+  landing updates while current script body stats change to the opposite
+  profile. The new live check and existing dry-land jump/airborne aim/fire
+  regressions pass without page errors. Actual move-state ownership beyond
+  the adapter's prior grounded gait, stat save ownership, launch/air playback,
+  tired partial idle and full original-PC matching remain separate work.
+  [Caller, independent capture, rounding and live latch evidence](research/PLAYER_LANDING_PLAYBACK.md).
+- All 8,286 unit tests pass (51 skipped), as do TypeScript validation and the
+  production build.
+- Production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, aircraft takeoff and landing gear with no page
+  errors or failed requests.
+
+## Captured body stats at jump start and physical launch (October 26, 2026)
+
+- Native-coordinate launch clips now read and latch body modifier 2 at
+  entry. Physical launch reads current stats again when the clip finishes,
+  scales both the association forward band and player force, and uses the
+  actual float32 reciprocal-mass operation. Landing retains its separate
+  contact-time read. The shared provider and stat computation serve all
+  three call sites; NPC launch clips without player data retain speed 1.
+- The independent harness executes complete selected StartLaunchAnim and
+  Launch plus actual CStats and ApplyMoveForce instructions. Ten start and
+  258 force profiles cover body stats, association presence/blend, mega jump,
+  climb jumps and NPC force levels. Lookup/world/animation queries and exact
+  heading-zero trig are declared logged stubs. All captured calculations
+  match exactly and regenerate byte-identically. Fourteen initial failures
+  exposed the float32 0.22−0.17 coefficient versus decimal 0.05 substitution.
+- Nine launch checks exposed the missing player playback/provider read;
+  six physical-player checks exposed the missing body impulse. Their repaired
+  paths verify retained playback and captured upward/association-forward
+  velocity in real Simulation steps. All 580 focused checks pass (one
+  existing skip), including the existing landing/movement checks.
+- Real Space-key jumps retain initial playback 0.8 and 1.0052632093429565
+  across 15 and 12 launch updates while stats change. At physical launch,
+  current stats produce captured upward speeds after gravity of
+  5.770050043861072 and 4.523809681336085, and requested horizontal speeds
+  of 5.026316270232201 and 4.000000283122063. Real scenery reduces the second
+  post-collision speed; the check observes the actual request before collision
+  and verifies the resulting motion separately. All four browser checks pass,
+  including landing-stat, dry-jump and airborne aim/fire regressions, with
+  no page errors.
+- The PC source and selected mobile binary differ in target-speed squaring
+  in the velocity-retention branch. This change isolates shared stat/force
+  arithmetic with zero initial velocity and climb-jump profiles. Full
+  retention/carry, general trig, world queries, task/animation management,
+  bloody-footprint FX and original-PC matching remain separate work.
+  [Native calls, coefficients, force conversion and live observations](research/PLAYER_JUMP_BODY_STATS.md).
+- All 8,560 unit tests pass (51 skipped), as do TypeScript validation and the
+  production build.
+- Production smoke passes saved-game return, movement, car entry,
+  map/waypoint, pause/resume, takeoff and landing gear with no page errors or
+  failed requests.
+
+## Saved body stats across MAIN initialization (October 26–27, 2026)
+
+- Fat/muscle stats 21/23 now share finite float32 values with the optional
+  version-1 training save, actual script SET/INCREMENT/DECREMENT_STAT,
+  body rebuild and captured jump/landing modifier. Native CStats::Save/Load
+  serialize these fields in the float stat array; this remains a subset of
+  the browser save rather than complete native binary/runtime save support.
+- The first live check found that native stat initialization's zeros are
+  followed by supplied MAIN's fat 200/muscle 50 defaults. Binding saved body
+  fields before that pass would overwrite them. Body binding now waits for
+  the same INTRO-start boundary used by saved-world return (or stopped
+  setup); stamina/lung binding retains its existing earlier capacity setup.
+  Saved body fields keep ownership while setup runs. Missing fields adopt
+  completed script defaults, independently for partially valid saves.
+  Early saves serialize only established body values.
+- Fifteen new checks cover valid float round trips, increments/decrements,
+  negative/above-cap script values, invalid independent fields, old saves,
+  New Game and both sides of deferred startup ownership. Ten expose lost
+  values before repair and two expose the early MAIN binding issue. All
+  518 focused save/stat/captured-movement checks pass.
+- The live check uses actual increments, ordinary pagehide and reload.
+  Stamina 150, lungs 50 and fat/muscle 500/500 restore. Breath initializes
+  to 1,300 with the proper HUD maximum, CJ's body rebuild completes, and a
+  real Space-key jump uses captured modifier 0.8776316046714783. No page
+  errors occur. Missing fields retain MAIN's fresh-game defaults.
+  [Stat ownership, startup boundary and reload evidence](research/TRAINING_STAT_PERSISTENCE.md#fat-and-muscle-extension).
+- All 8,575 unit tests pass (51 skipped). TypeScript validation, production
+  build and production smoke pass. The production check returns from an
+  older version-1 save and verifies movement, car entry, map/waypoint,
+  pause/resume, takeoff and landing gear without page errors or failed
+  requests.
+
+## Captured exercise counters and body-stat updates (October 27, 2026)
+
+- Running, sprinting and moving/underwater swimming now invoke captured
+  UpdateFatAndMuscleStats before their stamina/lung awards. The body routine
+  updates fat/muscle through their authoritative saved bindings and trains
+  raw maximum-health stat 24. This does not claim native player-cap propagation
+  or the separate stat-condition-check routine's side effects.
+- The independent complete selected routine capture contains 141 cases for
+  strict old-counter thresholds, weighted unsigned arithmetic, wrap,
+  direct float changes/caps, all message states, hidden/fractional feedback
+  and live frame profiles. Only condition-check/display calls are logged
+  stubs. Every counter/stat/state value, check count and feedback argument
+  matches exactly and regenerates byte-identically.
+- Three new caller-order checks expose the missing exercise hook and prove
+  body changes precede stamina's negative-energy fat reaction. A fourth
+  verifies bound ownership, retained work and feedback state. All 261
+  focused checks and 8,720 unit tests pass (51 full-suite skips).
+- Real W, W+Shift and underwater state 4 execute controlled counter awards
+  at rates 5/10/15. Run changes 200/50/569 to 185/60/589; sprint changes
+  body to 170/70; no-fat underwater work reduces muscle 70 to 55. Complete
+  seeded calls match independent native profiles. Idle calls pause, and the
+  existing swimming-training regression passes. Both browser checks have no
+  page errors; distant water streaming reports retry/support warnings.
+- TypeScript validation and production build pass. Hour-based hunger remains
+  separate. Cycling/fighting callers, broader task scheduling, native
+  condition/HUD effects, player health-cap integration, health-stat persistence
+  and matched original-PC traces remain separate work.
+  [Native arithmetic, feedback, caller order and live evidence](research/BODY_EXERCISE.md).
+- Production smoke passes save resume, walking, car entry, map waypoint,
+  pause/resume, takeoff and landing gear without page errors or failed requests.
+
+## Preserve earned raw health stats (October 27, 2026)
+
+- Captured exercise trains raw maximum-health stat 24, which previously
+  disappeared on reload. The browser's saved training subset now retains it
+  alongside fat/muscle/stamina/lungs, following CStats::Save/Load's float-array
+  ownership. This does not change CPlayerInfo's separate maximum-health field.
+- Valid loaded floats survive temporary MAIN setup writes and early saves.
+  Missing/invalid values adopt completed setup, including the native 569
+  default; New Game ignores saved stats. Binding neither heals nor displays
+  gain messages. Script writes and exercise share the same authoritative value.
+- Nine of ten new regressions fail before repair. All 60 focused save,
+  exercise and progression checks pass, as does TypeScript validation.
+- Ordinary real-key exercise awards health stat 589, then pagehide/reload
+  restores fat 0, muscle 55 and health stat 589 through a fresh MAIN. The
+  separate player-info maximum remains 100. The existing training-save and
+  movement-provider browser regression passes too (two checks, 1.7 minutes).
+  Both have no page errors; distant water transfer reports terrain-support
+  warnings. [Save ownership and validation](research/TRAINING_STAT_PERSISTENCE.md).
+- The complete unit suite passes all 8,730 tests (51 skipped).
+- Final TypeScript validation and the production build pass.
+- Production smoke passes old-save resume, walking, car entry, map waypoint,
+  pause/resume, takeoff and landing gear without page errors or failed requests.
+
+## Captured run/sprint training counters (October 27, 2026)
+
+- Run/sprint training now restores native float32 frame units from the host's
+  millisecond interface, compares old counters as float32, adds truncated
+  native milliseconds with uint32 wrap, and invokes positive float32 awards.
+  Body exercise still precedes stamina; normal fixed-frame thresholds remain.
+- Complete selected native caller/body routines execute unchanged in 137
+  captured profiles. Only stat-condition/display calls are logged stubs;
+  body entry and stamina stores are observed without skipping instructions.
+  All fixture values regenerate byte-identically. Twelve initial regressions
+  expose lost wrapping, float32 threshold/award precision and non-positive
+  callback suppression. All 421 focused checks and TypeScript validation pass.
+- Real W then W+Shift awards stamina 100→105→115. Complete caller/body
+  outputs match independently captured native profiles, and idle time pauses
+  the running counter. The existing body-exercise/reload browser regression
+  also passes (two checks, 1.5 minutes), without page errors. Distant water
+  streaming reports terrain-support warnings.
+- Native feedback effects, broader task scheduling and original-PC execution
+  matching remain separate work.
+  [Counter arithmetic, capture scope and evidence](research/GROUND_STAT_TRAINING.md).
+- The complete unit suite passes all 8,867 tests (51 skipped).
+- Final TypeScript validation and the production build pass.
+- Production smoke passes old-save resume, walking, car entry, map waypoint,
+  pause/resume, takeoff and landing gear without page errors or failed requests.
+
+## Water-supported terrain replacement (October 27, 2026)
+
+- Automatic exterior on-foot windows now accept native-query water support
+  for existing swimmers or peds deep enough to enter the native swim task on
+  their first frame. Both prebuilt preflight and final candidate validation
+  retain capsule-clearance checks. Missing/shallow/dry/nonfinite water keeps
+  ground support; occupied-vehicle/interior transfer paths retain their policy.
+- The new browser regression fails before repair: an ordinary deep-water
+  script transfer adds a support override/warning and holds play for 6,551 ms.
+  After repair it enters underwater state 4 at the requested position with no
+  support override, warning or page error; its recorded hold is 2,645.8 ms.
+  These individual timings are not a controlled loading benchmark.
+- Seven new unit checks cover both query paths, pending/active swimming,
+  invalid water, obstruction, invalid positions and removed collision. Two
+  fail before repair. All 51 focused checks pass (two existing skips), along
+  with TypeScript validation.
+- Four browser regressions pass (3.5 minutes): water transfer, ordinary swim
+  training, dry-land teleport support and a fall into unloaded terrain. All
+  have no page errors; land/falling retain their advisory support warnings,
+  and the falling check reports zero follower failures.
+  [Host adapter policy, before/after traces and limits](research/SWIM_TERRAIN_TRANSFER.md).
+- The complete unit suite passes all 8,874 tests (51 skipped).
+- Final TypeScript validation and the production build pass.
+- Production smoke passes old-save resume, walking, car entry, map waypoint,
+  pause/resume, takeoff and landing gear without page errors or failed requests.
+
+## Live house save and primary-task gating (October 27, 2026)
+
+- The original CJ house disc has full-world coverage through CARLS entry,
+  actual W movement into pickup reach, the normal browser save flow and
+  reload. One 360-minute advance occurs; health 25 rises to 100, sprint energy
+  resets to capacity 450 and the original return location is saved in area 3
+  with its CARLS entry stack. Reload restores that stack and its floor.
+  No save callback or seeded save location substitutes for collection.
+- A new negative regression exposes a real missing predicate: an active
+  TASK_STAND_STILL previously still healed, passed six hours and wrote a save.
+  CPlayerPed::CanPlayerStartMission (PC 0x609590) rejects a non-drive primary
+  task. The on-foot save adapter now checks its actual PlayerScriptTasks
+  ownership before starting and again before applying delayed effects.
+- After repair the script task remains associated, health stays 25 and no
+  time pass or saved location occurs. Both new checks and the existing
+  player-task regression pass (three browser checks, 2.5 minutes), with no
+  page errors. All 62 focused save/task/stat checks and TypeScript pass.
+  The preceding full-unit baseline is 8,874 passed/51 skipped; the host guard
+  is verified through the focused checks and real ownership regression.
+- This verifies the browser save adapter and its new task guard. Native save
+  menus, complete script/world persistence, other safehouse discs and full
+  native task-manager matching remain separate work.
+  [Original disc, source predicate and live before/after evidence](research/NATIVE_SAVE_POINTS.md).
+- Final TypeScript validation and the production build pass.
+- Production smoke passes save resume, walking, car entry, map waypoint,
+  pause/resume, takeoff and landing gear without page errors or failed requests.
+
+## Captured driving training and startup restore (October 27, 2026)
+
+- Authored driving skill by distance is replaced by the selected native
+  time/speed/wheel counter. Driver cars and quads write integer stat 160
+  through its saved binding; periodic autosave/position changes add no
+  duplicate award. Old natural-range browser fractions migrate by truncation,
+  while valid signed int32 direct-set values survive saves.
+- The complete selected UpdateStatsWhenDriving routine executes unchanged
+  in 332 fixed profiles. Only condition/display calls are logged external
+  stubs. Counter thresholds, speed/contact branches, float32 accumulation,
+  unsigned saturation, raw integer addition/wrap/cap and feedback match
+  exactly and regenerate byte-identically. Six host regressions expose the
+  duplicate distance award and save-loading differences before repair.
+- A live car/quad check initially exposes saved skill 80 being overwritten
+  to zero during startup. MAIN writes SET_FLOAT_STAT 160, 0 at offset 56079;
+  saved driving ownership now waits for the completed setup boundary. A new
+  unit executes that actual instruction and verifies early-save retention,
+  late restore, subsequent writes and no binding heal/gain notification.
+- Actual W driving awards 40→60 in a Landstalker and 60→80 in a quad. A
+  handbraked car pauses its counter; normal pagehide/reload restores stat and
+  ride provider 80. All 82 recorded live inputs also execute independently
+  in the native routine, exactly matching skill/counter/check counts/feedback.
+- All 383 focused checks and TypeScript validation pass. Three browser
+  checks pass (2.0 minutes): new driving/save, existing scripted driving and
+  body/training save/movement. They have no page errors. Full original-PC
+  matching, complete CPlayerInfo scheduling/passenger ownership, native HUD
+  effects and complete vehicle physics remain separate work.
+  [Native arithmetic, runtime replay and saved ownership](research/DRIVING_STAT_TRAINING.md).
+- The complete unit suite passes all 9,215 tests (51 skipped).
+- Final TypeScript validation and production build pass. A build process
+  ended without a completion result; the unchanged-source rerun passed.
+- Production smoke passes save resume, walking, car entry, map waypoint,
+  pause/resume, takeoff and landing gear without page errors or failed requests.
+
+## Quad automobile stat ownership (October 27, 2026)
+
+- The host's broad WorldBike.motorbike property includes quads; the stat
+  caller incorrectly used it alone. A real model-471 W ride invokes motorbike
+  training 45 times before repair, and a seeded counter awards bike skill
+  0→25. The motorbike-training caller now excludes native automobile quads,
+  while quad driving skill remains connected.
+- Ten independent selected routing-block profiles execute actual vehicle
+  appearance and speed/classification instructions. Only training callees
+  are logged stubs. Packaged QUADBIKE/BIKE/BMX flags are verified with the
+  handling file hash. A moving quad calls driving, a motorbike calls bike
+  training; BMX/train contexts skip those callees in this block. The fixture
+  regenerates byte-identically. This does not port complete CPlayerInfo.
+- All 368 focused checks and TypeScript validation pass. Three live browser
+  checks pass (1.6 minutes) without page errors: quad exclusion, actual PCJ-600
+  25-point bike award, and retained car/quad driving awards plus save/reload.
+  The preceding complete unit baseline is 9,215 passed/51 skipped; the
+  single-condition caller guard is verified through focused/live checks.
+  [Native routing, packaged flags and before/after evidence](research/VEHICLE_STAT_DISPATCH.md).
+- Final TypeScript validation, production build and production smoke pass;
+  save resume, movement, car entry, map waypoint, pause/resume, takeoff and
+  landing gear report no page errors or failed requests.
+
+
+## Bicycle pedal/sprint association blending (October 27, 2026)
+
+- BMX, Chopper and Mountain Bike now use synchronized native pedal/sprint
+  partial associations over their ride pose, with actual association blend
+  supplied to the BMX energy/input decision. Player and script riders share
+  the association clocks; render calls do not advance them.
+- Independent selected iOS execution covers 139 BlendAnimation cases, 111
+  scalar clump frames, 174 combined controller/frames and 67 static-key
+  skinned partial frames. All 468 recorded live controller steps replay
+  exactly for scalar association state and normal-path crank output.
+- Partial pose composition follows per-bone track coverage and weighted
+  quaternion sums. Ordinary CBike fallback/lean associations, fallback
+  crank behavior, full native scheduling and float32 pose-sampler parity
+  remain separate work. See [evidence and boundaries](research/BICYCLE_ASSOCIATION_BLENDING.md).
+
+
+## Motorcycle and quad rider lean poses (October 27, 2026)
+
+- Eleven supported motorcycles/quads now sample Left/Right at native filtered
+  lean phase; reversing steering keeps the residual lean's pose side until
+  filtered lean crosses zero. Player/script drivers share the selected stage;
+  freeze, repeated render and rider-release ownership are checked.
+- 1,134 independent native pose cases and 360 native filter cases pass; 80 more captures check the reverse-pedalling
+  precision boundary. The
+  imported powf is an explicit host-libm boundary. All 2,112 recorded live
+  steps replay exactly for filtered lean and active association pose state.
+- Existing physical lean, ride/still availability, forward input and full
+  rider task/association lifecycle remain separate. See
+  [capture boundaries and evidence](research/BIKE_RIDER_LEAN_POSES.md).
+
+
+## Ordinary motorcycle and quad rider associations (October 27, 2026)
+
+- Native Still/Pushes/lean association decisions now replace the binary
+  ride/still selector on eleven motorcycles/quads. Automatic acceleration,
+  braking and reverse fore/aft lean, passenger suppression and held base
+  clip time reach player and script-driver posing.
+- 755 independent controller-plus-clump cases and all 2,704 recorded live
+  frames match exactly within declared actor/neutral-geometry/asset/powf
+  boundaries. Quad Reverse uses its native non-looping descriptor and holds
+  its final frame; motorcycle Pushes remain looped.
+- Computed pedal state is now published independently of the audio tick,
+  fixing stale scripted-rider gas. Real keys, actual NPC passenger presence,
+  all-model assets, freeze/ownership and bicycle regressions pass.
+- Physical lean, wheelie/stoppie/contact/task reactions, full ownership and
+  native skeleton sampling remain separate. See
+  [capture boundaries and validation](research/BIKE_RIDER_ASSOCIATIONS.md).
+
+
+## Vehicle partial-pose root translation (October 27, 2026)
+
+- Corrected root translation being weighted twice in the earlier partial
+  pose blender. Non-extracting vehicle root tracks now use the captured
+  skinned-root callback; ordinary bones retain their existing formula.
+- All 79 native root-frame cases pass. All 101 sampled live root poses,
+  including actual CJ, match native blending within the declared tolerances
+  (coordinate error below 3.67e-9, angular error below 1.40e-7 radians).
+- Real keyboard/passenger and touch-hop checks, eleven-model rider posing,
+  bicycle articulation and limb-position regressions pass. Native key
+  sampling and other root callback contexts remain separate. See
+  [source, boundaries and evidence](research/VEHICLE_ROOT_POSE_BLEND.md).
+
+
+## Full bicycle rider fallback and crank transitions (October 27, 2026)
+
+- BMX, Chopper and Mountain Bike now use native ordinary fallback
+  associations over a held Ride base, replacing the legacy side overlay.
+  Still, side/fore-aft lean and reverse poses reach player and script riders.
+- Native retained-lean damping, fallback crank overrides/easing and pedal
+  phase initialization from existing lean poses now follow the captured
+  CBmx path. Hop retains its existing independent task/time/launch owner.
+- All 868 fixed native controller/clump cases pass. All 837 recorded game
+  frames, including 135 NPC frames, match native association/filter/crank
+  state exactly within the declared neutral geometry/asset/powf boundaries.
+- All-model rendered poses, freeze/repeated-update/remount, motorcycle/quad
+  regressions, real-key sprint energy, phone hop and scripted rider task
+  transitions pass. Full task scheduling, collision/wheelie/stoppie overrides,
+  hand IK and native key sampling remain separate. See
+  [capture boundaries and validation](research/BMX_RIDER_CONTROLLER.md).
+
+
+## Quad rider lean arithmetic and player ownership (October 27, 2026)
+
+- The quad rider's LeanAngle update now uses captured float32 arithmetic and
+  the steering angle shared with vehicle motion. Empty/NPC quads preserve
+  that vehicle-owned lean instead of continuing the player's filter.
+- All 396 fixed native arithmetic cases and all 214 recorded player updates
+  match exactly. A separate 96-case native entry capture confirms driver,
+  status and task gates; the host change covers player versus NPC/empty
+  ownership, without adding native arrest/slow-exit scheduling.
+- The subsequent ordinary rider stage matches all 2,704 recorded frames,
+  including 274 quad frames. Four browser checks cover loaded models,
+  retained lean, freeze, player pillions with NPC drivers and bicycle regressions.
+- Physical steering/air forces and full native task scheduling remain separate.
+  See [capture boundaries and evidence](research/QUAD_RIDER_LEAN.md).
+
+
+## Player bike drive-by associations and visible weapon (October 27, 2026)
+
+- Fixed player shots leaving all fourteen bike riders in their ordinary
+  riding/pedal pose. Loaded left/right/forward drive-by clips now share the
+  rider association list, suppress lean/pedalling, and fade on release or
+  empty ammo. The right-hand SMG is visible during the blend; its second
+  dual-wield model stays hidden.
+- Player shooting associations are cleared before a direct NPC handoff.
+  Q/E memory now advances while riding, including frames without firing.
+- All 363 native controller/clump cases pass. All 1,736 live composite
+  frames match native scalar state, including 372 bicycle and 14 handoff
+  frames. Real keys, one-gun visibility, all-model loaded poses, freeze,
+  release, empty ammo and touch-hop regressions pass.
+- Weapon timing/ballistics, simultaneous external-hop cross-fades and full
+  task/key-sampler parity remain separate. See
+  [capture boundaries and evidence](research/BIKE_DRIVE_BY_POSES.md).

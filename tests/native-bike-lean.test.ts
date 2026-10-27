@@ -43,12 +43,13 @@ test('knock-off force follows DamageKnockOffRider',()=>{
 
 test('CQuadBike::ProcessAI eases the rider toward the full anim lean on the steered side, the body staying level',()=>{
  // QUAD's bike handling: full anim lean 43 degrees, desLean 0.88 (the value is kept each frame).
- let lean=0;for(let i=0;i<500;i++)lean=quadRiderLean(lean,1,43,.88,1/50);
+ const full=Math.fround(Math.fround(43)*Math.fround(Math.PI/180)),lock=35*Math.PI/180;
+ let lean=0;for(let i=0;i<500;i++)lean=quadRiderLean(lean,-lock,35,full,.88,1);
  expect(lean).toBeCloseTo(43*Math.PI/180,6);
  // One frame from rest moves 12% of the way; steering left leans left.
- expect(quadRiderLean(0,-1,43,.88,1/50)).toBeCloseTo(-.12*43*Math.PI/180,9);
+ expect(quadRiderLean(0,lock,35,full,.88,1)).toBeCloseTo(-.12*43*Math.PI/180,6);
  // Hands off, it decays by 0.88 a frame.
- expect(quadRiderLean(.5,0,43,.88,1/50)).toBeCloseTo(.44,9);
+ expect(quadRiderLean(.5,0,35,full,.88,1)).toBeCloseTo(.44,6);
 });
 test('a head-on impact coming steeply from above weights the forward axis by its world z (CBike::DamageKnockOffRider)',()=>{
  // A nose-down bike meeting the ground: the impact runs along the bike's forward axis but points nearly straight up.

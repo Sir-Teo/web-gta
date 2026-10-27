@@ -1,6 +1,9 @@
 import {applyScriptVehicleForce,type ScriptVehicleForceBasis} from './nativeScriptVehicleForce';
 import {NativeClumpAlpha} from './nativeClumpAlpha';
 import {bindClumpAlpha} from '../render/nativeClumpAlpha';
+import {bindNativeBoatComponents} from '../render/nativeBoatComponents';
+import type {BoatFlapMotion} from './nativeBoatFlap';
+import {boatFireControl,boatFirePosition} from './nativeBoatFire';
 import {bindNativeCarDirt} from '../render/nativeCarDirt';
 import {NativeCarReflection} from '../assets/nativeCarEnvMap';
 import {randomSeed} from './nativeVehicleLights';
@@ -34,7 +37,9 @@ type Assets=Awaited<ReturnType<Awaited<ReturnType<typeof openStaticWorldVehicles
  * seated driver pose, engine audio speed and swim-push boarding follow the
  * reversed boat sources; entry clips arrive with the animation set. */
 export class WorldBoat {
- private readonly alphaBinding=bindClumpAlpha(()=>this.visual?.materialBindings??[]);
+ private readonly alphaBinding=bindClumpAlpha(()=>this.visual?.materialBindings??[],material=>this.components?.opacity(material));
+ private components?:ReturnType<typeof bindNativeBoatComponents>;
+ private componentSeconds=0;
  private readonly clumpAlpha=new NativeClumpAlpha(this.alphaBinding);
  get alpha(){return this.clumpAlpha.value;}
  setClumpAlpha(value:number){this.clumpAlpha.set(value);}
@@ -74,7 +79,7 @@ export class WorldBoat {
   *   otherwise takes playerVehicleDamage's share;
   * - only health left is taken. Damage that takes the last of it destroys the vehicle and returns true. A blast's
   *   victim waits on the bomb timer; anything else blows it up at once (BlowUpCar). */
- damage(amount:number,_collider?:number,explosive=false,_shotDir?:unknown,options:{kind?:'bullet'|'fire'|'melee';byPlayer?:boolean;weapon?:number;by?:VehicleDamager}={}){
+ damage(amount:number,_collider?:number,explosive=false,_shotDir?:unknown,options:{kind?:'bullet'|'fire'|'melee';byPlayer?:boolean;weapon?:number;by?:VehicleDamager|null}={}){
   const weapon=options.weapon??(explosive?51:options.kind==='fire'?37:options.kind==='melee'?0:22);
   if(this.wrecked||vehicleRefusesWeaponDamage(this,weapon,options.byPlayer))return false;
   recordVehicleDamage(this,options.weapon??(explosive?51:options.kind==='fire'?37:-1),options.byPlayer,options.by);
@@ -100,20 +105,18 @@ export class WorldBoat {
  get crimeKey(){return `boat:${this.body.handle}`;}
  /** CBoat::ProcessControl's fire section: the blow-up timer is cleared only above 460 health or once wrecked; below
   * that it holds, and under 250 health, with the hull within 200 units of the camera along each ground axis (the
-  * player stands in for the camera), it runs (TimeStep × 20 ms a frame) until past 5000 ms the hull blows up. */
- private processFire(dt:number){
-  if(this.health>460||this.wrecked){this.burnTimer=0;return;}
-  if(this.health>=250)return;
-  const p=this.body.translation(),c=this.sim.player.position;
-  if(Math.abs(p.x-c.x)>=200||Math.abs(p.z-c.z)>=200)return;
-  this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();
+   * standalone caller may use the player as its camera), it runs (TimeStep × 20 ms a frame) until past 5000 ms the hull blows up. */
+ private processFire(dt:number,camera=this.sim.player.position){
+  const p=this.body.translation(),state=boatFireControl(this.health,this.wrecked,[p.x,-p.z,p.y],[camera.x,-camera.z,camera.y]);
+  if(state.reset){this.burnTimer=0;return;}
+  if(!state.burning)return;
+  // The PC timer is a float in milliseconds; the selected iOS build truncates each added millisecond interval.
+  this.burnTimer=Math.fround(Math.fround(this.burnTimer*1000)+Math.fround(Math.fround(dt*50)*20))/1000;
+  if(this.burnTimer*1000>5000)this.blowUp();
  }
- /** Burn anchor (per-model fire dummy): the engine/exhaust frame, else the stern deck. */
+ /** CBoat's per-model PC burn position, independent of engine/exhaust model frames. */
  fireDummy():{x:number;y:number;z:number}{
-  const dummy=this.assets.model?.frames.find(f=>/^(engine|exhaust)/i.test(f.name));
-  if(dummy)return {x:dummy.matrix[12],y:dummy.matrix[13],z:dummy.matrix[14]};
-  const b=this.assets.collision!.bounds;
-  return {x:0,y:b.min[1]*0.7,z:b.max[2]*0.5};
+  const [x,y,z]=boatFirePosition(this.modelId);return {x,y,z};
  }
  private previous:{x:number;y:number;z:number};private previousRotation:RAPIER.Rotation;
  /** `colors`: CVehicleModelInfo::ChooseVehicleColour's paint for the hull's colour-coded materials, as for any vehicle. */
@@ -130,7 +133,7 @@ export class WorldBoat {
   this.handling.values.turnMass=Math.fround(this.handling.values.turnMass*.5);
   this.physical=installNativeVehicleBody(sim.world,assets.collision!,this.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:0});this.body=this.physical.body;this.car={body:this.body,root:this.root};
   if(assets.model&&!assets.missingTextures.length){
-   try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);if(colors)bindNativeCarPaint(this.visual.materialBindings,assets.textures.find(t=>t.name==='vehiclelights128')).setColors(colors);this.root.add(this.visual.root);}catch{this.visual=undefined;}
+   try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);if(colors)bindNativeCarPaint(this.visual.materialBindings,assets.textures.find(t=>t.name==='vehiclelights128')).setColors(colors);this.root.add(this.visual.root);this.components=bindNativeBoatComponents(this.visual.root,this.modelId);}catch{this.visual=undefined;}
   }
   scene.add(this.root);
   this.previous={...position};this.previousRotation={...this.body.rotation()};this.update(1);
@@ -209,13 +212,13 @@ export class WorldBoat {
   const check=this.enterCheck();if(check)return check;
   return this.finishEnter();
  }
- /** CBoat::ProcessControl's propeller (0x6F1770, reversed in gta-reversed): with CJ at the helm it eases towards the pedal's
+ /** CBoat::ProcessControl's propeller (0x6F1770, reversed in gta-reversed): player and physics-controlled boats ease towards the pedal's
   * speed, CPlane's PLANE_STD_PROP_SPEED 0.18 at rest, up to PLANE_MAX_PROP_SPEED 0.34 on the gas and down to 0.05 on
-  * full reverse, at PLANE_ROC_PROP_SPEED 0.01 a frame (five times that with a pedal down); an empty boat's slows by
+  * full reverse, at PLANE_ROC_PROP_SPEED 0.01 a frame (five times that with a pedal down); other statuses decay by
   * 0.95 a frame. The four constants are exe-only (0x8D33CC to 0x8D33D8); two gta-reversed forks record them. */
  private stepPropeller(dt:number){
   const MIN=.05,STD=.18,MAX=.34,ROC=.01,timeStep=dt*50;
-  if(!this.occupied||this.wrecked){if(this.engineSpeed>0)this.engineSpeed*=Math.pow(.95,dt*30);return;}
+  if(this.wrecked||!this.occupied&&!this.pilot?.physics){if(this.engineSpeed>0)this.engineSpeed*=Math.pow(.95,dt*30);return;}
   const gas=this.gasPedal,rate=gas!==0?ROC*5:ROC;
   // The Skimmer (a CBoat in the original) idles at the standard speed; a boat's prop stops with the pedal up.
   const target=gas===0?(this.modelId===460?STD:0):gas<0?(STD-MIN)*gas+STD:(MAX-STD)*gas+STD;
@@ -223,7 +226,8 @@ export class WorldBoat {
  }
  /** CBoat::ProcessControl buoyancy section for a drifting hull (no throttle yet):
   * native float, browser gravity, stern wake points and bow spray. */
- beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean}={throttle:0,steer:0,brake:false}){
+ beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean}={throttle:0,steer:0,brake:false},camera?:{x:number;y:number;z:number}){
+  this.componentSeconds=(this.componentSeconds??0)+dt;
   this.clumpAlpha.step(dt);
   // ProcessDelayedExplosion (CBoat::ProcessControl) runs whether or not the hull is in the world: a blast's victim
   // carried out of range still goes up on time.
@@ -234,7 +238,7 @@ export class WorldBoat {
   const nearby=Math.hypot(focus.x-at.x,focus.y-at.y,focus.z-at.z)<250,steps=nearby||!this.wrecked&&this.pilot?.physics===true&&this.pilot.mission===MISSION_GOTOCOORDINATES_ASTHECROWSWIMS;
   const frozen=syncFrozenVehicle(this.body,this.frozen);this.body.setEnabled(steps);this.root.visible=nearby;if(!steps)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
-  if(frozen){this.processFire(dt);return;}
+  if(frozen){this.processFire(dt,camera);return;}
   // Attached to another vehicle (ATTACH_CAR_TO_CAR): a kinematic body the host sets on it after the step.
   if(this.body.bodyType()===RAPIER.RigidBodyType.KinematicPositionBased)return;
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
@@ -244,7 +248,7 @@ export class WorldBoat {
   // CBoat::ProcessControl: a scorched hull loses buoyancy each frame until it is down to 80% of its weight and sinks.
   // The loss is per game frame (30 fps), not scaled by the timestep.
   if(this.wrecked){const mass=this.handling.values.mass,floor=mass*.008*100/125;if(floor<this.water.buoyancy)this.water.buoyancy=Math.max(floor,this.water.buoyancy-mass*.001*.008*dt*30);}
-  this.processFire(dt);
+  this.processFire(dt,camera);
   this.floatOnWater(dt);
   this.holdAnchor();
   this.stepVelocity={...this.body.linvel()};
@@ -257,8 +261,14 @@ export class WorldBoat {
    if(upZ>-.6&&this.onWater&&move>.05){const p=this.body.translation();addWakePoint(this.wake,{x:p.x,y:-p.z},Math.hypot(v.x,v.y,v.z)/50,this.occupied?31:15);}}
  }
  occupied=false;throttle=0;steer=0;brake=false;waveVolume=0;
+ /** CVehicle::bGunSwitchedOff, independent of SET_PLAYER_CAN_DO_DRIVE_BY. */
+ gunSwitchedOff=false;
  /** bOnWater from the last ProcessBoatControl. */
  private onWater=false;
+ /** ProcessBoatControl's physical submerged flag: buoyancy exceeds its native mass/timestep threshold. */
+ get submergedInWater(){return this.onWater;}
+ /** Actual drawn static-propeller origins, retaining primary/secondary slots when a frame is missing. */
+ propellerPositions(){return this.components?.propellerPositions()??[undefined,undefined];}
  /** m_GasPedal, m_BrakePedal, m_fRawSteerAngle and m_fSteerAngle as CBoat::ProcessControlInputs keeps them. */
  gasPedal=0;brakePedal=0;rawSteer=0;steerAngle=0;
  /** CBoat::m_EngineSpeed, the propeller's speed, which the engine sound follows. */
@@ -334,14 +344,14 @@ export class WorldBoat {
   this.body.setLinvel({x:mx*50,y:mz*50-NATIVE_GRAVITY_MS2*dt,z:-my*50},true);this.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);
  }
  private lastImmersion=0;
- /** m_nBoatFlags.bLockedToXY: set by the constructor and ANCHOR_BOAT, cleared once the player drives (STATUS_PLAYER). */
+ /** m_nBoatFlags.bLockedToXY: set by the constructor and ANCHOR_BOAT, cleared by player or script physics control (STATUS_PLAYER / STATUS_PHYSICS). */
  anchored=true;
  /** m_LockedHeading, taken the first anchored frame (-10000 in the game: unset). */
  private lockedHeading:number|undefined;
  /** CBoat::ProcessControl's tail: an anchored hull loses its speed across the water and is turned back to the
   * heading it was anchored at about its own position; the swell still lifts, pitches and rolls it. */
  private holdAnchor(){
-  if(this.occupied){this.anchored=false;this.lockedHeading=undefined;}
+  if(!this.wrecked&&(this.occupied||this.pilot?.physics)){this.anchored=false;this.lockedHeading=undefined;}
   if(!this.anchored)return;
   const v=this.body.linvel();this.body.setLinvel({x:0,y:v.y,z:0},true);
   const heading=this.heading();
@@ -355,6 +365,12 @@ export class WorldBoat {
  get anchorHeading(){return this.lockedHeading;}
  update(alpha:number){
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
+  const seconds=this.componentSeconds;this.componentSeconds=0;
+  if(this.root.visible&&this.components){this.components.update(this.engineSpeed,this.steerAngle,seconds,this.components.needsMotion?this.componentMotion():undefined);this.alphaBinding(this.clumpAlpha.value/255);}
+ }
+ private componentMotion():BoatFlapMotion{
+  const f=Math.fround,native=(v:{x:number;y:number;z:number},scale=1):NativeVec=>[f(v.x*scale),f(-v.z*scale),f(v.y*scale)],axis=(x:number,y:number,z:number)=>native(new Vector3(x,y,z).applyQuaternion(this.root.quaternion)),h=this.handling.values;
+  return {axes:{right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0)},moveSpeed:native(this.body.linvel(),1/50),turnSpeed:native(this.body.angvel(),1/50),centerOfMass:[f(h.centerOfMassX),f(h.centerOfMassY),f(h.centerOfMassZ)]};
  }
  /** Pin the embarked player to the hull; true when a blast must spawn. */
  afterStep(){

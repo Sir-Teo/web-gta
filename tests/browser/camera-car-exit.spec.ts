@@ -8,6 +8,7 @@ test('the camera is behind the car once seated and behind CJ after he leaves it'
  await page.goto('/');
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
+ const gameWait=async(seconds:number)=>{const start=await page.evaluate(()=>(window as any).__game.gameTimeMs());await page.waitForFunction(({start,seconds})=>(window as any).__game.gameTimeMs()>start+seconds*1000,{start,seconds},{timeout:60000});};
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  await page.locator('canvas.world').click({position:{x:400,y:300}});await page.waitForTimeout(1500);
  const behind=(s:any)=>{const d=((s.camera.yaw-s.player.heading-Math.PI)*180/Math.PI)%360;return Math.abs(((d%360)+540)%360-180);};
@@ -15,15 +16,15 @@ test('the camera is behind the car once seated and behind CJ after he leaves it'
  await page.evaluate(({x,z})=>{const g=(window as any).__game;g.placePlayer(x,g.groundAt(x,z,300)+.05,z);g.turnPlayer(0);},{x:car.position.x,z:car.position.z+6});
  await page.waitForTimeout(800);
  await page.keyboard.press('KeyF');
- await expect.poll(async()=>(await state()).carEntry.phase,{timeout:10000}).toBe('seated');
- await page.waitForTimeout(2500);
- expect(behind(await state())).toBeLessThan(10);
+ // This camera check waits for the native entry task; its clips can outlast ten wall seconds under capped stepping.
+ await expect.poll(async()=>(await state()).carEntry.phase,{timeout:30000}).toBe('seated');
+ await expect.poll(async()=>behind(await state()),{timeout:30000}).toBeLessThan(10);
  await page.keyboard.press('KeyF');
- await expect.poll(async()=>(await state()).carEntry.phase,{timeout:10000}).toBeNull();
- await page.waitForTimeout(600);
+ await expect.poll(async()=>(await state()).carEntry.phase,{timeout:30000}).toBeNull();
+ await expect.poll(async()=>behind(await state()),{timeout:30000}).toBeLessThan(10);
  const out=await state();expect(behind(out)).toBeLessThan(10);
  // Forward walks away from the camera.
- await page.keyboard.down('KeyW');await page.waitForTimeout(1000);await page.keyboard.up('KeyW');
+ await page.keyboard.down('KeyW');try{await gameWait(1);}finally{await page.keyboard.up('KeyW');}
  const walked=await state();
  expect(Math.hypot(walked.player.position.x-out.player.position.x,walked.player.position.z-out.player.position.z)).toBeGreaterThan(2);
  expect(behind(walked)).toBeLessThan(15);

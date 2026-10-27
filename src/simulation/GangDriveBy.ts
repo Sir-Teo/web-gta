@@ -1,4 +1,6 @@
 import RAPIER from '@dimforge/rapier3d-compat';
+import {healthAfter} from '../ped/damage';
+import type {ShotCreator} from '../weapons/WeaponSystem';
 import {sitClip} from './nativeDoor';
 import {DIE_IN_CAR_OFFSET_MS,canPedStepOutCar} from '../vehicle/nativeDieInCar';
 import {Quaternion,Vector3} from 'three';
@@ -30,13 +32,13 @@ interface Shooter {
 }
 interface AttackCar {car:WorldCar;gang:number;driver:string;shooter:Shooter;mission:'approach'|'attack'|'leave';seconds:number;leaveAt:number;
  /** CPed health under the player's bullets, the driver's 2000 ms coast after the fatal shot (CTaskComplexDieInCar) and the dead seats. */
- driverHealth:number;shooterHealth:number;driverDying?:{at:number};driverDead?:boolean;shooterDead?:boolean;
+ driverHealth:number;shooterHealth:number;deathAccounted?:boolean[];driverDying?:{at:number};driverDead?:boolean;shooterDead?:boolean;
  /** The shooter has been dragged out, or is getting out of the car the player took. */
  shooterGone?:boolean;
  /** A gang war attack wave's drive-by car (CGangWars::CreateAttackWave): driven by the script-car missions
   * (MISSION_DO_DRIVEBY_FARAWAY at the player), with no time limit; its shooter's CTaskSimpleGangDriveBy fires a burst
   * only as the frequency (50) lets it. */
- wave?:{fireRate:number;firing:boolean;stopped:boolean}}
+ wave?:{fireRate:number;firing:boolean;stopped:boolean;released?:boolean}}
 /** Rival turf drive-bys (CTaskSimpleGangDriveBy port): a gang car
  * cruises past the mark with a posed Micro SMG shooter working the passenger
  * window on muzzle rays; NPC traffic drivers join in when the mark is wanted. */
@@ -49,6 +51,12 @@ export class GangDriveBy {
   private busy=false;private nextCheck=0;private disposed=false;private seconds=0;
   private lastAttack=-Infinity;
   onShot?:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},weapon:number,hit:boolean)=>void;
+  seatedShot?:import('../vehicle/nativeDieInCar').SeatedShot;
+  bulletLine?:import('../weapons/skinnedPedBulletLine').NpcBulletLine;
+  hitPed?:import('./scriptDriveBy').ScriptDriveByWorld['hitPed'];
+  canDamagePlayer?:import('./scriptDriveBy').ScriptDriveByWorld['canDamagePlayer'];
+  friendlyWithPlayer?:import('./scriptDriveBy').ScriptDriveByWorld['friendlyWithPlayer'];
+  prepareBulletImpact?:import('../weapons/skinnedPedBulletLine').NpcBulletImpact;
   canSpawn:(point:{x:number;y:number;z:number},radius:number)=>boolean=()=>true;
   /** Rival turf with INITIAL strength, shared with the street population. */
   gangTurf?:(x:number,z:number)=>{gang:number;strength:number}|undefined;
@@ -85,9 +93,9 @@ export class GangDriveBy {
   /** Cars this manager drives (excluded from the civilian driver poses). */
   covers(car:WorldCar){return this.units.some(u=>u.car===car);}
   /** The gang member at the wheel of an attack car, for the ped the player drags out or who leaves it. */
-  driverOf(car:WorldCar){const u=this.units.find(u=>u.car===car);return u&&{model:u.driver};}
+  driverOf(car:WorldCar){const u=this.units.find(u=>u.car===car);return u&&{model:u.driver,vitals:{health:u.driverHealth,armour:0},dead:!!u.driverDead||u.driverHealth<=0,deathAccounted:!!u.deathAccounted?.[0]};}
   /** The shooter in the front passenger seat (ComputeSlowJackedPed for the right front door), alive or dead. */
-  frontPassengerOf(car:WorldCar){const u=this.units.find(u=>u.car===car);return u&&!u.shooterGone?{model:u.shooter.model,dead:!!u.shooterDead}:undefined;}
+  frontPassengerOf(car:WorldCar){const u=this.units.find(u=>u.car===car);return u&&!u.shooterGone?{model:u.shooter.model,vitals:{health:u.shooterHealth,armour:0},dead:!!u.shooterDead,deathAccounted:!!u.deathAccounted?.[1]}:undefined;}
   /** The player is dragging the shooter out: he fires no more, and the car entry draws him. */
   dragPassenger(car:WorldCar){const u=this.units.find(u=>u.car===car);if(u){u.shooterGone=true;u.shooter.gunState.active=false;}}
   /** MakeUndraggedPassengerPedsLeaveCar (unreversed; AUTHORED as for the police crews): the living shooter leaves the
@@ -95,10 +103,11 @@ export class GangDriveBy {
    * left as before. */
   crewLeave(car:WorldCar){
    const u=this.units.find(u=>u.car===car);if(!u||u.shooterGone||u.shooterDead)return undefined;
-   u.shooterGone=true;u.shooter.gunState.active=false;return {model:u.shooter.model,gang:u.gang};
+   u.shooterGone=true;u.shooter.gunState.active=false;return {model:u.shooter.model,gang:u.gang,vitals:{health:u.shooterHealth,armour:0}};
   }
   /** CTaskComplexLeaveCarAndDie for a shot driver once the car rests: the host plays his exit and lays him dead. */
-  onCrewDiesOut?:(car:WorldCar,model:string)=>void;
+  onCrewDiesOut?:(car:WorldCar,model:string,corpse?:{armour:number;accounted:boolean})=>void;
+  onCrewKilled?:(car:WorldCar,seat:number,gang:number,creator:ShotCreator)=>void;
   /** The seated crew a bullet line can reach: the driver (seat 0) and the shooter (seat 1), seat locals in car space. */
   crewSeats(){
    const out:{car:WorldCar;seat:number;local:{x:number;y:number;z:number}}[]=[];
@@ -112,17 +121,19 @@ export class GangDriveBy {
   }
   /** A bullet reaching the driver or the shooter: CPed damage; the fatal one coasts the driver 2000 ms (CTaskComplexDieInCar)
    * or kills the shooter in his seat. */
-  crewShot(car:WorldCar,seat:number,damage:number):'hit'|'killed'|undefined{
+  crewShot(car:WorldCar,seat:number,damage:number,forceDeath=false,creator:ShotCreator='ped'):'hit'|'killed'|undefined{
    const u=this.units.find(u=>u.car===car);
-   if(!u||car.wrecked||car.occupied)return undefined;
+   if(!u||car.wrecked||car.occupied||seat!==0&&seat!==1)return undefined;
    if(seat===0){
-    if(u.driverDead||car.driverOut)return undefined;if(u.driverDying)return 'hit';
-    u.driverHealth=Math.max(0,u.driverHealth-damage);if(u.driverHealth>0)return 'hit';
-    u.driverDying={at:u.seconds};return 'killed';
+    if(u.driverDead||car.driverOut)return undefined;if(u.driverDying||u.driverHealth<=0)return 'killed';
+    u.driverHealth=forceDeath?0:healthAfter(u.driverHealth,damage);if(u.driverHealth>0)return 'hit';
+    u.driverDying={at:u.seconds};
+   }else{
+    if(u.shooterDead||u.shooterGone)return undefined;if(u.shooterHealth<=0)return 'killed';
+    u.shooterHealth=forceDeath?0:healthAfter(u.shooterHealth,damage);if(u.shooterHealth>0)return 'hit';
+    u.shooterDead=true;u.shooter.gunState.active=false;
    }
-   if(u.shooterDead||u.shooterGone)return undefined;
-   u.shooterHealth=Math.max(0,u.shooterHealth-damage);if(u.shooterHealth>0)return 'hit';
-   u.shooterDead=true;u.shooter.gunState.active=false;return 'killed';
+   (u.deathAccounted??=Array(2).fill(false))[seat]=true;this.onCrewKilled?.(car,seat,u.gang,creator);return 'killed';
   }
   /** Driver plus posed shooter per attack car for the occupant renderer. */
   poses():OccupantPose[]{
@@ -190,7 +201,10 @@ export class GangDriveBy {
    return true;
   }
   /** The attack wave cars' drivers alive in their seats, for their radar blips (the gang's colour, scale 3). */
-  waveDrivers(){return this.units.filter(u=>u.wave&&!u.driverDead&&!u.driverDying&&!u.car.driverOut&&!u.car.wrecked).map(u=>({gang:u.gang,position:u.car.car.body.translation()}));}
+  waveDrivers(){return this.units.filter(u=>u.wave&&!u.wave.released&&!u.driverDead&&!u.driverDying&&!u.car.driverOut&&!u.car.wrecked).map(u=>({gang:u.gang,position:u.car.car.body.translation()}));}
+  /** CGangWars::ReleaseCarsInAttackWave (PC 0x445E20) clears membership and sets RANDOM_VEHICLE;
+   * it leaves the car's current mission and crew tasks in place. */
+  releaseCarsInAttackWave(){for(const u of this.units)if(u.wave&&!u.wave.released){u.wave.released=true;u.car.missionCar=false;}}
   /** Muzzle-ray firing sequence from the passenger window (officer routine,
    * here with street-cop dispersion: gang marksmanship has no native table). */
   private stepShooter(u:AttackCar,dt:number,target:{x:number;y:number;z:number},playerCar?:WorldCar){
@@ -218,14 +232,20 @@ export class GangDriveBy {
     // the player's car (TargetWeaponRangeMultiplier), its end moved by his inaccuracy; on foot the player's speed scales it.
     const endPoint=npcShotEnd(muzzle,aim,info,60,playerCar?{rangeMultiplier:3}:{targetIsPlayer:true,targetSpeed:this.sim.player.speed/50});
     const direction=new Vector3(endPoint.x,endPoint.y,endPoint.z).sub(muzzle),lineLength=direction.length();direction.divideScalar(lineLength||1);
-    const shot=this.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),lineLength,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
+    const shot:import('../weapons/skinnedPedBulletLine').PedBulletIntersection|null|undefined=this.bulletLine?this.bulletLine(muzzle,direction,lineLength,car.car.body):this.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),lineLength,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
     // FireInstantHit includes car tyres for every shooter, the gang car's own excepted.
     const reach=shot?.timeOfImpact??lineLength,tyre=bulletTyreHit([...this.fleet.cars].filter(c=>c!==car),muzzle,direction,reach);
-    const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:reach);s.shots++;
-    this.onShot?.(muzzle,end,info.type,!!shot||!!tyre);
-    if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
-    else if(shot?.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z}});
+    const shooter={pedType:`GANG${u.gang+1}`};
+    const seated=this.seatedShot?.(muzzle,direction,lineLength,car,shot?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre,shooter});
+    const end=muzzle.clone().addScaledVector(direction,seated?.t??tyre?.t??reach);s.shots++;
+    this.onShot?.(muzzle,end,info.type,!!shot||!!tyre||!!seated);
+    const finish=shot&&!tyre&&!seated?this.prepareBulletImpact?.(shot,end,info.type,direction,shooter):undefined;let accepted=false;
+    if(seated)seated.hit(info.damage,info.type);
+    else if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
+    else if(shot?.collider.handle===this.sim.playerCollider.handle)accepted=this.canDamagePlayer?.(shooter,info.type)!==false&&this.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z},piece:shot.pedPiece,friendly:this.friendlyWithPlayer?.(shooter)});
     else if(shot&&targetBody&&shot.collider.parent()?.handle===targetBody.handle){pushShotVehicle(playerCar!,shot.normal,end,info.type);playerCar!.damage(info.damage,undefined,false,undefined,{weapon:info.type,by:{ped:s}});}
+    else if(shot)accepted=this.hitPed?.(shot.collider.handle,info.damage,info.type,{x:direction.x,z:direction.z},end,shot.pedPiece,shooter)??false;
+    finish?.(accepted);
    }
    if(s.gunState.active&&s.gunState.time<oldTime)s.aimPoint={...aim};
   }
@@ -237,8 +257,11 @@ export class GangDriveBy {
     car.activeRadius=250;
     // An attack wave's car is no one's to take away: the crew goes with it, and the fleet keeps or culls the car.
     if(u.wave&&(car.occupied||car.wrecked||car.disposed||!this.fleet.cars.has(car))){this.units.splice(i,1);this.carMissions?.forget(car);continue;}
-    if(car.occupied||car.wrecked||u.seconds>DRIVEBY_LIFETIME+10||!this.fleet.cars.has(car)){this.units.splice(i,1);if(!car.occupied)this.fleet.removeTrafficCar(car);continue;}
+    if(car.occupied||car.wrecked||(!u.wave&&u.seconds>DRIVEBY_LIFETIME+10)||!this.fleet.cars.has(car)){this.units.splice(i,1);if(!car.occupied)this.fleet.removeTrafficCar(car);continue;}
     const p=car.car.body.translation(),q=car.car.body.rotation(),v=car.car.body.linvel(),speed=Math.hypot(v.x,v.z),distance=Math.hypot(target.x-p.x,target.z-p.z);
+    // Browser population budget: retire an unseen wave car beyond its existing active radius. Wave membership
+    // and task lifetime do not impose the ordinary ambient drive-by's 45-second timeout.
+    if(u.wave&&!car.missionCar&&distance>car.activeRadius&&this.canSpawn(p,6)){this.units.splice(i,1);this.carMissions?.forget(car);this.fleet.removeVehicle(car);continue;}
     const heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y));
     // A wave car's driver shot: the CCarAI mission is dropped and the car is the dying driver's, as below.
     if(u.wave&&(u.driverDying||u.driverDead)&&!u.wave.stopped){u.wave.stopped=true;this.carMissions?.forget(car);}
@@ -248,7 +271,7 @@ export class GangDriveBy {
      if(u.seconds>=u.driverDying.at+DIE_IN_CAR_OFFSET_MS/1000){
       u.driverDying=undefined;u.driverDead=true;car.driverDead=true;
       const w=car.car.body.angvel(),r=car.car.body.rotation(),upZ=1-2*(r.x*r.x+r.z*r.z);
-      if(canPedStepOutCar(upZ,{x:v.x/50,y:-v.z/50,z:v.y/50},{x:w.x/50,y:-w.z/50,z:w.y/50})){this.onCrewDiesOut?.(car,u.driver);car.driverOut=true;}
+      if(canPedStepOutCar(upZ,{x:v.x/50,y:-v.z/50,z:v.y/50},{x:w.x/50,y:-w.z/50,z:w.y/50})){this.onCrewDiesOut?.(car,u.driver,{armour:0,accounted:!!u.deathAccounted?.[0]});car.driverOut=true;}
      }
      car.autopilot={steering:0,throttle:0,brake:0,handbrake:false};continue;
     }
@@ -282,5 +305,5 @@ export class GangDriveBy {
    }
   }
   snapshot(){return {ready:!!this.paths&&!!this.gangs.length&&!!this.gunCache,pending:this.busy,error:this.error??null,lastAttack:this.lastAttack,units:this.units.map(u=>({handle:u.car.car.body.handle,gang:u.gang,mission:u.mission,wave:!!u.wave,driverHealth:u.driverHealth,shooterHealth:u.shooterHealth,driverDying:!!u.driverDying,driverDead:!!u.driverDead,shooterDead:!!u.shooterDead,shooter:u.shooter.model,weapon:DRIVEBY_WEAPON,rounds:u.shooter.gunState.rounds,shots:u.shooter.shots,side:u.shooter.side,position:{...u.car.car.body.translation()},speed:Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z)}))};}
-  dispose(){this.disposed=true;for(const u of this.units)if(!u.car.occupied)this.fleet.removeTrafficCar(u.car);this.units.length=0;}
+  dispose(){this.disposed=true;for(const u of this.units)if(!u.car.occupied){if(u.wave){this.carMissions?.forget(u.car);this.fleet.removeVehicle(u.car);}else this.fleet.removeTrafficCar(u.car);}this.units.length=0;}
 }

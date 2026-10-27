@@ -1,0 +1,7386 @@
+{
+  "source": "Selected CBmx player boost/control/energy decision block plus actual native sprint controller/result/energy/stat modifier; declared pad/association/training stubs",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "entry": "0x100459478",
+  "continuation": "0x100459558",
+  "cases": [
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 1.0,
+      "steer": 0.0,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 1.0,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 4.0,
+      "steer": 0.0,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 4.0,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 1.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 1.0,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 4.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 4.0,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 3.6666667461395264,
+      "steer": 0.0,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 3.6666667461395264,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.0,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 8.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 8.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 8.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 8.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 3.6666667461395264,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 3.6666667461395264,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 8.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 8.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 8.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 8.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.16668701171875,
+      "buttonSpeed": 5.666666507720947,
+      "steer": 0.0,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.16668701171875,
+      "buttonSpeed": 5.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 4.833333492279053,
+      "steer": 0.0,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 4.833333492279053,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 10.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 10.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 10.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 10.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 5.666666507720947,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.75,
+      "buttonSpeed": 5.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 4.833333492279053,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 4.833333492279053,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 10.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 10.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 10.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 10.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 8,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 7.666666507720947,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 7.666666507720947,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 8,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 7.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 7.666666507720947,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 8,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 6.833333492279053,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 6.833333492279053,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 8,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 6.833333492279053,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 6.833333492279053,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 8,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 10.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 10.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 8,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 10.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 10.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 7.666666507720947,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 7.666666507720947,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 7.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 7.666666507720947,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 6.833333492279053,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 6.833333492279053,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 6.833333492279053,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 6.833333492279053,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 10.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 10.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 10.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 10.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.8333333134651184,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.8333333134651184,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.8333333134651184,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.8333333134651184,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.8333333134651184,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.8333333134651184,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.0,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.4166666567325592,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.0,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.4166666567325592,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.0,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.4166666567325592,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.8333333134651184,
+      "buttonSpeed": 3.6666667461395264,
+      "steer": 0.0,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.8333333134651184,
+      "buttonSpeed": 3.6666667461395264,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.8333333134651184,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.0,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.8333333134651184,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 8.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 8.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 8.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 8.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.0,
+      "buttonSpeed": 3.6666667461395264,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.4166666567325592,
+      "buttonSpeed": 3.6666667461395264,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.0,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.4166666567325592,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 8.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 8.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 8.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 8.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.16666662693023682,
+      "buttonSpeed": 5.666666507720947,
+      "steer": 0.0,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.16666662693023682,
+      "buttonSpeed": 5.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.8333333134651184,
+      "buttonSpeed": 4.833333492279053,
+      "steer": 0.0,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.8333333134651184,
+      "buttonSpeed": 4.833333492279053,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 10.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 10.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 10.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 10.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 6,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 5.666666507720947,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 6,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.2500000298023224,
+      "buttonSpeed": 5.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 6,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.0,
+      "buttonSpeed": 4.833333492279053,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 6,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 0.4166666567325592,
+      "buttonSpeed": 4.833333492279053,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 6,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 10.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 10.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 6,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 10.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 10.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 8,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 7.666666507720947,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 7.666666507720947,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 8,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 7.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 7.666666507720947,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 8,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 6.833333492279053,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 6.833333492279053,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 8,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 6.833333492279053,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 6.833333492279053,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 8,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 10.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 10.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 8,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 10.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 10.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 7.666666507720947,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 7.666666507720947,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 7.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 7.666666507720947,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 6.833333492279053,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 6.833333492279053,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 6.833333492279053,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 6.833333492279053,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 10.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 10.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 0,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -0.6666666865348816,
+      "buttonSpeed": 10.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 10.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -150.0,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.5833282470703,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -150.0,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.5833282470703,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -150.0,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.5833282470703,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 3.6666667461395264,
+      "steer": 0.0,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 3.6666667461395264,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.0,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -150.0,
+      "buttonSpeed": 3.6666667461395264,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.5833282470703,
+      "buttonSpeed": 3.6666667461395264,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -150.0,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.5833282470703,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -150.0,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.5833282470703,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 4.833333492279053,
+      "steer": 0.0,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 4.833333492279053,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 6,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -150.0,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 6,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.5833282470703,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 6,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -150.0,
+      "buttonSpeed": 4.833333492279053,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 6,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.5833282470703,
+      "buttonSpeed": 4.833333492279053,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 6,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -150.0,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 6,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.5833282470703,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 8,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 8,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 8,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 8,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 8,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 8,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -150.0,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.5833282470703,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -150.0,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.5833282470703,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -150.0,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.5833282470703,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.16668701171875,
+      "buttonSpeed": 5.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 1,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.16668701171875,
+      "buttonSpeed": 5.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 1.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": 0,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.16668701171875,
+      "buttonSpeed": 5.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 1,
+        "fastBlend": 0,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.16668701171875,
+      "buttonSpeed": 5.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 1.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": 0.5,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.16668701171875,
+      "buttonSpeed": 5.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 1.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 1,
+        "fastBlend": 0.5,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.16668701171875,
+      "buttonSpeed": 5.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 1.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": 0.5001000165939331,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 5.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.666666507720947,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 1,
+        "fastBlend": 0.5001000165939331,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 5.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 1.0,
+      "boost": true,
+      "coefficient": 5.666666507720947,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": 1,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 5.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.666666507720947,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 6,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 1,
+        "fastBlend": 1,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 449.3333435058594,
+      "buttonSpeed": 5.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 1.0,
+      "boost": true,
+      "coefficient": 5.666666507720947,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.5,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": true,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": true,
+        "coefficient": 4.900000095367432,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 4.5,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 9.989999671233818e-05,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": 9.999999747378752e-05,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 0.0,
+      "steer": 9.999999747378752e-05,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": -9.989999671233818e-05,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 0.0,
+      "steer": 0.0,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 5.000100135803223,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": 450,
+        "buttonSpeed": 0,
+        "accelerate": 255,
+        "held": false,
+        "justPressed": false,
+        "steer": -9.999999747378752e-05,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": 450.0,
+      "buttonSpeed": 0.0,
+      "steer": -9.999999747378752e-05,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 0.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 0,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.0,
+      "buttonSpeed": 4.0,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 0,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.0,
+      "buttonSpeed": 4.0,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 64,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 0,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.0,
+      "buttonSpeed": 4.0,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 64,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 0,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.0,
+      "buttonSpeed": 4.0,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 128,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 0,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.0,
+      "buttonSpeed": 4.0,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 128,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 0,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.0,
+      "buttonSpeed": 4.0,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 0,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.0,
+      "buttonSpeed": 4.0,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 0,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.0,
+      "buttonSpeed": 4.0,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 0.5,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.75,
+      "buttonSpeed": 3.6500000953674316,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 0.5,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.75,
+      "buttonSpeed": 3.6500000953674316,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 64,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 0.5,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.7813720703125,
+      "buttonSpeed": 3.6500000953674316,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 64,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 0.5,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.7813720703125,
+      "buttonSpeed": 3.6500000953674316,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 128,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 0.5,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.812744140625,
+      "buttonSpeed": 3.6500000953674316,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 128,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 0.5,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.812744140625,
+      "buttonSpeed": 3.6500000953674316,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 0.5,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.875,
+      "buttonSpeed": 3.6500000953674316,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 0.5,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.875,
+      "buttonSpeed": 3.6500000953674316,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.5,
+      "buttonSpeed": 3.299999952316284,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.5,
+      "buttonSpeed": 3.299999952316284,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 64,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.562744140625,
+      "buttonSpeed": 3.299999952316284,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 64,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.562744140625,
+      "buttonSpeed": 3.299999952316284,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 128,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.62548828125,
+      "buttonSpeed": 3.299999952316284,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 128,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.62548828125,
+      "buttonSpeed": 3.299999952316284,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.75,
+      "buttonSpeed": 3.299999952316284,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.75,
+      "buttonSpeed": 3.299999952316284,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.1666717529297,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.1666717529297,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 64,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.271240234375,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 64,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.271240234375,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 128,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.37582397460938,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 128,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.37582397460938,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.5833282470703,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.5833282470703,
+      "buttonSpeed": 2.8333334922790527,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 3,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -147.5,
+      "buttonSpeed": 1.9000000953674316,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 3,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -147.5,
+      "buttonSpeed": 1.9000000953674316,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 64,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 3,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -147.688232421875,
+      "buttonSpeed": 1.9000000953674316,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 64,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 3,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -147.688232421875,
+      "buttonSpeed": 1.9000000953674316,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 128,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 3,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -147.87646484375,
+      "buttonSpeed": 1.9000000953674316,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 128,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 3,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -147.87646484375,
+      "buttonSpeed": 1.9000000953674316,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 3,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.25,
+      "buttonSpeed": 1.9000000953674316,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 3,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -148.25,
+      "buttonSpeed": 1.9000000953674316,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 6,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -146.0,
+      "buttonSpeed": 1.0,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 0,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 6,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -146.0,
+      "buttonSpeed": 1.0,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 64,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 6,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -146.37646484375,
+      "buttonSpeed": 1.0,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 64,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 6,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -146.37646484375,
+      "buttonSpeed": 1.0,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 128,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 6,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -146.75294494628906,
+      "buttonSpeed": 1.0,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 128,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 6,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -146.75294494628906,
+      "buttonSpeed": 1.0,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 6,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -147.5,
+      "buttonSpeed": 1.0,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149,
+        "buttonSpeed": 4,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": -0.5,
+        "brake": 0.5,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 6,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -147.5,
+      "buttonSpeed": 1.0,
+      "steer": 0.10000000149011612,
+      "gas": -0.5,
+      "brake": 0.5,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.5,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 1,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 1.0,
+      "boost": false,
+      "coefficient": 4.5,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -150,
+        "buttonSpeed": 0,
+        "accelerate": 0,
+        "held": false,
+        "justPressed": false,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 1,
+        "fastBlend": null,
+        "acceleratePressed": true,
+        "boost": false,
+        "coefficient": 4.900000095367432,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.1666717529297,
+      "buttonSpeed": 0.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 1.0,
+      "boost": false,
+      "coefficient": 4.900000095367432,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": false,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149.89999389648438,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": true,
+        "adrenaline": false,
+        "disabled": false
+      },
+      "energy": -149.89999389648438,
+      "buttonSpeed": 10.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 10.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149.89999389648438,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": true,
+        "disabled": false
+      },
+      "energy": -149.89999389648438,
+      "buttonSpeed": 10.0,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 10.0,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "energy": -149.89999389648438,
+        "buttonSpeed": 8,
+        "accelerate": 255,
+        "held": true,
+        "justPressed": true,
+        "steer": 0.10000000149011612,
+        "gas": 0,
+        "brake": 0,
+        "fastBlend": null,
+        "acceleratePressed": false,
+        "boost": false,
+        "coefficient": 0,
+        "ts": 1.6666666269302368,
+        "neverTired": false,
+        "adrenaline": false,
+        "disabled": true
+      },
+      "energy": -150.0,
+      "buttonSpeed": 7.666666507720947,
+      "steer": 0.10000000149011612,
+      "gas": 0.0,
+      "brake": 0.0,
+      "boost": true,
+      "coefficient": 7.666666507720947,
+      "cycling": [
+        {
+          "name": "cycling",
+          "boost": true,
+          "bikeArgument": true
+        }
+      ]
+    }
+  ]
+}

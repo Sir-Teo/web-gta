@@ -23,11 +23,11 @@ test('swim roles install once and select by swim state',()=>{
   expect(stroke.animationMotion).toBeDefined();
   expect(character.swimUnderAssociation()).toBeUndefined();
   sim.player.swimState=4;
-  character.step(1/60,controls,sim);
+  character.step(1/60,{...controls,sprint:true},sim);
   const blending=character.swimUnderAssociation()!;
-  expect(blending.speed).toBe(.8);expect(blending.blend).toBeGreaterThan(0);expect(blending.blend).toBeLessThan(1);
+  expect(blending.speed).toBe(1);expect(blending.blend).toBeGreaterThan(0);expect(blending.blend).toBeLessThan(1);
   for(let i=0;i<20;i++)character.step(1/60,{...controls,sprint:true},sim);
-  expect(character.swimUnderAssociation()).toEqual({speed:1.2,blend:1});
+  expect(character.swimUnderAssociation()).toEqual({speed:1,blend:1});
   sim.player.swimState=0;
   character.step(1/60,{...controls,y:0},sim);
   expect(character.snapshot().action).toBe('swimTread');

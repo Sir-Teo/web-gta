@@ -1,4 +1,6 @@
 import RAPIER from '@dimforge/rapier3d-compat';
+import {healthAfterFloat32} from '../ped/damage';
+import type {ShotCreator} from '../weapons/WeaponSystem';
 import {DIE_IN_CAR_OFFSET_MS,canPedStepOutCar} from '../vehicle/nativeDieInCar';
 import {Matrix4,Quaternion,Vector3} from 'three';
 import {openStaticWorld} from '../assets/staticWorldArchive';
@@ -40,7 +42,7 @@ interface Driver {/** The chase CTaskComplexCarDriveMissionKillPed runs after th
  /** CAutoPilot::m_fMaxTrafficSpeed, the limit a car on rails eases towards, refreshed every 4th frame. */
  railsLimit?:number;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number;fired?:boolean;raged?:boolean;fleeScene?:boolean;fled?:boolean;
  /** CPed health (100) under the player's bullets; CTaskComplexDieInCar's 2000 ms coast after the fatal one, then dead out of the door or in the seat. */
- health:number;dying?:{at:number};dead?:boolean;deadInSeat?:boolean;
+ health:number;dying?:{at:number};dead?:boolean;deadInSeat?:boolean;deathAccounted?:boolean;
  /** STATUS_SIMPLE: m_nTimeEnteredCurve, m_nTimeToSpendOnCurrentCurve and m_fMaxTrafficSpeed, the curve from where the car
   * left physics to its current link (none once it reaches that link), and DragCarToPoint's heights. */
  rails?:Rails}
@@ -109,20 +111,33 @@ export class WorldTraffic {
   /** CTaskComplexRoadRage: the rammed driver gets out to have it out with the player; the host evicts him. */
   onRoadRage?:(car:WorldCar)=>void;
   /** CEventVehicleDied: the driver died with his car (health 0, CTaskComplexDie by explosion); the host lays him out. */
-  onDriverDied?:(car:WorldCar)=>void;
+  onDriverDied?:(car:WorldCar,corpse?:{armour:number;accounted:boolean})=>void;
   /** CTaskComplexLeaveCarAndFlee: the driver leaves at once and runs 60 units from where he was; the host evicts him. */
   onLeaveCarAndFlee?:(car:WorldCar)=>void;
   /** CTaskComplexLeaveCarAndDie: the shot driver's car has come to rest; the host plays his exit and lays him dead. */
-  onDriverDiesOut?:(car:WorldCar)=>void;
+  onDriverDiesOut?:(car:WorldCar,corpse?:{armour:number;accounted:boolean})=>void;
+  onDriverKilled?:(car:WorldCar,creator:ShotCreator)=>void;
+  driverModel?:(car:WorldCar)=>number|string;
+  driverStats?:(car:WorldCar)=>{defend:number}|undefined;
+  driverOf(car:WorldCar){const d=this.drivers.find(d=>d.car===car&&!d.gone);return d&&{model:this.driverModel?.(car)??'MALE01',vitals:{health:d.health,armour:0},dead:d.health<=0||!!d.dead,deathAccounted:!!d.deathAccounted};}
+  private driverVehicleDied(driver:Driver,aboard:boolean){
+   if(aboard&&!driver.raged&&!driver.fled&&!driver.fired)this.onDriverDied?.(driver.car,{armour:0,accounted:!!driver.deathAccounted});
+  }
+  /** CEventVehicleOnFire affects a living occupant; a corpse must never take the live flee/exit bridge. */
+  private driverVehicleOnFire(driver:Driver){
+   const car=driver.car;if(driver.health<=0||driver.dead||driver.dying||driver.fired||car.occupied||car.driverOut||!car.autopilot)return;
+   driver.fired=true;this.onFire?.(car);
+  }
   /** CTaskSimpleDieInCar: the shot driver dies in his seat (CAR_dead_LHS) because the car is still moving. */
   onDriverDeadInSeat?:(car:WorldCar)=>void;
   /** A bullet through the window (CWorld::ProcessLineOfSight against the seated ped): weapon damage to the driver.
    * Returns how the driver fared, or undefined when the car has no live NPC driver. */
-  driverShot(car:WorldCar,damage:number):'hit'|'killed'|undefined{
+  driverShot(car:WorldCar,damage:number,forceDeath=false,creator:ShotCreator='ped'):'hit'|'killed'|undefined{
    const driver=this.drivers.find(d=>d.car===car&&!d.gone);
    if(!driver||car.occupied||car.driverOut||car.wrecked||!car.autopilot||driver.dead||driver.fled||driver.raged)return undefined;
-   if(driver.dying)return 'hit';
-   driver.health=Math.max(0,driver.health-damage);
+   if(driver.dying||driver.health<=0)return 'killed';
+   const factor=Math.fround(Math.fround(damage)*Math.fround(this.driverStats?.(car)?.defend??1));
+   driver.health=forceDeath?0:healthAfterFloat32(driver.health,factor);
    if(driver.health>0){
     // CEventDamage in the car: ComputeDamageResponse sends a weapon hit on a ped in a vehicle straight to the personality
     // response. A driver already answering an event keeps to it.
@@ -138,6 +153,7 @@ export class WorldTraffic {
    // His health is gone from the shot on: dragged out before CTaskComplexDieInCar has run its 2000 ms, he comes out a
    // corpse, not a live ped who runs or comes back for the car.
    car.driverDead=true;
+   driver.deathAccounted=true;this.onDriverKilled?.(car,creator);
    return 'killed';
   }
   /** The driver's pedstats decision maker (0 gang member, 1 cop, 2 normal, 3 tough, 4 weak) for the collision decision. */
@@ -216,7 +232,7 @@ export class WorldTraffic {
     const b=car.nativeBody,length=b.boundsMax.y-b.boundsMin.y;
     const driver:Driver={car,health:100,current:link,currentLane:lane,nextLane:lane,seed:Math.floor(Math.random()*65536),timeToStartMission:this.elapsed*1000,timeSwitchedToRealPhysics:this.elapsed*1000,avoidCars:false,laneCountdown:initialLaneChangeCountdown(rand),speedCode:nodeSpeedCode(hit.node2.flags,false),speedMult:nodeSpeedMultiplier(hit.node2.flags),
      cruiseSpeed:length<=10?cruise:randomCarCruiseSpeed(rand(),length,pick.modelId,BMX_MODELS.has(pick.modelId)),stopped:null,distance:0,last:{x,z}};
-    car.onCollisionDamage=(raw,byPlayer)=>this.collisionEvent(driver,raw,byPlayer);car.onTyreShot=shooter=>this.tyreShot(driver,shooter);car.onWeaponDamage=shooter=>this.tyreShot(driver,shooter);car.onBlowUp=aboard=>{if(aboard&&!driver.raged&&!driver.fled&&!driver.fired)this.onDriverDied?.(car);};
+    car.onCollisionDamage=(raw,byPlayer)=>this.collisionEvent(driver,raw,byPlayer);car.onTyreShot=shooter=>this.tyreShot(driver,shooter);car.onWeaponDamage=shooter=>this.tyreShot(driver,shooter);car.onBlowUp=aboard=>this.driverVehicleDied(driver,aboard);
     // GenerateOneRandomCar's speed code is the node ahead's, without the behaviour-type case.
     this.pickNext(driver,link);driver.speedCode=nodeSpeedCode(hit.node2.flags,false);this.drivers.push(driver);this.serial++;break;
    }
@@ -327,7 +343,7 @@ export class WorldTraffic {
   for(const driver of this.drivers){
    const car=driver.car;if(car.disposed){driver.gone=true;continue;}car.honkAtCar=car.honkAtPed=false;car.pedDangerScan=undefined;
    // CAutomobile::ProcessControl raises CEventVehicleOnFire when the engine fire starts; the driver answers it once.
-   if(car.onFire&&!driver.fired&&!car.occupied&&car.autopilot){driver.fired=true;this.onFire?.(car);}
+   if(car.onFire)this.driverVehicleOnFire(driver);
    if(car.occupied||!car.autopilot)continue;
    // A dead driver: the car brakes and holds where it stopped (its status is no longer driven).
    if(driver.dead){const v=car.car.body.linvel(),speed=Math.hypot(v.x,v.z);car.autopilot={steering:0,throttle:0,brake:1,handbrake:speed<.3};continue;}
@@ -335,7 +351,7 @@ export class WorldTraffic {
    if(driver.dying&&now>=driver.dying.at+DIE_IN_CAR_OFFSET_MS){
     const v=car.car.body.linvel(),w=car.car.body.angvel(),r=car.car.body.rotation(),upZ=1-2*(r.x*r.x+r.z*r.z);
     driver.dead=true;driver.dying=undefined;car.driverDead=true;
-    if(canPedStepOutCar(upZ,{x:v.x/50,y:-v.z/50,z:v.y/50},{x:w.x/50,y:-w.z/50,z:w.y/50}))this.onDriverDiesOut?.(car);
+    if(canPedStepOutCar(upZ,{x:v.x/50,y:-v.z/50,z:v.y/50},{x:w.x/50,y:-w.z/50,z:w.y/50}))this.onDriverDiesOut?.(car,{armour:0,accounted:!!driver.deathAccounted});
     else{driver.deadInSeat=true;this.onDriverDeadInSeat?.(car);}
     car.autopilot={steering:0,throttle:0,brake:1,handbrake:true};continue;
    }

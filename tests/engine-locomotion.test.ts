@@ -9,8 +9,8 @@ test('locomotion speeds match ped.ifp root motion', () => {
 });
 
 test('stamina drains sprinting, regens idle', () => {
-  expect(stepStamina(100, true, true, 1)).toBeCloseTo(93, 6);
-  expect(stepStamina(0, false, false, 1)).toBeCloseTo(22, 6);
+  expect(stepStamina(100, true, true, 1)).toBeCloseTo(50, 6);
+  expect(stepStamina(0, false, false, 1)).toBeCloseTo(25, 6);
 });
 
 test('landing damage and armour order', () => {

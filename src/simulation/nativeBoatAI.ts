@@ -1,3 +1,4 @@
+import {nativeAtanOfXY} from '../core/nativeAtan';
 /* A script's boat under CAutoPilot as the iOS executable drives it. BOAT_GOTO_COORDS (0x02D3, iOS 0x1001d5f30) and
  * BOAT_STOP (0x02D4, iOS 0x1001d5f80) set the mission (+0x4ea), the destination (+0x51c), the cruise speed (+0x500) and
  * bEngineOn, and make the boat STATUS_PHYSICS. CBoat::ProcessControl (iOS 0x10045c26c) then runs SteerAICarWithPhysics
@@ -26,21 +27,19 @@ export function boatStop(pilot:BoatPilot){
  if(!crashing(pilot.mission))pilot.mission=MISSION_NONE;
  pilot.engineOn=false;pilot.cruiseSpeed=0;
 }
-/** CGeneral::GetATanOfXY: the angle of (x, y) from the x axis. Only differences of it are used. */
-const atanOfXY=(x:number,y:number)=>x===0&&y===0?0:Math.atan2(y,x);
 /** SteerAIBoatWithPhysicsHeadingForTarget (iOS 0x10019c4dc): turn toward the point by the angle between the bow and
- * it, wrapped into (−π, π] and held within ±0.5; open the throttle by how far the speed (60 × the move speed a frame,
+ * it, wrapped into [-PI, PI] and held within ±0.5; open the throttle by how far the speed (60 × the move speed a frame,
  * in 2D) falls short of the cruise speed, fully once it is a quarter short, easing to none at the cruise speed; over
  * it, reverse at 0.1, or 0.2 when 5 over, with the steering turned round. No brake. */
 export function steerAIBoatHeadingForTarget(body:BoatAIBody,target:{x:number;y:number},cruiseSpeed:number):BoatAIControls{
- const len=Math.hypot(body.forward.x,body.forward.y),fx=len===0?1:body.forward.x/len,fy=len===0?body.forward.y:body.forward.y/len;
- let turn=atanOfXY(target.x-body.position.x,target.y-body.position.y)-atanOfXY(fx,fy);
- while(turn<-Math.PI)turn+=Math.PI*2;
- while(turn>Math.PI)turn-=Math.PI*2;
+ const f=Math.fround,PI=f(Math.PI),TWO_PI=f(2*Math.PI),x=f(body.forward.x),y=f(body.forward.y),len=f(Math.sqrt(f(f(x*x)+f(y*y)))),fx=len===0?1:f(x/len),fy=len===0?y:f(y/len);
+ let turn=f(nativeAtanOfXY(f(f(target.x)-f(body.position.x)),f(f(target.y)-f(body.position.y)))-nativeAtanOfXY(fx,fy));
+ while(turn<-PI)turn=f(turn+TWO_PI);
+ while(turn>PI)turn=f(turn-TWO_PI);
  let steer=Math.min(.5,Math.max(-.5,turn)),gas:number;
- const short=cruiseSpeed-Math.hypot(body.moveSpeed.x,body.moveSpeed.y)*60;
- if(short>0){const ratio=short/cruiseSpeed;gas=ratio>.25?1:1-(.25-ratio)*4;}
- else{gas=short<-5?-.2:-.1;steer=-steer;}
+ const vx=f(body.moveSpeed.x),vy=f(body.moveSpeed.y),speed=f(Math.sqrt(f(f(vx*vx)+f(vy*vy)))),cruise=f(cruiseSpeed),short=f(cruise+f(speed*-60));
+ if(short>0){const ratio=f(short/cruise);gas=ratio>.25?1:f(1+f(f(.25-ratio)*-4));}
+ else{gas=short<-5?f(-.2):f(-.1);steer=-steer;}
  return {steer,gas,brake:0,handbrake:false};
 }
 /** SteerAICarWithPhysics_OnlyMission for a boat's missions: the go-to above, and MISSION_NONE's (0x100198e68) no steer

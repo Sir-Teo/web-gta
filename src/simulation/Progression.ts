@@ -1,6 +1,7 @@
 import {WEAPONS} from '../weapons/catalog';
 import {skillStatWeapon,type WeaponInventory} from '../weapons/Inventory';
 import type {Simulation} from './Simulation';
+import type {ScmStats} from '../engine/ScmGameState';
 import {NativeZonesVisited} from '../world/nativeZonesVisited';
 import {HIDEOUT_SLOT_COUNT,STORED_CARS_PER_GARAGE,readStoredCar,type StoredCar} from '../engine/ScmGarages';
 /** The revision a stored save carries (0 for none, or one written before revisions). */
@@ -11,12 +12,20 @@ const KEY='web-gta.progress.v1';
 const MAX_SAVE_LENGTH=512*1024;
 const finite=(v:unknown,max:number)=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=max;
 /** The player's progress the game keeps between sessions, in a bounded, versioned local save: money, weapons and
- * their practice, driving skill, collected pickups, sprayed tags, stunt jumps, explored map squares, the cars in
+ * their practice, vehicle/body/training stats, collected pickups, sprayed tags, stunt jumps, explored map squares, the cars in
  * the safehouse garages and the last save point. Saves from before the Activities were removed keep loading; their fields are ignored. */
 export class Progression {
-/** Driving skill stat (0–1000): weak ride set below 50, standard below 100, pro above.
- * CStats::UpdateStatsWhenDriving port: +1 per 25 m driven (≈2.5 km to pro), weak/std/pro ride sets switch at the native bands. */
+/** Raw integer stat 160: native counter awards update the saved value read by weak/std/pro ride sets. */
  drivingSkill=0;
+ /** Raw integer cycling skill 230, shared with the script and native cycling awards. */
+ cyclingSkill=0;
+ /** Raw motorbike skill 229 also supplies CPed::GetBikeRidingSkill. */
+ bikeSkill=0;
+ /** CStats::Save/Load (PC 0x5D3B40/0x5D3BF0) store fat/stamina/muscle/raw max health (21–24) as floats and lungs (225) as int.
+  * This browser-save subset keeps their current values; native training counters are not serialized. */
+ readonly trainingStats={stamina:100,lungCapacity:0,fat:0,muscle:0,maxHealth:569};
+ /** Body fields belong to a loaded save, or to MAIN after its initial defaults have run. */
+ private bodyStatsOwned=new Set<'fat'|'muscle'|'maxHealth'>();
  /** CTagManager::Save: sprayed tags' alphas by tag key. */
  tags:[string,number][]=[];
  /** Collected one-time pickups and collectables (CPickups states), by ScmPickup id. */
@@ -29,7 +38,7 @@ export class Progression {
  storedCars:(StoredCar|null)[][]=Array.from({length:HIDEOUT_SLOT_COUNT},()=>Array<StoredCar|null>(STORED_CARS_PER_GARAGE).fill(null));
  /** Where the last save point put the player (native x/y, browser height), the clock it saved and, inside, the
   * interior (CGame::currArea) and the doors taken into it (CEntryExitManager's stack, as pool indices). */
- savedLocation?:{x:number;y:number;z:number;heading:number;timeMinutes:number;weekDay?:number;area?:number;enexStack?:number[]};private previous?:{x:number;y:number;z:number};private saveTime=0;
+ savedLocation?:{x:number;y:number;z:number;heading:number;timeMinutes:number;weekDay?:number;area?:number;enexStack?:number[]};private saveTime=0;
  /** Whether stored progress was loaded (cash, weapons, stats or a save point), which New Game would throw away. */
  hadSave=false;
  /** The save's revision this tab last read or wrote; a write bumps it. */
@@ -43,7 +52,16 @@ export class Progression {
   try{const raw=fresh?undefined:storage?.getItem(KEY);if(!raw||raw.length>MAX_SAVE_LENGTH)return;const data=JSON.parse(raw);if(data.version!==1)return;this.hadSave=true;if(Number.isSafeInteger(data.revision)&&data.revision>0)this.revision=data.revision;
    // CPlayerInfo::m_nMoney is signed: the HUD draws a debt as -$%07d.
    if(Number.isInteger(data.money)&&data.money>=-9999999&&data.money<=999999999)sim.money=data.money;
-   if(finite(data.drivingSkill,1000))this.drivingSkill=data.drivingSkill;
+   // Stat 160 is int32. Older browser distance awards stored fractions in the natural 0–1000 range.
+   const driving=data.drivingSkill;
+   if(typeof driving==='number'&&Number.isFinite(driving)&&driving>=-2147483648&&driving<=2147483647&&(Number.isInteger(driving)||driving>=0&&driving<=1000))this.drivingSkill=Math.trunc(driving);
+   const bike=data.bikeSkill;
+   if(Number.isInteger(bike)&&bike>=-2147483648&&bike<=2147483647)this.bikeSkill=bike;
+   const cycling=data.cyclingSkill;
+   if(Number.isInteger(cycling)&&cycling>=-2147483648&&cycling<=2147483647)this.cyclingSkill=cycling;
+   const training=data.trainingStats,lung=training?.lungCapacity;
+   for(const field of ['stamina','fat','muscle','maxHealth'] as const){const value=training?.[field];if(typeof value==='number'&&Number.isFinite(value)&&Number.isFinite(Math.fround(value))){this.trainingStats[field]=Math.fround(value);if(field!=='stamina')this.bodyStatsOwned.add(field);}}
+   if(Number.isInteger(lung)&&lung>=-2147483648&&lung<=2147483647)this.trainingStats.lungCapacity=lung;
    // The clip is checked against the magazines once WEAPON.DAT has loaded (the inventory holds the rows until then).
    if(Array.isArray(data.ammo))inventory.restoreAmmo(data.ammo.filter((row:unknown):row is [number,number,number]=>Array.isArray(row)&&row.length===3&&WEAPONS.some(w=>w.id===row[0])&&finite(row[1],1000)&&finite(row[2],100000)&&Number.isInteger(row[1])&&Number.isInteger(row[2])));
    // The weapons held; saves from before the slot model keep the whole arsenal.
@@ -62,6 +80,34 @@ export class Progression {
    if(Array.isArray(data.storedCars))this.storedCars.forEach((slot,i)=>{const row=data.storedCars[i];if(Array.isArray(row))for(let k=0;k<STORED_CARS_PER_GARAGE;k++)slot[k]=readStoredCar(row[k])??null;});
   }catch{/* Disabled storage or invalid saves leave the playable defaults intact. */}
  }
+ /** Share one value with SET/INCREMENT_STAT, natural training, breath/sprint capacity and body movement.
+  * Binding itself neither awards a gain nor refills the player. */
+ bindTrainingStats(stats:ScmStats,options:{deferBody?:boolean}={}){
+  stats.bind(22,{get:()=>this.trainingStats.stamina,set:value=>{this.trainingStats.stamina=value;}});
+  stats.bind(225,{get:()=>this.trainingStats.lungCapacity,set:value=>{this.trainingStats.lungCapacity=value;}});
+  if(!options.deferBody)this.bindBodyStats(stats);
+ }
+ /** MAIN writes stat 160 = 0 at file offset 56079. Replay that setup before restoring saved driving ownership. */
+ bindDrivingStats(stats:ScmStats){
+  stats.bind(160,{get:()=>this.drivingSkill,set:value=>{this.drivingSkill=value;}});
+ }
+ /** Restore saved cycling skill after MAIN setup, before ordinary riding starts. */
+ bindCyclingStats(stats:ScmStats){
+  stats.bind(230,{get:()=>this.cyclingSkill,set:value=>{this.cyclingSkill=value;}});
+ }
+ /** Keep saved motorbike skill authoritative after MAIN setup. */
+ bindBikeStats(stats:ScmStats){
+  stats.bind(229,{get:()=>this.bikeSkill,set:value=>{this.bikeSkill=value;}});
+ }
+ /** MAIN gives a fresh CJ fat 200 and muscle 50 after CStats::Init zeroes them (raw health stat starts at 569).
+  * Apply saved fields after that setup, or adopt its current values when those fields were absent. */
+ bindBodyStats(stats:ScmStats){
+  for(const [field,id] of [['fat',21],['muscle',23],['maxHealth',24]] as const){
+   if(!this.bodyStatsOwned.has(field)){this.trainingStats[field]=stats.get(id);this.bodyStatsOwned.add(field);}
+   stats.bind(id,{get:()=>this.trainingStats[field],set:value=>{this.trainingStats[field]=value;}});
+  }
+ }
+ private savedTrainingStats(){const {stamina,lungCapacity,fat,muscle,maxHealth}=this.trainingStats;return {stamina,lungCapacity,...(this.bodyStatsOwned.has('fat')?{fat}:{}),...(this.bodyStatsOwned.has('muscle')?{muscle}:{}),...(this.bodyStatsOwned.has('maxHealth')?{maxHealth}:{})};}
  /** AR_STATS.DAT's STAT_INC_*_SKILL increment per weapon type, once loaded. */
  skillIncrements?:ReadonlyMap<number,number>;
  /** A hit that trains the weapon: CWeapon::DoBulletImpact calls UpdateStatsWhenWeaponHit only for the types with skill
@@ -71,12 +117,9 @@ export class Progression {
   if(id<22||id>32)return;
   const stat=skillStatWeapon(id);this.inventory.practice.set(stat,Math.min(1000,(this.inventory.practice.get(stat)??0)+(this.skillIncrements?.get(id)??5)));
  }
- /** A step of play: CStats::UpdateStatsWhenDriving's driving skill from the distance driven (a jump longer than the
-  * step could cover is a teleport and counts nothing), and the save every 5 s. */
- tick(dt:number,driving:boolean,arrested:boolean){
-  const p=this.sim.player.position;
-  if(driving&&this.previous&&this.sim.player.health>0&&!arrested){const distance=Math.hypot(p.x-this.previous.x,p.y-this.previous.y,p.z-this.previous.z);if(distance<Math.max(1,dt*100))this.drivingSkill=Math.min(1000,this.drivingSkill+distance/25);}
-  this.previous={...p};
+ /** Periodic save. Driving skill belongs to the native action/reaction counter, not distance traveled.
+  * Legacy ride arguments remain accepted while old callers migrate to the counter. */
+ tick(dt:number,_driving?:boolean,_arrested?:boolean){
   this.saveTime+=dt;if(this.saveTime>=5){this.saveTime=0;this.autosave();}
  }
  snapshot(){return {practice:this.inventory.practice.get(skillStatWeapon(this.inventory.selected))??0,skill:this.inventory.snapshot().skill,drivingSkill:this.drivingSkill,tags:this.tags};}
@@ -89,7 +132,7 @@ export class Progression {
   const ok=this.save();if(!ok&&!this.saveFailing)this.onSaveFailed?.(this.conflict?'conflict':'storage');this.saveFailing=!ok;
  }
  /** Whether the save was written: not without storage, not when it would be too long to load, not when the write fails. */
- save(){if(!this.storage)return false;try{const text=JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:this.inventory.ammoRows(),owned:[...this.inventory.owned],practice:[...this.inventory.practice],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,tags:this.tags,zonesVisited:this.zones.save(),storedCars:this.storedCars,revision:this.revision+1});if(text.length>MAX_SAVE_LENGTH)return false;
+ save(){if(!this.storage)return false;try{const text=JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:this.inventory.ammoRows(),owned:[...this.inventory.owned],practice:[...this.inventory.practice],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,cyclingSkill:this.cyclingSkill,bikeSkill:this.bikeSkill,trainingStats:this.savedTrainingStats(),tags:this.tags,zonesVisited:this.zones.save(),storedCars:this.storedCars,revision:this.revision+1});if(text.length>MAX_SAVE_LENGTH)return false;
   // Nothing changed since the last write: the stored save is already this one.
   if(text===this.lastWritten)return true;
   // Another tab that has saved since this one loaded (a higher revision) is not overwritten with this tab's older state.

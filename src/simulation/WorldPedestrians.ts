@@ -31,12 +31,16 @@ import {WalkRoundBuildingRoute,buildingCollisionFacing,type V3 as NativeV3} from
 import {followersToRemove} from '../ped/nativePedGroup';
 import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARGET_TOLERANCE,cornerMoveRatio,cornerSlowing,planFollowNodeRoute,type CornerSlowing,type NodeRouteOptions} from './nativeFollowNodeRoute';
 import {GO_STRAIGHT_MOVE_STATE_RADIUS,SWAT_ROPE_LENGTH,SWAT_ROPE_NODES,SWAT_ROPE_SECONDS,SWAT_ROPE_SHARE_PER_SECOND,swatRopePoint,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,patrolRouteStart,type ScriptedPedOrder,slideToCoordStep,SLIDE_HEADING_TOLERANCE} from './nativeScriptedPedTasks';
-import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NATIVE_PED_TYPES,NativeAcquaintance,nativePedType} from '../ped/nativeAcquaintance';
+import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NATIVE_PED_TYPES,NativeAcquaintance,nativePedType,pedTypeName,pedTypeInfo,policeDontCareAboutPedType,sameNonCivilianPedType,type Acquainted} from '../ped/nativeAcquaintance';
+export {pedTypeName,type Acquainted} from '../ped/nativeAcquaintance';
+import {npcPedCanDamagePlayer} from '../ped/nativeNpcPlayerDamage';
+import {npcFootBulletCritical} from '../ped/nativeNpcCritical';
 import {characterMovement} from './characterMovement';
 import {ANIM_ID,NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
 import {CANNON_PUSH_RANGE2,waterCannonPedSpeed} from './nativeWaterCannon';
 import {PED_ORIGIN_HEIGHT,SWIM,SWIM_STOP_TIME,aiSwimStroke,pedFloatDepth,swimSubmergeZ,type SwimState} from './nativeSwim';
-import {bulletLine} from '../weapons/bulletLine';
+import type {BulletLineOptions} from '../weapons/bulletLine';
+import {skinnedPedBulletLine,type SkinnedPedBulletTarget,type NpcBulletImpact} from '../weapons/skinnedPedBulletLine';
 import {WEAPON_FLAG,hasWeaponFlag} from '../weapons/weaponData';
 import {PED_BIKE_KILL_INTENSITY,PED_CAR_KILL_INTENSITY,PED_MASS,carHitsPed,killPedWithCarTask} from '../combat/nativeCarPedHit';
 import {VEHICLE_ELASTICITY} from './nativeObjectDamage';
@@ -48,7 +52,12 @@ import {playerCollisionWithPedResponse} from '../ped/nativePlayerBump';
 import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, MELEE_SWING_CLIPS, attackLineDistance, fightingStyleCombo, meleeAttackFalls } from './nativeMelee';
 import { nextChainIndex, resolveStrike, chainCooldown, inStrikeCone } from '../combat/meleeChain';
 import { decideDamageResponse, applyDamageResponse } from '../ped/brain';
-import { playerPunchDamage, scaleBlow, npcPunchDamage } from '../ped/damage';
+import { PLAYER_ATTACK_MULT,playerPunchDamage,npcPunchDamage,healthAfter,healthAfterFloat32,pedDamageFactor,spendPedArmour,spendPedArmourFloat32 } from '../ped/damage';
+import {copArmour,type PedVitals} from '../ped/nativeCopVitals';
+export {copArmour,copHealth} from '../ped/nativeCopVitals';
+export {healthAfter} from '../ped/damage';
+import {bulletProofVestStops,isInstantHitGun,type BulletDamageProtection} from '../ped/bulletProofs';
+export {bulletProofVestStops,isInstantHitGun} from '../ped/bulletProofs';
 import {ARREST_DOWN_TIME,copCanArrest,policePursuitWeapon,type CopWeapon} from '../police/nativeArrest';
 import {ReactToGunAimedAt,GANG_SEEING_RANGE,gunAimedAtAffects,gunAimedAtResponse} from '../ped/nativeGunAimedAt';
 import {eventSoundLevel} from '../ped/nativeSoundEvents';
@@ -95,12 +104,6 @@ const PED_STAND_PROBE = new RAPIER.Capsule(.6,.3);
 const GET_UP_PROBE=new RAPIER.Ball(GET_UP_CLEAR_RADIUS),NO_ROTATION={x:0,y:0,z:0,w:1};
 /** The attacker's CTaskSimpleFight move, with its combo group's victim clips (FIGHT_HIT_1..3). */
 export interface MeleeFight {move:number;group?:string;hits?:readonly import('../assets/ifp').NativeAnimation[]}
-/** What CPed's acquaintance routines need of a ped: its type and the table a script has given it. A script's rider
- * holds them as a walker does. */
-export interface Acquainted {pedType?:string;scriptPedType?:number;acquaintance?:NativeAcquaintance}
-/** CPed::m_nPedType by name: a script ped's CREATE_CHAR type (TWAR7's Freddy is MISSION1 though his model is a
- * Vagos'), else the peds.ide type its model came with. */
-export const pedTypeName=(p:Acquainted)=>p.scriptPedType!==undefined?NATIVE_PED_TYPES[p.scriptPedType]??p.pedType:p.pedType;
 export interface Pedestrian {
  /** Browser death-task phase; latched after the actual death association finishes, independent of removal age. */
  deathState?:'dying'|'dead';
@@ -129,8 +132,8 @@ export interface Pedestrian {
  ignoredColliders?:ReadonlySet<number>;
  /** bNeverEverTargetThisPed, which SET_CHAR_NEVER_TARGETTED sets: the player's lock-on passes it by. */
  neverTargeted?:boolean;
- /** CREATE_CHAR's ePedType, the m_nPedType a script ped has whatever its model's peds.ide type (`pedType`) says. Only
-  * the recruit test and the acquaintance routines (pedTypeName) read it so far. */
+ /** CREATE_CHAR's authoritative m_nPedType for relationships, groups and damage/death metadata; `pedType` retains
+  * the model's peds.ide type, and the host's actor-role flags are kept separately. */
  scriptPedType?:number;
  /** CEntity::m_nAreaCode, which SET_CHAR_AREA_VISIBLE sets: the ped is drawn only in the area it belongs to.
   * A ped with no area of its own belongs wherever it stands, as a street ped does. */
@@ -277,7 +280,7 @@ export interface Pedestrian {
  money:number;
  id:number;deadTime:number; officer:boolean;arrest:number;
  /** CTaskComplexWanderCop's retry time (this.clock) after a pursuit it could not take up. */
- pursuitRetry?:number;gun?:ReturnType<typeof modelObject>; health:number; actor:Pick<Simulation,'player'>; body:RAPIER.RigidBody; collider:RAPIER.Collider;
+ pursuitRetry?:number;gun?:ReturnType<typeof modelObject>; health:number;armour?:number; actor:Pick<Simulation,'player'>; body:RAPIER.RigidBody; collider:RAPIER.Collider;
  controller:RAPIER.KinematicCharacterController; view:NativeCharacter; target:PathNode; previousNode?:PathNode;
  /** The decision maker's answer to the last ped this one was about to walk into (event 13). */
  walkIntoDecision?:{ped:Pedestrian;avoid:boolean};
@@ -489,28 +492,20 @@ export function setCharacterAnim(view:{readonly reactionName:string|undefined;se
  if(change.playing!==undefined)view.setReactionPlaying?.(name,change.playing);
  if(change.progress!==undefined)view.setReactionProgress(name,change.progress);
 }
-export const healthAfter=(health:number,damage:number)=>health-damage<1?0:health-damage;
 /** CPhysical's damage response by weapon class (0x5426C0): melee, bullet, explosion and fire each have their
  * proof, and a spray can damages whatever it hits. Collision proof belongs to the brass knuckles, golf club
  * and shovel, which this browser counts as melee, so it guards nothing of its own yet. */
 /** Whether a street ped's blow or bullet reaches another ped. CEventDamage::AffectsPed: an invulnerable ped
  * (SET_CHAR_ONLY_DAMAGED_BY_PLAYER) takes nothing but drowning and blasts from anyone else while alive; and
  * CWeapon::DoBulletImpact: a bullet leaves a ped of the shooter's own ped type alone unless that is a civilian. */
-export function npcDamageReaches(victim:{onlyDamagedByPlayer?:boolean;bulletProofVest?:boolean;health:number;pedType?:string},shooter:{pedType?:string},weapon:number,bullet:boolean,piece?:number){
+export function npcDamageReaches(victim:{onlyDamagedByPlayer?:boolean;bulletProofVest?:boolean;health:number}&Acquainted,shooter:Acquainted,weapon:number,bullet:boolean,piece?:number){
  if(victim.onlyDamagedByPlayer&&weapon!==WEAPON.drowning&&weapon!==WEAPON.explosion&&victim.health>0)return false;
  if(bulletProofVestStops(victim,weapon,piece))return false;
- if(bullet&&shooter.pedType!==undefined&&shooter.pedType===victim.pedType&&victim.pedType!=='CIVMALE'&&victim.pedType!=='CIVFEMALE')return false;
+ if(bullet&&sameNonCivilianPedType(victim,shooter))return false;
  return true;
-}
-/** CEventDamage::AffectsPed (0x4AD7B0, reversed; iOS 0x10028acb4): a ped with bHasBulletProofVest is not affected by
- * a WEAPON_FIRE_INSTANT_HIT weapon's hit on PED_PIECE_TORSO or PED_PIECE_ASS. FINALEA gives Big Smoke the vest. */
-export function bulletProofVestStops(victim:{bulletProofVest?:boolean},weapon:number|undefined,piece:number|undefined){
- return !!victim.bulletProofVest&&isInstantHitGun(weapon)&&(piece===PED_PIECE.torso||piece===PED_PIECE.ass);
 }
 /** Browser stand-in for the CPedModelInfo hit spheres a bullet meets (the table is retail data): height above the feet
  * picks head, torso, midsection or legs and the side of the ped picks the limb, for a ped at `feet` facing `heading`. */
-/** The guns whose bullets are instant hits (WEAPON_FIRE_INSTANT_HIT): pistols through sniper rifles, and the minigun. */
-export const isInstantHitGun=(weapon:number|undefined)=>weapon!==undefined&&(weapon>=22&&weapon<=34||weapon===38);
 export function pedPieceAt(feet:{x:number;y:number;z:number},heading:number,point?:{x:number;y:number;z:number}){
  if(!point)return PED_PIECE.torso;
  const height=point.y-feet.y;
@@ -523,9 +518,6 @@ export function pedPieceAt(feet:{x:number;y:number;z:number},heading:number,poin
 }
 export const pedProofedAgainst=(p:{proofs?:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean}},kind:DamageKind)=>
  kind==='spray'?false:!!p.proofs?.[kind];
-/** CCopPed: every cop has 100 health, and CPed::SetArmour gives SWAT 50 and the FBI and army 100. Browser peds have
- * no armour of their own, so a cop's armour is folded into its health. */
-export function copHealth(model:string){const m=model.toLowerCase();return 100+(m==='swat'?50:m==='fbi'||m==='army'?100:0);}
 /** CAttractorScanner stand-in (unreversed): how far and how often a wanderer looks for attractors. */
 const ATTRACTOR_SCAN_RANGE=3,ATTRACTOR_SCAN_SECONDS=1;
 /** CTaskComplexEnterCar's CTaskComplexGoToCarDoorAndStandStill: PEDMOVE_RUN, a 0.5 target radius, slowing to a walk
@@ -551,7 +543,7 @@ const PED_BOUND_RADIUS=1;
 /** Heights above the feet of the stand-in ped hit spheres (see hideNearCamera). */
 const HIT_SPHERE_HEIGHTS=[.25,.6,.95,1.3,1.6];
 /** What a ped carries into a car and out again as CJ's passenger. */
-interface PassengerKeep {weapon:Pedestrian['weapon'];health:number;gang?:number;gangClips:boolean;/** The follower's member slot, kept while it rides. */slot?:number}
+interface PassengerKeep extends BulletDamageProtection {weapon:Pedestrian['weapon'];health:number;armour?:number;id?:number;pedType?:string;gang?:number;gangClips:boolean;defendMult?:number;noCriticalHits?:boolean;neverTargeted?:boolean;canBeShotInVehicle?:boolean;/** The follower's member slot, kept while it rides. */slot?:number}
 /** CTaskComplexWalkRoundBuildingAttempt's state: the route, the point it walks round to (m_targetPos, native) and the
  * ped or player it follows there (m_targetEntity), its move state, and which sub-task runs: the first one (scratch
  * head walking, hit wall running), look about, following the route, or the stand or hit wall it gives up with. */
@@ -564,8 +556,13 @@ const WALK_ROUND_POINT_RADIUS=.5,WALK_ROUND_STILL_SECONDS=1;
 const BUILDING_PROBE_REACH=.9;
 /** How far under a surface a waiting ped's feet may be and still be set on it when its collision comes in. */
 const WAITING_PED_LIFT_LIMIT=1.5;
+/** Player-group membership survives script allocators that do not follow the leader; unhandled street members retain their flag. */
+function playerGroupMember(world:Pick<WorldPedestrians,'inPlayerGroup'>,ped:Acquainted&{follow?:boolean}){return world.inPlayerGroup?.(ped)??!!ped.follow;}
+
 export class WorldPedestrians {
  private people:Pedestrian[]=[];
+ /** A release invalidates model/weapon loads still preparing the old synchronous native wave. */
+ private attackWaveGeneration=0;
  private readonly playerPedScanner=new NativePedScanner<Pedestrian|'player'>();
  /** Cached scan references, filtered with the current death state. Querying never refreshes the scan. */
  deadPedCandidates(observer:Pedestrian|'player'){
@@ -587,6 +584,8 @@ export class WorldPedestrians {
  }
   /** `shooter` is the ped's id and live position (renderer frame), for the ped's own CAEPedWeaponAudioEntity. */
   onShot?:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},weapon:number,hit:boolean,shooter?:{id:string;position:()=>{x:number;y:number;z:number}|undefined})=>void;
+  /** NPC instant-hit fire shares the seated-head transfer with player and script drive-by fire. */
+  seatedShot?:import('../vehicle/nativeDieInCar').SeatedShot;
   /** A ped's area-effect shot (CWeapon::FireAreaEffect): the weapon, the muzzle and the point aimed at (renderer axes), and
    * the shooter's collider. */
   onAreaShot?:(weapon:number,from:{x:number;y:number;z:number},at:{x:number;y:number;z:number},shooter:number)=>void;
@@ -601,6 +600,7 @@ export class WorldPedestrians {
   doorPoint(seat:'driver'|number,from:{x:number;z:number}):{x:number;y:number;z:number}|undefined;board(ped:Pedestrian,seat:'driver'|number):boolean}|undefined;
   /** Non-automobile vehicle hit by an ordinary NPC bullet, including incidental targets outside its script task. */
   otherVehicleForBody?:(handle:number)=>ScriptVehicleAttackTarget|undefined;
+  prepareBulletImpact?:NpcBulletImpact;
   /** The ped (or the player) a script's handle names, for the tasks that target one. */
   resolveScriptPed?:(handle:number)=>Pedestrian|'player'|undefined;
   /** CJ's reciprocal PartnerChat task, if he is currently chatting with this ped. */
@@ -696,7 +696,7 @@ export class WorldPedestrians {
    .filter(t=>t.d2<=2.5*2.5&&t.dx*Math.sin(t.p.actor.player.heading)+t.dz*Math.cos(t.p.actor.player.heading)>0);
   const off=(p:Pedestrian)=>{if(!aim)return 0;const q=p.actor.player.position,v={x:q.x-aim.origin.x,y:q.y+1-aim.origin.y,z:q.z-aim.origin.z},l=Math.hypot(v.x,v.y,v.z)||1,dl=Math.hypot(aim.direction.x,aim.direction.y,aim.direction.z)||1;return -(v.x*aim.direction.x+v.y*aim.direction.y+v.z*aim.direction.z)/(l*dl);};
   const t=candidates.sort((a,b)=>off(a.p)-off(b.p)||a.d2-b.d2)[0];
-  return t&&{id:t.p.id,officer:t.p.officer,handle:t.p.collider.handle,position:{...t.p.actor.player.position},heading:t.p.actor.player.heading};
+  return t&&{id:t.p.id,officer:pedTypeInfo(t.p).officer,handle:t.p.collider.handle,position:{...t.p.actor.player.position},heading:t.p.actor.player.heading};
  }
  /** A ped on a kill task against the player: brawling with him, or a cop's beat-down or arrest. */
  private attackingPlayer(p:Pedestrian){return p.retaliate>0&&!p.foe||!!p.fight||p.arrest>0;}
@@ -732,9 +732,7 @@ export class WorldPedestrians {
   * short of an explosion, and none from a Grove Street Families member (PED_TYPE_GANG2) with a grenade or anything
   * above it unless his kill task is on the player. */
  private damagesPlayer(p:Pedestrian,weapon:number){
-  if(p.follow&&weapon!==WEAPON.explosion)return false;
-  if(p.gang===GANG_GROVE&&weapon>=WEAPON.grenade&&!(p.retaliate>0&&!p.foe))return false;
-  return true;
+  return npcPedCanDamagePlayer(p,weapon,{sameGroup:playerGroupMember(this,p),killTaskTargetsPlayer:p.retaliate>0&&!p.foe});
  }
  /** Whether the response to the ped's current event still runs. */
  /** Whether the ped is still carrying out its current event's response: a fight, a flee, the gun-aimed-at reaction,
@@ -850,14 +848,14 @@ export class WorldPedestrians {
   return {alive:ped.health>0};
  }
  policeDontCare(victim:string|undefined){
-  const id=victim?.startsWith('ped:')?Number(victim.slice(4)):NaN,type=this.people.find(p=>p.id===id)?.pedType;
-  return !!type&&(/^GANG([1-9]|10)$/i.test(type)||/^(CRIMINAL|DEALER)$/i.test(type));
+  const id=victim?.startsWith('ped:')?Number(victim.slice(4)):NaN,ped=this.people.find(p=>p.id===id);
+  return policeDontCareAboutPedType(ped&&pedTypeName(ped));
  }
  snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],playerLook:+(this.playerLook?.blend??0).toFixed(2),attractors:[...this.attractorQueues.values()].reduce((n,q)=>n+q.peds.length,0),queues:[...this.attractorQueues.entries()].map(([key,q])=>({key,peds:[...q.peds]})),attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase,slot:p.attract.slot}:null,look:p.look?+p.look.blend.toFixed(2):null,drowning:!!p.drowning,drowned:!!p.drowned,chase:p.chase?p.chase.target.id:null,attackWave:!!p.attackWave,rage:p.rage?.phase??null,investigate:p.investigate?.phase??null,hangout:p.hangout?.phase??null,party:p.party?p.party.leader.id:null,stealBack:p.stealBack?.phase??null,air:p.air?{vz:+p.air.vz.toFixed(2),clip:p.air.clip??null}:null,landing:p.landing!==undefined,alpha:Math.round(p.alpha),fadeOut:p.fadeOut,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,stare:p.stare?`${p.stare.phase}:${p.stare.remaining.toFixed(1)}`:null,reaction:p.view.reactionName??null,downSeconds:Number.isFinite(p.down)?+p.down.toFixed(2):null,stuckUnderCar:!!p.stuckUnderCar,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',visible:p.view.root.visible}))};}
    /** CWeapon::DoBulletImpact's skill test for a ped, before the damage lands: alive and not in the player's group. */
-   trainsSkill(handle:number){const p=this.people.find(p=>p.collider.handle===handle);return !!p&&p.health>0&&!p.follow;}
+   trainsSkill(handle:number){const p=this.people.find(p=>p.collider.handle===handle);return !!p&&p.health>0&&!playerGroupMember(this,p);}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
-   damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number};noSource?:boolean;byPlayer?:boolean},ignoreProofs=false){
+   damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};piece?:number;fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number};noSource?:boolean;byPlayer?:boolean},ignoreProofs=false){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p)return false;
     if(p.health<=0){
      // CWeapon::GenerateDamageEvent: a bullet or blow on a body done dying (TASK_SIMPLE_DEAD) blends FLOOR_HIT, or
@@ -880,13 +878,16 @@ export class WorldPedestrians {
     // CPhysical::CanPhysicalBeDamaged: drowning always gets through, a fall only past collision proofing.
     const proofed=hit?.weapon===WEAPON.drowning?false:hit?.weapon===WEAPON.fall?!!p.proofs?.collision:pedProofedAgainst(p,kind);
     if(!ignoreProofs&&proofed)return false;
-    if(kind==='bullet'&&bulletProofVestStops(p,hit?.weapon,this.hitPiece(p,hit?.point)))return false;
+    const piece=hit?.piece??this.hitPiece(p,hit?.point);
+    if(kind==='bullet'&&hit?.byPlayer===false&&!npcDamageReaches(p,{},hit.weapon??WEAPON.pistol,true,piece))return false;
+    if(kind==='bullet'&&bulletProofVestStops(p,hit?.weapon,piece))return false;
     this.noteEvent(p,EVENT.damage);
-    // CPed::m_pLastEntityDamage: the player, unless nobody did it (`noSource`: drowning, a fall, the script's TASK_DIE)
+    // CPed::m_pLastEntityDamage: the player, unless nobody did it (`noSource`: drowning or a fall)
     // or someone else did (`byPlayer` false: a blast or a fire he did not start).
     const byPlayer=!hit?.noSource&&hit?.byPlayer!==false;
     if(byPlayer)p.lastDamagedBy={player:true};
     if(kind==='fire')return this.burn(p,damage,byPlayer);
+    const wasRecruit=playerGroupMember(this,p);
     // Shared pedstats scaling (src/ped/damage.ts); ground finishers share the 25 row.
     const base=kind==='melee'&&p.down>0?25:damage;
     // CPedDamageResponseCalculator::ComputeWillKillPed: the mega punch cheat makes fists, knuckles and the parachute
@@ -894,20 +895,24 @@ export class WorldPedestrians {
     const megaPunch=kind==='melee'&&megaPunchBlow(hit?.weapon??WEAPON.unarmed);
     // CPedDamageResponseCalculator::ComputeWillForceDeath (0x4AD610, not reversed): an instant-hit bullet in the head
     // kills outright, unless the ped is spared critical hits (bNoCriticalHits, SET_CHAR_SUFFERS_CRITICAL_HITS off).
-    const headshot=kind==='bullet'&&!!hit?.point&&!p.noCriticalHits&&isInstantHitGun(hit.weapon)&&this.hitPiece(p,hit.point)===PED_PIECE.head;
+    const headshot=kind==='bullet'&&(hit?.piece!==undefined||!!hit?.point)&&!p.noCriticalHits&&isInstantHitGun(hit?.weapon)&&piece===PED_PIECE.head;
     // iOS CPedDamageResponseCalculator::AccountForPedDamageStats (0x10028a070): any weapon's damage times the victim's
-    // pedstats defend weakness (a melee blow's is in playerPunchDamage); then the player's own blow on a member of his
+    // pedstats defend weakness (a player melee blow first reads his native attack strength); then the player's own blow on a member of his
     // group, short of a flamethrower or a blast, is cut to a tenth and to 12.5 at most.
-    let applied=megaPunch||headshot?p.health:base*(kind==='melee'?playerPunchDamage(1,p.defendMult):p.defendMult);
+    const nativeFields=kind==='bullet'||kind==='melee';
+    let applied=nativeFields?pedDamageFactor(kind==='melee'?pedDamageFactor(base,PLAYER_ATTACK_MULT):base,p.defendMult):base*p.defendMult;
     const weaponType=hit?.weapon??(kind==='explosion'?WEAPON.explosion:undefined);
-    if(!megaPunch&&!headshot&&byPlayer&&p.follow&&weaponType!==WEAPON.flamethrower&&weaponType!==WEAPON.explosion)applied=Math.min(applied*FRIENDLY_DAMAGE_FACTOR,FRIENDLY_DAMAGE_CAP);
-    p.health=healthAfter(p.health,applied);
+    if(byPlayer&&wasRecruit&&weaponType!==WEAPON.flamethrower&&weaponType!==WEAPON.explosion)applied=Math.min(nativeFields?pedDamageFactor(applied,FRIENDLY_DAMAGE_FACTOR):applied*FRIENDLY_DAMAGE_FACTOR,FRIENDLY_DAMAGE_CAP);
+    const response=(nativeFields?spendPedArmourFloat32:spendPedArmour)(applied,p.armour,weaponType),beforeHealth=nativeFields?Math.fround(p.health):p.health;
+    p.armour=response.armour;
+    p.health=megaPunch||headshot?0:(nativeFields?healthAfterFloat32:healthAfter)(p.health,response.damageHealth);
+    // ComputeWillKillPed reports the remaining factor on survival, and pre-hit HP on death, rather than quantized field loss.
+    applied=nativeFields?(p.health===0?beforeHealth:response.damageHealth):beforeHealth-p.health;
     const q=p.actor.player.position,from={x:q.x-direction.x,z:q.z-direction.z};
     const weapon=hit?.weapon??(kind==='melee'?WEAPON.unarmed:kind==='explosion'?WEAPON.explosion:kind==='spray'?WEAPON.spraycan:WEAPON.pistol);
-    if(applied>0)p.lastWeaponDamage=weapon;
-    // A recruit the player shoots or strikes with a weapon leaves his group, as one he punches does; the damage response
-    // below then answers the player as it would a stranger's (CDarkel asks IsMember first, so a kill still counts him).
-    const wasRecruit=!!p.follow;
+    if(applied+response.damageArmour>0)p.lastWeaponDamage=weapon;
+    // Retain the existing immediate follow-field response; SCM owns actual script membership.
+    // Kill accounting uses the membership captured before the wound, independently of this behavior flag.
     if(byPlayer&&p.follow){p.follow=false;p.holdPosition=undefined;p.foe=undefined;}
     // Every hit and death takes CEventDamage::ComputeAnim, melee with the attacker's fight move. Surviving blast
     // victims fall with the knockout clip for the hit direction at the push CWorld::TriggerExplosionSectorList
@@ -916,7 +921,7 @@ export class WorldPedestrians {
     // CTaskSimpleBeHit plays FIGHT_HIT_1 + move from the attacker's combo group.
     const hitClip=fight&&fight.move<=2?fight.hits?.[fight.move]:undefined;
     if(hitClip&&!p.view.hasReaction(hitClip.name.toLowerCase()))p.view.installReactions({[hitClip.name.toLowerCase()]:hitClip});
-    const reaction=this.damageReaction(p,weapon,applied,from,hit?.point,byPlayer,fight,hit?.pistolWhip);
+    const reaction=this.damageReaction(p,weapon,applied,from,hit?.point,byPlayer,fight,hit?.pistolWhip,hit?.piece,response.damageArmour);
     if(p.health>0&&kind==='explosion'){
      const knockout=computeDeathAnim({weapon:WEAPON.explosion,pedPiece:PED_PIECE.torso,direction:browserLocalDirection(p.actor.player.heading,q.x-from.x,q.z-from.z),health:0,damageArmour:0,damageHealth:applied,victim:{player:false,inVehicle:false,moveState:PEDMOVE.still},source:{ped:true,player:true}});
      // An explosion's ApplyMoveForce sets the push; other blows keep the authored strength.
@@ -938,27 +943,25 @@ export class WorldPedestrians {
      }
      if(p.health>0&&!floored)this.onPain?.(p,{...q});
     }
-    if(p.health===0)this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,recruit:wasRecruit,byPlayer});
-    return {id:p.id,officer:p.officer};
+    const type=pedTypeInfo(p);
+    if(p.health===0)this.onKill?.({id:p.id,...type,recruit:wasRecruit,byPlayer});
+    return {id:p.id,officer:type.officer,pedType:type.pedType};
    }
- /** Browser stand-in for the twelve CPedModelInfo hit spheres. Their bone,
-  * offset and radius table lives in retail data (0x8A6308) and is not in the
-  * reversed source, so height above the feet picks head, torso, midsection
-  * or legs and the side of the ped picks the limb. */
+ /** Fallback pieces for melee and legacy damage adapters that supply no native bullet-collision piece. */
  private hitPiece(p:Pedestrian,point?:{x:number;y:number;z:number}){return pedPieceAt(p.actor.player.position,p.actor.player.heading,point);}
  private moveState(p:Pedestrian){
   const speed=p.actor.player.speed;
   return speed<.1?PEDMOVE.still:speed<(p.walkSpeed+p.runSpeed)/2?PEDMOVE.walk:speed<(p.runSpeed+p.sprintSpeed)/2?PEDMOVE.run:PEDMOVE.sprint;
  }
  /** CEventDamage::ComputeAnim for a pedestrian struck from `from`. */
- private damageReaction(p:Pedestrian,weapon:number,damage:number,from:{x:number;z:number},point:{x:number;y:number;z:number}|undefined,attackerIsPlayer:boolean,fight?:MeleeFight,pistolWhip=false):DamageAnimResult{
+ private damageReaction(p:Pedestrian,weapon:number,damage:number,from:{x:number;z:number},point:{x:number;y:number;z:number}|undefined,attackerIsPlayer:boolean,fight?:MeleeFight,pistolWhip=false,piece?:number,damageArmour=0):DamageAnimResult{
   const q=p.actor.player.position;
   // The attacker's CTaskSimpleFight: combo set UNARMED_1 or a weapon set (4 and above) and
   // its current move (0–2 the attacks, 3 the ground attack, 4 the moving attack). IsComboSet
   // is a retail stub; it is taken as the combo's final move, so the third hit floors the victim.
   const sourceFight=fight&&{comboSet:4,currentMove:fight.move,comboActive:fight.move===2,hitComboActive:false,hitClip:(move:number)=>fight.hits?.[move]?.name.toLowerCase()??`hita_${move+1}`,group:fight.group??'melee_1'};
-  const result=computeDamageEventAnim({weapon,pedPiece:point?this.hitPiece(p,point):fight?PED_PIECE.torso:this.hitPiece(p,point),direction:weapon===WEAPON.explosion?browserLocalDirection(p.actor.player.heading,q.x-from.x,q.z-from.z):browserLocalDirection(p.actor.player.heading,from.x-q.x,from.z-q.z),
-   health:p.health,damageArmour:0,damageHealth:damage,
+  const result=computeDamageEventAnim({weapon,pedPiece:piece??(point?this.hitPiece(p,point):fight?PED_PIECE.torso:this.hitPiece(p,point)),direction:weapon===WEAPON.explosion?browserLocalDirection(p.actor.player.heading,q.x-from.x,q.z-from.z):browserLocalDirection(p.actor.player.heading,from.x-q.x,from.z-q.z),
+   health:p.health,damageArmour,damageHealth:damage,
    victim:{player:false,inVehicle:false,taskRefusesAbort:this.fallRefusesDamage(p),moveState:this.moveState(p),upperBodyOnly:!!p.flags?.upperBodyDamageAnimsOnly,fallingOrGettingUp:p.down>0,headBelowRoot:this.headBelowRoot(p),lyingOnFront:isFrontClip(p.fallClip)},
    source:{ped:true,player:attackerIsPlayer,adrenaline:attackerIsPlayer&&this.sim.player.adrenaline>0,fight:sourceFight,pistolWhip:pistolWhip?{group:'melee_1',clip:'hita_2'}:undefined},megaPunch:megaPunchBlow(weapon),previousAnimId:p.damageAnimId,nextRandom:()=>this.damageRandom.next()});
   p.damageAnimId=result.id;return result;
@@ -1129,9 +1132,20 @@ export class WorldPedestrians {
   frighten(position:{x:number;z:number},radius:number){for(const p of this.people)if(!p.officer&&!p.follow&&!(p.mission&&this.hasScriptTask(p))&&p.health>0&&!p.fleePlayer&&Math.hypot(p.actor.player.position.x-position.x,p.actor.player.position.z-position.z)<radius){p.flee=Math.max(p.flee,8);p.fleeFrom={...position};this.onFlee?.(p,{...p.actor.player.position});}}
   /** A ped by collider, living or dead, while it is in the world: where a fire on it burns (CFire::ProcessFire). */
   pedPosition(handle:number){const p=this.people.find(q=>q.collider.handle===handle);return p&&{position:{...p.body.translation()},dead:p.health<=0,submerged:this.submerged(p)};}
+  /** DoBulletImpact samples the struck piece and the victim's health after GenerateDamageEvent for its blood FX. */
+  bulletImpact(handle:number,point?:{x:number;y:number;z:number},piece?:number){const p=this.people.find(p=>p.collider.handle===handle);return p&&{head:(piece??this.hitPiece(p,point))===PED_PIECE.head,dead:p.health<=0,pedType:pedTypeName(p)};}
+  /** Bullet-only native skinned collision. Movement and other physical queries retain their controller shapes. */
+  bulletLine(from:{x:number;y:number;z:number},direction:{x:number;y:number;z:number},range:number,options:BulletLineOptions){
+   const targets:SkinnedPedBulletTarget[]=this.people.filter(p=>p.body.isEnabled()&&p.collider.isEnabled()&&p.view.hasHitSpheres).map(p=>({body:p.body,collider:p.collider,bounds:()=>p.view.hitBounds(),hitSpheres:()=>p.view.hitSpheres()}));
+   const player=this.playerView();
+   if(this.sim.playerBody.isEnabled()&&this.sim.playerCollider.isEnabled()&&player?.hasHitSpheres)targets.push({body:this.sim.playerBody,collider:this.sim.playerCollider,bounds:()=>player.hitBounds(),hitSpheres:()=>player.hitSpheres()});
+   return skinnedPedBulletLine(this.sim.world,from,direction,range,options,targets);
+  }
   // bNeverEverTargetThisPed keeps a ped out of the lock-on the weapon system draws its targets from.
   /** Living peds for the weapons; `all` keeps those SET_CHAR_NEVER_TARGETTED hides from targeting. */
-  targets(all=false){return this.people.filter(p=>p.health>0&&(all||!p.neverTargeted)).map(p=>({handle:p.collider.handle,id:p.id,fireProof:!!p.proofs?.fire,position:{...p.body.translation()},inAir:!!p.air||p.landing!==undefined,officer:p.officer,armed:!!p.weapon,attacking:p.retaliate>0,down:p.down>0,noCriticalHits:!!p.noCriticalHits,crew:p.follow}));}
+  targets(all=false){return this.people.filter(p=>p.health>0&&(all||!p.neverTargeted)).map(p=>({handle:p.collider.handle,id:p.id,fireProof:!!p.proofs?.fire,position:{...p.body.translation()},inAir:!!p.air||p.landing!==undefined,officer:pedTypeInfo(p).officer,armed:!!p.weapon,attacking:p.retaliate>0,down:p.down>0,noCriticalHits:!!p.noCriticalHits,crew:p.follow}));}
+ /** Drive-by world-query candidates retain dead entries until the native aim stage filters them. */
+ driveByAimCandidates(){return this.people.filter(p=>p.body.isEnabled()).map(p=>{const q=p.actor.player.position;return {position:{x:q.x,y:q.y+PED_ORIGIN_HEIGHT,z:q.z},state:p.health<=0?55:0};});}
  /** CPopulation::RemovePed by collider handle; false when the handle is not a ped. */
  removeCollider(handle:number){const p=this.people.find(p=>p.collider.handle===handle);if(!p)return false;this.remove(p);this.people.splice(this.people.indexOf(p),1);return true;}
  /** ClearSpaceForMissionEntity's removal: only a ped CPed::CanBeDeleted allows, which is neither one a mission made nor
@@ -1598,8 +1612,11 @@ export class WorldPedestrians {
   let stick:ReturnType<typeof modelObject>|undefined;const nightstick=o.officer?catalog.nightstick:undefined;
   if(nightstick?.asset){const asset=nightstick.asset;stick=modelObject(asset.model,asset.textures);stick.root.rotation.set(0,0,0);stick.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});stick.root.visible=false;view.hand()?.add(stick.root);}
   if(nightstick?.melee)view.installReactions(Object.fromEntries(nightstick.melee.attacks.map((clip,i)=>[`cop_bat_${i+1}`,clip])));
-  const p:Pedestrian={pedType:o.stats?.pedType,attractScan:Math.random()*ATTRACTOR_SCAN_SECONDS,attractorsTried:new Set(),copScan:0,criminalsAt:0,wanderDir:Math.floor(Math.random()*8),seed:Math.floor(Math.random()*32768),scratch:0,money:pedMoneyCount(Math.random,!!o.stats?.rich),copWeapon:'unarmed',stick,id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?copHealth(String(o.modelRef)):100,actor:{player:{...this.sim.player,tilt:undefined,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,onFire:0,onFireSpeech:0,attackMult:o.stats?.attack??1,decisionMaker:o.stats?.decisionMaker??(o.officer?1:2),statFlags:o.stats?.flags??40,headingChange:o.stats?.headingChange??7.5,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,modelRef:o.modelRef,loiter:!!o.loiter,dealer:!!o.dealer,neededUntil:this.clock+4,alpha:0,fadeOut:false,follow:false,foe:undefined,fightStage:0};
+  const p:Pedestrian={pedType:o.stats?.pedType,attractScan:Math.random()*ATTRACTOR_SCAN_SECONDS,attractorsTried:new Set(),copScan:0,criminalsAt:0,wanderDir:Math.floor(Math.random()*8),seed:Math.floor(Math.random()*32768),scratch:0,money:pedMoneyCount(Math.random,!!o.stats?.rich),copWeapon:'unarmed',stick,id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:100,armour:o.officer?copArmour(String(o.modelRef)):0,actor:{player:{...this.sim.player,tilt:undefined,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,onFire:0,onFireSpeech:0,attackMult:o.stats?.attack??1,decisionMaker:o.stats?.decisionMaker??(o.officer?1:2),statFlags:o.stats?.flags??40,headingChange:o.stats?.headingChange??7.5,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,modelRef:o.modelRef,loiter:!!o.loiter,dealer:!!o.dealer,neededUntil:this.clock+4,alpha:0,fadeOut:false,follow:false,foe:undefined,fightStage:0};
   this.people.push(p);
+  // Put a newly loaded clump at its actor before it can participate in native bullet queries. Sampling here does not
+  // advance its locomotion clock or consume the street ped's randomized first cycle.
+  view.update(p.actor,1);
   // CPed's constructor with CHEAT_HAVE_ABOUNTY_ON_YOUR_HEAD on: a new ped hates PLAYER1 (and is given a hate event
   // with no task, which a street decision maker has no row for).
   if(CHEATS.isActive('bounty'))this.setRelationship(p,ACQUAINTANCE_HATE,PED_TYPE_PLAYER1);
@@ -1634,8 +1651,8 @@ export class WorldPedestrians {
   /** A driver dragged out or leaving a car becomes a street ped that flees (the usual decision-maker response to EVENT_DRAGGED_OUT_CAR). */
   /** A driver put out of his car. `flee` is CTaskComplexSmartFleeEntity from the car (its stopped position, `safe`
    * units); without it the ped runs 8 s from the jacking. */
-  spawnFleeing(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number,flee?:{from:{x:number;z:number};safe:number}){
-  return this.spawnFromCar(modelRef,position,heading,gang,8,p=>this.fleeCar(p,flee));
+  spawnFleeing(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number,flee?:{from:{x:number;z:number};safe:number},vitals?:PedVitals){
+  return this.spawnFromCar(modelRef,position,heading,gang,8,p=>this.fleeCar(p,flee),vitals);
  }
  /** CGangWars::CreateDefendingGroup's ped spawn (and the host's authored CreateAttackWave): `count` gangsters of
   * `gang` in a ring 2 to 5 units round the path node nearest `center` (browser space), each on a kill task at the
@@ -1650,12 +1667,13 @@ export class WorldPedestrians {
   * stands (i − count/2) × 2 times 1.2 units along the perpendicular, 1.5 either way at random on each axis, on the
   * ground found from two units over the point (FindGroundZFor3DCoord; an attacker with none under him is not made). */
  async spawnAttackWave(gang:number,count:number,center:{x:number;y:number;z:number},accuracy:number,defenders=false,make?:{weapons:{a:number;b:number};difficulty:number;health:number;ammo:number},line?:{player:{x:number;z:number}}){
+  const generation=this.attackWaveGeneration;
   const catalog=this.catalog;if(!catalog||this.disposed)return 0;
   const node=this.nearestNode(center);if(!node)return 0;
   const members=catalog.gangs[gang]??[];if(!members.length)return 0;
   const guns=[22,28,25,29];let spawned=0;
   for(let i=0;i<count;i++){
-   if(this.disposed)return spawned;
+   if(this.disposed||generation!==this.attackWaveGeneration)return spawned;
    const model=this.gangRoster?.choose(gang)??members[Math.floor(Math.random()*members.length)];
    const angle=i*2*Math.PI/count;let x:number,z:number,top:number;
    if(defenders){x=center.x+Math.sin(angle)*Math.random()*3+2;z=-(-center.z+Math.cos(angle)*Math.random()*3+2);top=center.y+2;}
@@ -1670,9 +1688,10 @@ export class WorldPedestrians {
    if(!hit)continue;
    let built:{source:import('../render/NativeCharacter').CharacterSource;speeds:{walk:number;run:number;sprint:number};stats:{attack:number;defend:number;pedType?:string;decisionMaker?:number}},weapon:Awaited<Catalog['weapon']>|undefined;
    try{built={source:await catalog.character(model),speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)};}catch{continue;}
+   if(this.disposed||generation!==this.attackWaveGeneration)return spawned;
    const type=make?attackWaveWeapon(make.weapons,make.difficulty,Math.random()):guns[i%4];
    try{weapon=await catalog.armedWith(type);}catch{try{weapon=await catalog.armedWith(22);}catch{weapon=undefined;}}
-   if(this.disposed)return spawned;
+   if(this.disposed||generation!==this.attackWaveGeneration)return spawned;
    const position={x,y:top-hit.timeOfImpact+.03,z};
    const p=this.createPed({position,heading:angle,source:built.source,officer:false,node,weapon,speed:built.speeds.walk,speeds:built.speeds,stats:built.stats,gang,modelRef:model,gunAccuracy:accuracy});
    p.attackWave=true;p.retaliate=KILL_PED_ON_FOOT_SECONDS;p.flee=0;this.chooseTarget(p);spawned++;
@@ -1692,6 +1711,7 @@ export class WorldPedestrians {
  }
  /** CGangWars::ReleasePedsInAttackWave: the attackers become ordinary peds (wandering again when `restoreWander`). */
  releaseAttackWave(restoreWander:boolean){
+  this.attackWaveGeneration++;
   let released=0;
   for(const p of this.people){if(!p.attackWave)continue;p.attackWave=false;released++;if(restoreWander){p.retaliate=0;p.foe=undefined;}}
   return released;
@@ -1712,10 +1732,15 @@ export class WorldPedestrians {
  /** CEventHandler::ComputeVehicleDiedResponse: the occupant of a car that blew up dies where he sat (health 0,
   * CTaskComplexDie by WEAPON_EXPLOSION with KO_shot_front). The ped stands in as the body at the seat and takes the
   * explosion at once. `scorched` distinguishes vehicle destruction from a shot victim leaving its car. */
- spawnDead(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number,recruit=false,scorched=false){
+ spawnDead(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number,recruit=false,scorched=false,corpse?:{armour?:number;accounted?:boolean}){
   // A recruit dies still a member of the group: CDarkel::RegisterKillByPlayer asks IsMember and counts him as one.
   // CPed::CreateDeadPedMoney returns at once for a ped that died bInVehicle (Ped.cpp:590-592): the body leaves no cash.
-  return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{if(recruit)p.follow=true;p.money=0;p.renderScorched=scorched;this.damageCollider(p.collider.handle,1000,{x:Math.sin(heading),z:Math.cos(heading)},'explosion');});
+  return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{
+   if(recruit)p.follow=true;p.money=0;p.renderScorched=scorched;
+   if(corpse?.armour!==undefined)p.armour=corpse.armour;
+   if(corpse?.accounted)this.restoreDeadScriptPed(p);
+   else this.damageCollider(p.collider.handle,1000,{x:Math.sin(heading),z:Math.cos(heading)},'explosion');
+  });
  }
  /** A driver the player dragged out (CEventDraggedOutCar answered by his decision maker, event 7; the car is the
   * one he lost). Only KILL_PED_ON_FOOT acts in the reversed handler: when the kill is appropriate (an unarmed victim
@@ -1726,12 +1751,12 @@ export class WorldPedestrians {
  /** Start streaming a driver's model while he is still being pulled out, so the ped he becomes is there the frame
   * the clip ends. */
  prefetchModel(modelRef:number|string){if(typeof modelRef==='string')void this.catalog?.character(modelRef).catch(()=>{});}
- spawnJacked(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang:number|undefined,car:{position:()=>{x:number;y:number;z:number}},coach=false,lying?:{key:string;clip:import('../assets/ifp').NativeAnimation},onCreated?:()=>void){
+ spawnJacked(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang:number|undefined,car:{position:()=>{x:number;y:number;z:number}},coach=false,lying?:{key:string;clip:import('../assets/ifp').NativeAnimation},onCreated?:()=>void,vitals?:PedVitals){
   return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{
    onCreated?.();
    // His response (flee, or come back for the car) once he is on his feet.
    this.layDragged(p,lying,()=>this.jackedResponse(p,modelRef,car,coach));
-  });
+  },vitals);
  }
  /** CTaskComplexCarSlowBeDraggedOutAndStandUp: the victim lies where CAR_jackedLHS leaves him, on the clip's last
   * frame, then CTaskSimpleGetUp (GETUP_FRONT, the jacked clips being ANIMATION_IS_FRONT) stands him up before `then`.
@@ -1755,8 +1780,8 @@ export class WorldPedestrians {
  /** CTaskComplexRoadRage after the driver's CTaskComplexLeaveCar: the ped turns to face the player, shakes a fist and
   * comes for him (CTaskComplexKillPedOnFoot after a 20 s seek). Authored: the bat, golf club or shovel half the
   * ragers draw and a gangster's pistol are not modelled; the fight is unarmed. */
- spawnRoadRage(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number){
-  return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{p.loiter=true;p.rage={phase:'face',time:0};});
+ spawnRoadRage(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number,vitals?:PedVitals){
+  return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{p.loiter=true;p.rage={phase:'face',time:0};},vitals);
  }
  /** The pedstats default decision maker of a driver's model (0 gang member, 1 cop, 2 normal, 3 tough, 4 weak), once
   * its stats are loaded; a roster name is fetched on first ask. */
@@ -1778,19 +1803,21 @@ export class WorldPedestrians {
   const at=p.actor.player.position,center={x:at.x,y:at.y+.3,z:at.z};p.body.setTranslation(center,true);p.body.setNextKinematicTranslation(center);
   p.view.playReaction('ko_shot_front',Infinity);
  }
- private spawnFromCar(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang:number|undefined,flee:number,after:(p:Pedestrian)=>void){
+ private spawnFromCar(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang:number|undefined,flee:number,after:(p:Pedestrian)=>void,vitals?:PedVitals){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   // The ped who leaves a car is the one who sat in it, whichever roster his model came from: a packaged-roster driver
   // (the occupants' fallback before the zone roster streamed) swapped for a zone resident here turned the man CJ
   // dragged out into somebody else as he landed.
   const node=this.nearestNode(position);if(!node)return false;
+  // CarSetPedOut/CarSetPedSlowDraggedOut retain the same CPed. Restore its wounds before callbacks or reactions.
+  const ready=(p:Pedestrian)=>{if(vitals){p.health=vitals.health;p.armour=vitals.armour;}after(p);};
   if(typeof modelRef==='string'){
    // A zone roster driver keeps his model when dragged out (the ped catalog has it resident already).
-   void Promise.all([catalog.character(modelRef),catalog.characterSpeeds(modelRef),catalog.characterStats(modelRef)]).then(([source,speeds,stats])=>{if(!this.disposed)after(this.createPed({position,heading,source,officer:false,node,flee,speed:speeds.walk,speeds,stats,modelRef,gang}));}).catch(()=>{});
+   void Promise.all([catalog.character(modelRef),catalog.characterSpeeds(modelRef),catalog.characterStats(modelRef)]).then(([source,speeds,stats])=>{if(!this.disposed)ready(this.createPed({position,heading,source,officer:false,node,flee,speed:speeds.walk,speeds,stats,modelRef,gang}));}).catch(()=>{});
    return true;
   }
   const modelIndex=modelRef;
-  after(this.createPed({position,heading,source:catalog.models[modelIndex%catalog.models.length],officer:false,node,flee,speeds:catalog.modelSpeeds[modelIndex%catalog.models.length],stats:catalog.modelStats[modelIndex%catalog.models.length],modelRef:modelIndex%catalog.models.length,gang}));return true;
+  ready(this.createPed({position,heading,source:catalog.models[modelIndex%catalog.models.length],officer:false,node,flee,speeds:catalog.modelSpeeds[modelIndex%catalog.models.length],stats:catalog.modelStats[modelIndex%catalog.models.length],modelRef:modelIndex%catalog.models.length,gang}));return true;
  }
  private fleeCar(p:Pedestrian|undefined,flee?:{from:{x:number;z:number};safe:number}){
   if(!p||!flee)return;
@@ -1809,11 +1836,12 @@ export class WorldPedestrians {
  }
  /** A police crew member stepping out of a cop car (CCopPed type model and weapon); `lying`, one the player dragged
   * out, who lies on the jacked clip's last frame and gets up as any dragged-out driver does, an officer still. */
- async spawnOfficer(model:string,weapon:number,position:{x:number;y:number;z:number},heading:number,crew?:{unit:object;seat:number;roadblock?:boolean},accuracy=60,cullExtraFarAway=false,lying?:{key:string;clip:import('../assets/ifp').NativeAnimation}){
+ async spawnOfficer(model:string,weapon:number,position:{x:number;y:number;z:number},heading:number,crew?:{unit:object;seat:number;roadblock?:boolean},accuracy=60,cullExtraFarAway=false,lying?:{key:string;clip:import('../assets/ifp').NativeAnimation},vitals?:PedVitals){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   const [built,armed]=await Promise.all([catalog.character(model).then(async source=>({source,speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)})),catalog.armedWith(weapon,true)]);
   const node=this.nearestNode(position);if(!node||this.disposed)return false;
   const cop=this.createPed({position,heading,source:built.source,officer:true,node,weapon:armed,speeds:built.speeds,stats:built.stats,gunAccuracy:accuracy,modelRef:model});cop.crew=crew;
+  if(vitals){cop.health=vitals.health;cop.armour=vitals.armour;}
   // CCopPed's constructor sets the shooting rate with the accuracy: 30/60 city, 70/68 SWAT, 60/76 FBI, 80/84 army.
   cop.shootingRate=({60:30,68:70,76:60,84:80} as Record<number,number>)[accuracy]??30;cop.cullExtraFarAway=cullExtraFarAway;
   if(lying)this.layDragged(cop,lying,()=>{});
@@ -1821,11 +1849,11 @@ export class WorldPedestrians {
  }
  /** An ambulance or fire truck crew member stepping out (CEmergencyPed from CPopulation::AddPedInCar): unarmed, and
   * kept from the population manager while his unit holds him. */
- async spawnCrew(model:string,position:{x:number;y:number;z:number},heading:number,crew:{unit:object;seat:number}){
+ async spawnCrew(model:string,position:{x:number;y:number;z:number},heading:number,crew:{unit:object;seat:number},vitals?:PedVitals){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   const [source,speeds,stats]=await Promise.all([catalog.character(model),catalog.characterSpeeds(model),catalog.characterStats(model)]).catch(()=>[undefined,undefined,undefined] as const);
   const node=this.nearestNode(position);if(!source||!node||this.disposed)return false;
-  const ped=this.createPed({position,heading,source,officer:false,node,speeds,stats,modelRef:model});ped.crew=crew;ped.loiter=false;
+  const ped=this.createPed({position,heading,source,officer:false,node,speeds,stats,modelRef:model});if(vitals){ped.health=vitals.health;ped.armour=vitals.armour;}ped.crew=crew;ped.loiter=false;
   return ped.id;
  }
  /** The dead the accident manager hears of, by id. Positions are the renderer's. */
@@ -1834,7 +1862,7 @@ export class WorldPedestrians {
  pedExists(id:number){return this.people.some(p=>p.id===id);}
  /** A crew member's tasks as a sequence; none leaves him to his own devices. */
  crewOrders(id:number,orders:ScriptedPedOrder[]){const p=this.people.find(p=>p.id===id);if(p)this.giveSequence(p,orders,false);}
- crewState(id:number){const p=this.people.find(p=>p.id===id);return p&&{position:{...p.actor.player.position},busy:!!p.sequence||!!p.order,alive:p.health>0,down:p.down>0||p.stealth!==undefined};}
+ crewState(id:number){const p=this.people.find(p=>p.id===id);return p&&{position:{...p.actor.player.position},busy:!!p.sequence||!!p.order,alive:p.health>0,down:p.down>0||p.stealth!==undefined,health:p.health,armour:p.armour??0};}
  /** CTaskComplexTreatAccident's m_nDeathTimeMS = now: the body's 30 s to fading start again. */
  holdDead(id:number){const p=this.people.find(p=>p.id===id);if(p&&p.health<=0)p.deadTime=0;}
  /** CTaskSimpleGiveCPR::ReviveDeadPed's CEventRevived, answered by CEventHandler::ComputeReviveResponse: health 100,
@@ -1850,7 +1878,7 @@ export class WorldPedestrians {
  /** A police unit's living crew on foot. */
  /** The police dropped this unit: its crew on foot lose the car's protection from the population manager. */
  releaseCrew(unit:object){for(const p of this.people)if(p.crew?.unit===unit)p.crew=undefined;}
- footCrew(unit:object){return this.people.filter(p=>p.crew?.unit===unit&&p.health>0).map(p=>({id:p.id,seat:p.crew!.seat,position:{...p.actor.player.position},down:p.down>0||p.stealth!==undefined}));}
+ footCrew(unit:object){return this.people.filter(p=>p.crew?.unit===unit&&p.health>0).map(p=>({id:p.id,seat:p.crew!.seat,health:p.health,armour:p.armour??0,position:{...p.actor.player.position},down:p.down>0||p.stealth!==undefined}));}
  /** CTaskComplexGoToCarDoorAndStandStill: run to a car door point, walking within 4 units; undefined resumes the pursuit. */
  /** An officer's go-to; with `arrive` (CTaskComplexGoToPointAndStandStill's radius) the task ends on arrival. */
  sendOfficer(id:number,point?:{x:number;z:number},walk=false,arrive?:number){const p=this.people.find(p=>p.id===id);if(p)p.goTo=point&&{...point,walk,arrive};}
@@ -1861,7 +1889,9 @@ export class WorldPedestrians {
   const i=this.people.findIndex(p=>p.id===id);if(i<0)return undefined;
   const [p]=this.people.splice(i,1);this.remove(p);
   // The same ped rides and gets out: CPed keeps his weapons, health and gang in the car.
-  const keep:PassengerKeep={weapon:p.weapon,health:p.health,gang:p.gang,gangClips:p.gang!==undefined,slot:p.follow?p.followSlot:undefined};
+  const keep:PassengerKeep={weapon:p.weapon,health:p.health,armour:p.armour,id:p.id,pedType:pedTypeName(p),gang:p.gang,gangClips:p.gang!==undefined,slot:p.follow?p.followSlot:undefined,
+   defendMult:p.defendMult,noCriticalHits:p.noCriticalHits,neverTargeted:p.neverTargeted,canBeShotInVehicle:p.flags?.canBeShotInVehicle,
+   proofs:p.proofs&&{...p.proofs},onlyDamagedByPlayer:p.onlyDamagedByPlayer,bulletProofVest:p.bulletProofVest};
   return {modelRef:p.modelRef,follow:p.follow,gang:p.gang,keep};
  }
  /** The model a script ped id stands for: its peds.ide row's name where the depot carries that model, so the
@@ -1874,10 +1904,16 @@ export class WorldPedestrians {
  }
  /** The pedstats heading rate for an attached scripted model, loaded with the same character catalog. */
  async scriptPedModelHeadingRate(modelRef:number|string){
-  const c=this.catalog??await this.catalogLoad;if(!c)return 7.5;
-  const stats=typeof modelRef==='number'?c.modelStats[modelRef%Math.max(1,c.modelStats.length)]:await c.characterStats(modelRef);
-  return stats?.headingChange??7.5;
+  return (await this.scriptPedModelStats(modelRef))?.headingChange??7.5;
  }
+ /** The same pedstats used on foot, retained while a script's ped has no walking body. */
+ async scriptPedModelStats(modelRef:number|string){
+  const c=this.catalog??await this.catalogLoad;if(!c)return undefined;
+  return typeof modelRef==='number'?c.modelStats[modelRef%Math.max(1,c.modelStats.length)]:c.characterStats(modelRef);
+ }
+ /** peds.ide/pedstats metadata for a drawn traffic model, without requesting its DFF again. Numeric models here
+  * index the shared packaged civilian roster, as VehicleOccupants.driverModel does. */
+ pedModelStats(model:number|string){const c=this.catalog;return !c?undefined:typeof model==='number'?c.modelStats[model%Math.max(1,c.modelStats.length)]:c.pedModelStats(model);}
  /** CPopulation::AddPed (0x612710) through a script's CREATE_CHAR: the model loaded, the ped stood where the
   * script says and flagged PED_MISSION, so the population manager leaves it alone until the script lets go.
   * Resolves to nothing when the model cannot be loaded, which is the handle the script then finds empty. */
@@ -1922,13 +1958,43 @@ export class WorldPedestrians {
  /** A round from a shooter the peds do not hold themselves (a script's drive-by rider) meeting a ped's collider: the
   * ped takes it and reacts as it does to one of the peds' own rounds, unless proofed or only the player may hurt it.
   * Whether the collider was a ped's. */
- bulletHit(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3){
+ /** FireOneInstantHitRound: no creator or corpse treatment; type 52 retains the captured nonplayer-source critical branch. */
+ instantHitRound(collider:number,damage:number,direction:{x:number;z:number},end:Vector3,piece?:number){
   const victim=this.people.find(other=>other.collider.handle===collider);if(!victim)return false;
-  if(pedProofedAgainst(victim,'bullet')||!npcDamageReaches(victim,{},weapon,true,this.hitPiece(victim,end)))return true;
-  victim.lastDamagedBy={};victim.health=healthAfter(victim.health,damage);if(damage>0)victim.lastWeaponDamage=weapon;
-  if(!victim.health)this.onKill?.({id:victim.id,officer:victim.officer,gang:victim.gang,pedType:victim.pedType,recruit:!!victim.follow,byPlayer:false});
+  if(victim.health>0)this.applyNpcBullet(victim,damage,52,direction,end,piece);
+  return true;
+ }
+ bulletHit(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3,piece?:number){
+  const victim=this.people.find(other=>other.collider.handle===collider);if(!victim)return false;
+  this.applyNpcBullet(victim,damage,weapon,direction,end,piece);return true;
+ }
+ /** GenerateDamageEvent's acceptance, rather than bulletHit's collider recognition, for NPC impact effects. */
+ npcBulletHit(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3,piece?:number,shooter?:Acquainted&{follow?:boolean}){
+  const victim=this.people.find(other=>other.collider.handle===collider);return !!victim&&!this.npcBulletSourceBlocked(victim,shooter,weapon)&&this.applyNpcBullet(victim,damage,weapon,direction,end,piece);
+ }
+ private npcBulletSourceBlocked(victim:Pedestrian,shooter:(Acquainted&{follow?:boolean})|undefined,weapon:number){
+  if(!shooter)return false;
+  // DoBulletImpact excludes equal noncivilian types even on corpses. AffectsPed's group gate is live-only.
+  if(sameNonCivilianPedType(victim,shooter))return true;
+  return victim.health>0&&weapon!==WEAPON.explosion&&(!!victim.follow&&!!shooter.follow||!!this.sameScriptGroup?.(victim,shooter));
+ }
+ private applyNpcBullet(victim:Pedestrian,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3,piece?:number,shooter?:Pedestrian){
+  // DoBulletImpact's same-type gate precedes GenerateDamageEvent, including for a corpse.
+  if(this.npcBulletSourceBlocked(victim,shooter,weapon))return false;
+  if(victim.health<=0){this.damageCollider(victim.collider.handle,damage,direction,'bullet',{weapon,point:end,piece,byPlayer:false});return true;}
+  if(pedProofedAgainst(victim,'bullet')||!npcDamageReaches(victim,shooter??{},weapon,true,piece??this.hitPiece(victim,end)))return false;
+  victim.lastDamagedBy=shooter?{ped:shooter}:{};
+  if(shooter)this.noteEvent(victim,EVENT.damage);
+  // AccountForPedDamageStats always applies victim weakness. Known foot sources retain their event/damager
+  // metadata; external ped context currently supplies type/group acceptance, not a complete event source.
+  const dealt=shooter?this.pedOnPedDamage(victim,shooter,damage,weapon):pedDamageFactor(damage,victim.defendMult);
+  const response=spendPedArmourFloat32(dealt,victim.armour,weapon),beforeHealth=Math.fround(victim.health);
+  victim.armour=response.armour;victim.health=npcFootBulletCritical(victim,weapon,piece??this.hitPiece(victim,end))?0:healthAfterFloat32(victim.health,response.damageHealth);
+  const healthResponse=victim.health===0?beforeHealth:response.damageHealth;
+  if(healthResponse+response.damageArmour>0)victim.lastWeaponDamage=weapon;
+  if(!victim.health)this.onKill?.({id:victim.id,...pedTypeInfo(victim),recruit:playerGroupMember(this,victim),byPlayer:false});
   const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};
-  this.applyReaction(victim,this.damageReaction(victim,weapon,damage,vfrom,end,false),vfrom);
+  this.applyReaction(victim,this.damageReaction(victim,weapon,healthResponse,vfrom,end,false,undefined,false,piece,response.damageArmour),vfrom);
   return true;
  }
  giveOrder(ped:Pedestrian,order:ScriptedPedOrder){this.giveSequence(ped,[order],false,false);}
@@ -2146,18 +2212,17 @@ export class WorldPedestrians {
     break;
    }
    case 'die':{
-    if(!order.name){this.damageCollider(ped.collider.handle,10000,{x:0,z:1},'bullet',{noSource:true},true);break;}
-    // TASK_DIE_NAMED_ANIM: the ped dies with the script's clip, held on its last frame, once the clip is on it.
-    const clip=order.name.toLowerCase(),die=()=>{
+    // CTaskSimpleDie::StartAnim (PC 0x637520) writes health zero directly: no armour, damage event or RegisterKill.
+    // A named death waits for its clip; the ordinary task uses the default front death.
+    const clip=(order.name??'ko_shot_front').toLowerCase(),die=(name=clip)=>{
      if(ped.health<=0||!this.people.includes(ped))return;
-     ped.health=0;this.hit(ped,0,1,0,clip,1000);ped.down=Infinity;ped.view.playReaction(clip,Infinity);
-     this.onKill?.({id:ped.id,officer:ped.officer,gang:ped.gang,pedType:ped.pedType,recruit:!!ped.follow,byPlayer:false});
+     ped.health=0;ped.deadTime=0;ped.corpseHitReady=false;this.hit(ped,0,1,0,name,1000);ped.down=Infinity;ped.view.playReaction(name,Infinity);
     };
-    if(ped.view.hasReaction(clip)&&(order.file??'ped').toLowerCase()==='ped'){die();break;}
+    if(!order.name||ped.view.hasReaction(clip)&&(order.file??'ped').toLowerCase()==='ped'){die();break;}
     void (this.catalog?.scriptAnimation(order.file??'ped',order.name)??Promise.resolve(undefined)).then(animation=>{
-     if(this.disposed)return;
+     if(this.disposed||ped.health<=0||!this.people.includes(ped))return;
      if(animation)ped.view.installReactions({[clip]:animation});
-     if(animation)die();else this.damageCollider(ped.collider.handle,10000,{x:0,z:1},'bullet',{noSource:true},true);
+     die(animation?clip:'ko_shot_front');
     });
     break;
    }
@@ -2453,13 +2518,15 @@ export class WorldPedestrians {
   * weakness, then for a mission ped hit by a member of its own group (short of a flamethrower or a blast) a tenth,
   * 12.5 at most. */
  private pedOnPedDamage(victim:Pedestrian,damager:Pedestrian,damage:number,weapon:number){
-  const scaled=damage*victim.defendMult;
+  const scaled=pedDamageFactor(damage,victim.defendMult);
   if(!victim.mission||weapon===WEAPON.flamethrower||weapon===WEAPON.explosion)return scaled;
   const sameGroup=victim.follow&&damager.follow||!!victim.party&&victim.party===damager.party||!!this.sameScriptGroup?.(victim,damager);
-  return sameGroup?Math.min(scaled*FRIENDLY_DAMAGE_FACTOR,FRIENDLY_DAMAGE_CAP):scaled;
+  return sameGroup?Math.min(Math.fround(scaled*Math.fround(FRIENDLY_DAMAGE_FACTOR)),FRIENDLY_DAMAGE_CAP):scaled;
  }
+ /** The known player group, including script members without the street follow flag. */
+ inPlayerGroup?:(source:Acquainted&{follow?:boolean})=>boolean;
  /** CPedGroups::AreInSameGroup for two of a script's peds (its groups are the mission's). */
- sameScriptGroup?:(a:Pedestrian,b:Pedestrian)=>boolean;
+ sameScriptGroup?:(a:object,b:object)=>boolean;
  /** CPedIntelligence::IsFriendlyWith (iOS 0x10035c58c) between the player and a ped, either way round: one respects or
   * likes the other's ped type, or they are of one type. */
  friendlyWithPlayer(ped:Acquainted){
@@ -2757,8 +2824,13 @@ export class WorldPedestrians {
   }
   const p=this.people[this.people.length-1];
   p.follow=follow;p.flee=0;
-  if(keep){p.health=keep.health;if(keep.gangClips)p.view.installReactions(catalog.gangClips,true);if(follow)p.followSlot=keep.slot;}
-  if(rollout)this.rollOut(p,rollout.velocity,rollout.clip);
+  if(keep){p.health=keep.health;p.armour=keep.armour;if(keep.id!==undefined){p.id=keep.id;this.nextId=Math.max(this.nextId,p.id+1);}if(keep.gangClips)p.view.installReactions(catalog.gangClips,true);if(follow)p.followSlot=keep.slot;
+   p.defendMult=keep.defendMult??p.defendMult;p.noCriticalHits=keep.noCriticalHits;p.neverTargeted=keep.neverTargeted;if(keep.pedType!==undefined)p.pedType=keep.pedType;
+   p.proofs=keep.proofs&&{...keep.proofs};p.onlyDamagedByPlayer=keep.onlyDamagedByPlayer;p.bulletProofVest=keep.bulletProofVest;
+   if(keep.canBeShotInVehicle!==undefined)this.setFlag(p,'canBeShotInVehicle',keep.canBeShotInVehicle);
+  }
+  if(p.health<=0){p.money=0;this.restoreDeadScriptPed(p);}
+  else if(rollout)this.rollOut(p,rollout.velocity,rollout.clip);
   return true;
  }
  private allowed(n:PathNode){return n.kind==='pedestrian'&&!n.water&&!n.switchedOff&&!n.dontWander&&n.linkCount>0;}
@@ -2995,16 +3067,21 @@ export class WorldPedestrians {
    * CEventDamage::ComputeAnim with the attacker's fight move, and the victim answers the attacker. */
   private strikeFoe(p:Pedestrian,foe:Pedestrian,stage:0|1|2,damage:number){
    if(pedProofedAgainst(foe,'melee')||!npcDamageReaches(foe,p,WEAPON.unarmed,false))return;
+   // CEventDamage::AffectsPed's group gate also applies to fists; unlike DoBulletImpact, equal ped types alone do not reject a blow.
+   const sourceType=nativePedType(pedTypeName(p));
+   if(sourceType!==0&&sourceType!==1&&(p.follow&&foe.follow||this.sameScriptGroup?.(foe,p)))return;
    foe.lastDamagedBy={ped:p};
-   const applied=megaPunchBlow(WEAPON.unarmed)?foe.health:scaleBlow(damage,p.attackMult,foe.defendMult);foe.health=healthAfter(foe.health,applied);
-   if(applied>0)foe.lastWeaponDamage=WEAPON.unarmed;
+   const dealt=pedDamageFactor(pedDamageFactor(damage,p.attackMult),foe.defendMult),response=spendPedArmourFloat32(dealt,foe.armour,WEAPON.unarmed),before=Math.fround(foe.health);
+   foe.armour=response.armour;foe.health=megaPunchBlow(WEAPON.unarmed)?0:healthAfterFloat32(before,response.damageHealth);
+   const applied=foe.health===0?before:response.damageHealth;
+   if(applied+response.damageArmour>0)foe.lastWeaponDamage=WEAPON.unarmed;
    this.onMeleeHit?.({...foe.actor.player.position},false);
    const q=p.actor.player.position,from={x:q.x,z:q.z};
-   const reaction=this.damageReaction(foe,WEAPON.unarmed,applied,from,undefined,false,{move:stage});
+   const reaction=this.damageReaction(foe,WEAPON.unarmed,applied,from,undefined,false,{move:stage},false,undefined,response.damageArmour);
    if(!this.applyReaction(foe,reaction,from)&&foe.health>0)foe.stagger=.5;
    // CTaskSimpleBeHit: hit from the front by a ped that is not the player, the victim turns to face the attacker.
    if(foe.health>0){const fq=foe.actor.player.position,ax=q.x-fq.x,az=q.z-fq.z,facing=Math.atan2(ax,az),diff=Math.atan2(Math.sin(facing-foe.actor.player.heading),Math.cos(facing-foe.actor.player.heading));if(Math.abs(diff)<=Math.PI/4)foe.actor.player.heading=facing;}
-   if(!foe.health){p.foe=undefined;p.retaliate=0;p.fight=undefined;this.onKill?.({id:foe.id,officer:foe.officer,gang:foe.gang,pedType:foe.pedType,recruit:!!foe.follow,byPlayer:false});return;}
+   if(!foe.health){p.foe=undefined;p.retaliate=0;p.fight=undefined;this.onKill?.({id:foe.id,...pedTypeInfo(foe),recruit:playerGroupMember(this,foe),byPlayer:false});return;}
    if(!foe.officer){foe.foe=p;foe.retaliate=Math.max(foe.retaliate,4);foe.flee=0;}
   }
   /** SET_SCRIPT_LIMIT_TO_GANG_SIZE (m_nScriptLimitToGangSize, 99 at start) and the player group's
@@ -3101,7 +3178,10 @@ export class WorldPedestrians {
    * Families member (ProcessGroupBehaviour and MakeThisPedJoinOurGroup read the three together). */
   private recruitAnyone(){return CHEATS.isActive('recruitPistol')||CHEATS.isActive('recruitAk')||CHEATS.isActive('rocketMayhem');}
   /** How many the player's group may hold for a recruit to join (recruitRoom). */
-  private groupRoom(){return recruitRoom(maxGroupMembers(),this.scriptGangLimit,this.cityUnlocked?.()??0,this.recruitAnyone());}
+  /** The current native STAT_TOTAL_RESPECT, including script changes and restored stats. */
+  totalRespect?:()=>number;
+  private maxGroupMembers(){return maxGroupMembers(this.totalRespect?.()??0);}
+  private groupRoom(){return recruitRoom(this.maxGroupMembers(),this.scriptGangLimit,this.cityUnlocked?.()??0,this.recruitAnyone());}
   /** Of `candidates`, the one `target` names: the ped under the crosshair (`handle`), else the nearest within `range`
    * ahead of the player (within 45° of his heading). */
   private targetAmong(candidates:Pedestrian[],target:{handle?:number;range:number}){
@@ -3122,7 +3202,7 @@ export class WorldPedestrians {
    * CPedGroupMembership::RemoveNFollowers passes over the members a mission made, which `missionMembers` counts. */
   makeRoomForMissionPeds(room:number,missionMembers:number){
    const crew=this.people.filter(p=>p.follow&&p.health>0&&!p.mission);
-   for(const m of crew.slice(0,followersToRemove(crew.length,missionMembers,room,Math.min(maxGroupMembers(),this.scriptGangLimit))))this.leaveGroup(m);
+   for(const m of crew.slice(0,followersToRemove(crew.length,missionMembers,room,Math.min(this.maxGroupMembers(),this.scriptGangLimit))))this.leaveGroup(m);
   }
   /** CPedGroupMembership::AddFollower takes a ped out of the group it was in: a recruit leaves his street gang's
    * party, and a party that loses its leader, or is left with one member, breaks up. */
@@ -3154,7 +3234,7 @@ export class WorldPedestrians {
    // ApplyCollision's ReportCollision both ways: the car's intensity over its mass, the ped's over his.
    if(car)this.onCarPedCollision?.(car,p.collider.handle,{x:at.x,y:at.y,z:at.z},normal,impact.vehicleIntensity/physics.mass,impact.pedIntensity/PED_MASS);
    const addCarForce=(force:V)=>{const dv=fromNative(force);body.setLinvel({x:linvel.x+dv.x/physics.mass*50,y:linvel.y+dv.y/physics.mass*50,z:linvel.z+dv.z/physics.mass*50},true);};
-   const speed=Math.hypot(linvel.x,linvel.z),crime=()=>{if(striker.occupied)this.law?.registerCrime(p.officer?CRIME.killCopPedWithCar:CRIME.killPedWithCar,`ped:${p.id}`,this.policeDontCare(`ped:${p.id}`));};
+   const speed=Math.hypot(linvel.x,linvel.z),crime=()=>{if(striker.occupied)this.law?.registerCrime(pedTypeInfo(p).officer?CRIME.killCopPedWithCar:CRIME.killPedWithCar,`ped:${p.id}`,this.policeDontCare(`ped:${p.id}`));};
    // A train kills a ped it strikes when its move speed along the impact velocity passes 0.2 a frame (or the ped is
    // already down and it moves over 0.0224 a frame), whatever the intensity: KillPedWithCar with twice the intensity.
    const trainMove=toNative({x:linvel.x/50,y:linvel.y/50,z:linvel.z/50}),impactVelocity={x:impact.pedForce.x/PED_MASS,y:impact.pedForce.y/PED_MASS,z:impact.pedForce.z/PED_MASS};
@@ -3185,7 +3265,7 @@ export class WorldPedestrians {
     addCarForce({x:impact.vehicleForce.x+kill.vehicleForce.x,y:impact.vehicleForce.y+kill.vehicleForce.y,z:impact.vehicleForce.z+kill.vehicleForce.z});
     if(kill.crunch&&car)this.onCarCrunch?.(car);
     // RegisterKill's source is the car, not the player ped: his own car only counts STAT_PEOPLE_YOUVE_WASTED.
-    crime();this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,recruit:!!p.follow,byPlayer:false,byPlayerVehicle:striker.occupied});
+    crime();this.onKill?.({id:p.id,...pedTypeInfo(p),recruit:playerGroupMember(this,p),byPlayer:false,byPlayerVehicle:striker.occupied});
     return;
    }
    addCarForce(impact.vehicleForce);
@@ -3272,12 +3352,12 @@ export class WorldPedestrians {
    const hx=Math.sin(this.sim.player.heading),hz=Math.cos(this.sim.player.heading),flat=Math.hypot(dx,dz);
    if(flat>1e-4&&(dx*hx+dz*hz)/flat<=.35)return;
     // GenerateDamageEvent reports DAMAGED_PED at once; CEventDamage queues the cop variant for a cop.
-    const dontCare=this.policeDontCare(`ped:${target.id}`);this.law?.crime(CRIME.damagedPed,`ped:${target.id}`,dontCare);this.law?.registerCrime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`,dontCare);
+    const dontCare=this.policeDontCare(`ped:${target.id}`);this.law?.crime(CRIME.damagedPed,`ped:${target.id}`,dontCare);this.law?.registerCrime(pedTypeInfo(target).officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`,dontCare);
     if(!pedProofedAgainst(target,'melee'))target.health=healthAfter(target.health,playerPunchDamage(s.damage,target.defendMult));
    // CDarkel::RegisterKillByPlayer asks IsMember before the member is let go: whether he was a recruit when hit.
-   const wasRecruit=!!target.follow;
+   const wasRecruit=playerGroupMember(this,target);
    if(target.follow){target.follow=false;target.foe=undefined;}
-   if(!target.health)this.onKill?.({id:target.id,officer:target.officer,gang:target.gang,pedType:target.pedType,recruit:wasRecruit,byPlayer:true});
+   if(!target.health)this.onKill?.({id:target.id,...pedTypeInfo(target),recruit:wasRecruit,byPlayer:true});
    if(!target.health){const tq=target.actor.player.position,tfrom={x:tq.x-Math.sin(s.heading),z:tq.z-Math.cos(s.heading)};this.applyReaction(target,this.damageReaction(target,WEAPON.unarmed,s.damage,tfrom,undefined,true),tfrom);}
    else if(s.combo===2||s.ground)this.hit(target,Math.sin(s.heading),Math.cos(s.heading),4);
    else{this.hits++;target.view.playReaction('hit_front');target.stagger=0.5;if(!this.catalog?.decisionMakers[target.decisionMaker])this.frighten(target.actor.player.position,12);this.onPain?.(target,{...target.actor.player.position});}
@@ -3370,7 +3450,7 @@ export class WorldPedestrians {
       e.phase='move';e.time=0;p.view.playReaction(e.kind==='step'?'ev_step':'ev_dive',e.lie?(p.view.reactionDuration('ev_dive')??2.33)+e.lie:undefined);
       // CTaskSimpleEvasiveDive::StartAnim: a cop diving from the player's car registers CRIME_VEHICLE_DAMAGE and
       // CRIME_SPEEDING at once.
-      if(e.kind==='dive'&&p.officer&&e.byPlayer){this.law?.registerCrimeImmediately(CRIME.vehicleDamage,`ped:${p.id}`);this.law?.registerCrimeImmediately(CRIME.speeding,`ped:${p.id}`);}
+      if(e.kind==='dive'&&pedTypeInfo(p).officer&&e.byPlayer){this.law?.registerCrimeImmediately(CRIME.vehicleDamage,`ped:${p.id}`);this.law?.registerCrimeImmediately(CRIME.speeding,`ped:${p.id}`);}
      }
      return 0;
     }
@@ -3410,9 +3490,9 @@ export class WorldPedestrians {
    if(damage>0)p.lastWeaponDamage=WEAPON.flamethrower;
    if(p.health===0){
     p.onFire=0;p.down=Infinity;p.collider.setShape(new RAPIER.Ball(.3));p.view.playReaction('ko_shot_front',Infinity);
-    this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,recruit:!!p.follow,byPlayer});
+    this.onKill?.({id:p.id,...pedTypeInfo(p),recruit:playerGroupMember(this,p),byPlayer});
    }
-   return {id:p.id,officer:p.officer};
+   return {id:p.id,...pedTypeInfo(p)};
   }
   /** CEventGunAimedAt from the player's lock-on (see ped/nativeGunAimedAt). Returns whether the ped was affected. */
   gunAimedAt(handle:number,aimer:{x:number;y:number;z:number}){
@@ -3422,7 +3502,7 @@ export class WorldPedestrians {
     // CPedIntelligence's constructor gives gang members 40 units of sight and hearing, everyone else 15.
     seeingRange:p.gang!==undefined?GANG_SEEING_RANGE:undefined}))return false;
    // AffectsPed: a cop reports CRIME_AIM_GUN and answers from its own decision maker.
-   if(p.officer){this.law?.crime(CRIME.aimGun,`ped:${p.id}`);return true;}
+   if(pedTypeInfo(p).officer){this.law?.crime(CRIME.aimGun,`ped:${p.id}`);return true;}
    if(!this.takesPriority(p,EVENT.gunAimedAt))return false;
    // IsFriendlyWith: the player's recruits, and the Families, whom the script sets to respect him.
    const response=gunAimedAtResponse({fleeing:p.flee>0,createdByGame:true,inVehicle:false,holdsGun:!!p.weapon,friendly:p.follow||p.gang===1});
@@ -3502,7 +3582,7 @@ export class WorldPedestrians {
     const from={x:p.actor.player.position.x,z:p.actor.player.position.z};
     // The group answers only a CEventDamage the player took (MakeGroupRespondToPlayerTakingDamage).
     // The cop's fight task is the source (CEventDamage::ComputeDamageAnim's combo branch), as a street ped's fists are.
-    if(this.damagesPlayer(p,WEAPON.nightstick)){this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.nightstick,from,fall:meleeAttackFalls('BBALLBAT',stage),fight:{move:stage}});this.defendPlayer(p);}
+    if(this.damagesPlayer(p,WEAPON.nightstick)){this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.nightstick,from,fall:meleeAttackFalls('BBALLBAT',stage),fight:{move:stage},friendly:this.friendlyWithPlayer(p)});this.defendPlayer(p);}
     this.onMeleeHit?.({...this.sim.player.position},false);
    });
   }
@@ -3566,8 +3646,6 @@ export class WorldPedestrians {
    const v=ride?ride.body.linvel():undefined,speed=v?Math.hypot(v.x,v.y,v.z)/50:onFoot?this.sim.player.speed/50:this.playerVehicleSpeed?.()??0;
    return {speed,rangeMultiplier:onFoot?1:3};
   }
-  /** The player's capsule, for a bullet line to try while he rides a bike. */
-  private riderShape?:RAPIER.Capsule;
   /** CTaskSimpleUseGun::AimGun for a ped: an AIMWITHARM weapon (the pistols, the Uzi, the Tec-9) points the arm at the
    * target by IK (PointArm), the fire clip giving only the recoil; the rest turn the torso (PointGunInDirection).
    * Without the arm the one-handed guns were held as their clip leaves them, straight up beside the head. */
@@ -3613,7 +3691,7 @@ export class WorldPedestrians {
     // A ped shooting on the move (CTaskComplexGoToPointShooting) keeps walking its way and aims the gun alone.
     if(p.order?.kind!=='goToPointShooting')state.heading=Math.atan2(aimOffset.x,aimOffset.z);
     p.view.update(p.actor,1);
-    const muzzle=p.gun?.root.getObjectByName('gunflash')?.getWorldPosition(new Vector3())??p.view.hand()?.getWorldPosition(new Vector3())??new Vector3(eye.x,eye.y,eye.z);
+    const muzzleNode=p.gun?.root.getObjectByName('gunflash')??p.view.hand(),muzzle=muzzleNode?p.view.nodePosition(muzzleNode):new Vector3(eye.x,eye.y,eye.z);
     // CWeapon::FireAreaEffect for a ped's spray can, extinguisher or flamethrower: a CShotInfo cloud toward the aim, which
     // CShotInfo::Update carries on (a spray can's paints the tags it reaches: Sweet's demonstration in SWEET1). They are no
     // instant-hit line.
@@ -3622,34 +3700,37 @@ export class WorldPedestrians {
     // ped's inaccuracy (npcShotEnd).
     const playerTarget=this.playerTargetAt(aim),endPoint=npcShotEnd(muzzle,aim,weapon.info,p.gunAccuracy,{targetIsPlayer:!!playerTarget,targetSpeed:playerTarget?.speed,rangeMultiplier:playerTarget?.rangeMultiplier});
     const direction=new Vector3(endPoint.x,endPoint.y,endPoint.z).sub(muzzle),lineLength=direction.length();direction.divideScalar(lineLength||1);
-    const shot=bulletLine(this.sim.world,muzzle,direction,lineLength,{isShootThrough:this.isShootThrough,excludeCollider:p.collider,excludeBody:p.body});
-    // CWorld::bIncludeBikers, which FireInstantHit sets: the line meets a biker's own collision too. CJ's is off while
-    // he rides, so his capsule on the bike is tried here, short of whatever else the line struck.
-    let riderAt=-1;
-    if(this.playerRide?.()?.bike&&this.sim.player.health>0)riderAt=(this.riderShape??=new RAPIER.Capsule(.6,.3)).castRay(new RAPIER.Ray(muzzle,direction),this.sim.playerBody.translation(),{x:0,y:0,z:0,w:1},shot?.timeOfImpact??lineLength,true);
-    const riderHit=riderAt>=0;
+    const shot=this.bulletLine(muzzle,direction,lineLength,{isShootThrough:this.isShootThrough,excludeCollider:p.collider,excludeBody:p.body});
     // FireInstantHit includes car tyres for every shooter: a wheel sphere before the hit takes the round.
-    const reach=riderHit?riderAt:shot?.timeOfImpact??lineLength,tyre=bulletTyreHit(cars,muzzle,direction,reach);
-    const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:reach);p.flash=.06;
+    const reach=shot?.timeOfImpact??lineLength,tyre=bulletTyreHit(cars,muzzle,direction,reach);
+    const hitPlayer=(damage:number,type:number,piece:number)=>{if(!this.damagesPlayer(p,type))return false;const accepted=this.sim.damagePlayer(damage,false,{weapon:type,from:{x:muzzle.x,z:muzzle.z},piece,friendly:this.friendlyWithPlayer(p)});this.defendPlayer(p);return accepted;};
+    const seated=this.seatedShot?.(muzzle,direction,lineLength,p.body,shot?.collider.parent(),{distance:tyre?.t??reach,tyre:!!tyre,playerHit:hitPlayer,shooter:p});
+    const end=muzzle.clone().addScaledVector(direction,seated?.t??tyre?.t??reach);p.flash=.06;
     // SetUpPelletCol (iOS 0x100499000): a shotgun's pellet lines (eight for the SPAS 12, fifteen otherwise) spread with
     // the distance to what the first line hit, and every pellet on that same victim adds the weapon's damage.
     let pellets=1;
-    if(shot&&!tyre&&!riderHit&&SHOTGUN_TYPES.has(weapon.info.type)){
-     const depth=Math.max(.05,reach*(.05/weapon.info.accuracy)*1.3),right=new Vector3(-direction.z,0,direction.x).normalize(),up=new Vector3().crossVectors(right,direction).normalize();
+    if((shot&&!tyre&&!seated||seated?.direct)&&SHOTGUN_TYPES.has(weapon.info.type)){
+     const depth=Math.max(.05,(seated?.t??reach)*(.05/weapon.info.accuracy)*1.3),right=new Vector3(-direction.z,0,direction.x).normalize(),up=new Vector3().crossVectors(right,direction).normalize();
      for(let i=1;i<shotgunPelletCount(weapon.info.type);i++){
       const o=shotgunPelletOffset(depth),target=end.clone().addScaledVector(right,o.across).addScaledVector(up,o.up);
       const dir=target.sub(muzzle),length=dir.length();dir.divideScalar(length||1);
-      const pellet=this.sim.world.castRay(new RAPIER.Ray(muzzle,dir),length+.5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body);
-      if(pellet?.collider.handle===shot.collider.handle)pellets++;
+      const pellet=this.bulletLine(muzzle,dir,length+.5,{isShootThrough:this.isShootThrough,excludeCollider:p.collider,excludeBody:p.body});
+      if(seated?.direct){
+       const stop=pellet?.timeOfImpact??length+.5,pelletTyre=bulletTyreHit(cars,muzzle,dir,stop),rider=this.seatedShot?.(muzzle,dir,length+.5,p.body,pellet?.collider.parent(),{distance:pelletTyre?.t??stop,tyre:!!pelletTyre,shooter:p});
+       if(rider?.direct&&rider.victim===seated.victim)pellets++;
+      }else if(pellet?.collider.handle===shot?.collider.handle)pellets++;
      }
     }
     const shotDamage=weapon.info.damage*pellets;
-    this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre,{id:`ped:${p.id}`,position:()=>p.health>0||this.people.includes(p)?{...p.actor.player.position,y:p.actor.player.position.y+1}:undefined});this.gunShot({...state.position,y:state.position.y+1},false,p.id,end);
-    if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
-    else if(riderHit||shot?.collider.handle===this.sim.playerCollider.handle){if(this.damagesPlayer(p,weapon.info.type)){this.sim.damagePlayer(shotDamage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z},piece:pedPieceAt(this.sim.player.position,this.sim.player.heading,end),friendly:this.friendlyWithPlayer(p)});this.defendPlayer(p);}}
+    this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre||!!seated,{id:`ped:${p.id}`,position:()=>p.health>0||this.people.includes(p)?{...p.actor.player.position,y:p.actor.player.position.y+1}:undefined});this.gunShot({...state.position,y:state.position.y+1},false,p.id,end);
+    const finish=shot&&!tyre&&!seated?this.prepareBulletImpact?.(shot,end,weapon.info.type,direction,p):undefined;let accepted=false;
+    if(seated)seated.hit(seated.direct?shotDamage:weapon.info.damage,weapon.info.type);
+    else if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
+    else if(shot?.collider.handle===this.sim.playerCollider.handle)accepted=hitPlayer(shotDamage,weapon.info.type,shot.pedPiece??pedPieceAt(this.sim.player.position,this.sim.player.heading,end));
     else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer){car.damage(shotDamage,undefined,false,undefined,{weapon:weapon.info.type,byPlayer:false,by:{ped:p}});
      // InflictDamage's random tyre burst: (rand() & 0x7f) under the weapon's chance.
-     const chance=aiTyreBurstChance(weapon.info.type);if(chance&&!car.wrecked&&Math.floor(Math.random()*128)<chance)car.burstTyreAt(end);}}else if(!this.damageOtherVehicle(shot.collider,shotDamage,weapon.info.type,p)){const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')&&npcDamageReaches(victim,p,weapon.info.type,true,this.hitPiece(victim,end))){victim.lastDamagedBy={ped:p};this.noteEvent(victim,EVENT.damage);const dealt=this.pedOnPedDamage(victim,p,shotDamage,weapon.info.type);victim.health=healthAfter(victim.health,dealt);if(dealt>0)victim.lastWeaponDamage=weapon.info.type;if(!victim.health)this.onKill?.({id:victim.id,officer:victim.officer,gang:victim.gang,pedType:victim.pedType,recruit:!!victim.follow,byPlayer:false});const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,shotDamage,vfrom,end,false),vfrom);}}}
+     const chance=aiTyreBurstChance(weapon.info.type);if(chance&&!car.wrecked&&Math.floor(Math.random()*128)<chance)car.burstTyreAt(end);}}else if(!this.damageOtherVehicle(shot.collider,shotDamage,weapon.info.type,p)){const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim)accepted=this.applyNpcBullet(victim,shotDamage,weapon.info.type,{x:direction.x,z:direction.z},end,shot.pedPiece,p);}}
+    finish?.(accepted);
     }
    }
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}
@@ -3754,13 +3835,13 @@ export class WorldPedestrians {
    }
     // bDoesntDropWeaponsWhenDead: the body keeps what it was carrying.
     if(p.health<=0&&!p.dropped){p.dropped=true;if(!p.flags?.doesntDropWeaponsWhenDead)for(const d of deadPedWeaponDrops(this.carriedWeapons(p)))this.onDropWeapon?.({...state.position},d.weapon,d.ammo,!!p.flags?.deathPickupsPersist);
-     const cash=deadPedMoney({money:p.money,pedType:p.pedType,officer:p.officer,mission:p.mission,moneyByScript:p.moneyByScript});if(cash){p.money=0;this.onDropMoney?.({...state.position},cash);}}
+     const cash=deadPedMoney({money:p.money,...pedTypeInfo(p),mission:p.mission,moneyByScript:p.moneyByScript});if(cash){p.money=0;this.onDropMoney?.({...state.position},cash);}}
     if(p.health<=0)this.deadPedMakesTyresBloody(state.position,cars);
    if(p.stealth!==undefined&&p.health>0){
     const damage=this.catalog?.stealth.kill_knife_ped_damage?.duration??2.23;p.stealth+=dt;
     // CTaskSimpleStealthKill::ManageAnim kills through a CEventDamage from the attacker: the kill is the player's, by
     // the knife, like any other he makes.
-    if(p.stealth>=damage){const recruit=!!p.follow;p.lastDamagedBy={player:true};p.lastWeaponDamage=WEAPON.knife;p.health=0;p.down=Infinity;p.collider.setShape(new RAPIER.Ball(.3));p.view.playReaction('kill_knife_ped_die',Infinity);this.deadPedEvent(p);this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,recruit,byPlayer:true});}
+    if(p.stealth>=damage){const recruit=playerGroupMember(this,p);p.lastDamagedBy={player:true};p.lastWeaponDamage=WEAPON.knife;p.health=0;p.down=Infinity;p.collider.setShape(new RAPIER.Ball(.3));p.view.playReaction('kill_knife_ped_die',Infinity);this.deadPedEvent(p);this.onKill?.({id:p.id,...pedTypeInfo(p),recruit,byPlayer:true});}
     else{p.view.step(dt,{x:0,y:0,cameraYaw:state.heading,walk:true,sprint:false,jump:false},p.actor);continue;}
    }
    // A ped on a jump task's climb is moved by CTaskSimpleClimb alone.

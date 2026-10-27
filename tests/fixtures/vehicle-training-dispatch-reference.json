@@ -1,0 +1,346 @@
+{
+  "source": "Selected CPlayerInfo vehicle-stat routing block and actual GetVehicleAppearance; training callees are logged stubs, valid current vehicle declared",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "handlingSha256": "a5ef88e13ae32fa3acfaaf57d60a5514a934ae3213fc3373fb3e10dfc4ae5c49",
+  "entry": "0x100254df8",
+  "continuation": "0x100254770",
+  "appearance": "0x100476ec0",
+  "cases": [
+    {
+      "input": {
+        "name": "quad",
+        "model": 471,
+        "modelFlags": 2626304,
+        "baseType": 0,
+        "subType": 2,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": []
+    },
+    {
+      "input": {
+        "name": "quad",
+        "model": 471,
+        "modelFlags": 2626304,
+        "baseType": 0,
+        "subType": 2,
+        "velocity": [
+          0.10000000149011612,
+          0.0,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": [
+        {
+          "name": "driving",
+          "address": "0x100265c70",
+          "vehicleArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "name": "motorbike",
+        "model": 461,
+        "modelFlags": 16785408,
+        "baseType": 9,
+        "subType": 9,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": []
+    },
+    {
+      "input": {
+        "name": "motorbike",
+        "model": 461,
+        "modelFlags": 16785408,
+        "baseType": 9,
+        "subType": 9,
+        "velocity": [
+          0.10000000149011612,
+          0.0,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": [
+        {
+          "name": "motorbike",
+          "address": "0x100265f94",
+          "vehicleArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "name": "motorbike",
+        "model": 461,
+        "modelFlags": 16785408,
+        "baseType": 9,
+        "subType": 9,
+        "velocity": [
+          -0.10000000149011612,
+          0.0,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": [
+        {
+          "name": "motorbike",
+          "address": "0x100265f94",
+          "vehicleArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "name": "motorbike",
+        "model": 461,
+        "modelFlags": 16785408,
+        "baseType": 9,
+        "subType": 9,
+        "velocity": [
+          0.0,
+          0.10000000149011612,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": [
+        {
+          "name": "motorbike",
+          "address": "0x100265f94",
+          "vehicleArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "name": "motorbike",
+        "model": 461,
+        "modelFlags": 16785408,
+        "baseType": 9,
+        "subType": 9,
+        "velocity": [
+          0.0,
+          0.0,
+          -0.10000000149011612
+        ],
+        "inVehicle": true
+      },
+      "calls": [
+        {
+          "name": "motorbike",
+          "address": "0x100265f94",
+          "vehicleArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "name": "motorbike",
+        "model": 461,
+        "modelFlags": 16785408,
+        "baseType": 9,
+        "subType": 9,
+        "velocity": [
+          1.0000000195414814e-24,
+          0.0,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": []
+    },
+    {
+      "input": {
+        "name": "motorbike",
+        "model": 461,
+        "modelFlags": 16785408,
+        "baseType": 9,
+        "subType": 9,
+        "velocity": [
+          9.999999682655225e-21,
+          0.0,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": [
+        {
+          "name": "motorbike",
+          "address": "0x100265f94",
+          "vehicleArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "name": "motorbike",
+        "model": 461,
+        "modelFlags": 16785408,
+        "baseType": 9,
+        "subType": 9,
+        "velocity": [
+          0.0,
+          1.0000000195414814e-24,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": []
+    },
+    {
+      "input": {
+        "name": "motorbike",
+        "model": 461,
+        "modelFlags": 16785408,
+        "baseType": 9,
+        "subType": 9,
+        "velocity": [
+          9.999999998199587e-24,
+          9.999999998199587e-24,
+          9.999999998199587e-24
+        ],
+        "inVehicle": true
+      },
+      "calls": []
+    },
+    {
+      "input": {
+        "name": "motorbike",
+        "model": 461,
+        "modelFlags": 16785408,
+        "baseType": 9,
+        "subType": 9,
+        "velocity": [
+          1.000000031374395e-22,
+          1.000000031374395e-22,
+          1.000000031374395e-22
+        ],
+        "inVehicle": true
+      },
+      "calls": [
+        {
+          "name": "motorbike",
+          "address": "0x100265f94",
+          "vehicleArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "name": "bmx",
+        "model": 481,
+        "modelFlags": 1090519040,
+        "baseType": 9,
+        "subType": 10,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": []
+    },
+    {
+      "input": {
+        "name": "bmx",
+        "model": 481,
+        "modelFlags": 1090519040,
+        "baseType": 9,
+        "subType": 10,
+        "velocity": [
+          0.10000000149011612,
+          0.0,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": []
+    },
+    {
+      "input": {
+        "name": "car",
+        "model": 400,
+        "modelFlags": 0,
+        "baseType": 0,
+        "subType": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": []
+    },
+    {
+      "input": {
+        "name": "car",
+        "model": 400,
+        "modelFlags": 0,
+        "baseType": 0,
+        "subType": 0,
+        "velocity": [
+          0.10000000149011612,
+          0.0,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": [
+        {
+          "name": "driving",
+          "address": "0x100265c70",
+          "vehicleArgument": true
+        }
+      ]
+    },
+    {
+      "input": {
+        "name": "train",
+        "model": null,
+        "modelFlags": 0,
+        "baseType": 6,
+        "subType": 6,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": []
+    },
+    {
+      "input": {
+        "name": "train",
+        "model": null,
+        "modelFlags": 0,
+        "baseType": 6,
+        "subType": 6,
+        "velocity": [
+          0.10000000149011612,
+          0.0,
+          0.0
+        ],
+        "inVehicle": true
+      },
+      "calls": []
+    }
+  ]
+}

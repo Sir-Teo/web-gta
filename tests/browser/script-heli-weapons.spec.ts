@@ -21,7 +21,11 @@ test('a scripted attacking Hunter flies and fires enemy guns and unguided rocket
   const g=(window as any).__game,m=g.missionForProfiling(),t=m.vehicles.entity(target),heli=m.vehicles.entity(enemy),weapons=g.weapons();
   // Hold only the player target and keep it alive while the enemy flies with its own scripted controls.
   t.health=100000;t.body.setBodyType(fixed,true);t.frozen=false;
-  const probe=(window as any).__heliWeaponProbe={guns:0,rockets:0,enemyDamage:0,launches:[]as any[]};
+  // Different model base heights put the old nose-centre ray near the target but the native underslung gun below
+  // it. Align the initial muzzle with the target's body centre once; its AI owns every following flight step.
+  const start=heli.body.translation(),targetAt=t.body.translation();heli.body.setTranslation({...start,y:targetAt.y-heli.gunPosition()[2]},true);
+  const probe=(window as any).__heliWeaponProbe={guns:0,rockets:0,enemyDamage:0,launches:[]as any[],gunLines:[]as any[]};
+  const trace=weapons.onTrace;weapons.onTrace=(from:any,to:any,source:string)=>{if(source==='aircraft'&&probe.gunLines.length<5)probe.gunLines.push({from:{...from},to:{...to}});trace?.(from,to,source);};
   const sound=weapons.onSound;weapons.onSound=(event:any,weapon:number,...args:any[])=>{
    if(event==='fire'&&args[1]==='aircraft'){
     if(weapon===35){probe.rockets++;probe.launches.push({weapon,position:{...args[0]}});}else if(weapon===38)probe.guns++;

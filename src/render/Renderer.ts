@@ -1,4 +1,6 @@
 import {nativeDayNightBalance} from '../world/nativeDayNight';
+import {withHiddenVehicle} from './vehicleRenderOwnership';
+import {nativeBumperGround} from './nativeBumperGround';
 import { retainPrograms } from './retainPrograms';
 import { ProgramWarmer } from './programWarmer';
 import { setCompressedTextureSupport } from '../assets/nativeTexture';
@@ -60,14 +62,24 @@ export class GameRenderer {
   /** MODE_FIXED after CCamera::TakeControl: the camera sits at a native-script position and looks at the target. */
   /** `roll`: radians about the view, + leaning the top of the view right (CCam::Process_AttachedCam's tilt). */
   fixedCamera?:{position:THREE.Vector3;target:()=>THREE.Vector3;roll?:number;
+    /** Native mode applied with this transform, distinct from a pending script camera request. */
+    nativeMode?:number;
     /** CAMERA_SET_LERP_FOV's field of view while it runs (or persists); 70 otherwise. */
     fov?:number;
     /** The view's up (CCam::Up), for a camera that sets its own: the cutscene's fly-by. */
     up?:THREE.Vector3};
   /** CCam::Process_1stPerson's source and the vehicle's frame for the bumper view, from the host each frame. */
-  bumper?:{source:{x:number;y:number;z:number};quaternion:{x:number;y:number;z:number;w:number}};
+  bumper?:{source:{x:number;y:number;z:number};quaternion:{x:number;y:number;z:number;w:number};vehicle?:THREE.Object3D;
+    /** Physical vehicle up-Z in native axes, independent of the bike lean matrix. */
+    upZ?:number;
+    /** Sample a rider bone after this frame's vehicle pose has updated. */
+    sourceForCamera?:()=>{x:number;y:number;z:number};
+    /** First-person look routines run after the normal source/pose calculation. */
+    viewForCamera?:(look:Exclude<CameraGlance,'none'>,source:{x:number;y:number;z:number})=>{source:{x:number;y:number;z:number};front:{x:number;y:number;z:number};up:{x:number;y:number;z:number};near:number}};
   /** TheCamera.m_bDisableFirstPersonInCar off. */
   bumperAllowed=true;
+  private bumperGroundLift=0;
+  private wasBumper=false;
   get bumperView(){return this.vehicleView&&this.cameraSettings.vehicle==='bumper'&&!!this.bumper&&this.bumperAllowed;}
   /** CCamera::m_fCamShakeForce left this frame, for the shake below. */
   shake?:()=>number;
@@ -258,10 +270,24 @@ export class GameRenderer {
     this.distance = allowed < this.distance ? allowed : damp(this.distance, allowed, 5, dt);
     this.camera.position.copy(this.target).addScaledVector(direction, this.distance);this.followPosition.copy(this.camera.position);
     this.camera.lookAt(this.target);
+    let bumperNear:number|undefined;
+    const activeBumper=!this.fixedCamera&&this.bumperView;
+    // Host mode-entry adapter for m_bResetStatics. Held redraws retain the state.
+    if(!activeBumper||!this.wasBumper)this.bumperGroundLift=0;
+    this.wasBumper=activeBumper;
     // CCam::Process_Fixed keeps the camera at m_vecCamFixedModeSource and faces the entity it took control of.
     if(this.fixedCamera){const up=this.fixedCamera.up;this.camera.position.copy(this.fixedCamera.position);if(up)this.camera.up.copy(up);this.camera.lookAt(this.fixedCamera.target());if(up)this.camera.up.set(0,1,0);if(this.fixedCamera.roll)this.camera.rotateZ(-this.fixedCamera.roll);}
     // CCam::Process_1stPerson: the source the host worked out, looking along the vehicle's own forward and up.
-    else if(this.bumperView){const b=this.bumper!;this.camera.position.set(b.source.x,b.source.y,b.source.z);this.camera.quaternion.set(b.quaternion.x,b.quaternion.y,b.quaternion.z,b.quaternion.w);}
+    else if(this.bumperView){
+      const b=this.bumper!;b.source=b.sourceForCamera?.()??b.source;
+      if(b.upZ!==undefined){
+        if(!paused)this.bumperGroundLift=nativeBumperGround({previous:this.bumperGroundLift,upZ:b.upZ,sourceZ:b.source.y}).state;
+        b.source={...b.source,y:Math.fround(Math.fround(b.source.y)+this.bumperGroundLift)};
+      }
+      const view=this.glance==='none'?undefined:b.viewForCamera?.(this.glance,b.source);
+      if(view){b.source=view.source;bumperNear=view.near;this.camera.position.set(b.source.x,b.source.y,b.source.z);this.camera.up.copy(view.up);this.camera.lookAt(b.source.x+view.front.x,b.source.y+view.front.y,b.source.z+view.front.z);this.camera.up.set(0,1,0);}
+      else{this.camera.position.set(b.source.x,b.source.y,b.source.z);this.camera.quaternion.set(b.quaternion.x,b.quaternion.y,b.quaternion.z,b.quaternion.w);}
+    }
     else if(fp){
       // Process_Rocket and the Vice City Process_Sniper: the head bone plus the mode's offset, looking along the angles.
       const head=this.nativeCharacter?.headPosition(this.head)??this.head.set(p.position.x,p.position.y+1.6-.5*this.crouchAmount,p.position.z);
@@ -278,7 +304,7 @@ export class GameRenderer {
     // Process_1stPerson in a vehicle sets FOV 60.
     const fov=this.fixedCamera?this.fixedCamera.fov??70:this.bumperView?60:fp?this.zoom.update(fp,dt*50,this.zoomInput.notch,this.zoomInput.held,input.pinch):this.aiming?52:GAME_CAMERA_FOV;this.zoomInput.notch=0;input.pinch=1;
     // Process_Rocket's near clip plane is 0.15.
-    const near=this.scriptNearClip??(fp&&isRocketMode(fp)?.15:.08);
+    const near=this.scriptNearClip??bumperNear??(fp&&isRocketMode(fp)?.15:.08);
     if(fov!==this.sourceFov||near!==this.camera.near){this.sourceFov=fov;this.camera.near=near;applyWindowedCameraProjection(this.camera,Math.max(1,this.renderer.getSize(this.drawSize).x),Math.max(1,this.drawSize.y),fov);}
     mark=clock();this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt,coronaLookMask(this.glance),this.sourceFov,!paused);lap('lighting');
     const contact = this.contactLighting !== undefined && this.lighting.nativeWorldAmbient ? nativeContactLightMultiplier(this.lighting.nativeWorldAmbient,nativeContactBrightness(this.contactLighting!,nativeDayNightBalance(this.sim.timeMinutes))) : 1;
@@ -287,7 +313,12 @@ export class GameRenderer {
     this.beforeRender?.(this.camera);lap('beforeRender');
     this.nativeShadow.update(this.renderer,this.nativeCharacter,this.shadowReceivers,this.camera.position,this.sim.timeMinutes,this.lighting.nativeShadowStrength,paused,this.playerShadowAllowed);lap('shadow');
     this.programWarmer.beforeRender(performance.now());
-    this.renderer.render(this.scene, this.camera);this.afterRender?.();retainPrograms(this.renderer);lap('render');this.profile.frames++;
+    // Forward MODE_1STPERSON culls the player's vehicle in SetupEntityVisibility.
+    // Seated bodies belong to that vehicle draw; keep their pose updates above.
+    const hiddenVehicle=!this.fixedCamera&&this.bumperView&&this.glance==='none'?this.bumper?.vehicle:undefined;
+    const draw=()=>this.renderer.render(this.scene,this.camera);
+    if(hiddenVehicle)withHiddenVehicle(hiddenVehicle,draw);else draw();
+    this.afterRender?.();retainPrograms(this.renderer);lap('render');this.profile.frames++;
   }
   dispose() {
     this.nativeCharacter?.dispose();

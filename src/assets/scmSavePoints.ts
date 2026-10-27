@@ -1,3 +1,4 @@
+import {DEFAULT_SPRINT_CAPACITY} from '../simulation/nativePlayerSprint';
 import {requireAsset} from './binary';
 import {readScmHeader,decodeScmInstructions} from './scm';
 export interface ScmSavePoint {
@@ -38,6 +39,6 @@ export function readInitialSavePoints(bytes:Uint8Array){
 }
 /** CGenericGameStorage::DoGameSpecificStuffBeforeSave (0x618F50): full health up to 200, six hours pass, the wanted level clears
  * and sprint energy is restored. Ropes, pickup objects and the gang war are not in the browser. */
-export function nativeSaveEffects(state:{health:number;maxHealth:number;timeMinutes:number}){
- return {health:Math.min(200,state.maxHealth),timeMinutes:(state.timeMinutes+6*60)%1440,passedMinutes:6*60,wanted:0,stamina:100};
+export function nativeSaveEffects(state:{health:number;maxHealth:number;timeMinutes:number;sprintCapacity?:number}){
+ return {health:Math.min(200,state.maxHealth),timeMinutes:(state.timeMinutes+6*60)%1440,passedMinutes:6*60,wanted:0,stamina:state.sprintCapacity??DEFAULT_SPRINT_CAPACITY};
 }

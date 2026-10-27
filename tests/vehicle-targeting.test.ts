@@ -38,3 +38,14 @@ test('disabling automatic targeting leaves bullet head intersection active; shot
  const sim=new Simulation(),weapons=new WeaponSystem(sim,()=>undefined,()=>undefined),car:SeatedVehicle={pedTargetable:false,car:{body:{handle:99,translation:()=>({x:0,y:0,z:-10}),rotation:()=>({x:0,y:0,z:0,w:1})}}},target:SeatedTarget<SeatedVehicle>={car,kind:'script',seat:0,local:{x:0,y:0,z:0},head:{x:0,y:1,z:-10}};
  try{weapons.seatedPeds=()=>[target];expect(weapons.automaticAimTargets()).toEqual([]);expect(weapons.seatedHit({x:0,y:1.1,z:0},{x:0,y:0,z:-1},20,car.car.body)?.target).toBe(target);target.canBeShot=false;expect(weapons.seatedHit({x:0,y:1.1,z:0},{x:0,y:0,z:-1},20,car.car.body)).toBeUndefined();}finally{weapons.dispose();sim.dispose();}
 });
+
+test('a van occupant without a drawn head uses its quarter-turned seat for fallback aim and bullet checks',()=>{
+ const sim=new Simulation(),weapons=new WeaponSystem(sim,()=>undefined,()=>undefined),car:SeatedVehicle={pedTargetable:true,car:{body:{handle:99,translation:()=>({x:0,y:0,z:-10}),rotation:()=>({x:0,y:0,z:0,w:1})}}};
+ const target:SeatedTarget<SeatedVehicle>={car,kind:'script',seat:2,local:{x:0,y:0,z:0},headingOffset:Math.PI/2};
+ try{
+  weapons.seatedPeds=()=>[target];const position=weapons.automaticAimTargets()[0].position;
+  expect(position.x).toBeCloseTo(.23,8);expect(position.y).toBeCloseTo(.64,8);expect(position.z).toBeCloseTo(-10,8);
+  expect(weapons.seatedHit({x:.23,y:.74,z:0},{x:0,y:0,z:-1},20,car.car.body)?.target).toBe(target);
+  expect(weapons.seatedHit({x:0,y:.74,z:0},{x:0,y:0,z:-1},20,car.car.body)).toBeUndefined();
+ }finally{weapons.dispose();sim.dispose();}
+});

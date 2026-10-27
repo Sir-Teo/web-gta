@@ -1,5 +1,6 @@
 import {CHEATS} from './nativeCheats';
 import {swimBreath} from './nativeSwim';
+import {DEFAULT_LUNG_CAPACITY} from './nativeLungCapacity';
 
 export interface PlayerBreathState {
  breath:number;
@@ -13,15 +14,15 @@ export interface PlayerBreathState {
 /** CPlayerPed::ProcessControl (0x60EA90), before CPed::ProcessControl.
  * Recover only if no task handled breath during the previous frame, then arm
  * the flag for this frame's task/vehicle callbacks. Native timestep = dt * 50.
- * Lung capacity remains supplied by the caller until its stat modifier exists. */
-export function beginPlayerBreathFrame(player:PlayerBreathState,timeStep:number,lungCapacity=100){
+ * The caller supplies current stat-derived lung capacity. */
+export function beginPlayerBreathFrame(player:PlayerBreathState,timeStep:number,lungCapacity=DEFAULT_LUNG_CAPACITY){
  if(player.requireHandleBreath&&player.breath<lungCapacity)player.breath+=timeStep+timeStep;
  player.requireHandleBreath=true;
 }
 
 /** Shared CPlayerPed::HandlePlayerBreath state mutation. Damage is returned
  * for the caller's damage-event adapter, never applied to armour here. */
-export function handlePlayerBreath(player:PlayerBreathState,decrease:boolean,multiplier:number,timeStep:number,lungCapacity=100,infiniteOxygen=CHEATS.isActive('infiniteOxygen'),drownsInWater=true){
+export function handlePlayerBreath(player:PlayerBreathState,decrease:boolean,multiplier:number,timeStep:number,lungCapacity=DEFAULT_LUNG_CAPACITY,infiniteOxygen=CHEATS.isActive('infiniteOxygen'),drownsInWater=true){
  const result=swimBreath(player.breath,decrease,multiplier,timeStep,lungCapacity,infiniteOxygen,drownsInWater);
  player.breath=result.breath;player.requireHandleBreath=false;
  const drowning=decrease&&!infiniteOxygen&&!(player.breath>0&&drownsInWater);

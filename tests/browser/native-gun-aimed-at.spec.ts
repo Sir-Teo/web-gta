@@ -46,9 +46,11 @@ test('a shot is heard within 45 units, a silenced one only by peds facing it wit
    const flee=(id:number)=>crowd.snapshot().people.find((p:any)=>p.id===id).state==='flee';
    const ped=crowd.snapshot().people.find((p:any)=>!p.officer);
    const at=(d:number,sign:number)=>({x:ped.position.x+sign*Math.sin(ped.heading)*d,y:ped.position.y+1,z:ped.position.z+sign*Math.cos(ped.heading)*d});
-   crowd.gunShot(at(50,1),false);const far=flee(ped.id);
-   crowd.gunShot(at(6,-1),true);const silentBehind=flee(ped.id);
-   crowd.gunShot(at(6,1),true);const silentAhead=flee(ped.id);
+   // CEventGunShot measures range from its firing entity, so move CJ as well as the muzzle.
+   const fire=(d:number,sign:number,silent:boolean)=>{const muzzle=at(d,sign);Object.assign(sim.player.position,{x:muzzle.x,y:muzzle.y-1,z:muzzle.z});crowd.gunShot(muzzle,silent);};
+   fire(50,1,false);const far=flee(ped.id);
+   fire(6,-1,true);const silentBehind=flee(ped.id);
+   fire(6,1,true);const silentAhead=flee(ped.id);
    return {far,silentBehind,silentAhead};
   }finally{crowd.dispose();sim.dispose();}
  });

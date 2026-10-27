@@ -1,0 +1,933 @@
+{
+  "source": "Pinned iOS arm64 CBoat::ProcessControl fire branch with logged external effects/events; native gates, positions and timer arithmetic execute unchanged",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "region": [
+    "0x10045c540",
+    "0x10045c6e4"
+  ],
+  "externalCreationRegion": [
+    "0x10045c870",
+    "0x10045c8cc"
+  ],
+  "cases": [
+    {
+      "input": {
+        "model": 430,
+        "health": 249,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 0,
+        "fail": false
+      },
+      "calls": [
+        {
+          "call": "create",
+          "name": "fire_car",
+          "position": [
+            -1.5,
+            -0.5,
+            2.200000047683716
+          ],
+          "ignoreBounding": 0
+        },
+        {
+          "call": "play"
+        },
+        {
+          "call": "constructEvent"
+        },
+        {
+          "call": "globalEventGroup"
+        },
+        {
+          "call": "addEvent"
+        },
+        {
+          "call": "destroyEvent"
+        }
+      ],
+      "timerMs": 20.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 0,
+        "fail": false
+      },
+      "calls": [
+        {
+          "call": "create",
+          "name": "fire_car",
+          "position": [
+            0.4000000059604645,
+            -2.4000000953674316,
+            1.7999999523162842
+          ],
+          "ignoreBounding": 0
+        },
+        {
+          "call": "play"
+        },
+        {
+          "call": "constructEvent"
+        },
+        {
+          "call": "globalEventGroup"
+        },
+        {
+          "call": "addEvent"
+        },
+        {
+          "call": "destroyEvent"
+        }
+      ],
+      "timerMs": 20.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 453,
+        "health": 249,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 0,
+        "fail": false
+      },
+      "calls": [
+        {
+          "call": "create",
+          "name": "fire_car",
+          "position": [
+            2.0,
+            -1.0,
+            1.5
+          ],
+          "ignoreBounding": 0
+        },
+        {
+          "call": "play"
+        },
+        {
+          "call": "constructEvent"
+        },
+        {
+          "call": "globalEventGroup"
+        },
+        {
+          "call": "addEvent"
+        },
+        {
+          "call": "destroyEvent"
+        }
+      ],
+      "timerMs": 20.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 484,
+        "health": 249,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 0,
+        "fail": false
+      },
+      "calls": [
+        {
+          "call": "create",
+          "name": "fire_car",
+          "position": [
+            -1.5,
+            -0.5,
+            2.200000047683716
+          ],
+          "ignoreBounding": 0
+        },
+        {
+          "call": "play"
+        },
+        {
+          "call": "constructEvent"
+        },
+        {
+          "call": "globalEventGroup"
+        },
+        {
+          "call": "addEvent"
+        },
+        {
+          "call": "destroyEvent"
+        }
+      ],
+      "timerMs": 20.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 0,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [
+        {
+          "call": "create",
+          "name": "fire_car",
+          "position": [
+            0.4000000059604645,
+            -2.4000000953674316,
+            1.7999999523162842
+          ],
+          "ignoreBounding": 0
+        },
+        {
+          "call": "play"
+        },
+        {
+          "call": "constructEvent"
+        },
+        {
+          "call": "globalEventGroup"
+        },
+        {
+          "call": "addEvent"
+        },
+        {
+          "call": "destroyEvent"
+        }
+      ],
+      "timerMs": 1020.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 0,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": true,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 1020.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [
+        {
+          "call": "create",
+          "name": "fire_car",
+          "position": [
+            0.4000000059604645,
+            -2.4000000953674316,
+            1.7999999523162842
+          ],
+          "ignoreBounding": 0
+        },
+        {
+          "call": "play"
+        },
+        {
+          "call": "constructEvent"
+        },
+        {
+          "call": "globalEventGroup"
+        },
+        {
+          "call": "addEvent"
+        },
+        {
+          "call": "destroyEvent"
+        }
+      ],
+      "timerMs": 1020.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": true,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 1020.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 250,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 1000.0,
+      "hasFire": false
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 250,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": true,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 1000.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 300,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 1000.0,
+      "hasFire": false
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 300,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": true,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 1000.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 460,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 1000.0,
+      "hasFire": false
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 460,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": true,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 1000.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 460.01,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 0.0,
+      "hasFire": false
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 460.01,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": true,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [
+        {
+          "call": "kill"
+        }
+      ],
+      "timerMs": 0.0,
+      "hasFire": false
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 650,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 0.0,
+      "hasFire": false
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 650,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": true,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [
+        {
+          "call": "kill"
+        }
+      ],
+      "timerMs": 0.0,
+      "hasFire": false
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 1000,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 0.0,
+      "hasFire": false
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 1000,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": true,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [
+        {
+          "call": "kill"
+        }
+      ],
+      "timerMs": 0.0,
+      "hasFire": false
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": 199,
+        "dy": 199,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [
+        {
+          "call": "create",
+          "name": "fire_car",
+          "position": [
+            0.4000000059604645,
+            -2.4000000953674316,
+            1.7999999523162842
+          ],
+          "ignoreBounding": 0
+        },
+        {
+          "call": "play"
+        },
+        {
+          "call": "constructEvent"
+        },
+        {
+          "call": "globalEventGroup"
+        },
+        {
+          "call": "addEvent"
+        },
+        {
+          "call": "destroyEvent"
+        }
+      ],
+      "timerMs": 1020.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": 199,
+        "dy": 199,
+        "dz": 0,
+        "existing": true,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 1020.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": 200,
+        "dy": 0,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 1000.0,
+      "hasFire": false
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": 200,
+        "dy": 0,
+        "dz": 0,
+        "existing": true,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 1000.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": -200,
+        "dy": 0,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 1000.0,
+      "hasFire": false
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": -200,
+        "dy": 0,
+        "dz": 0,
+        "existing": true,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 1000.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": 0,
+        "dy": 200,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 1000.0,
+      "hasFire": false
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": 0,
+        "dy": 200,
+        "dz": 0,
+        "existing": true,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 1000.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": 0,
+        "dy": -200,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 1000.0,
+      "hasFire": false
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": 0,
+        "dy": -200,
+        "dz": 0,
+        "existing": true,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 1000.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": 0,
+        "dy": 0,
+        "dz": 1000,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [
+        {
+          "call": "create",
+          "name": "fire_car",
+          "position": [
+            0.4000000059604645,
+            -2.4000000953674316,
+            1.7999999523162842
+          ],
+          "ignoreBounding": 0
+        },
+        {
+          "call": "play"
+        },
+        {
+          "call": "constructEvent"
+        },
+        {
+          "call": "globalEventGroup"
+        },
+        {
+          "call": "addEvent"
+        },
+        {
+          "call": "destroyEvent"
+        }
+      ],
+      "timerMs": 1020.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": 0,
+        "dy": 0,
+        "dz": 1000,
+        "existing": true,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 1020.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": true,
+        "wrecked": true,
+        "timeStep": 1,
+        "timerMs": 1000,
+        "fail": false
+      },
+      "calls": [
+        {
+          "call": "kill"
+        }
+      ],
+      "timerMs": 0.0,
+      "hasFire": false
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 1,
+        "timerMs": 0,
+        "fail": true
+      },
+      "calls": [
+        {
+          "call": "create",
+          "name": "fire_car",
+          "position": [
+            0.4000000059604645,
+            -2.4000000953674316,
+            1.7999999523162842
+          ],
+          "ignoreBounding": 0
+        }
+      ],
+      "timerMs": 20.0,
+      "hasFire": false
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 0.05,
+        "timerMs": 4999,
+        "fail": false
+      },
+      "calls": [
+        {
+          "call": "create",
+          "name": "fire_car",
+          "position": [
+            0.4000000059604645,
+            -2.4000000953674316,
+            1.7999999523162842
+          ],
+          "ignoreBounding": 0
+        },
+        {
+          "call": "play"
+        },
+        {
+          "call": "constructEvent"
+        },
+        {
+          "call": "globalEventGroup"
+        },
+        {
+          "call": "addEvent"
+        },
+        {
+          "call": "destroyEvent"
+        }
+      ],
+      "timerMs": 5000.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": false,
+        "wrecked": false,
+        "timeStep": 0.1,
+        "timerMs": 4999,
+        "fail": false
+      },
+      "calls": [
+        {
+          "call": "create",
+          "name": "fire_car",
+          "position": [
+            0.4000000059604645,
+            -2.4000000953674316,
+            1.7999999523162842
+          ],
+          "ignoreBounding": 0
+        },
+        {
+          "call": "play"
+        },
+        {
+          "call": "constructEvent"
+        },
+        {
+          "call": "globalEventGroup"
+        },
+        {
+          "call": "addEvent"
+        },
+        {
+          "call": "destroyEvent"
+        },
+        {
+          "call": "explode"
+        }
+      ],
+      "timerMs": 5001.0,
+      "hasFire": true
+    },
+    {
+      "input": {
+        "model": 452,
+        "health": 249,
+        "dx": 0,
+        "dy": 0,
+        "dz": 0,
+        "existing": true,
+        "wrecked": false,
+        "timeStep": 0,
+        "timerMs": 0,
+        "fail": false
+      },
+      "calls": [],
+      "timerMs": 0.0,
+      "hasFire": true
+    }
+  ]
+}

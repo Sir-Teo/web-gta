@@ -9,8 +9,10 @@ test('Grove crew recruitment follows, fights and disbands',async({page})=>{
   // Zero-star law loads officer assets without patrolling foot cops.
   const law=new WantedSystem();
   const crowd=new WorldPedestrians(sim,scene,base,()=>undefined,law);
+  // This isolated scene has no SCM stat store; supply the recruit fixture's total respect.
+  crowd.totalRespect=()=>400;
   // Families turf: recruitable homies wander nearby.
-  crowd.gangTurf=()=>({gang:1,strength:255});
+  crowd.gangTurf=()=>({gang:1,strength:255});crowd.gangsNeeded=()=>1<<1;
   const out:Record<string,unknown>={};
   try{
    for(let i=0;i<300&&!crowd.snapshot().people.some((p:any)=>p.gang===1);i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
@@ -86,8 +88,10 @@ test('an armed homie shoots at the one attacking CJ, not at CJ',async({page})=>{
   // Zero-star law loads officer assets without patrolling foot cops.
   const law=new WantedSystem();
   const crowd=new WorldPedestrians(sim,scene,base,()=>undefined,law);
+  // This isolated scene has no SCM stat store; supply the recruit fixture's total respect.
+  crowd.totalRespect=()=>400;
   // Families turf: recruitable homies wander nearby.
-  crowd.gangTurf=()=>({gang:1,strength:255});
+  crowd.gangTurf=()=>({gang:1,strength:255});crowd.gangsNeeded=()=>1<<1;
   const out:Record<string,unknown>={};
   try{
    for(let i=0;i<300&&!crowd.snapshot().people.some((p:any)=>p.gang===1);i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}

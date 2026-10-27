@@ -1,4 +1,5 @@
 import {test,expect,type Page} from '@playwright/test';
+import {writeFileSync} from 'node:fs';
 import {endStoryMission} from './freeRoam';
 
 const state=(page:Page)=>page.evaluate(()=>(window as any).__game.state());
@@ -29,8 +30,11 @@ test('two dead in Grove Street bring an ambulance whose medics revive one',async
  await expect.poll(async()=>(await emergency(page)).accidents.length,{timeout:20000}).toBeGreaterThanOrEqual(2);
  // The ambulance comes, siren on: at the next 4096 ms tick once 30 s of play have passed (LastTimeAmbulanceCreated is
  // 0 at Init). The bodies' 30 s to fading (CPopulation::ManagePed) is held here meanwhile.
+ // Let the native cooldown elapse before starting the arrival budget. Headless rendering can advance only about
+ // half a game second per wall second; 60 wall seconds previously ended before the first eligible dispatch tick.
+ await page.waitForFunction(ids=>{const g=(window as any).__game,e=g.emergency();for(const id of ids)g.pedestrians().holdDead(id);return e.units.length>0||e.seconds*1000>e.lastAmbulanceMs+30000;},killed,{timeout:120000});
  await expect.poll(async()=>page.evaluate(ids=>{const g=(window as any).__game;for(const id of ids)g.pedestrians().holdDead(id);
-  return g.state().emergency.units.length;},killed),{timeout:60000,intervals:[1000]}).toBeGreaterThan(0);
+  const e=g.emergency();return {units:e.units.length,seconds:e.seconds,enabled:e.enabled(),wanted:e.wanted(),outside:e.outside(),busy:e.gameLogicBusy(),level:e.level(),cars:g.fleet().cars.size,free:e.accidents.numberOfFree(),error:e.error??null};},killed).then(s=>{writeFileSync('artifacts/emergency-ambulance-dispatch.json',JSON.stringify(s,null,2));return s.units;}),{timeout:60000,intervals:[1000]}).toBeGreaterThan(0);
  const unit=(await emergency(page)).units[0];
  expect(unit.modelId).toBe(416);expect(unit.siren).toBe(true);
  // Its crew get out and one of them treats an accident.

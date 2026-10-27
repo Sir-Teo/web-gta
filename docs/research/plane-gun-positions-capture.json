@@ -1,0 +1,239 @@
+{
+  "source": {
+    "url": "https://raw.githubusercontent.com/Google61/gta3sa.app/67f70cb72eb207aeca650ea9e8c10b0e7dda166a/gta3sa",
+    "bytes": 14226544,
+    "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78"
+  },
+  "function": "CVehicle::GetPlaneGunsPosition",
+  "pcAddress": "0x6D4290",
+  "arm64Address": "0x100483c60",
+  "pcReference": "https://github.com/gta-reversed/gta-reversed/blob/4281f82d8af83e14935ac84a69dfd1ceebb9f256/source/game_sa/Entity/Vehicle/Vehicle.cpp",
+  "notes": [
+    "The Hunter global (PC VehicleGunOffset[0]) is missing from the reversed data; the pinned initializer supplies (0, 4.41, -1.27). This differs from scripted FIRE_HUNTER_GUN (0, 4.8, -1.3).",
+    "The other model constants and Rustler spacing agree with the reversed PC function. The PC source returns a nonzero model dummy before applying the Rustler fallback offset; this capture does not replace that PC branch ordering.",
+    "CVehicleModelInfo::PreprocessHierarchy transforms the dummy through its parents up to, but excluding, the clump root. Descriptor flags 9 identify a dummy.",
+    "This captures positions and dummy identity; PC versus mobile second-barrel mirroring and full firing/FX behavior are outside this table."
+  ],
+  "dummyRecords": [
+    {
+      "type": "helicopter",
+      "address": "0x10064bca8",
+      "name": "miscpos_a",
+      "id": 13,
+      "flags": 9
+    },
+    {
+      "type": "plane",
+      "address": "0x10064bf88",
+      "name": "miscpos_a",
+      "id": 13,
+      "flags": 9
+    }
+  ],
+  "records": [
+    {
+      "model": 425,
+      "name": "Hunter",
+      "offset": [
+        0,
+        4.409999847412109,
+        -1.2699999809265137
+      ]
+    },
+    {
+      "model": 487,
+      "name": "Maverick",
+      "offset": [
+        0,
+        2.8499999046325684,
+        -0.5
+      ]
+    },
+    {
+      "model": 497,
+      "name": "Police Maverick",
+      "offset": [
+        0,
+        2.8499999046325684,
+        -0.5
+      ]
+    },
+    {
+      "model": 447,
+      "name": "Seasparrow",
+      "offset": [
+        -0.5,
+        2.4000000953674316,
+        -0.7850000262260437
+      ]
+    },
+    {
+      "model": 548,
+      "name": "Cargobob",
+      "offset": [
+        0,
+        6.869999885559082,
+        -1.649999976158142
+      ]
+    },
+    {
+      "model": 476,
+      "name": "Rustler",
+      "offset": [
+        2.190000057220459,
+        1.5,
+        -0.5799999833106995
+      ]
+    },
+    {
+      "model": 520,
+      "name": "Hydra",
+      "offset": [
+        1.4800000190734863,
+        0.4399999976158142,
+        -0.5199999809265137
+      ]
+    },
+    {
+      "model": 576,
+      "name": "Tornado",
+      "offset": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "model": 464,
+      "name": "RC Baron",
+      "offset": [
+        0,
+        0.44999998807907104,
+        0
+      ]
+    }
+  ],
+  "rustlerStep": 0.20000000298023224,
+  "instructions": [
+    {
+      "address": "0x100486888",
+      "word": "0x52a811a9"
+    },
+    {
+      "address": "0x10048688c",
+      "word": "0x7283d709"
+    },
+    {
+      "address": "0x100486894",
+      "word": "0x52b7f449"
+    },
+    {
+      "address": "0x100486898",
+      "word": "0x7291eb89"
+    },
+    {
+      "address": "0x1004868a8",
+      "word": "0x52a806c9"
+    },
+    {
+      "address": "0x1004868ac",
+      "word": "0x728cccc9"
+    },
+    {
+      "address": "0x1004868b4",
+      "word": "0x52b7e00a"
+    },
+    {
+      "address": "0x1004868d4",
+      "word": "0x52a80329"
+    },
+    {
+      "address": "0x1004868d8",
+      "word": "0x72933349"
+    },
+    {
+      "address": "0x1004868e0",
+      "word": "0x52b7e909"
+    },
+    {
+      "address": "0x1004868e4",
+      "word": "0x729eb869"
+    },
+    {
+      "address": "0x1004868f4",
+      "word": "0x52a81b69"
+    },
+    {
+      "address": "0x1004868f8",
+      "word": "0x729ae149"
+    },
+    {
+      "address": "0x100486900",
+      "word": "0x52b7fa69"
+    },
+    {
+      "address": "0x100486904",
+      "word": "0x72866669"
+    },
+    {
+      "address": "0x100486914",
+      "word": "0x52a80189"
+    },
+    {
+      "address": "0x100486918",
+      "word": "0x72851ec9"
+    },
+    {
+      "address": "0x10048691c",
+      "word": "0x320a1fea"
+    },
+    {
+      "address": "0x100486924",
+      "word": "0x52b7e28b"
+    },
+    {
+      "address": "0x100486928",
+      "word": "0x728f5c2b"
+    },
+    {
+      "address": "0x100486950",
+      "word": "0x52a7f7ac"
+    },
+    {
+      "address": "0x100486954",
+      "word": "0x728e148c"
+    },
+    {
+      "address": "0x100486958",
+      "word": "0x52a7dc2d"
+    },
+    {
+      "address": "0x10048695c",
+      "word": "0x7288f5cd"
+    },
+    {
+      "address": "0x100486964",
+      "word": "0x52b7e0ac"
+    },
+    {
+      "address": "0x100486968",
+      "word": "0x7283d70c"
+    },
+    {
+      "address": "0x100486988",
+      "word": "0x52a7dccc"
+    },
+    {
+      "address": "0x10048698c",
+      "word": "0x728ccccc"
+    },
+    {
+      "address": "0x100486938",
+      "word": "0x52a7c98c"
+    },
+    {
+      "address": "0x10048693c",
+      "word": "0x729999ac"
+    }
+  ]
+}

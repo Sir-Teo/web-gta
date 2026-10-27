@@ -6,7 +6,8 @@ import type {WorldPlane} from '../src/simulation/WorldPlane';
 import capture from './fixtures/native-heli-weapons.json';
 beforeAll(async()=>{await RAPIER.init();});
 function setup(){
- const sim=new Simulation();sim.player.position={x:0,y:99,z:-50};sim.player.previous={...sim.player.position};sim.playerBody.setTranslation({x:0,y:100,z:-50},true);
+ // Align the target with the Hunter's native muzzle, 1.27 below its origin.
+ const sim=new Simulation();sim.player.position={x:0,y:97.83,z:-50};sim.player.previous={...sim.player.position};sim.playerBody.setTranslation({x:0,y:98.73,z:-50},true);
  const body=sim.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,100,0));sim.world.createCollider(RAPIER.ColliderDesc.cuboid(2,1,4),body);
  const heli={body,modelId:425,occupied:false,remoteControlled:false,health:1000,armed:true,helicopter:true,frozen:false,weaponSelection:0,assets:{collision:{bounds:{radius:6}}},heliPilot:{mission:23}}as unknown as WorldPlane;
  const planes=new Set([heli]),boats:any[]=[],cars:any[]=[],crowd={damageCollider:vi.fn(()=>false),targets:()=>[],frighten(){}};

@@ -1,4 +1,4 @@
-import {describe,expect,test} from 'vitest';
+import {beforeAll,describe,expect,test} from 'vitest';
 import {readFileSync} from 'node:fs';
 import {ScmThread,type ScmThreadHost,type ScmWorldCommands} from '../src/engine/ScmThread';
 import {ScmGameState} from '../src/engine/ScmGameState';
@@ -13,13 +13,18 @@ function threadAt(bytes:Uint8Array,offset:number,game:ScmGameState,world?:Partia
  return new ScmThread(bytes,offset,0,undefined,host);
 }
 const runOne=(thread:ScmThread)=>{try{thread.run(0,1);}catch(error){if(!String(error).includes('watchdog'))throw error;}};
-function find(name:string){
+// Decode the original program once; each command still runs against its own copy of script memory.
+let original:{bytes:Uint8Array;instructions:ReturnType<typeof decodeScmInstructions>};
+beforeAll(()=>{
  const bytes=file(),header=readScmHeader(bytes);
  const blocks=[decodeScmInstructions(bytes,header.entry,header.mainSize)];
  for(const m of header.missions){try{blocks.push(decodeScmInstructions(bytes,m.start,m.end));}catch{/* undecodable tail */}}
- const found=blocks.flat().find(i=>i.name===name&&i.parameters.every(p=>[1,4,5,6].includes(p.type)));
+ original={bytes,instructions:blocks.flat()};
+});
+function find(name:string){
+ const found=original.instructions.find(i=>i.name===name&&i.parameters.every(p=>[1,4,5,6].includes(p.type)));
  expect(found,`${name} with literal operands`).toBeDefined();
- return {bytes,instruction:found!};
+ return {bytes:original.bytes.slice(),instruction:found!};
 }
 
 describe('TheCamera script commands',()=>{

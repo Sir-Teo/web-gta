@@ -9,6 +9,8 @@ test('a phone recruits a Grove homie with Aim and Recruit, then orders him to st
  await page.goto('/?touch=1');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await endStoryMission(page);
+ // Supply native respect for this touch-control fixture; recruitment capacity follows stat 64.
+ await page.evaluate(()=>{const stats=(window as any).__game.missionForProfiling().runtime.game.stats;stats.set(64,400);stats.set(68,400);});
  // A Families member on the street (Grove Street is their turf).
  await page.waitForFunction(()=>(window as any).__game.pedestrians()?.snapshot().people.some((p:any)=>p.gang===1&&!p.follow&&p.health>0),undefined,{timeout:120000});
  const press=async(selector:string,type:string,id:number)=>page.evaluate(({selector,type,id})=>{const b=document.querySelector(selector)!,r=b.getBoundingClientRect();

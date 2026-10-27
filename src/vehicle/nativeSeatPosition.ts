@@ -15,6 +15,13 @@ export function nativeSeatPosition(o:{front?:V3;back?:V3;boat?:boolean;bike?:boo
  if(seat===2)return {...back};
  return {...front};
 }
+/** CPed::SetPedPositionInCar (PC 0x5DF910): animation group 13 seats its rear passengers across the van.
+ * The left one also moves 0.6 along the vehicle's forward axis before the quarter turn. Native Z rotation and
+ * renderer Y rotation have the same sign. The raw dummy is never changed. Bike lean and combine tilt are separate. */
+export function nativeCarSeatPose(local:V3,seat:'driver'|number,animationGroup:number){
+ if(animationGroup===13&&seat===1)return {local:{...local,y:local.y+.6},headingOffset:-Math.PI/2};
+ return {local:{...local},headingOffset:animationGroup===13&&seat===2?Math.PI/2:0};
+}
 /** A frame's translation, by name, from a vehicle model's frame list (native model space, the dummy's own matrix). */
 export function modelDummy(frames:readonly {name:string;matrix:ArrayLike<number>}[]|undefined,name:string):V3|undefined{
  const frame=frames?.find(f=>f.name.toLowerCase()===name);return frame?{x:frame.matrix[12],y:frame.matrix[13],z:frame.matrix[14]}:undefined;

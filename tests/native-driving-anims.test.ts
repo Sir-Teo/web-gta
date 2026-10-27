@@ -10,12 +10,12 @@ test('a steering clip blends in from its first frame, then takes the steer weigh
  const d=new NativeDrivingAnims();
  d.step(dt,input({steer:.305}));
  // BlendAnimation starts it at 0 with delta 4; UpdateBlend moves it 4/30 this frame.
- expect(d.clips.get('drive_l')).toMatchObject({time:dt});expect(d.clips.get('drive_l')!.amount).toBeCloseTo(4/30);
+ expect(d.clips.get('drive_l')!.time).toBe(Math.fround(dt));expect(d.clips.get('drive_l')!.amount).toBeCloseTo(4/30);
  d.step(dt,input({steer:.305}));
  expect(d.clips.get('drive_l')!.amount).toBeCloseTo(.5);
  for(let i=0;i<10;i++)d.step(dt,input({steer:.305}));
  expect(d.clips.get('drive_l')!.time).toBeCloseTo(.133);
- expect(d.overlays()).toEqual([{clip:'drive_l',amount:.5,seconds:.133}]);
+ expect(d.overlays()).toEqual([{clip:'drive_l',amount:.5,seconds:Math.fround(.133)}]);
 });
 test('the idle must be fully in before any steering clip starts',()=>{
  const d=new NativeDrivingAnims();d.step(dt,input({steer:.3,idleFull:false}));expect(d.clips.size).toBe(0);

@@ -1,0 +1,28 @@
+import {test,expect} from '@playwright/test';
+import {writeFileSync} from 'node:fs';
+import {endStoryMission} from './freeRoam';
+
+test('real scripted drive-by foot contacts retain type and group gates with native impact ordering',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);await page.waitForFunction(()=>{const g=(window as any).__game;return g?.state().player.grounded&&g.driveby()?.snapshot().ready&&g.weapons().fx?.effects;},undefined,{timeout:60000});
+ const handles=await page.evaluate(()=>{const g=(window as any).__game,m=g.missionForProfiling(),p=g.sim.player.position;g.sim.playerCanBeDamaged=false;return {car:m.vehicles.create(492,{x:p.x+20,y:-p.z,z:p.y+.7},0),victim:m.peds.create(7,'MALE01',{x:p.x+12,y:-p.z,z:p.y})};});
+ await page.waitForFunction(h=>{const g=(window as any).__game,m=g.missionForProfiling(),p=m.peds.entity(h.victim);return !!m.vehicles.entity(h.car)&&!!p?.view.hasHitSpheres&&!p.collisionWait;},handles,{timeout:60000});
+ const shooter=await page.evaluate(h=>{const m=(window as any).__game.missionForProfiling();m.runtime.world.freezePedPosition(h.victim,true);m.runtime.world.setPedHealth(h.victim,5000);m.runtime.world.setPedSuffersCriticalHits(h.victim,false);return m.peds.createInCar(7,'MALE01',h.car,0);},handles);
+ await page.waitForFunction(h=>!!(window as any).__game.missionForProfiling().peds.entity(h),shooter,{timeout:45000});
+ await page.evaluate(({handles,shooter})=>{const g=(window as any).__game,m=g.missionForProfiling(),w=g.weapons(),car=m.vehicles.entity(handles.car),victim=m.peds.entity(handles.victim),rider=m.peds.entity(shooter),group=m.adapterRef.createGroup(0),fx=w.fx.effects,s={car,victim,rider,group,events:[] as any[],traces:[] as any[],oldLine:w.npcBulletLine,oldAudio:w.onBulletHit,oldBlood:fx.blood,random:Math.random};g.__drivebyFoot=s;m.adapterRef.setGroupLeader(group,shooter);
+  w.npcBulletLine=function(...args:any[]){const hit=s.oldLine.apply(this,args);if(args[3]?.handle===car.car.body.handle){Math.random=s.random;s.traces.push({collider:hit?.collider.handle,piece:hit?.pedPiece});}return hit;};w.onBulletHit=(...args:any[])=>{if(args[0].collider.handle===victim.collider.handle)s.events.push({kind:'audio',health:victim.health});s.oldAudio?.(...args);};fx.blood=function(...args:any[]){s.events.push({kind:'blood',count:args[2],health:victim.health});return s.oldBlood.apply(this,args);};
+ },{handles,shooter});
+ const results:any[]=[];
+ for(const mode of ['same type','grouped','separated']){
+  await page.waitForTimeout(100);
+  await page.evaluate(({mode,handles,shooter})=>{const g=(window as any).__game,m=g.missionForProfiling(),w=g.weapons(),s=g.__drivebyFoot,p=s.victim,head=p.view.hitSpheres().find((h:any)=>h.piece===9).center;
+   s.rider.pedType=mode==='same type'?'GANG1':'GANG2';if(mode==='grouped')m.adapterRef.setGroupMember(s.group,handles.victim);if(mode==='separated')m.adapterRef.removePedFromGroup(handles.victim);
+   const ray=Array.from({length:8},(_,i)=>({x:Math.cos(i*Math.PI/4),y:0,z:Math.sin(i*Math.PI/4)})).map(d=>({d,from:{x:head.x-d.x*6,y:head.y,z:head.z-d.z*6}})).find(r=>{const h=w.npcBulletLine(r.from,r.d,20,s.car.car.body);return h?.collider.handle===p.collider.handle&&h.pedPiece===9;});if(!ray)throw Error('No native foot head ray');g.placeFleetCar(`handle:${s.car.car.body.handle}`,ray.from.x-1,ray.from.y-.75,ray.from.z,0);m.runtime.world.freezeVehiclePosition(handles.car,true);s.events.length=0;s.traces.length=0;s.before=p.health;s.random=Math.random;
+   // Center only the native dispersion draws for the tested round; the first actual source ray restores them.
+   Math.random=()=>.5;m.runtime.world.givePedScriptedTask(shooter,{kind:'driveBy',targetPed:-1,targetVehicle:-1,x:head.x,y:-head.z,z:head.y,radius:100,type:0,rightHandCarSeat:true,fireRate:100},0x0713);
+  },{mode,handles,shooter});
+  await page.waitForFunction(()=>{const s=(window as any).__game.__drivebyFoot;if(!s.rider.driveBy?.shots)return false;s.shots=s.rider.driveBy.shots;s.rider.driveBy=undefined;return true;},undefined,{timeout:15000,polling:50});
+  results.push(await page.evaluate(mode=>{const g=(window as any).__game,s=g.__drivebyFoot;return {mode,before:s.before,health:s.victim.health,damage:g.driveby().gun.info.damage*s.victim.defendMult,grouped:g.pedestrians().sameScriptGroup(s.rider,s.victim),shots:s.shots,collider:s.victim.collider.handle,traces:[...s.traces],events:[...s.events]};},mode));
+ }
+ await page.evaluate(({handles,shooter})=>{const g=(window as any).__game,m=g.missionForProfiling(),s=g.__drivebyFoot,w=g.weapons();Math.random=s.random;w.npcBulletLine=s.oldLine;w.onBulletHit=s.oldAudio;w.fx.effects.blood=s.oldBlood;m.adapterRef.removeGroup(s.group);m.runtime.world.deletePed(shooter);m.runtime.world.deletePed(handles.victim);m.runtime.world.deleteVehicle(handles.car);},{handles,shooter});
+ writeFileSync('artifacts/driveby-foot-source.json',JSON.stringify({results,errors},null,2));for(const r of results){expect(r.shots).toBe(1);expect(r.traces).toEqual([{collider:r.collider,piece:9}]);if(r.mode==='same type'){expect(r.health).toBe(r.before);expect(r.events).toEqual([]);}else if(r.mode==='grouped'){expect(r.grouped).toBe(true);expect(r.health).toBe(r.before);expect(r.events).toEqual([{kind:'audio',health:r.before}]);}else{expect(r.grouped).toBe(false);expect(r.before-r.health).toBeCloseTo(r.damage,4);expect(r.events).toEqual([{kind:'audio',health:r.before},{kind:'blood',count:16,health:r.health}]);}}expect(errors).toEqual([]);
+});

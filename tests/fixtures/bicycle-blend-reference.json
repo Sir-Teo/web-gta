@@ -1,0 +1,5647 @@
+{
+  "source": "Native BlendAnimation with actual SyncAnimation/Start/SetCurrentTime; declared static descriptors and zero-node allocation, UncompressAnimation stub",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "function": "0x10013d5dc",
+  "descriptorTable": "0x1006248b0",
+  "cases": [
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.0,
+          "delta": -1.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 208,
+            "amount": 1,
+            "delta": 4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.0,
+          "delta": -1.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 208,
+            "amount": 1,
+            "delta": 0,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.0,
+          "delta": -1.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 208,
+            "amount": 1,
+            "delta": -4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.01,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.01,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 208,
+            "amount": 0.99,
+            "delta": 4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": 3.9600000381469727,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.9900000095367432,
+          "delta": -3.9600000381469727,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.01,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.01,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 208,
+            "amount": 0.99,
+            "delta": 0,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": 3.9600000381469727,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.9900000095367432,
+          "delta": -3.9600000381469727,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.01,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.01,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 208,
+            "amount": 0.99,
+            "delta": -4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": 3.9600000381469727,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.9900000095367432,
+          "delta": -4.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.25,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.25,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.25,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 208,
+            "amount": 0.75,
+            "delta": 4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.25,
+          "delta": 3.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.75,
+          "delta": -3.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.25,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.25,
+          "delta": -1.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.25,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 208,
+            "amount": 0.75,
+            "delta": 0,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.25,
+          "delta": 3.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.75,
+          "delta": -3.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.25,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.25,
+          "delta": -1.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.25,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 208,
+            "amount": 0.75,
+            "delta": -4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.25,
+          "delta": 3.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.75,
+          "delta": -4.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.5,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.5,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.5,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 208,
+            "amount": 0.5,
+            "delta": 4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.5,
+          "delta": 2.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.5,
+          "delta": -2.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.5,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.5,
+          "delta": -2.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.5,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 208,
+            "amount": 0.5,
+            "delta": 0,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.5,
+          "delta": 2.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.5,
+          "delta": -2.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.5,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.5,
+          "delta": -2.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.5,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 208,
+            "amount": 0.5,
+            "delta": -4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.5,
+          "delta": 2.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.5,
+          "delta": -4.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 1,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 1,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 208,
+            "amount": 0,
+            "delta": 4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.0,
+          "delta": -1.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 1,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 1,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 208,
+            "amount": 0,
+            "delta": 0,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.0,
+          "delta": -1.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 1,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 1,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 208,
+            "amount": 0,
+            "delta": -4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.0,
+          "delta": -1.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 1,
+            "time": 0
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.0,
+          "speed": 1.0,
+          "flags": 4147
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 1,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4147
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 1,
+            "time": 0.73333335
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.0,
+          "speed": 1.0,
+          "flags": 4147
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.0,
+          "speed": 1.0,
+          "flags": 4147
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 194,
+            "amount": 1,
+            "duration": 0.033333335
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.0,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 194,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.0,
+          "speed": 1.0,
+          "flags": 5
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.0,
+          "delta": -1.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 207,
+            "amount": 1,
+            "delta": 4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.0,
+          "delta": -1.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 207,
+            "amount": 1,
+            "delta": 0,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.0,
+          "delta": -1.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 207,
+            "amount": 1,
+            "delta": -4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.01,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.01,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 207,
+            "amount": 0.99,
+            "delta": 4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": 3.9600000381469727,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.9900000095367432,
+          "delta": -3.9600000381469727,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.01,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.01,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 207,
+            "amount": 0.99,
+            "delta": 0,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": 3.9600000381469727,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.9900000095367432,
+          "delta": -3.9600000381469727,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.01,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.01,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 207,
+            "amount": 0.99,
+            "delta": -4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": 3.9600000381469727,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.9900000095367432,
+          "delta": -4.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.25,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.25,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.25,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 207,
+            "amount": 0.75,
+            "delta": 4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.25,
+          "delta": 3.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.75,
+          "delta": -3.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.25,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.25,
+          "delta": -1.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.25,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 207,
+            "amount": 0.75,
+            "delta": 0,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.25,
+          "delta": 3.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.75,
+          "delta": -3.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.25,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.25,
+          "delta": -1.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.25,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 207,
+            "amount": 0.75,
+            "delta": -4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.25,
+          "delta": 3.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.75,
+          "delta": -4.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.5,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.5,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.5,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 207,
+            "amount": 0.5,
+            "delta": 4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.5,
+          "delta": 2.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.5,
+          "delta": -2.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.5,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.5,
+          "delta": -2.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.5,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 207,
+            "amount": 0.5,
+            "delta": 0,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.5,
+          "delta": 2.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.5,
+          "delta": -2.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.5,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.5,
+          "delta": -2.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.5,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 207,
+            "amount": 0.5,
+            "delta": -4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.5,
+          "delta": 2.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.5,
+          "delta": -4.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 1,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 1,
+            "delta": -4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 207,
+            "amount": 0,
+            "delta": 4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.0,
+          "delta": -1.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 1,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 1,
+            "delta": 0,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 207,
+            "amount": 0,
+            "delta": 0,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.0,
+          "delta": -1.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 1,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 1,
+            "delta": 4,
+            "time": 0.2,
+            "speed": 0.6
+          },
+          {
+            "identifier": 207,
+            "amount": 0,
+            "delta": -4,
+            "time": 0.3,
+            "duration": 0.6666667
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.20000000298023224,
+          "speed": 0.6000000238418579,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.0,
+          "delta": -1.0,
+          "time": 0.30000001192092896,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 1,
+            "time": 0
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.0,
+          "speed": 1.0,
+          "flags": 4147
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 1,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4147
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 1,
+            "time": 0.73333335
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.0,
+          "speed": 1.0,
+          "flags": 4147
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.0,
+          "speed": 1.0,
+          "flags": 4147
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 194,
+            "amount": 1,
+            "duration": 0.033333335
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.0,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 194,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.0,
+          "speed": 1.0,
+          "flags": 5
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.0001,
+            "delta": -4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 9.999999747378752e-05,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.0001,
+            "delta": -0.05,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 9.999999747378752e-05,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.0001,
+            "delta": -0.0004,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 9.999999747378752e-05,
+          "delta": -0.00039999998989515007,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.0001,
+            "delta": 0,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 9.999999747378752e-05,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.0001,
+            "delta": 4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 9.999999747378752e-05,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.01,
+            "delta": -4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.01,
+            "delta": -0.05,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.01,
+            "delta": -0.04,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": -0.03999999910593033,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.01,
+            "delta": 0,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.01,
+            "delta": 4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.0125,
+            "delta": -4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.012500000186264515,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.0125,
+            "delta": -0.05,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.012500000186264515,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.0125,
+            "delta": -0.05,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.012500000186264515,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.0125,
+            "delta": 0,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.012500000186264515,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.0125,
+            "delta": 4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.012500000186264515,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.1,
+            "delta": -4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.10000000149011612,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.1,
+            "delta": -0.05,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.10000000149011612,
+          "delta": -0.4000000059604645,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.1,
+            "delta": -0.4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.10000000149011612,
+          "delta": -0.4000000059604645,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.1,
+            "delta": 0,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.10000000149011612,
+          "delta": -0.4000000059604645,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.1,
+            "delta": 4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.10000000149011612,
+          "delta": -0.4000000059604645,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.5,
+            "delta": -4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.5,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.5,
+            "delta": -0.05,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.5,
+          "delta": -2.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.5,
+            "delta": -2.0,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.5,
+          "delta": -2.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.5,
+            "delta": 0,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.5,
+          "delta": -2.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.5,
+            "delta": 4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.5,
+          "delta": -2.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 1,
+            "delta": -4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 1,
+            "delta": -0.05,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 1,
+            "delta": -4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 1,
+            "delta": 0,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 1,
+            "delta": 4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 1,
+            "time": 0.7333333
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.7333332896232605,
+          "speed": 1.0,
+          "flags": 4147
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 1,
+            "time": 0.73333335
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.0,
+          "speed": 1.0,
+          "flags": 4147
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 1,
+            "time": 0.7333334
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.73333340883255,
+          "speed": 1.0,
+          "flags": 4147
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 207,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.5,
+            "time": 0.2,
+            "otherGroup": 4
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 207,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.5,
+          "delta": -2.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.0001,
+            "delta": -4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 9.999999747378752e-05,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.0001,
+            "delta": -0.05,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 9.999999747378752e-05,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.0001,
+            "delta": -0.0004,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 9.999999747378752e-05,
+          "delta": -0.00039999998989515007,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.0001,
+            "delta": 0,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 9.999999747378752e-05,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.0001,
+            "delta": 4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 9.999999747378752e-05,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.01,
+            "delta": -4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.01,
+            "delta": -0.05,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.01,
+            "delta": -0.04,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": -0.03999999910593033,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.01,
+            "delta": 0,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.01,
+            "delta": 4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.009999999776482582,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.0125,
+            "delta": -4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.012500000186264515,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.0125,
+            "delta": -0.05,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.012500000186264515,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.0125,
+            "delta": -0.05,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.012500000186264515,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.0125,
+            "delta": 0,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.012500000186264515,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.0125,
+            "delta": 4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.012500000186264515,
+          "delta": -0.05000000074505806,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.1,
+            "delta": -4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.10000000149011612,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.1,
+            "delta": -0.05,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.10000000149011612,
+          "delta": -0.4000000059604645,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.1,
+            "delta": -0.4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.10000000149011612,
+          "delta": -0.4000000059604645,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.1,
+            "delta": 0,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.10000000149011612,
+          "delta": -0.4000000059604645,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.1,
+            "delta": 4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.10000000149011612,
+          "delta": -0.4000000059604645,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.5,
+            "delta": -4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.5,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.5,
+            "delta": -0.05,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.5,
+          "delta": -2.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.5,
+            "delta": -2.0,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.5,
+          "delta": -2.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.5,
+            "delta": 0,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.5,
+          "delta": -2.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.5,
+            "delta": 4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.5,
+          "delta": -2.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 1,
+            "delta": -4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 1,
+            "delta": -0.05,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 1,
+            "delta": -4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 1,
+            "delta": 0,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 1,
+            "delta": 4,
+            "time": 0.2
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 1.0,
+          "delta": -4.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 1,
+            "time": 0.7333333
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.7333332896232605,
+          "speed": 1.0,
+          "flags": 4147
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 1,
+            "time": 0.73333335
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.0,
+          "speed": 1.0,
+          "flags": 4147
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 1,
+            "time": 0.7333334
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 1.0,
+          "delta": 0.0,
+          "time": 0.73333340883255,
+          "speed": 1.0,
+          "flags": 4147
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 208,
+        "associations": [
+          {
+            "identifier": 208,
+            "amount": 0.5,
+            "time": 0.2,
+            "otherGroup": 4
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 208,
+      "associations": [
+        {
+          "identifier": 208,
+          "new": true,
+          "amount": 0.0,
+          "delta": 4.0,
+          "time": 0.1818181872367859,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 208,
+          "new": false,
+          "amount": 0.5,
+          "delta": -2.0,
+          "time": 0.20000000298023224,
+          "speed": 1.0,
+          "flags": 4151
+        }
+      ],
+      "events": [
+        "UncompressAnimation",
+        "UncompressAnimation"
+      ]
+    },
+    {
+      "input": {
+        "request": 194,
+        "associations": [
+          {
+            "identifier": 207,
+            "amount": 0.5
+          },
+          {
+            "identifier": 194,
+            "amount": 0.5
+          }
+        ],
+        "duration": 0.6666666865348816,
+        "blend": 4.0
+      },
+      "returned": 194,
+      "associations": [
+        {
+          "identifier": 207,
+          "new": false,
+          "amount": 0.5,
+          "delta": 0.0,
+          "time": 0.0,
+          "speed": 1.0,
+          "flags": 4147
+        },
+        {
+          "identifier": 194,
+          "new": false,
+          "amount": 0.5,
+          "delta": 2.0,
+          "time": 0.0,
+          "speed": 1.0,
+          "flags": 5
+        }
+      ],
+      "events": [
+        "UncompressAnimation"
+      ]
+    }
+  ]
+}

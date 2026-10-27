@@ -1,0 +1,5149 @@
+{
+  "source": "Complete selected run/sprint training and actual body exercise; logged CheckForStatsMessage/DisplayScriptStatUpdateMessage stubs",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "functions": {
+    "sprinting": "0x100265518",
+    "running": "0x100265644",
+    "body": "0x100265280"
+  },
+  "configuration": [
+    50.0,
+    50.0,
+    10.0,
+    5.0,
+    20.0,
+    50.0,
+    50.0,
+    25.0,
+    50.0,
+    10.0,
+    50.0,
+    20.0,
+    0.8,
+    5.0,
+    3.0,
+    0.6,
+    0.45,
+    0.6,
+    0.4,
+    1.5,
+    3.0,
+    2.0,
+    10.0,
+    15.0,
+    15.0,
+    10.0,
+    5.0,
+    15.0,
+    10.0,
+    15.0,
+    10.0,
+    5.0,
+    5.0,
+    300.0,
+    180.0,
+    300.0,
+    300.0,
+    300.0,
+    300.0,
+    120.0,
+    180.0,
+    300.0,
+    150.0,
+    150.0,
+    60.0,
+    600.0,
+    50.0,
+    20.0,
+    50.0,
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    50.0,
+    50.0,
+    50.0,
+    20.0,
+    5.0,
+    1000.0
+  ],
+  "arStatsSha256": "3f8a184d088dc25e166ff0bb067286b5dcac2398de21d3bb4e00b43956d31d25",
+  "cases": [
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 0,
+        "timeStep": 0.5,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 10,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 0,
+        "timeStep": 0.5,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 10,
+      "fat": 200.0,
+      "stamina": 999.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 0,
+        "timeStep": 0.5,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 10,
+      "fat": 200.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 0,
+        "timeStep": 0.5,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 10,
+      "fat": 200.0,
+      "stamina": -1.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 0,
+        "timeStep": 0.8333333134651184,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 16,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 0,
+        "timeStep": 0.8333333134651184,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 16,
+      "fat": 200.0,
+      "stamina": 999.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 0,
+        "timeStep": 0.8333333134651184,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 16,
+      "fat": 200.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 0,
+        "timeStep": 0.8333333134651184,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 16,
+      "fat": 200.0,
+      "stamina": -1.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 0,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 33,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 0,
+        "timeStep": 1.6666666269302368,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 33,
+      "fat": 200.0,
+      "stamina": 999.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 0,
+        "timeStep": 1.6666666269302368,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 33,
+      "fat": 200.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 0,
+        "timeStep": 1.6666666269302368,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 33,
+      "fat": 200.0,
+      "stamina": -1.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 0,
+        "timeStep": 1.0,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 20,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 20,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 0,
+        "timeStep": 1.0,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 20,
+      "fat": 200.0,
+      "stamina": 999.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 20,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 0,
+        "timeStep": 1.0,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 20,
+      "fat": 200.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 20,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 0,
+        "timeStep": 1.0,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 20,
+      "fat": 200.0,
+      "stamina": -1.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 20,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300000,
+        "timeStep": 0.5,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300010,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300000,
+        "timeStep": 0.5,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300010,
+      "fat": 200.0,
+      "stamina": 999.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300000,
+        "timeStep": 0.5,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300010,
+      "fat": 200.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300000,
+        "timeStep": 0.5,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300010,
+      "fat": 200.0,
+      "stamina": -1.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300000,
+        "timeStep": 0.8333333134651184,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300016,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300000,
+        "timeStep": 0.8333333134651184,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300016,
+      "fat": 200.0,
+      "stamina": 999.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300000,
+        "timeStep": 0.8333333134651184,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300016,
+      "fat": 200.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300000,
+        "timeStep": 0.8333333134651184,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300016,
+      "fat": 200.0,
+      "stamina": -1.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300000,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300033,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300000,
+        "timeStep": 1.6666666269302368,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300033,
+      "fat": 200.0,
+      "stamina": 999.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300000,
+        "timeStep": 1.6666666269302368,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300033,
+      "fat": 200.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300000,
+        "timeStep": 1.6666666269302368,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300033,
+      "fat": 200.0,
+      "stamina": -1.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300000,
+        "timeStep": 1.0,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300020,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 20,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300000,
+        "timeStep": 1.0,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300020,
+      "fat": 200.0,
+      "stamina": 999.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 20,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300000,
+        "timeStep": 1.0,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300020,
+      "fat": 200.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 20,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300000,
+        "timeStep": 1.0,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300020,
+      "fat": 200.0,
+      "stamina": -1.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 20,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 0.5,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 110.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": 100.0,
+          "after": 110.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 0.5,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 177.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": 999.0,
+          "after": 1000.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 0.5,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 177.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": 1000.0,
+          "after": 1000.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 0.5,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 9.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": -1.0,
+          "after": 9.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 0.8333333134651184,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 110.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": 100.0,
+          "after": 110.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 0.8333333134651184,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 177.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": 999.0,
+          "after": 1000.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 0.8333333134651184,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 177.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": 1000.0,
+          "after": 1000.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 0.8333333134651184,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 9.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": -1.0,
+          "after": 9.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 110.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": 100.0,
+          "after": 110.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 177.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": 999.0,
+          "after": 1000.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 177.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": 1000.0,
+          "after": 1000.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 9.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": -1.0,
+          "after": 9.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 1.0,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 110.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 20,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": 100.0,
+          "after": 110.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 1.0,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 177.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 20,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": 999.0,
+          "after": 1000.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 1.0,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 177.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 20,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": 1000.0,
+          "after": 1000.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 1.0,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 9.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 20,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": -1.0,
+          "after": 9.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "2": -1
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "2": 0
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "2": 0.5
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 100.5,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": 100.0,
+          "after": 100.5,
+          "amount": 0.5
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "2": 1
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 101.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": 100.0,
+          "after": 101.0,
+          "amount": 1.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "2": 1.0001
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 101.0000991821289,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": 100.0,
+          "after": 101.0000991821289,
+          "amount": 1.000100016593933
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "2": 10
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 110.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": 100.0,
+          "after": 110.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 16777215,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "35": 1000000000.0,
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        },
+        "showUpdates": false
+      },
+      "counter": 16777248,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 16777215,
+        "timeStep": 100000000.0,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "35": 1000000000.0,
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        },
+        "showUpdates": false
+      },
+      "counter": 2016777215,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 282013081,
+      "healthCounter": 2000000000,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 16777216,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "35": 1000000000.0,
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        },
+        "showUpdates": false
+      },
+      "counter": 16777249,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 16777216,
+        "timeStep": 100000000.0,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "35": 1000000000.0,
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        },
+        "showUpdates": false
+      },
+      "counter": 2016777216,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 282013081,
+      "healthCounter": 2000000000,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 16777217,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "35": 1000000000.0,
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        },
+        "showUpdates": false
+      },
+      "counter": 16777250,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 16777217,
+        "timeStep": 100000000.0,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "35": 1000000000.0,
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        },
+        "showUpdates": false
+      },
+      "counter": 2016777217,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 282013081,
+      "healthCounter": 2000000000,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 4294967294,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "35": 1000000000.0,
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        },
+        "showUpdates": false
+      },
+      "counter": 31,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 4294967294,
+        "timeStep": 100000000.0,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "35": 1000000000.0,
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        },
+        "showUpdates": false
+      },
+      "counter": 1999999998,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 282013081,
+      "healthCounter": 2000000000,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 16777215,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "35": 16777.216
+        },
+        "showUpdates": false
+      },
+      "counter": 16777248,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 16777216,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "35": 16777.216
+        },
+        "showUpdates": false
+      },
+      "counter": 16777249,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 16777217,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "35": 16777.216
+        },
+        "showUpdates": false
+      },
+      "counter": 16777250,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 299999,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": -1,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300032,
+      "fat": 185.0,
+      "stamina": 100.0,
+      "muscle": 60.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300000,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": -1,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300033,
+      "fat": 185.0,
+      "stamina": 100.0,
+      "muscle": 60.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": -1,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "fat": 162.0,
+      "stamina": 110.0,
+      "muscle": 60.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": 100.0,
+          "after": 110.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 22,
+          "value": 10.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 0,
+        "timeStep": 0.5,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 10,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 5,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 0,
+        "timeStep": 0.5,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 10,
+      "fat": 200.0,
+      "stamina": 999.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 5,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 0,
+        "timeStep": 0.5,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 10,
+      "fat": 200.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 5,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 0,
+        "timeStep": 0.5,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 10,
+      "fat": 200.0,
+      "stamina": -1.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 5,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 0,
+        "timeStep": 0.8333333134651184,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 16,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 8,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 0,
+        "timeStep": 0.8333333134651184,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 16,
+      "fat": 200.0,
+      "stamina": 999.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 8,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 0,
+        "timeStep": 0.8333333134651184,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 16,
+      "fat": 200.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 8,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 0,
+        "timeStep": 0.8333333134651184,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 16,
+      "fat": 200.0,
+      "stamina": -1.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 8,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 0,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 33,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 0,
+        "timeStep": 1.6666666269302368,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 33,
+      "fat": 200.0,
+      "stamina": 999.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 0,
+        "timeStep": 1.6666666269302368,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 33,
+      "fat": 200.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 0,
+        "timeStep": 1.6666666269302368,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 33,
+      "fat": 200.0,
+      "stamina": -1.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 0,
+        "timeStep": 1.0,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 20,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 0,
+        "timeStep": 1.0,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 20,
+      "fat": 200.0,
+      "stamina": 999.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 0,
+        "timeStep": 1.0,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 20,
+      "fat": 200.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 0,
+        "timeStep": 1.0,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 20,
+      "fat": 200.0,
+      "stamina": -1.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300000,
+        "timeStep": 0.5,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300010,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 5,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300000,
+        "timeStep": 0.5,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300010,
+      "fat": 200.0,
+      "stamina": 999.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 5,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300000,
+        "timeStep": 0.5,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300010,
+      "fat": 200.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 5,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300000,
+        "timeStep": 0.5,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300010,
+      "fat": 200.0,
+      "stamina": -1.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 5,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300000,
+        "timeStep": 0.8333333134651184,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300016,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 8,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300000,
+        "timeStep": 0.8333333134651184,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300016,
+      "fat": 200.0,
+      "stamina": 999.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 8,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300000,
+        "timeStep": 0.8333333134651184,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300016,
+      "fat": 200.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 8,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300000,
+        "timeStep": 0.8333333134651184,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300016,
+      "fat": 200.0,
+      "stamina": -1.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 8,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300000,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300033,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300000,
+        "timeStep": 1.6666666269302368,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300033,
+      "fat": 200.0,
+      "stamina": 999.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300000,
+        "timeStep": 1.6666666269302368,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300033,
+      "fat": 200.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300000,
+        "timeStep": 1.6666666269302368,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300033,
+      "fat": 200.0,
+      "stamina": -1.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300000,
+        "timeStep": 1.0,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300020,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300000,
+        "timeStep": 1.0,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300020,
+      "fat": 200.0,
+      "stamina": 999.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300000,
+        "timeStep": 1.0,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300020,
+      "fat": 200.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300000,
+        "timeStep": 1.0,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 300020,
+      "fat": 200.0,
+      "stamina": -1.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 0.5,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 105.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 5,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": 100.0,
+          "after": 105.0,
+          "amount": 5.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 0.5,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 177.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 5,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": 999.0,
+          "after": 1000.0,
+          "amount": 5.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 0.5,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 177.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 5,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": 1000.0,
+          "after": 1000.0,
+          "amount": 5.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 0.5,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 4.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 5,
+      "healthCounter": 10,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": -1.0,
+          "after": 4.0,
+          "amount": 5.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 0.8333333134651184,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 105.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 8,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": 100.0,
+          "after": 105.0,
+          "amount": 5.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 0.8333333134651184,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 177.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 8,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": 999.0,
+          "after": 1000.0,
+          "amount": 5.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 0.8333333134651184,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 177.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 8,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": 1000.0,
+          "after": 1000.0,
+          "amount": 5.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 0.8333333134651184,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 4.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 8,
+      "healthCounter": 16,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": -1.0,
+          "after": 4.0,
+          "amount": 5.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 105.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": 100.0,
+          "after": 105.0,
+          "amount": 5.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 177.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": 999.0,
+          "after": 1000.0,
+          "amount": 5.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 177.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": 1000.0,
+          "after": 1000.0,
+          "amount": 5.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 4.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": -1.0,
+          "after": 4.0,
+          "amount": 5.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 1.0,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 105.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": 100.0,
+          "after": 105.0,
+          "amount": 5.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 1.0,
+        "stamina": 999.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 177.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": 999.0,
+          "after": 1000.0,
+          "amount": 5.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 1.0,
+        "stamina": 1000.0,
+        "energy": -1,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 177.0,
+      "stamina": 1000.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": 1000.0,
+          "after": 1000.0,
+          "amount": 5.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 1.0,
+        "stamina": -1.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 4.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 10,
+      "healthCounter": 20,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": -1.0,
+          "after": 4.0,
+          "amount": 5.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "3": -1
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "3": 0
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "3": 0.5
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 100.5,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": 100.0,
+          "after": 100.5,
+          "amount": 0.5
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "3": 1
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 101.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": 100.0,
+          "after": 101.0,
+          "amount": 1.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "3": 1.0001
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 101.0000991821289,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": 100.0,
+          "after": 101.0000991821289,
+          "amount": 1.000100016593933
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "3": 10
+        },
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 110.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": 100.0,
+          "after": 110.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 16777215,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "36": 1000000000.0,
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        },
+        "showUpdates": false
+      },
+      "counter": 16777248,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 16777215,
+        "timeStep": 100000000.0,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "36": 1000000000.0,
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        },
+        "showUpdates": false
+      },
+      "counter": 2016777215,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 141006540,
+      "healthCounter": 2000000000,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 16777216,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "36": 1000000000.0,
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        },
+        "showUpdates": false
+      },
+      "counter": 16777249,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 16777216,
+        "timeStep": 100000000.0,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "36": 1000000000.0,
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        },
+        "showUpdates": false
+      },
+      "counter": 2016777216,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 141006540,
+      "healthCounter": 2000000000,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 16777217,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "36": 1000000000.0,
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        },
+        "showUpdates": false
+      },
+      "counter": 16777250,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 16777217,
+        "timeStep": 100000000.0,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "36": 1000000000.0,
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        },
+        "showUpdates": false
+      },
+      "counter": 2016777217,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 141006540,
+      "healthCounter": 2000000000,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 4294967294,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "36": 1000000000.0,
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        },
+        "showUpdates": false
+      },
+      "counter": 31,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 4294967294,
+        "timeStep": 100000000.0,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "36": 1000000000.0,
+          "42": 1000000000.0,
+          "45": 1000000000.0
+        },
+        "showUpdates": false
+      },
+      "counter": 1999999998,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 141006540,
+      "healthCounter": 2000000000,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 16777215,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "36": 16777.216
+        },
+        "showUpdates": false
+      },
+      "counter": 16777248,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 16777216,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "36": 16777.216
+        },
+        "showUpdates": false
+      },
+      "counter": 16777249,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 16777217,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {
+          "36": 16777.216
+        },
+        "showUpdates": false
+      },
+      "counter": 16777250,
+      "fat": 200.0,
+      "stamina": 100.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 16,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 299999,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": -1,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300032,
+      "fat": 185.0,
+      "stamina": 100.0,
+      "muscle": 60.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300000,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": -1,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 300033,
+      "fat": 185.0,
+      "stamina": 100.0,
+      "muscle": 60.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "running",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 100.0,
+        "energy": -1,
+        "fatCounter": 150001,
+        "healthCounter": 600001,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": true
+      },
+      "counter": 0,
+      "fat": 162.0,
+      "stamina": 105.0,
+      "muscle": 60.0,
+      "maxHealth": 589.0,
+      "fatCounter": 0,
+      "healthCounter": 0,
+      "messageState": 1,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 5
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": false,
+          "stat": 21,
+          "value": 15.0,
+          "max": 1000.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 24,
+          "value": 20.0,
+          "max": 1000.0
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x1002656b0",
+          "before": 100.0,
+          "after": 105.0,
+          "amount": 5.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        },
+        {
+          "name": "DisplayScriptStatUpdateMessage",
+          "address": "0x1002b0620",
+          "increase": true,
+          "stat": 22,
+          "value": 5.0,
+          "max": 1000.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "mode": "sprinting",
+        "counter": 300001,
+        "timeStep": 1.6666666269302368,
+        "stamina": 105.0,
+        "energy": 0,
+        "fatCounter": 0,
+        "healthCounter": 0,
+        "fat": 200.0,
+        "muscle": 50.0,
+        "maxHealth": 569.0,
+        "overrides": {},
+        "showUpdates": false
+      },
+      "counter": 0,
+      "fat": 200.0,
+      "stamina": 115.0,
+      "muscle": 50.0,
+      "maxHealth": 569.0,
+      "fatCounter": 33,
+      "healthCounter": 33,
+      "messageState": 0,
+      "external": [
+        {
+          "name": "BodyExercise",
+          "address": "0x100265280",
+          "rate": 10
+        },
+        {
+          "name": "StaminaWrite",
+          "address": "0x100265584",
+          "before": 105.0,
+          "after": 115.0,
+          "amount": 10.0
+        },
+        {
+          "name": "CheckForStatsMessage",
+          "address": "0x100260300"
+        }
+      ]
+    }
+  ]
+}

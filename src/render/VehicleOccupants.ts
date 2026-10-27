@@ -11,6 +11,9 @@ export function driverSeat(car:WorldCar){const dummy=car.car.root.getObjectByNam
 /** What an occupant sits on: the vehicle's root (renderer axes) and its body, a car's or a bike's. */
 export interface OccupantVehicle {car:{root:import('three').Object3D;body:{handle:number}}}
 export interface OccupantPose {key:string;car:OccupantVehicle;model:number|string;local:{x:number;y:number;z:number};clip:string;seconds:number;animation?:NativeAnimation;
+ /** Entry/exit and attached peds draw independently of the seated vehicle pass. */
+ renderWithVehicle?:boolean;
+ partials?:readonly {clip:string;amount:number;seconds:number;animation:NativeAnimation}[];
  /** A turn about the vertical off the vehicle's own heading (an attached ped facing its side). */
  headingOffset?:number;scorched?:boolean;gun?:{model:Parameters<typeof modelObject>[0];textures:Parameters<typeof modelObject>[1]}}
 /** NPC vehicle occupants: CAR_sit/CAR_sitp in their seats, or their exit clip while leaving. */
@@ -66,11 +69,16 @@ export class VehicleOccupants {
     gun.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&pose.gun!.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});
     view.hand()?.add(gun.root);entry.gun={model:pose.gun.model,root:gun.root,dispose:()=>gun.dispose()};
    }else if(!pose.gun&&entry.gun){entry.gun.dispose();entry.gun=undefined;}
-   view.updateVehicle({vehicle:pose.car.car.root,local:pose.local,headingOffset:pose.headingOffset},{clip:pose.clip,seconds:pose.seconds});
+   if(pose.partials)view.installVehicleClips(Object.fromEntries(pose.partials.map(layer=>[layer.clip,layer.animation])));
+   view.updateVehicle({vehicle:pose.car.car.root,local:pose.local,headingOffset:pose.headingOffset,renderWithVehicle:pose.renderWithVehicle},{clip:pose.clip,seconds:pose.seconds,partials:pose.partials});
   }
  }
  /** The head node of the occupant drawn under `key`, in the world (renderer axes), while it is drawn. */
  headOf(key:string){return this.views.get(key)?.view.headPosition();}
+ /** A seated NPC's current rendered bone, sampled after this frame's occupant pose update. */
+ boneOf(key:string,id:number,out?:Vector3){const view=this.views.get(key)?.view;return view?.inVehiclePose?view.bonePosition(id,out):undefined;}
+ hitSpheresOf(key:string){const view=this.views.get(key)?.view;return view?.root.visible?view.hitSpheres():undefined;}
+ positionOf(key:string){return this.views.get(key)?.view.root.getWorldPosition(new Vector3());}
  snapshot(){return {drivers:this.views.size,ready:!!this.catalog,error:this.error??null};}
  dispose(){this.disposed=true;for(const {view,gun} of this.views.values()){gun?.dispose();view.dispose();}this.views.clear();}
 }

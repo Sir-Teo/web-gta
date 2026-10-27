@@ -38,9 +38,9 @@ test('a recruit\'s shot, or a Grove member\'s gun not aimed at CJ, does not hurt
  const affects=(p:object,weapon:number)=>(WorldPedestrians.prototype as any).damagesPlayer.call({},p,weapon);
  expect(affects({follow:true,retaliate:0},22)).toBe(false);
  expect(affects({follow:true,retaliate:0},51)).toBe(true);
- expect(affects({gang:1,retaliate:0},22)).toBe(false);
+ expect(affects({gang:1,pedType:'GANG2',retaliate:0},22)).toBe(false);
  // A Grove member whose kill task is on the player hurts him; so do a Ballas gun and a Grove fist.
- expect(affects({gang:1,retaliate:3},22)).toBe(true);
- expect(affects({gang:0,retaliate:0},22)).toBe(true);
- expect(affects({gang:1,retaliate:0},0)).toBe(true);
+ expect(affects({gang:1,pedType:'GANG2',retaliate:3},22)).toBe(true);
+ expect(affects({gang:0,pedType:'GANG1',retaliate:0},22)).toBe(true);
+ expect(affects({gang:1,pedType:'GANG2',retaliate:0},0)).toBe(true);
 });

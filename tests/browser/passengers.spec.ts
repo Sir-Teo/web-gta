@@ -3,7 +3,7 @@ import {test,expect} from '@playwright/test';
 test('a recruited homie boards, rides and climbs back out',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/models.html');const result=await page.evaluate(async()=>{
-  const [{openStaticWorld},{openStaticWorldVehicles},{loadFixedWorldCar},{loadWorldRoadMaterials},{WorldCar},{Simulation},{CarEntry},{VehicleAnimationLibrary},{openWorldPedestrians},{WorldPedestrians},{VehicleOccupants},{THREE,RAPIER}]=await Promise.all(['/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/assets/fixedWorldCar.ts','/src/assets/worldRoadMaterials.ts','/src/simulation/WorldCar.ts','/src/simulation/Simulation.ts','/src/simulation/CarEntry.ts','/src/assets/vehicleAnimations.ts','/src/assets/worldPedestrians.ts','/src/simulation/WorldPedestrians.ts','/src/render/VehicleOccupants.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
+  const [{openStaticWorld},{openStaticWorldVehicles},{loadFixedWorldCar},{loadWorldRoadMaterials},{WorldCar},{Simulation},{CarEntry},{VehicleAnimationLibrary},{openWorldPedestrians},{WorldPedestrians},{VehicleOccupants},{WantedSystem},{THREE,RAPIER}]=await Promise.all(['/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/assets/fixedWorldCar.ts','/src/assets/worldRoadMaterials.ts','/src/simulation/WorldCar.ts','/src/simulation/Simulation.ts','/src/simulation/CarEntry.ts','/src/assets/vehicleAnimations.ts','/src/assets/worldPedestrians.ts','/src/simulation/WorldPedestrians.ts','/src/render/VehicleOccupants.ts','/src/simulation/WantedSystem.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
   await RAPIER.init();const base=new URL('/play/world/',location.href).href;
   const catalog=await openStaticWorldVehicles(await openStaticWorld(base)),road=await loadWorldRoadMaterials(base);
   const sim=new Simulation(),scene=new THREE.Scene();
@@ -11,7 +11,9 @@ test('a recruited homie boards, rides and climbs back out',async({page})=>{
   sim.respawn={x:2490,y:12.55,z:1680};sim.resetPlayer();sim.world.step();sim.player.grounded=true;
   const car=new WorldCar(sim,scene,await loadFixedWorldCar(catalog,{modelId:492,primaryColor:53,secondaryColor:0}),{x:2490,y:13.6,z:1680},road);
   const entry=new CarEntry(sim,new VehicleAnimationLibrary(base));await entry.clips.load(car.animGroup);
-  const crowd=new WorldPedestrians(sim,scene,base,()=>undefined);
+  const crowd=new WorldPedestrians(sim,scene,base,()=>undefined,new WantedSystem());
+  // This isolated scene has no SCM stat store; supply the recruit fixture's total respect.
+  crowd.totalRespect=()=>400;
   const occupants=new VehicleOccupants(scene,base);
   // A gang party takes its model from the gang roster, whose residents are the gangs the zone needs: the Families.
   crowd.gangTurf=()=>({gang:1,strength:255});crowd.gangsNeeded=()=>1<<1;entry.crowd=crowd;

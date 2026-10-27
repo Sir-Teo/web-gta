@@ -5,11 +5,40 @@ import {Simulation} from '../src/simulation/Simulation';
 import {WeaponInventory} from '../src/weapons/Inventory';
 import {readFileSync} from 'node:fs';
 import {readWeaponData} from '../src/weapons/weaponData';
+import {NativeDrivingTraining} from '../src/simulation/nativeDrivingTraining';
+import {readActionReactionStats} from '../src/simulation/nativeStatReactions';
+import {ScmGameState} from '../src/engine/ScmGameState';
+import {ScmThread} from '../src/engine/ScmThread';
+import {readScmHeader,decodeScmInstructions} from '../src/assets/scm';
 beforeAll(async()=>{await RAPIER.init();});
 test('versioned saves restore ammo, money and practice; malformed fields retain defaults',()=>{const sim=new Simulation(),inv=new WeaponInventory();let raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};try{const p=new Progression(inv,sim,storage);inv.select(31);inv.fire();sim.money=999;p.hit(31);p.save();const restored=new WeaponInventory();new Progression(restored,sim,storage);expect(restored.selected).toBe(31);expect(restored.ammo.get(31)?.clip).toBe(49);expect(restored.practice.get(31)).toBe(5);expect(sim.money).toBe(999);raw=JSON.stringify({version:1,money:'lots',ammo:[[31,Infinity,-1]],practice:[[31,999999]],selected:999});const safe=new WeaponInventory();new Progression(safe,sim,storage);expect(safe.selected).toBe(0);expect(safe.ammo.get(31)?.clip).toBe(50);expect(safe.practice.size).toBe(0);}finally{sim.dispose();}});
 test('practice has bounded effects',()=>{const sim=new Simulation(),inv=new WeaponInventory(),p=new Progression(inv,sim);try{inv.select(31);for(let i=0;i<1000;i++)p.hit(31);expect(inv.proficiency).toBe(1);expect(inv.reloadDuration).toBeCloseTo(inv.weapon.reload*.8);}finally{sim.dispose();}});
 test('saves from before the Activities were removed still load, their fields dropped on the next save',()=>{const sim=new Simulation();let raw=JSON.stringify({version:1,money:1234,drivingSkill:40,distances:{walk:10,drive:20},completed:['walk'],missions:{current:2},missionCounters:{kills:3}});const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};try{const p=new Progression(new WeaponInventory(),sim,storage);expect(sim.money).toBe(1234);expect(p.drivingSkill).toBe(40);expect(p.save()).toBe(true);const data=JSON.parse(raw);for(const key of ['distances','completed','missions','missionCounters'])expect(data).not.toHaveProperty(key);}finally{sim.dispose();}});
-test('driving skill grows with driven distance, persists, and rejects teleports',()=>{const sim=new Simulation(),inv=new WeaponInventory();let raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};try{const p=new Progression(inv,sim,storage);p.tick(1/60,true,false);for(let i=0;i<2500;i++){sim.player.position.x++;p.tick(1/60,true,false);}expect(p.drivingSkill).toBeCloseTo(100,6);expect(p.snapshot().drivingSkill).toBeCloseTo(100,6);p.save();const restored=new Progression(new WeaponInventory(),sim,storage);expect(restored.drivingSkill).toBeCloseTo(100,6);sim.player.position.x=100000;restored.tick(1/60,true,false);expect(restored.drivingSkill).toBeCloseTo(100,6);}finally{sim.dispose();}});
+test('native driving awards persist without duplicate distance awards from autosave movement or teleports',()=>{
+ const sim=new Simulation();let raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};
+ try{const p=new Progression(new WeaponInventory(),sim,storage),training=new NativeDrivingTraining(readActionReactionStats(readFileSync('public/play/world/files/data/ar_stats.dat','utf8')));training.counter=300001;
+  p.drivingSkill=training.step(50/30,{velocity:[1,0,0],automobile:true,contactWheels:4,skill:p.drivingSkill}).skill;
+  expect(p.drivingSkill).toBe(20);p.tick(1/60,true,false);
+  for(let i=0;i<2500;i++){sim.player.position.x++;p.tick(1/60,true,false);}
+  expect(p.drivingSkill).toBe(20);expect(p.snapshot().drivingSkill).toBe(20);p.save();
+  const restored=new Progression(new WeaponInventory(),sim,storage);expect(restored.drivingSkill).toBe(20);sim.player.position.x=100000;restored.tick(1/60,true,false);expect(restored.drivingSkill).toBe(20);
+ }finally{sim.dispose();}
+});
+for(const [saved,expected] of [[40.75,40],[-1,-1],[1500,1500],[2147483610,2147483610],[-2147483648,-2147483648],['40',0],[-1.5,0],[2147483648,0]] as const)test(`driving save preserves native integers or migrates old distance fractions ${saved}`,()=>{
+ const sim=new Simulation();let raw=JSON.stringify({version:1,drivingSkill:saved});try{const p=new Progression(new WeaponInventory(),sim,{getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}});expect(p.drivingSkill).toBe(expected);p.save();expect(JSON.parse(raw).drivingSkill).toBe(expected);}finally{sim.dispose();}
+});
+test('actual MAIN driving default runs before saved ownership without overwriting an early save or healing',()=>{
+ const sim=new Simulation();let raw=JSON.stringify({version:1,drivingSkill:80});
+ try{const p=new Progression(new WeaponInventory(),sim,{getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}}),game=new ScmGameState(),bytes=new Uint8Array(readFileSync('public/play/world/files/scripts/main.scm')),header=readScmHeader(bytes);
+  const write=decodeScmInstructions(bytes,header.entry,header.mainSize).find(i=>i.name==='SET_FLOAT_STAT'&&i.parameters[0]?.value===160)!;expect(write.offset).toBe(56079);
+  const thread=new ScmThread(bytes,write.offset,0,undefined,{game,startScript(){throw new Error('unexpected script');}});
+  try{thread.run(0,1);}catch(error){if(!String(error).includes('watchdog'))throw error;}
+  expect(game.stats.get(160)).toBe(0);expect(p.drivingSkill).toBe(80);p.save();expect(JSON.parse(raw).drivingSkill).toBe(80);
+  sim.player.health=37;const messages:any[]=[];game.stats.onUpdateMessage=(...args)=>messages.push(args);p.bindDrivingStats(game.stats);
+  expect(game.stats.get(160)).toBe(80);expect(sim.player.health).toBe(37);expect(messages).toEqual([]);
+  game.stats.increment(160,20);p.save();expect(JSON.parse(raw).drivingSkill).toBe(100);
+ }finally{sim.dispose();}
+});
 
 test('only the weapons with skill stats train, each at its AR_STATS.DAT rate',()=>{
  const sim=new Simulation(),inv=new WeaponInventory(),p=new Progression(inv,sim);

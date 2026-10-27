@@ -6,6 +6,8 @@ import {endStoryMission} from './freeRoam';
 test('G and H recruit a targeted homie, order stay and follow, and a held button disbands',async({page})=>{
  test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
+ // Supply native respect for this input/formation fixture; a fresh game's zero respect allows no recruits.
+ await page.evaluate(()=>{const stats=(window as any).__game.missionForProfiling().runtime.game.stats;stats.set(64,400);stats.set(68,400);});
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().pedestrians.people.some((p:any)=>p.gang===1&&p.health>0)),{timeout:90000}).toBe(true);
  // A Families member two and a half units ahead of CJ.
  await page.evaluate(()=>{const g=(window as any).__game,p=g.state().player.position,ped=g.pedestrians().people.find((p:any)=>p.gang===1&&p.health>0);

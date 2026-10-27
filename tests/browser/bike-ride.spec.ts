@@ -3,9 +3,10 @@ import {test,expect} from '@playwright/test';
 test('a BMX pedals, steers with lean, poses the rider and knocks off on impact',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/models.html');const result=await page.evaluate(async()=>{
-  const [{openStaticWorld},{openStaticWorldVehicles},{loadFixedWorldBike},{WorldBike},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/assets/fixedWorldBike.ts','/src/simulation/WorldBike.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
+  const [{openStaticWorld},{openStaticWorldVehicles},{loadFixedWorldBike},{WorldBike},{Simulation},{THREE,RAPIER},{VehicleAnimationLibrary}]=await Promise.all(['/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/assets/fixedWorldBike.ts','/src/simulation/WorldBike.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts','/src/assets/vehicleAnimations.ts'].map(p=>import(p)));
   await RAPIER.init();const base=new URL('/play/world/',location.href).href;
   const catalog=await openStaticWorldVehicles(await openStaticWorld(base));
+  const clips=new VehicleAnimationLibrary(base);await clips.block('bmx');WorldBike.hopClipSeconds=()=>clips.peek('bmx','bmx_bunnyhop')?.duration;
   const sim=new Simulation(),scene=new THREE.Scene();
   sim.world.createCollider(RAPIER.ColliderDesc.cuboid(200,.5,200).setTranslation(0,-.5,0));
   sim.respawn={x:1.5,y:.55,z:2};sim.resetPlayer();sim.world.step();sim.player.grounded=true;
@@ -30,8 +31,7 @@ test('a BMX pedals, steers with lean, poses the rider and knocks off on impact',
    for(let i=0;i<30;i++)tick({throttle:0,steer:0,brake:false,hop:true} as any);
    let hopVy=0;for(let i=0;i<40;i++){tick({throttle:0,steer:0,brake:false});hopVy=Math.max(hopVy,bike.body.linvel().y);}
    out.hopVy=hopVy;
-   // LaunchBunnyHopCB starts iOS's half-second cooldown, during which ProcessBunnyHop does not run.
-   out.cooldown=WorldBike.hopCooldown;
+   out.hopCleared=bike.riderPose().hop===undefined&&bike.controlJump===0;
    // A wall stop at speed knocks the rider off through the force formula.
    sim.world.createCollider(RAPIER.ColliderDesc.cuboid(5,3,.5).setTranslation(0,3,-40));
    // A rider the script keeps on (SET_CHAR_CAN_BE_KNOCKED_OFF_BIKE) rides the same crash out.
@@ -51,7 +51,7 @@ test('a BMX pedals, steers with lean, poses the rider and knocks off on impact',
  expect(result.movedZ).toBeLessThan(-2);
  // A full charge is 0.06 x 2 units a frame up: 6 m/s.
  expect(result.hopVy).toBeGreaterThan(4);
- expect(result.cooldown as number).toBeGreaterThan(0);expect(result.cooldown as number).toBeLessThanOrEqual(.5);
+ expect(result.hopCleared).toBe(true);
  expect(result.speed).toBeGreaterThan(2);
  expect(result.idle).toBe('bmx_pedal');
  expect(result.seat).toBe(true);
@@ -109,18 +109,18 @@ test('a bike under water drowns: CJ loses breath on the bottom and falls off onc
    const tick=()=>{bike.beforeStep(1/60,{throttle:0,steer:0,brake:false});sim.world.step();bike.afterStep();bike.update(1);};
    for(let i=0;i<30;i++)tick();bike.interact();
    // Three units of water over the floor: the bike drowns with its wheels down, and CJ holds his breath on it.
-   bike.waterLevel=()=>3;
+   const initialBreath=sim.player.breath;bike.waterLevel=()=>3;
    for(let i=0;i<60;i++)tick();
    const bottom={drowning:bike.drowning,occupied:bike.snapshot().occupied,breath:sim.player.breath};
    // Off the floor's edge in open water: no wheel touches, and he drops off (KNOCK_OFF_TYPE_FALL).
    bike.body.setTranslation({x:400,y:5,z:0},true);bike.body.setLinvel({x:0,y:0,z:0},true);bike.waterLevel=()=>8;
    for(let i=0;i<5&&bike.snapshot().occupied;i++)tick();
-   return {bottom,thrown:!bike.snapshot().occupied,airborne:!sim.player.grounded};
+   return {bottom,initialBreath,thrown:!bike.snapshot().occupied,airborne:!sim.player.grounded};
   }finally{bike.dispose();sim.dispose();}
  });
  expect(result.bottom.drowning).toBe(true);
  expect(result.bottom.occupied).toBe(true);
- expect(result.bottom.breath).toBeLessThan(100);
+ expect(result.initialBreath-result.bottom.breath).toBeCloseTo(50,6);
  expect(result.thrown).toBe(true);
  expect(result.airborne).toBe(true);
  expect(errors).toEqual([]);

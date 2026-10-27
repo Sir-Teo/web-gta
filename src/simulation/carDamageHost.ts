@@ -9,10 +9,12 @@ export function vehicleRefusesWeaponDamage(vehicle:VehicleDamageState,weapon:num
   attachedPlayer||!physicalCanBeDamaged(vehicle.proofs,weapon)||vehicle.occupied&&Math.fround(vehicle.health)<250&&firesExplodesOrShoots(weapon);
 }
 /** InflictDamage stores a weapon while health remains. A null native attacker preserves the old reference
- * (iOS 0x100478548–0x100478564); a known non-player attacker replaces it even when the host has no entity identity. */
-export function recordVehicleDamage(vehicle:VehicleDamageState,weapon:number,byPlayer?:boolean,by?:VehicleDamager){
+ * (iOS 0x100478548–0x100478564). Explicit `by: null` retains that native distinction while byPlayer false still
+ * runs the non-player damage gates; an unknown non-player source without an entity clears the old reference. */
+export function recordVehicleDamage(vehicle:VehicleDamageState,weapon:number,byPlayer?:boolean,by?:VehicleDamager|null){
  if(vehicle.health<=0)return;
  vehicle.lastWeaponDamage=weapon;
+ if(by===null)return;
  if(by!==undefined)vehicle.lastDamagedBy=by;
  else if(byPlayer!==undefined)vehicle.lastDamagedBy=byPlayer?{player:true}:undefined;
 }

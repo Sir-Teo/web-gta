@@ -1,7 +1,12 @@
 import {characterShadowBounds} from './characterShadowBounds';
+import {setVehicleRenderOwner} from './vehicleRenderOwnership';
+import {PED_HIT_NODES,type PedHitSphere} from '../combat/nativePedHitSpheres';
 import {HEAD_EFFECTOR_OFFSET,LOOK_AT_SPEED,applyQuat,limitHead,moveHeadToTarget,slerpQuat,startLookAt,stepLookAt,type LookAtTask,type Quat} from '../simulation/nativeIkLookAt';
+import {PartialPose} from '../animation/PartialPose';
 import {playerMoveBlend} from '../animation/playerMoveBlend';
-import {STAMINA_EXHAUST_FLOOR} from '../locomotion/player';
+import {nativeButtonSprintResult,SPRINT_MODE} from '../simulation/nativePlayerSprint';
+import {MODE_FIXED} from '../engine/ScmCamera';
+import {nativeLandingPlayback} from '../simulation/nativeLanding';
 import {bindPlayerShoulders} from '../animation/playerShoulders';
 import { nativeAmbientState } from '../assets/nativeMaterial';
 import {setNativeScorched} from '../assets/nativeScorched';
@@ -55,6 +60,7 @@ const TRANSITION_SECONDS = .18;
 /** Session-local native locomotion. The simulation owns time and physical position. */
 export class NativeCharacter {
   readonly root = new Group();
+  private worldPoseReady=false;
   private ambient = nativeAmbientState();
   private owner: ReturnType<typeof modelObject>;
   private shoulders?: ReturnType<typeof bindPlayerShoulders>;
@@ -98,6 +104,8 @@ export class NativeCharacter {
   boneMatrix(id:number,out=new Matrix4()){const bone=this.bone(id);if(!bone)return undefined;return out.copy(this.worldOf(bone));}
   /** CPed::GetTransformedBonePosition in the world, or undefined without that bone. */
   bonePosition(id:number,out=new Vector3()){const bone=this.bone(id);if(!bone)return undefined;return out.setFromMatrixPosition(this.worldOf(bone));}
+  /** An attached gun's node through the same current local-matrix chain as the skeleton, without stale bone worlds. */
+  nodePosition(node:Object3D,out=new Vector3()){return out.setFromMatrixPosition(this.worldOf(node));}
   /** A node's world matrix from the character root down its ancestors' local matrices, without walking the whole
    * skeleton (three's parent-only update does not refresh a child under a parent that just moved). */
   private worldOf(node:Object3D){
@@ -112,6 +120,16 @@ export class NativeCharacter {
   private chainScratch:Object3D[]=[];private worldScratch=new Matrix4();
   /** CPed::GetTransformedBonePosition(BONE_HEAD) in the world, or undefined without a head bone. */
   headPosition(out=new Vector3()){return this.bonePosition(5,out);}
+  /** Native collision needs a sampled world pose: a newly loaded clump still has its bind pose at the origin. */
+  get hasHitSpheres(){return this.worldPoseReady&&PED_HIT_NODES.every(node=>!!this.bone(node.bone));}
+  /** AnimatePedColModelSkinned's bound box follows the spine, in the entity's axes. */
+  hitBounds(){const center=this.bonePosition(3);return center&&{center,rotation:this.root.getWorldQuaternion(new Quaternion())};}
+  /** CPedModelInfo::AnimatePedColModelSkinnedWorld: the original twelve spheres at the currently sampled pose. */
+  hitSpheres():PedHitSphere[]{
+    const point=new Vector3(),matrix=new Matrix4(),out:PedHitSphere[]=[];
+    for(const node of PED_HIT_NODES){if(!this.boneMatrix(node.bone,matrix))continue;point.set(node.x,0,0).applyMatrix4(matrix);out.push({center:{x:point.x,y:point.y,z:point.z},radius:node.radius,piece:node.piece});}
+    return out;
+  }
   /** Rotate a native bone in its parent space so the hand's +X barrel follows the aim. */
   private pointBone(boneId:number,handId:number,weight=1){
     const hand=this.hand(handId),bone=this.bone(boneId);if(!hand||!bone?.parent||!this.weaponAim||weight<=0)return;
@@ -344,6 +362,7 @@ export class NativeCharacter {
   get jumping() { return launchAction(this.action) || airborneAction(this.action) || landingAction(this.action); }
   private lastGroundAction: Action = 'idle';
   private landingSpeed = 1;
+  private launchSpeed = 1;
   private swimPlaybackSpeed = 1;
   /** Actual current browser stroke weight/rate for the breath task. The
    * browser's captured-pose transition is not yet native association blending. */
@@ -532,7 +551,9 @@ export class NativeCharacter {
   /** A ride ends (CTaskSimpleCarSetPedOut leaves the ped standing): the move blend ratio does not carry over from the
    * run up to the car, which would walk him on after the door closes. */
   resetLocomotion(){this.moveBlend=0;this.lastGroundAction='idle';this.moveAnims?.reset();}
-  step(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>): Controls {
+  step(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>&Partial<Pick<Simulation,'previewPlayerSprint'|'playerBodyMovementModifier'>>): Controls {
+    const originalControls=controls;
+    controls={...controls,sprintInput:controls.sprintInput??controls.sprint};
     // BlendAnimation(aim, 8) on AIM, blend delta -8 on release, -4 when a weapon without bMoveAim lowers on the move.
     const lowered=this.action==='gunMove'&&this.gunAimLowered;
     this.ikClockMs+=dt*1000;this.ikFrameMs+=dt*1000;this.stepHeading=sim.player.heading;
@@ -546,7 +567,10 @@ export class NativeCharacter {
     // Out of the water the on-foot task starts afresh from idle: no run stop from the sprint that ran into the water.
     if (this.swamLast) { this.swamLast = false; this.moveAnims?.reset(); }
     const moving = Math.hypot(controls.x, controls.y) > 0;
-    const runnable = !!(this.clips.sprint ?? this.clips.run) && sim.player.stamina > 0 && (!sim.player.sprintExhausted || sim.player.stamina >= STAMINA_EXHAUST_FLOOR);
+    const runnable=!!(this.clips.sprint??this.clips.run);
+    if(!runnable)controls={...controls,sprintDisabled:true};
+    const sprint=sim.previewPlayerSprint?.(dt,controls,SPRINT_MODE.ground);
+    if(sprint)controls={...controls,sprint:sprint.factor>=1};
     const landed = this.wasAirborne && sim.player.grounded;
     const footState = sim.player.health > 0;
     if (!footState) this.lastGroundAction = 'idle';
@@ -585,7 +609,8 @@ export class NativeCharacter {
     // start their cycles again from frame 0, so the stride after a landing always begins at the top.
     if (landingAction(this.action) && !landingAction(action) && this.moveAnims) for (const clip of ['walk', 'run', 'sprint'] as const) { const a = this.moveAnims.assocs.get(clip); if (a) a.time = 0; }
     if (action !== this.action) {
-      this.landingSpeed = landingAction(action) && this.motionSpace === 'actor' && this.lastGroundAction === 'sprint' && controls.sprint ? 2 : 1;
+      this.launchSpeed=launchAction(action)&&this.motionSpace==='actor'?Math.fround(sim.playerBodyMovementModifier?.()??1):1;
+      this.landingSpeed=landingAction(action)&&this.motionSpace==='actor'?nativeLandingPlayback({initialSpeed:1,modifier:sim.playerBodyMovementModifier?.()??1,sprintState:this.lastGroundAction==='sprint',sprintHeld:!!(controls.sprintInput??controls.sprint),isPlayer:!!sim.playerBodyMovementModifier}):1;
       this.samplePose(this.seconds, this.transitionTime);
       const fastLandingTransition = this.motionSpace === 'actor' && (landingAction(action) || this.action === 'landingMoving' && this.seconds >= this.active.duration);
       this.transition.capture(); this.transitionDuration = fastLandingTransition ? .01 : TRANSITION_SECONDS; this.poseGeneration++; this.transitionTime = 0; this.motionTransition.begin();
@@ -600,7 +625,7 @@ export class NativeCharacter {
     this.previous = this.seconds;
     this.previousTransitionTime = this.transitionTime;
     this.transitionTime = Math.min(this.transitionDuration, this.transitionTime + dt);
-    if (!this.supported(sim)) { this.seconds = this.previous = 0; this.transitionTime = this.previousTransitionTime = this.transitionDuration; this.motionTransition.reset(); return controls; }
+    if (!this.supported(sim)) { this.seconds = this.previous = 0; this.transitionTime = this.previousTransitionTime = this.transitionDuration; this.motionTransition.reset(); return originalControls; }
     if (this.motionSpace === 'actor' && this.clips.landing && oneShot(action)) this.landingFootContacts = [];
     // The move associations keep their times under the jump, land and duck tasks; only SetRealMoveAnim waits.
     if (action !== 'move') this.moveAnims?.update(dt);
@@ -610,15 +635,15 @@ export class NativeCharacter {
       return { ...controls, jump: true, moveAssociations: this.launchAssociations() };
     }
     if (landingAction(action) || launchAction(action)) {
-      this.seconds = Math.min(this.active.duration, this.seconds + dt * (landingAction(action) ? this.landingSpeed : 1)); this.motionTransition.reset();
+      this.seconds = Math.min(this.active.duration, this.seconds + dt * (landingAction(action) ? this.landingSpeed : this.launchSpeed)); this.motionTransition.reset();
       if (landingAction(action) && this.landingFootContacts) this.landingFootContacts = ([['right', .1], ['left', .2]] as const).filter(([,time]) => this.previous < time && this.seconds >= time).map(([foot]) => foot);
       this.basis.makeRotationY(this.headingOffset).multiply(this.active.parent);
       // JUMP_launch and the landing clips extract their forward root motion (ANIMATION_CAN_EXTRACT_VELOCITY).
       const displacement = this.active.motion ? this.active.motion.between(this.previous,this.seconds,this.basis,false) : {x:0,z:0};
       return { ...controls, x: 0, y: 0, jump: false, sprint: false, holdMove: true, animationMotionSpace: this.motionSpace, animationMotion: displacement };
     }
-    if (airborneAction(action)) { this.seconds = Math.min(this.active.duration, this.seconds + dt); this.motionTransition.reset(); return controls; }
-    if (action === 'move') return this.stepMoves(dt, controls, sim, runnable);
+    if (airborneAction(action)) { this.seconds = Math.min(this.active.duration, this.seconds + dt); this.motionTransition.reset(); return originalControls; }
+    if (action === 'move') return this.stepMoves(dt, controls, sim, runnable,sprint?.buttonSpeed??0);
     if (action === 'gunMove') return this.stepGunMove(dt, controls);
     if (action === 'fightMove') return this.stepGunMove(dt, controls, true);
     if (idleAction(action)) {
@@ -637,7 +662,7 @@ export class NativeCharacter {
     return { ...controls, sprint: action === 'sprint' || action === 'run' && !this.clips.sprint, animationMotionSpace: this.motionSpace, animationMotion: this.motionTransition.advance(motion,dt) };
   }
   /** One frame of the player's movement associations: the clump update, then SetRealMoveAnim with the new ratio. */
-  private stepMoves(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>, runnable: boolean): Controls {
+  private stepMoves(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>, runnable: boolean,buttonSpeed:number): Controls {
     const anims = this.moveAnims!;
     for (const [clip, a] of anims.assocs) this.movePrevious.set(clip, a.time);
     let x = 0, z = 0;
@@ -648,7 +673,7 @@ export class NativeCharacter {
       const looped = LOOPED_MOVES.has(segment.clip), d = clip.motion.between(segment.from, segment.wrapped ? segment.to + clip.duration : segment.to, this.basis, looped);
       x += d.x * segment.blend; z += d.z * segment.blend;
     }
-    anims.setRealMoveAnim(this.moveBlend, !!controls.sprint && runnable && !controls.walk);
+    anims.setRealMoveAnim(this.moveBlend, !!controls.sprint && runnable && !controls.walk,{buttonSpeed,fixedCamera:controls.cameraMode===MODE_FIXED});
     this.seconds += dt; this.motionTransition.reset();
     // A run stop zeroes m_headingRate until it ends.
     return { ...controls, sprint: anims.moveState === 'sprint', facing: anims.headingLocked ? sim.player.heading : controls.facing, animationMotionSpace: this.motionSpace, animationMotion: { x, z } };
@@ -676,7 +701,7 @@ export class NativeCharacter {
     // Without bMoveAim the aim clip blends out while the gun moves.
     this.gunAimLowered = !gun.moveAim && anims.moving;
     this.seconds += dt; this.motionTransition.reset();
-    return { ...controls, sprint: false, jump: false, animationMotionSpace: this.motionSpace, animationMotion: { x, z } };
+    return { ...controls, sprint: false, sprintDisabled:true, jump: false, animationMotionSpace: this.motionSpace, animationMotion: { x, z } };
   }
   /** The RUN and SPRINT associations CTaskSimpleJump::Launch reads. */
   private launchAssociations(): { run?: number; sprint?: number } | undefined {
@@ -723,14 +748,20 @@ export class NativeCharacter {
   }
   /** CTaskSimpleSwim clip selection: tread holds station, breast follows the
    * move blend, crawl runs at sprint pressure, under glides without it. */
-  private stepSwim(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>): Controls {
+  private stepSwim(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>&Partial<Pick<Simulation,'previewPlayerSprint'>>): Controls {
     const state = sim.player.swimState ?? 0;
-    // Underwater, SWIM_UNDER strokes only while the swimmer is pressing on; otherwise he glides on SWIM_GLIDE, which
-    // carries no root motion (ProcessSwimAnims).
-    const stroking = controls.y > .01;
+    // Underwater, GetButtonSprintResults selects SWIM_UNDER; otherwise SWIM_GLIDE carries no root motion.
+    // NPC/fallback hosts without player sprint input retain their own movement request.
+    const projected=sim.previewPlayerSprint?.(dt,controls,state===4?SPRINT_MODE.underwater:SPRINT_MODE.water);
+    const result=projected?nativeButtonSprintResult(projected.buttonSpeed,state===4?SPRINT_MODE.underwater:SPRINT_MODE.water):undefined;
+    const stroking = result===undefined?controls.y>.01:result>=1;
     const wanted: SwimAction = state === 1 ? 'swimBreast' : state === 2 ? 'swimCrawl' : state === 4 ? (stroking ? 'swimUnder' : 'swimGlide') : state === 5 ? 'swimGlide' : state === 3 ? 'swimDive' : 'swimTread';
     const action = (this.clips[wanted] ? wanted : 'swimTread') as Action;
-    const speed = action === 'swimBreast' ? Math.max(sim.player.swimBlend ?? 0, .15) : action === 'swimCrawl' ? (controls.sprint ? 1.5 : 1) : action === 'swimUnder' ? (controls.sprint ? 1.2 : .8) : 1;
+    let speed = action==='swimBreast'?Math.max(0,sim.player.swimBlend??0):action==='swimCrawl'?(result===undefined?(controls.sprint?1.5:1):action!==this.action?1:Math.max(1,result)):1;
+    if(action==='swimUnder'){
+      const restarted=action===this.action&&Math.floor(this.seconds/this.active.duration)>Math.floor(this.previous/this.active.duration);
+      speed=result===undefined?(controls.sprint?1.2:.8):action!==this.action?1:restarted?Math.max(.7,result):this.swimPlaybackSpeed;
+    }
     this.swimPlaybackSpeed = speed;
     if (action !== this.action) {
       this.samplePose(this.seconds, this.transitionTime);
@@ -773,11 +804,13 @@ export class NativeCharacter {
   updateSeated(vehicle:Object3D,seat:Vector3){
     const binding=this.reactions.get('car_sit');if(!binding){this.root.visible=false;return;}
     this.root.position.copy(vehicle.localToWorld(seat.clone()));this.root.quaternion.copy(vehicle.getWorldQuaternion(new Quaternion()));this.root.visible=vehicle.visible;
+    this.worldPoseReady=true;
     this.transition.restoreTargets();binding.sample(0,false,false);this.updatePoseMatrices();this.poseRevision++;
   }
   private vehicleBindings=new Map<string,ReturnType<typeof bindAnimation>>();
   private vehicleClip?:string;
   private overlayTransition?:PoseTransition;
+  private vehiclePartialPose?:PartialPose;
   /** Car entry, exit and driving clips. Car tasks do not extract velocity, so the root translation stays in the pose;
    * clips named in `extracted` (CAR_rollout_*) remove root X/Y against the rest pose as the moving-shift source. */
   installVehicleClips(clips:Record<string,NativeAnimation>,extracted:readonly string[]=[]){
@@ -795,17 +828,23 @@ export class NativeCharacter {
   vehicleClipMotion(name:string,from:number,to:number){const motion=this.vehicleBindings.get(name)?.rootMotion;return motion?motion.delta(from,to,false,new Vector3()):new Vector3();}
   /** Samples a vehicle clip with the entity pinned in car space (`vehicle` + native-space `local`) or standing in the world.
    * `blend` fades from the previously rendered pose (BlendAnimation delta × time); `overlay` weights a partial clip's final
-   * frame, and `overlays` several partial clips at their own times. */
-  updateVehicle(frame:{vehicle?:Object3D;local?:{x:number;y:number;z:number};headingOffset?:number;position?:{x:number;y:number;z:number};heading?:number},pose:{clip:string;seconds:number;blend?:number;overlay?:{clip:string;amount:number};overlays?:readonly {clip:string;amount:number;seconds:number}[]}){
+   * frame, `overlays` layer sequentially, and `partials` sum simultaneous track-aware associations. */
+  updateVehicle(frame:{vehicle?:Object3D;local?:{x:number;y:number;z:number};headingOffset?:number;position?:{x:number;y:number;z:number};heading?:number;renderWithVehicle?:boolean},pose:{clip:string;seconds:number;blend?:number;overlay?:{clip:string;amount:number};overlays?:readonly {clip:string;amount:number;seconds:number}[];partials?:readonly {clip:string;amount:number;seconds:number}[]}){
+    setVehicleRenderOwner(this.root,frame.renderWithVehicle===false?undefined:frame.vehicle);
     const binding=this.vehicleBindings.get(pose.clip);if(!binding){this.root.visible=false;return false;}
-    if(frame.vehicle&&frame.local){this.root.position.copy(frame.vehicle.localToWorld(new Vector3(frame.local.x,frame.local.z,-frame.local.y)));this.root.quaternion.copy(frame.vehicle.getWorldQuaternion(new Quaternion()));if(frame.headingOffset)this.root.quaternion.multiply(new Quaternion().setFromAxisAngle(new Vector3(0,1,0),frame.headingOffset));this.root.visible=frame.vehicle.visible;}
-    else if(frame.position){this.root.position.set(frame.position.x,frame.position.y,frame.position.z);this.root.rotation.set(0,(frame.heading??0)+this.headingOffset,0);this.root.visible=true;}
+    if(frame.vehicle&&frame.local){this.root.position.copy(frame.vehicle.localToWorld(new Vector3(frame.local.x,frame.local.z,-frame.local.y)));this.root.quaternion.copy(frame.vehicle.getWorldQuaternion(new Quaternion()));if(frame.headingOffset)this.root.quaternion.multiply(new Quaternion().setFromAxisAngle(new Vector3(0,1,0),frame.headingOffset));this.root.visible=frame.vehicle.visible;this.worldPoseReady=true;}
+    else if(frame.position){this.root.position.set(frame.position.x,frame.position.y,frame.position.z);this.root.rotation.set(0,(frame.heading??0)+this.headingOffset,0);this.root.visible=true;this.worldPoseReady=true;}
     if(pose.clip!==this.vehicleClip){
       this.transition.capture();
       if(this.vehicleClip&&this.vehicleClip!==pose.clip)this.vehicleBindings.get(this.vehicleClip)?.restore();
       this.vehicleClip=pose.clip;
     }
-    this.transition.restoreTargets();binding.sample(pose.seconds,false,false);this.transition.apply(pose.blend??1);
+    this.transition.restoreTargets();
+    if(pose.partials?.length){
+      this.vehiclePartialPose??=new PartialPose(this.shadowRootBone);
+      this.vehiclePartialPose.sample(binding,pose.seconds,pose.partials.flatMap(layer=>{const binding=this.vehicleBindings.get(layer.clip);return binding?[{binding,seconds:layer.seconds,amount:layer.amount}]:[];}));
+    }else binding.sample(pose.seconds,false,false);
+    this.transition.apply(pose.blend??1);
     // The single `overlay` holds its final frame; `overlays` play each at its own time, laid on in turn.
     const layers=pose.overlays??(pose.overlay?[{...pose.overlay,seconds:Infinity}]:[]);
     for(const layer of layers){
@@ -816,7 +855,7 @@ export class NativeCharacter {
     this.updatePoseMatrices();this.poseRevision++;return true;
   }
   /** Leaves vehicle posing; the next on-foot sample restores every bone the vehicle clips touched. */
-  endVehicle(){this.transition.capture();for(const binding of this.vehicleBindings.values())binding.restore();this.vehicleClip=undefined;this.transitionTime=this.previousTransitionTime=0;this.transitionDuration=TRANSITION_SECONDS;this.poseGeneration++;}
+  endVehicle(){setVehicleRenderOwner(this.root);this.transition.capture();for(const binding of this.vehicleBindings.values())binding.restore();this.vehicleClip=undefined;this.transitionTime=this.previousTransitionTime=0;this.transitionDuration=TRANSITION_SECONDS;this.poseGeneration++;}
   private transitionTargets(){const targets:Object3D[]=[];this.owner.root.traverse(o=>{if(Number.isInteger(o.userData.nativeFrame)&&this.source.model.frames[o.userData.nativeFrame]?.hanim)targets.push(o);});return targets;}
   get inVehiclePose(){return !!this.vehicleClip;}
   /** m_nMoveState is PEDMOVE_SPRINT. */
@@ -824,6 +863,7 @@ export class NativeCharacter {
   /** CPlayerPedData::m_fMoveBlendRatio: 0 still, 1 walking, 2 running. */
   get moveBlendRatio(){return this.moveBlend;}
   update(sim: Pick<Simulation, 'player'>, alpha: number) {
+    setVehicleRenderOwner(this.root);
     if(this.vehicleClip)this.endVehicle();
     // A dead CJ stays drawn: the death clip plays on his body through the wasted sequence.
     const p = sim.player; this.root.visible = p.health <= 0 || this.supported(sim);
@@ -837,6 +877,7 @@ export class NativeCharacter {
     // forward; in these axes native y is -z, so the roll turns the other way about z.
     const tilt = p.tilt;
     this.root.rotation.set(tilt ? tilt.x : 0, heading + this.headingOffset, tilt ? -tilt.y : 0, 'YXZ');this.renderedHeading=heading;
+    this.worldPoseReady=true;
     this.samplePose(this.previous + (this.seconds-this.previous)*alpha, this.previousTransitionTime + (this.transitionTime-this.previousTransitionTime)*alpha);
   }
   private samplePose(seconds: number, transitionTime: number) {
@@ -943,8 +984,8 @@ export class NativeCharacter {
   }
   /** The current locomotion action, as snapshot().action gives it, without building the snapshot. */
   get currentAction(){return this.action === 'move' ? this.moveAction() : this.action;}
-  snapshot() { return { motionGroup:this.playerMotionGroup,vehicleClip:this.vehicleClip??null,reload:this.weaponReload??null,reaction:this.reaction?.name??null, gun:this.gunAnims?{cmd:{...this.gunAnims.cmd},lowered:this.gunAimLowered,poses:this.gunAnims.poses().map(a=>({clip:a.clip,blend:+a.blend.toFixed(3),playing:a.playing,speed:+a.speed.toFixed(3)}))}:null, playbackSpeed:landingAction(this.action)?this.landingSpeed:1, moveBlend:this.moveBlend, playerBody:!!this.shoulders, bodySwaps:this.bodySwaps, transition: this.transitionTime / this.transitionDuration, action: this.action === 'move' ? this.moveAction() : this.action, moves: this.moveAnims ? [...this.moveAnims.assocs.values()].map(a => ({ clip: a.clip, blend: a.blend, time: a.time })) : null, seconds: this.seconds, visible: this.root.visible }; }
+  snapshot() { return { motionGroup:this.playerMotionGroup,vehicleClip:this.vehicleClip??null,reload:this.weaponReload??null,reaction:this.reaction?.name??null, gun:this.gunAnims?{cmd:{...this.gunAnims.cmd},lowered:this.gunAimLowered,poses:this.gunAnims.poses().map(a=>({clip:a.clip,blend:+a.blend.toFixed(3),playing:a.playing,speed:+a.speed.toFixed(3)}))}:null, playbackSpeed:landingAction(this.action)?this.landingSpeed:launchAction(this.action)?this.launchSpeed:1, moveBlend:this.moveBlend, playerBody:!!this.shoulders, bodySwaps:this.bodySwaps, transition: this.transitionTime / this.transitionDuration, action: this.action === 'move' ? this.moveAction() : this.action, moves: this.moveAnims ? [...this.moveAnims.assocs.values()].map(a => ({ clip: a.clip, blend: a.blend, time: a.time, speed:a.speed })) : null, seconds: this.seconds, visible: this.root.visible }; }
   /** The gait the movement associations show, by name. */
   private moveAction(): Action { const a = this.moveAnims!; if (a.assocs.has('runStop') || a.assocs.has('runStopR')) return 'runStop'; if (a.assocs.has('walkStart')) return 'walkStart'; const w = (c: MoveClip) => a.assocs.get(c)?.blend ?? 0; return w('sprint') > .5 ? 'sprint' : w('run') > w('walk') && w('run') > w('idle') ? 'run' : w('walk') > w('idle') ? 'walk' : 'idle'; }
-  dispose() { this.setThermal(false);this.heatMaterial.dispose();this.root.removeFromParent(); this.owner.dispose(); }
+  dispose() { setVehicleRenderOwner(this.root);this.setThermal(false);this.heatMaterial.dispose();this.root.removeFromParent(); this.owner.dispose(); }
 }

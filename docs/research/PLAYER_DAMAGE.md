@@ -63,3 +63,72 @@ Tests: `tests/native-restart.test.ts` (extraction against the packaged script,
 city gating, the sixfold penalty, overrides and the empty table) and
 `tests/native-game-logic.test.ts` (both sequences, fade ordering, fees, the
 one-shot flags and `PassTime`).
+
+## Player float fields and one-HP survival (October 26, 2026)
+
+Simulation.damagePlayer used double arithmetic after loading its native float
+multipliers. A raw 25-damage hit at the retained 0.33 profile could leave
+9.25 HP just below 1 rather than exactly 1, start recovery and emit a death
+event. Armour, friendly scaling and intro1 scaling had the same field-rounding
+gap.
+
+The adapter now rounds its input/profile multiply, friendly factor, armour
+fields, intro1 product and health subtraction to float32, and reports native
+float damage responses. The existing armour-bypass decision, safety/proof gates,
+mega-punch order, one-HP threshold and recovery behavior are retained. Direct
+DAMAGE_CHAR continues to use its separate already-float field operation.
+
+Seven focused integration cases expose six failures before repair. They check
+exact-one survival without a death timer, armour, partial armour, friendly and
+intro1 scaling, drowning bypass and a genuine below-one death with once-only
+recovery. Twenty-five focused checks pass with the existing health, player-safe
+and native source/group tests.
+
+The current 0.33 profile is supported by the pinned iOS branch at
+0x10028a070/0x100593cb0. The PC AccountForPedDamageStats entry at 0x4AD430 remains
+a retail delegate in both inspected revisions. STAT_PLAYER's 0.4 data row does
+not establish that player branch. A later audit statement and code comment
+claiming the PC branch reads it were unsupported and have been corrected.
+This precision repair retains the chosen profile; PC multiplier equivalence
+and the complete calculator remain explicit compatibility gaps.
+
+The live precision fixture uses the public scripted Hunter gun on CJ's real
+physical body, car head-transfer and exposed-bike contacts. It checks one HP,
+partial armour, absorption and below-one death, together with health/armour
+loss events, blood and death-timer state. Native weapon data and the selected
+profile seed representable native field boundaries; surviving one-HP results
+are checked exactly.
+
+The build and all six live checks pass. The initial twelve actual mounted hits cover the
+physical, car and bike paths at one-HP, partial-armour, absorption and below-one
+boundaries. One-HP survivors retain a zero recovery timer and a nonfatal damage
+event; genuine below-one hits report fatal events. Health/armour losses and
+blood match the resulting fields without vehicle damage. Existing Families
+and script-group protection scenarios also pass in all three collision modes,
+with no page errors.
+Eleven additional intro1, mounted-seat and burning-player-in-car regression
+checks pass.
+
+All 6,040 unit tests pass (51 skipped) with the player float fields updated.
+
+### Native response amount versus stored health loss
+
+PC ComputeWillKillPed (`0x4B3210`) reports pre-hit health when the result is
+fatal. On survival, it reports the remaining damage factor in DamageHealth,
+then writes the float health subtraction. That factor can differ from the
+quantized change in the stored field. At 5,000 HP, a small hit exposes the
+difference; a sub-ULP hit can retain a positive response while health stays
+unchanged. The adapter now preserves this native distinction. Two additional
+cases failed before that correction, and 38 focused checks pass afterward.
+The expanded live trial adds a large-health response case in every collision
+mode, independently checking the native event amount.
+
+All fifteen expanded mounted contacts pass across foot/car/bike, including the
+large-health native-response case. The previously passing family/group checks
+remain covered by the same source gates. No page errors occur.
+All 6,042 unit tests pass (51 skipped) with the native response distinction.
+The final build and full production smoke pass with the player float and native
+response fields, including walking, native car entry, saved-game return,
+map/waypoint, pause/resume, Rustler takeoff and gear. No page errors or failed
+requests occur. The takeoff/gear verifier corrections and retained failure
+traces are described in PLAYABLE_AIRCRAFT.md.

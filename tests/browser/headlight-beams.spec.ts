@@ -8,7 +8,12 @@ test('lit headlights draw their beam fans at night and none by day',async({page}
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  await endStoryMission(page);
  await expect.poll(async()=>(await state()).nativeCar!=null,{timeout:30000}).toBe(true);
- // CJ at the Greenwood's wheel (a parked car's lights stay off), at noon and at 23:00.
+ // Put the lighting fixture beside the loaded Greenwood; INTRO's last position is not an entry precondition.
+ const setup=await page.evaluate(()=>{const g=(window as any).__game,c=g.state().nativeCar.position,p=g.sim.player.position,before={distance:Math.hypot(p.x-c.x,p.z-c.z),position:{...p}};g.placePlayer(c.x-2.5,c.y-.5,c.z);return before;});
+ console.log(JSON.stringify({headlightEntrySetup:setup}));
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.sim.player.grounded)).toBe(true);
+ await expect(page.locator('.screen-fade')).toHaveCSS('opacity','0');
+ // Enter through the ordinary keyboard task, then check noon and 23:00.
  await page.keyboard.press('KeyF');
  await expect.poll(async()=>(await state()).nativeCar?.occupied,{timeout:15000}).toBe(true);
  await page.evaluate(()=>{(window as any).__game.sim.timeMinutes=12*60;});

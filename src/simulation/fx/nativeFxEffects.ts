@@ -1,4 +1,5 @@
-import {fxIdentity,fxPrtMult,fxTransformVector,processEmission,type FxMatrix,type FxVec,type NativeFxManager,type NativeFxSystem} from './NativeFx';
+import {FX_PLAY,fxIdentity,fxPrtMult,fxTransformVector,processEmission,type FxMatrix,type FxVec,type NativeFxManager,type NativeFxSystem} from './NativeFx';
+import {boatFireControl} from '../nativeBoatFire';
 /** eExplosionType values used by CExplosion::AddExplosion. */
 export const EXPLOSION={grenade:0,molotov:1,rocket:2,car:4,quickCar:5,boat:6,aircraft:7,mine:8,object:9,tankFire:10,small:11,rcVehicle:12,weakRocket:3} as const;
 /** eSparkType. */
@@ -145,6 +146,25 @@ export class NativeFxEffects {
    const vel:FxVec=[(base[0]*this.random(.8,1.2)+side*input.right[0]*this.random(.3,.7)+input.up[0]*this.random(.8,1.2))*v12,(base[1]*this.random(.8,1.2)+side*input.right[1]*this.random(.3,.7)+input.up[1]*this.random(.8,1.2))*v12,(base[2]*this.random(.8,1.2)+side*input.right[2]*this.random(.3,.7)+input.up[2]*this.random(.8,1.2))*v12];
    system.addParticle(at,vel,0,mult);
   }
+ }
+ /** CBoat::PreRender: copied entity basis at a static propeller's world origin; stopped while not submerged. */
+ boatPropeller(current:NativeFxSystem|undefined,matrix:FxMatrix,submerged:boolean,speed:number){
+  let system=current&&!current.destroyed?current:undefined;
+  if(!system){system=this.fx.create('boat_prop',[0,0,0],matrix);if(system){system.play();system.setLocalParticles(true);system.copyParentMatrix();}}
+  if(system){
+   if(submerged){if(system.playStatus===FX_PLAY.stopped)system.play();system.setMatrix(matrix);system.setConstTime(true,Math.min(1,speed*2));}
+   else if(system.playStatus===FX_PLAY.playing)system.stop();
+  }
+  return system;
+ }
+ /** CBoat::ProcessControl retains an existing fire until repaired past 460 or wrecked; camera gates creation. */
+ boatFire(current:NativeFxSystem|undefined,health:number,wrecked:boolean,position:FxVec,modelling:FxMatrix){
+  const state=boatFireControl(health,wrecked,[modelling[9],modelling[10],modelling[11]],this.camera());
+  if(state.reset){current?.kill();return undefined;}
+  let system=current&&!current.destroyed?current:undefined;
+  if(!system&&state.burning){system=this.fx.create('fire_car',position,modelling,false);system?.play();}
+  if(system)system.parent=modelling;
+  return system;
  }
  /** CVehicle::AddDamagedVehicleParticles: overheat smoke between 650 and 250 health, at the engine dummy. */
  overheat(current:NativeFxSystem|undefined,health:number,electric:boolean,engine:FxVec,modelling:FxMatrix,velocity:FxVec,submerged:boolean){

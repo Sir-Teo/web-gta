@@ -1,5 +1,12 @@
 import RAPIER from '@dimforge/rapier3d-compat';
+import {physicalCanBeDamaged} from '../combat/nativePhysicalProofs';
+import {bulletProofVestStops,type BulletDamageProtection} from '../ped/bulletProofs';
+import {healthAfterFloat32,pedDamageFactor,spendPedArmourFloat32} from '../ped/damage';
+import type {PedVitals} from '../ped/nativeCopVitals';
+import type {ShotCreator} from '../weapons/WeaponSystem';
+import {nativeCarSeatPose} from '../vehicle/nativeSeatPosition';
 import {NativeDrivingAnims} from './nativeDrivingAnims';
+import {carDrivingRideIds,CAR_DRIVING_CLIPS,type CarDriveByInput} from './nativeCarDriving';
 import {Vector3} from 'three';
 import type {NativeAnimation} from '../assets/ifp';
 import {rootMotion} from '../animation/rootMotion';
@@ -25,24 +32,21 @@ const ENTRY_SETTLE_RATE=10;
 const LINE_UP_SECONDS=LINE_UP_SHARED;
 /** CTaskSimpleCarJumpOut for automobiles: door until 0.07 s, carried car speed until 0.45 s. */
 const JUMP_OUT_SET_OUT=JUMP_SET_SHARED,JUMP_OUT_CARRY=JUMP_CARRY_SHARED;
-const RIDE_SETS=[['CAR_sit','Drive_L','Drive_R','Drive_L_slow','Drive_R_slow','CAR_LB'],['CAR_sit_pro','Drive_L_pro','Drive_R_pro','Drive_L_pro_slow','Drive_R_pro_slow','CAR_LB_pro'],['CAR_Lsit','Drive_LO_l','Drive_LO_R'],['Drive_truck','DRIVE_truck_L','DRIVE_truck_R','DRIVE_truck_back'],['KART_drive','KART_L','KART_R','KART_LB']];
+const RIDE_SETS=[['CAR_sit','Drive_L','Drive_R','Drive_L_slow','Drive_R_slow','CAR_LB'],['CAR_sit_pro','Drive_L_pro','Drive_R_pro','Drive_L_pro_slow','Drive_R_pro_slow','CAR_LB_pro'],['CAR_Lsit','Drive_LO_l','Drive_LO_R'],['Drive_truck','DRIVE_truck_L','DRIVE_truck_R','DRIVE_truck_back'],['KART_drive','KART_L','KART_R','KART_LB'],['CAR_sit_weak','Drive_L_weak','Drive_R_weak','Drive_L_weak_slow','Drive_R_weak_slow','CAR_LB_weak']];
+const RIDE_NAMES=new Map(RIDE_SETS.flat().map(name=>[name.toLowerCase(),name]));
 export interface EntryPose {car?:WorldCar;local?:V3;headingOffset?:number;world?:V3;heading?:number;clip:string;seconds:number;blend:number;overlay?:{clip:string;amount:number};
  /** Partial clips laid over the idle in turn, each at its own time (the steering and look-back). */
- overlays?:{clip:string;amount:number;seconds:number}[]}
+ overlays?:{clip:string;amount:number;seconds:number}[];partials?:{clip:string;amount:number;seconds:number}[]}
 export interface NpcPose {car:WorldCar;seat:0|1;local:V3;clip:string;seconds:number;who?:LeavingDriver}
 /** The ped in a car's driver's seat as he leaves it, which the host draws on his clip and sets on the street after: the
  * model he was drawn with in the seat, and an officer's gun (a unit's cop stays a cop, CCopPed, once out). */
-export interface LeavingDriver {model:number|string;officer?:{weapon:number;accuracy:number};dead?:boolean}
+export interface LeavingDriver {model:number|string;vitals?:PedVitals;officer?:{weapon:number;accuracy:number;vitals?:PedVitals};dead?:boolean;deathAccounted?:boolean}
 interface ClipUse {key:string;clip:NativeAnimation;group:number}
-/** CVehicle::ProcessDrivingAnims set selection, shared by cars and aircraft: low, kart, truck, else driving skill with
- * `_slow` at |m_vecMoveSpeed| ≤ 0.4 (`speed` in metres per second). The iOS build (0x100480518, sets at 0x100654260)
- * has two skill tiers, not the PC's three: under 50 the standard set, from 50 the pro one. It never picks the `_weak`
- * clips the PC gives a driver under 50. */
-export function nativeRideAnims(o:{low:boolean;kart:boolean;truck:boolean;drivingSkill:number;speed:number}){
- const [idle,left,right,back]=o.low?[...RIDE_SETS[2],'CAR_LB']:o.kart?RIDE_SETS[4]:o.truck?RIDE_SETS[3]:(()=>{
-  const set=RIDE_SETS[o.drivingSkill<50?0:1];
-  return o.speed/50<=.4?[set[0],set[3],set[4],set[5]]:[set[0],set[1],set[2],set[5]];
- })();
+/** Original-PC ProcessDrivingAnims ride sets: weak below 50, standard below 100,
+ * pro thereafter, with slow steering at native move-speed magnitude <= 0.4.
+ * Low/kart/truck sets precede skill. */
+export function nativeRideAnims(o:{low:boolean;kart:boolean;truck:boolean;drivingSkill:number;speed:number;velocity?:readonly number[];boat?:boolean;sitInBoat?:boolean}){
+ const [idle,left,right,back]=carDrivingRideIds({low:o.low,boat:o.boat,sitInBoat:o.sitInBoat,kart:o.kart,truck:o.truck,skill:o.drivingSkill,velocity:o.velocity??[o.speed/50,0,0]}).map(id=>RIDE_NAMES.get(CAR_DRIVING_CLIPS[id])??CAR_DRIVING_CLIPS[id]);
  return {idle,left,right,back};
 }
 /** ProcessDrivingAnims' look-left/right blend: |m_fSteerAngle / 0.61| clamped to 1, the right clip for negative (rightward) steering. */
@@ -88,7 +92,9 @@ export class CarEntry {
   /** Crew riding along: model refs with seats, ejected when the driver leaves. */
   passengers:{modelRef:number|string;seat:1|2|3;follow:boolean;gang?:number;keep?:unknown;
    /** The group's drive-by on a threat (CTaskAllocatorKillThreatsDriveby), and on whom. */
-   driveBy?:import('./scriptDriveBy').ScriptDriveBy;groupDriveBy?:string}[]=[];
+   driveBy?:import('./scriptDriveBy').ScriptDriveBy;groupDriveBy?:string;diedInSeat?:boolean}[]=[];
+  /** Report a fatal shot once, while the recruit's identity and group membership are still available. */
+  onPassengerKilled?:(rider:CarEntry['passengers'][number],byPlayer:boolean,creator?:ShotCreator)=>void;
   /** Street population for boarding and ejection (wired by the host). */
   crowd?:PassengerCrowd;
   private prevSeated=false;
@@ -115,6 +121,9 @@ export class CarEntry {
  private get npc(){return this.npcs.find(n=>!n.done);}
  /** The steering and look-back clips' blends (ProcessDrivingAnims). */
  private readonly driving=new NativeDrivingAnims();
+ driveByInput?:CarDriveByInput;
+ get driveByActive(){return this.phase==='seated'&&this.driving.driveByActive;}
+ get driveByShotReady(){return this.phase==='seated'&&this.driving.driveByShotReady;}
   /** STAT_DRIVING_SKILL, accumulated by distance driven and persisted with progression. */
   drivingSkill=0;
   message?:string;
@@ -150,32 +159,66 @@ export class CarEntry {
    const frame=car.car.nativeFramePosition('ped_backseat');if(!frame)return undefined;
    return {x:seat===2?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z};
   }
+  passengerFrame(car:WorldCar,seat:1|2|3){const local=this.passengerSeat(car,seat);return local&&nativeCarSeatPose(local,seat-1,car.animGroup.id);}
   /** Riding crew poses for the occupant renderer. */
   passengerPoses(driveByPose?:(d:import('./scriptDriveBy').ScriptDriveBy)=>Partial<import('../render/VehicleOccupants').OccupantPose>|undefined):import('../render/VehicleOccupants').OccupantPose[]{
-   const car=this.car;if(!car||!this.seated)return [];
+   const car=this.car;if(!car||!this.seated&&this.phase!=='waitSlow')return [];
    const out:import('../render/VehicleOccupants').OccupantPose[]=[];
    for(const p of this.passengers){
-    const local=this.passengerSeat(car,p.seat);if(!local)continue;
+    const frame=this.passengerFrame(car,p.seat);if(!frame)continue;
     // A rider on the group's drive-by leans out with its clip and gun.
-    const leaning=p.driveBy?driveByPose?.(p.driveBy):undefined;
-    out.push({key:`passenger:${car.car.body.handle}:${p.seat}`,car,model:p.modelRef,local,clip:sitClip(car.modelFlags,false),seconds:0,...leaning});
+    const leaning=!p.diedInSeat&&p.driveBy?driveByPose?.(p.driveBy):undefined;
+    out.push({key:`passenger:${car.car.body.handle}:${p.seat}`,car,model:p.modelRef,...frame,clip:p.diedInSeat?'car_dead_rhs':sitClip(car.modelFlags,false),seconds:p.diedInSeat?1e6:0,...leaning});
    }
    return out;
   }
   /** Riders waiting their turn to get out, still in their seats. */
   private leaving:{rider:CarEntry['passengers'][number];car:WorldCar;at:number}[]=[];
   /** The followers riding with the player, or still getting out: members of his group while off the street. */
-  ridingFollowers(){return this.passengers.filter(rider=>rider.follow).length+this.leaving.filter(l=>l.rider.follow).length;}
+  ridingFollowers(){return this.passengers.filter(rider=>rider.follow&&!rider.diedInSeat).length+this.leaving.filter(l=>l.rider.follow&&!l.rider.diedInSeat).length;}
   leavingPoses():import('../render/VehicleOccupants').OccupantPose[]{
    const out:import('../render/VehicleOccupants').OccupantPose[]=[];
-   for(const {rider,car} of this.leaving){const local=this.passengerSeat(car,rider.seat);if(local&&!car.disposed)out.push({key:`passenger:${car.car.body.handle}:${rider.seat}`,car,model:rider.modelRef,local,clip:sitClip(car.modelFlags,false),seconds:0});}
+   for(const {rider,car} of this.leaving){const frame=this.passengerFrame(car,rider.seat);if(frame&&!car.disposed)out.push({key:`passenger:${car.car.body.handle}:${rider.seat}`,car,model:rider.modelRef,...frame,clip:rider.diedInSeat?'car_dead_rhs':sitClip(car.modelFlags,false),seconds:rider.diedInSeat?1e6:0});}
    return out;
+  }
+  /** Living street recruits, including those still waiting in their seats after the leader stepped out. */
+  passengerTargets(){
+   const car=this.car,current=car&&(this.seated||this.phase==='waitSlow')?this.passengers.map(rider=>({car,rider})):[];
+   return [...current,...this.leaving].flatMap(({car,rider})=>{
+    if(car.disposed||car.wrecked||rider.diedInSeat)return [];
+    const frame=this.passengerFrame(car,rider.seat);return frame?[{car,rider,seat:rider.seat,...frame}]:[];
+   });
+  }
+  /** CheckForShootingVehicleOccupant transfers the hit to the recruit's retained pedestrian health. */
+  passengerShot(car:WorldCar,seat:number,damage:number,byPlayer=true,headshot=false,hit?:{weapon:number;piece:number;creator?:ShotCreator}):'hit'|'killed'|undefined{
+   const target=this.passengerTargets().find(t=>t.car===car&&t.seat===seat);if(!target)return undefined;
+   const rider=target.rider,keep=rider.keep as ({health?:number;armour?:number;defendMult?:number}&BulletDamageProtection)|undefined,weapon=hit?.weapon??22,piece=hit?.piece??9;
+   const creator=hit?.creator,playerPed=creator?creator==='ped':byPlayer,playerSource=creator?creator!=='remote':byPlayer;
+   // AffectsPed precedes damage and forced head death. The physical proofs, only-player flag and vest remain
+   // properties of the same recruit throughout boarding, the ride and the pedestrian rebuilt on exit.
+   if(!physicalCanBeDamaged(keep?.proofs,weapon)||!playerSource&&keep?.onlyDamagedByPlayer||bulletProofVestStops(keep??{},weapon,piece))return undefined;
+   // AccountForPedDamageStats precedes armour, then ComputeWillKillPed applies any forced head death.
+   // AccountForPedDamageStats checks the raw creator's ped type for group scaling. A vehicle's CJ driver can
+   // satisfy AffectsPed's only-player test without making the vehicle itself a player-ped damage calculator.
+   const scaled=pedDamageFactor(damage,keep?.defendMult??1),applied=playerPed&&rider.follow&&weapon!==37&&weapon!==51?Math.min(Math.fround(scaled*Math.fround(.1)),12.5):scaled;
+   const response=spendPedArmourFloat32(applied,keep?.armour,weapon),health=headshot?0:healthAfterFloat32(keep?.health??100,response.damageHealth);
+   rider.keep={...(rider.keep as object|undefined),health,armour:response.armour};
+   if(health>0)return 'hit';
+   rider.diedInSeat=true;rider.driveBy=undefined;rider.groupDriveBy=undefined;
+   if(creator)this.onPassengerKilled?.(rider,playerPed,creator);else this.onPassengerKilled?.(rider,playerPed);
+   // CTaskComplexDieInCar: a passenger steps out to die only if the car can be stepped out of now; otherwise he
+   // stays dead in his seat, even after the leader leaves. The exit itself uses the existing authored door placement.
+   if(car.canStepOut()&&this.crowd){
+    this.passengers=this.passengers.filter(p=>p!==rider);this.leaving=this.leaving.filter(p=>p.rider!==rider);
+    this.passengerOut(car,rider);
+   }else for(const leaving of this.leaving)if(leaving.rider===rider)leaving.at=Infinity;
+   return 'killed';
   }
   /** Board nearby followers and eject the crew when the driver leaves or wrecks. */
   stepPassengers(dt:number){
    this.passengerClock+=dt;
    const car=this.car;
-   for(let i=this.leaving.length-1;i>=0;i--){const l=this.leaving[i];if(this.passengerClock>=l.at){this.leaving.splice(i,1);this.passengerOut(l.car,l.rider);}}
+   for(let i=this.leaving.length-1;i>=0;i--){const l=this.leaving[i];if(l.car.disposed){this.leaving.splice(i,1);continue;}if(this.passengerClock>=l.at){this.leaving.splice(i,1);this.passengerOut(l.car,l.rider);}}
    for(let i=this.doorCloses.length-1;i>=0;i--){
     const pending=this.doorCloses[i];
     if(this.passengerClock<pending.at||pending.car!==this.car)continue;
@@ -193,7 +236,7 @@ export class CarEntry {
    if(!car||car.wrecked||!this.seated||car.speed2D()>.1||!this.crowd){for(const p of crew)this.crowd?.sendToSeat?.(p.id);return;}
    // CVehicle::m_nMaxPassengers (GetMaximumNumberOfPassengersFromNumberOfDoors) bounds the seats; a door knocked off
    // keeps nobody out of its seat (the door just does not open).
-   const free=PASSENGER_SEATS.slice(0,car.maximumPassengers).filter(s=>!this.passengers.some(p=>p.seat===s.seat));
+   const free=PASSENGER_SEATS.slice(0,car.maximumPassengers).filter(s=>!this.passengers.some(p=>p.seat===s.seat)&&!this.leaving.some(l=>l.car===car&&l.rider.seat===s.seat));
    if(!crew.length)return;
    // ComputeResponseLeaderEnteredCar (iOS 0x10034cbe0): every follower, in member-slot order, runs to a seat
    // (CTaskComplexEnterCarAsPassengerWait, RUN) wherever it is, the seats taken in turn (the front one first, which a
@@ -224,7 +267,7 @@ export class CarEntry {
    // CVehicle::KillPedsInVehicle kills everyone aboard a car that blew up at once; only living riders leave one by one
    // (ComputeResponseLeaderExitedCar, iOS 0x10034d564): the follower in member slot k after 250 + 500 × k ms and up to
    // 500 more. A rider with no slot takes its place in the riders' order.
-   riders.forEach((rider,i)=>{const slot=(rider.keep as {slot?:number}|undefined)?.slot??i;this.leaving.push({rider,car,at:this.passengerClock+(car.wrecked?0:(250+500*slot+Math.random()*500)/1000)});});
+   riders.forEach((rider,i)=>{const slot=(rider.keep as {slot?:number}|undefined)?.slot??i;this.leaving.push({rider,car,at:rider.diedInSeat?Infinity:this.passengerClock+(car.wrecked?0:(250+500*slot+Math.random()*500)/1000)});});
   }
   private passengerOut(car:WorldCar,rider:CarEntry['passengers'][number]){
    if(!this.crowd||car.disposed)return;
@@ -235,11 +278,11 @@ export class CarEntry {
     const hit=this.sim.world.castRay(new RAPIER.Ray({x:door.x,y:door.y+1.5,z:door.z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,car.car.body);
     const spot={x:door.x,y:(hit?door.y+1.5-hit.timeOfImpact:door.y-1)+.03,z:door.z};
     // A car that blew up killed everyone aboard (CVehicle::KillPedsInVehicle, CEventVehicleDied for each rider).
-    if(car.wrecked&&this.crowd.spawnDead){void Promise.resolve(this.crowd.spawnDead(rider.modelRef,spot,car.heading(),rider.gang,!!rider.follow)).catch(()=>{});return;}
+    if(car.wrecked&&!rider.diedInSeat&&this.crowd.spawnDead){void Promise.resolve(this.crowd.spawnDead(rider.modelRef,spot,car.heading(),rider.gang,!!rider.follow)).catch(()=>{});return;}
     // ComputeResponseLeaderExitedCar gives followers CTaskComplexLeaveCar with bSensibleLeaveCar off: nobody waits for
     // the car to slow (GroupEventHandler.cpp:344-349). One still too fast to step out of is rolled out of
     // (CTaskSimpleCarJumpOut) with its move speed, by the seat's side.
-    const v=car.car.body.linvel(),rollout=car.canStepOut()?undefined:{velocity:{x:v.x,z:v.z},clip:(rider.seat===2?'car_rollout_lhs':'car_rollout_rhs') as 'car_rollout_lhs'|'car_rollout_rhs'};
+    const v=car.car.body.linvel(),rollout=rider.diedInSeat||car.canStepOut()?undefined:{velocity:{x:v.x,z:v.z},clip:(rider.seat===2?'car_rollout_lhs':'car_rollout_rhs') as 'car_rollout_lhs'|'car_rollout_rhs'};
     void Promise.resolve(this.crowd.spawnPassenger(rider.modelRef,spot,car.heading(),rider.follow,rider.keep,rollout)).catch(()=>{});
    }
   }
@@ -364,14 +407,14 @@ export class CarEntry {
  /** CVehicle::ProcessDrivingAnims set selection for the entered car. */
  rideAnims(){
   const car=this.car,v=car?car.car.body.linvel():{x:0,y:0,z:0};
-  return nativeRideAnims({low:!!car&&!!(car.modelFlags&MODEL_FLAG.low),kart:!!car&&!!(car.animGroup.special&VEHICLE_ANIM_SPECIAL.kart),truck:!!car&&!!(car.animGroup.special&VEHICLE_ANIM_SPECIAL.truckDrive),drivingSkill:this.drivingSkill,speed:Math.hypot(v.x,v.y,v.z)});
+  return nativeRideAnims({low:!!car&&!!(car.modelFlags&MODEL_FLAG.low),kart:!!car&&!!(car.animGroup.special&VEHICLE_ANIM_SPECIAL.kart),truck:!!car&&!!(car.animGroup.special&VEHICLE_ANIM_SPECIAL.truckDrive),drivingSkill:this.drivingSkill,speed:Math.hypot(v.x,v.y,v.z),velocity:[v.x/50,-v.z/50,v.y/50]});
  }
  /** Every clip this car's sequence can play, for binding on the player model; undefined until the IFP blocks load. */
  requiredClips(){
   const car=this.car;if(!car||!this.clips.loaded(car.animGroup))return undefined;
   const out:Record<string,NativeAnimation>={};
   for(const slot of Object.values(VEHICLE_ANIM)){const found=this.slotFor(car,slot);if(found)out[found.key]=found.clip;}
-  for(const name of [...RIDE_SETS.flat(),'CAR_LB','getup_front',CRAWL_OUT]){const clip=this.clips.ped(name);if(clip)out[name.toLowerCase()]=clip;}
+  for(const name of [...RIDE_SETS.flat(),'DRIVEBY_L','DRIVEBY_R','DRIVEBYL_L','DRIVEBYL_R','CAR_LB','getup_front',CRAWL_OUT]){const clip=this.clips.ped(name);if(clip)out[name.toLowerCase()]=clip;}
   return out;
  }
  private openDoor(car:WorldCar,door:number,kind:DoorAnimKind,time:number,group:number){
@@ -640,7 +683,7 @@ export class CarEntry {
    // CTaskComplexEnterCar orders the driver out and starts CTaskSimpleCarShuffle at once: CJ slides across while the
    // driver climbs out, holding the last frame only if he gets there first.
    case 'shuffle':if(finished){if(this.npcs.some(n=>!n.done&&n.kind==='getOut'&&n.car===car))this.time=previous;else this.setIn();}break;
-   case 'seated':this.driving.step(dt,{steer:car.steerAngle,reversing:car.gasPedal<0&&!(car.modelFlags&MODEL_FLAG.low),idleFull:this.time*this.blendDelta>=1,ride:this.rideAnims(),duration:name=>this.clips.ped(name)?.duration});break;
+   case 'seated':this.driving.step(dt,{steer:car.steerAngle,reversing:car.gasPedal<0&&!(car.modelFlags&MODEL_FLAG.low),idleFull:this.time*this.blendDelta>=1,driveByControl:this.driveByInput,ride:this.rideAnims(),duration:name=>this.clips.ped(name)?.duration});break;
    case 'waitSlow':
     // CTaskSimpleCarWaitToSlowDown ends once the car can be left; a get-out with no room then gives the car back
     // (a blocked car must not keep its driver pinned with the handbrake on and no controls).
@@ -699,7 +742,7 @@ export class CarEntry {
   const blend=Math.min(1,this.time*this.blendDelta);
   if(phase==='seated'||phase==='waitSlow'){
    const seat=car.seat('left');if(!seat)return;
-   return {car,local:seat,clip:clip.key,seconds:clip.clip.duration,blend,overlays:this.driving.overlays()};
+   return {car,local:seat,clip:clip.key,seconds:clip.clip.duration,blend,partials:this.driving.partials()};
   }
   if(phase==='jumpOut'&&!this.setOut){const seat=car.seat('left');return seat?{car,local:seat,clip:clip.key,seconds:this.time,blend}:undefined;}
   if(this.rolling||phase==='crawlOut'){const p=this.sim.player.position;return {world:{x:p.x,y:p.y+1,z:p.z},heading:this.sim.player.heading,clip:clip.key,seconds:this.time,blend};}

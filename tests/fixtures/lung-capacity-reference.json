@@ -1,0 +1,449 @@
+{
+  "source": "Pinned iOS CStats::GetFatAndMuscleModifier mode 8 and CPlayerPed::ResetPlayerBreath executed unchanged; no external arithmetic stubs",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "modifier": "0x100266300",
+  "reset": "0x100366508",
+  "cases": [
+    {
+      "lung": -1,
+      "stamina": -1.0,
+      "capacity": 997.0,
+      "resetBreath": 997.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": -1,
+      "stamina": 0.0,
+      "capacity": 998.5,
+      "resetBreath": 998.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": -1,
+      "stamina": 1.0,
+      "capacity": 1000.0,
+      "resetBreath": 1000.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": -1,
+      "stamina": 100.0,
+      "capacity": 1148.5,
+      "resetBreath": 1148.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": -1,
+      "stamina": 569.0,
+      "capacity": 1852.0,
+      "resetBreath": 1852.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": -1,
+      "stamina": 999.9990234375,
+      "capacity": 2498.49853515625,
+      "resetBreath": 2498.49853515625,
+      "resetFlags": 65407
+    },
+    {
+      "lung": -1,
+      "stamina": 1000.0,
+      "capacity": 2498.5,
+      "resetBreath": 2498.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 0,
+      "stamina": -1.0,
+      "capacity": 998.5,
+      "resetBreath": 998.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 0,
+      "stamina": 0.0,
+      "capacity": 1000.0,
+      "resetBreath": 1000.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 0,
+      "stamina": 1.0,
+      "capacity": 1001.5,
+      "resetBreath": 1001.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 0,
+      "stamina": 100.0,
+      "capacity": 1150.0,
+      "resetBreath": 1150.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 0,
+      "stamina": 569.0,
+      "capacity": 1853.5,
+      "resetBreath": 1853.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 0,
+      "stamina": 999.9990234375,
+      "capacity": 2499.99853515625,
+      "resetBreath": 2499.99853515625,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 0,
+      "stamina": 1000.0,
+      "capacity": 2500.0,
+      "resetBreath": 2500.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1,
+      "stamina": -1.0,
+      "capacity": 1000.0,
+      "resetBreath": 1000.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1,
+      "stamina": 0.0,
+      "capacity": 1001.5,
+      "resetBreath": 1001.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1,
+      "stamina": 1.0,
+      "capacity": 1003.0,
+      "resetBreath": 1003.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1,
+      "stamina": 100.0,
+      "capacity": 1151.5,
+      "resetBreath": 1151.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1,
+      "stamina": 569.0,
+      "capacity": 1855.0,
+      "resetBreath": 1855.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1,
+      "stamina": 999.9990234375,
+      "capacity": 2501.49853515625,
+      "resetBreath": 2501.49853515625,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1,
+      "stamina": 1000.0,
+      "capacity": 2501.5,
+      "resetBreath": 2501.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 100,
+      "stamina": -1.0,
+      "capacity": 1148.5,
+      "resetBreath": 1148.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 100,
+      "stamina": 0.0,
+      "capacity": 1150.0,
+      "resetBreath": 1150.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 100,
+      "stamina": 1.0,
+      "capacity": 1151.5,
+      "resetBreath": 1151.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 100,
+      "stamina": 100.0,
+      "capacity": 1300.0,
+      "resetBreath": 1300.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 100,
+      "stamina": 569.0,
+      "capacity": 2003.5,
+      "resetBreath": 2003.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 100,
+      "stamina": 999.9990234375,
+      "capacity": 2649.99853515625,
+      "resetBreath": 2649.99853515625,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 100,
+      "stamina": 1000.0,
+      "capacity": 2650.0,
+      "resetBreath": 2650.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 500,
+      "stamina": -1.0,
+      "capacity": 1748.5,
+      "resetBreath": 1748.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 500,
+      "stamina": 0.0,
+      "capacity": 1750.0,
+      "resetBreath": 1750.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 500,
+      "stamina": 1.0,
+      "capacity": 1751.5,
+      "resetBreath": 1751.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 500,
+      "stamina": 100.0,
+      "capacity": 1900.0,
+      "resetBreath": 1900.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 500,
+      "stamina": 569.0,
+      "capacity": 2603.5,
+      "resetBreath": 2603.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 500,
+      "stamina": 999.9990234375,
+      "capacity": 3249.99853515625,
+      "resetBreath": 3249.99853515625,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 500,
+      "stamina": 1000.0,
+      "capacity": 3250.0,
+      "resetBreath": 3250.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 999,
+      "stamina": -1.0,
+      "capacity": 2497.0,
+      "resetBreath": 2497.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 999,
+      "stamina": 0.0,
+      "capacity": 2498.5,
+      "resetBreath": 2498.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 999,
+      "stamina": 1.0,
+      "capacity": 2500.0,
+      "resetBreath": 2500.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 999,
+      "stamina": 100.0,
+      "capacity": 2648.5,
+      "resetBreath": 2648.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 999,
+      "stamina": 569.0,
+      "capacity": 3352.0,
+      "resetBreath": 3352.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 999,
+      "stamina": 999.9990234375,
+      "capacity": 3998.49853515625,
+      "resetBreath": 3998.49853515625,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 999,
+      "stamina": 1000.0,
+      "capacity": 3998.5,
+      "resetBreath": 3998.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1000,
+      "stamina": -1.0,
+      "capacity": 2498.5,
+      "resetBreath": 2498.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1000,
+      "stamina": 0.0,
+      "capacity": 2500.0,
+      "resetBreath": 2500.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1000,
+      "stamina": 1.0,
+      "capacity": 2501.5,
+      "resetBreath": 2501.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1000,
+      "stamina": 100.0,
+      "capacity": 2650.0,
+      "resetBreath": 2650.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1000,
+      "stamina": 569.0,
+      "capacity": 3353.5,
+      "resetBreath": 3353.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1000,
+      "stamina": 999.9990234375,
+      "capacity": 3999.99853515625,
+      "resetBreath": 3999.99853515625,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1000,
+      "stamina": 1000.0,
+      "capacity": 4000.0,
+      "resetBreath": 4000.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1001,
+      "stamina": -1.0,
+      "capacity": 2500.0,
+      "resetBreath": 2500.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1001,
+      "stamina": 0.0,
+      "capacity": 2501.5,
+      "resetBreath": 2501.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1001,
+      "stamina": 1.0,
+      "capacity": 2503.0,
+      "resetBreath": 2503.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1001,
+      "stamina": 100.0,
+      "capacity": 2651.5,
+      "resetBreath": 2651.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1001,
+      "stamina": 569.0,
+      "capacity": 3355.0,
+      "resetBreath": 3355.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1001,
+      "stamina": 999.9990234375,
+      "capacity": 4001.49853515625,
+      "resetBreath": 4001.49853515625,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 1001,
+      "stamina": 1000.0,
+      "capacity": 4001.5,
+      "resetBreath": 4001.5,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 16777217,
+      "stamina": -1.0,
+      "capacity": 25166822.0,
+      "resetBreath": 25166822.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 16777217,
+      "stamina": 0.0,
+      "capacity": 25166826.0,
+      "resetBreath": 25166826.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 16777217,
+      "stamina": 1.0,
+      "capacity": 25166826.0,
+      "resetBreath": 25166826.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 16777217,
+      "stamina": 100.0,
+      "capacity": 25166974.0,
+      "resetBreath": 25166974.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 16777217,
+      "stamina": 569.0,
+      "capacity": 25167674.0,
+      "resetBreath": 25167674.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 16777217,
+      "stamina": 999.9990234375,
+      "capacity": 25168326.0,
+      "resetBreath": 25168326.0,
+      "resetFlags": 65407
+    },
+    {
+      "lung": 16777217,
+      "stamina": 1000.0,
+      "capacity": 25168326.0,
+      "resetBreath": 25168326.0,
+      "resetFlags": 65407
+    }
+  ]
+}

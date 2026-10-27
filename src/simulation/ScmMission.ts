@@ -265,6 +265,7 @@ export interface ScmMissionWorld {
  /** The player's own ped, which is the only ped the browser holds while the opening runs: its position in
   * native axes, the vehicle it is in if any, whether it has stopped, and its health. */
  playerPed():{
+  /** GET_CHAR_COORDINATES position: the vehicle origin while seated; the actual ped matrix is separate. */
   position:{x:number;y:number;z:number};
   /** The vehicle it is in, as eVehicleAppearance and whether that vehicle is a train. */
   vehicle:{appearance:number;train:boolean;model?:number;inAirProper?:()=>boolean;
@@ -273,6 +274,8 @@ export interface ScmMissionWorld {
   stopped:boolean;health:number;dead:boolean;
   /** CPlaceable::GetHeading in degrees, as the script reads a ped's. */
   heading?:number;
+  /** CPed's actual matrix for offset commands; coordinate/heading commands select the vehicle separately. */
+  matrix?:ReturnType<NonNullable<ScmWorldCommands['pedMatrix']>>;
   /** CEntity::GetAreaCode: the interior it is in, zero being the normal world. */
   areaCode:number;
   /** CPed::m_aWeapons as the types it carries, and the one it is holding. */
@@ -394,10 +397,15 @@ export interface ScmMissionWorld {
  spawnScriptPedOnCar(pedType:number,model:number|string,car:unknown,offset:{x:number;y:number;z:number},turret?:number):Promise<unknown>;
  placeScriptPed(ped:unknown,position:{x:number;y:number;z:number}):void;
  setScriptPedHeading(ped:unknown,degrees:number):void;
+ /** Script coordinate/heading queries select the vehicle for a seated ped. The actual ped matrix is separate. */
  scriptPedPosition(ped:unknown):{x:number;y:number;z:number};
  scriptPedHeading(ped:unknown):number;
+ /** CPed's matrix while seated; undefined lets the existing upright on-foot adapter answer. */
+ scriptPedMatrix?(ped:unknown):ReturnType<NonNullable<ScmWorldCommands['pedMatrix']>>|undefined;
  scriptPedHealth(ped:unknown):number;
  setScriptPedHealth(ped:unknown,health:number):void;
+ scriptPedArmour?(ped:unknown):number|undefined;
+ setScriptPedArmour?(ped:unknown,armour:number):void;
  killScriptPed(ped:unknown):void;
  setScriptPedAccuracy(ped:unknown,accuracy:number):void;
  /** CPed::m_nWeaponShootingRate, which CTaskSimpleGunControl's bursts and pauses read. */
@@ -754,7 +762,7 @@ export interface ScmMissionWorld {
  /** SET_UPSIDEDOWN_CAR_NOT_DAMAGED: autoFlags.bDoesNotGetDamagedUpsideDown. */
  setScriptVehicleUpsideDownNotDamaged?(car:unknown,state:boolean):void;
  setScriptVehicleForwardSpeed(car:unknown,forwardSpeed:number):void;
- damageScriptPed(ped:unknown,amount:number):void;
+ damageScriptPed(ped:unknown,amount:number,damageArmour:boolean):void;
  /* The cars a script creates. The browser builds one only once its model is streamed, so the host is asked to
   * spawn and the pool holds the handle in the meantime; everything the script says before the car arrives is
   * applied when it does. */
@@ -1201,6 +1209,8 @@ export class ScmMission {
  private adapterRef!:ScmWorldCommands;
  /** The player's CPed::bDontDragMeOutCar (SET_CHAR_CANT_BE_DRAGGED_OUT). */
  playerCantBeDraggedOut=false;
+ /** CPed::bCanBeShotInVehicle, on for a new player. The player has no entry in the script-NPC pool. */
+ playerCanBeShotInVehicle=true;
  /** For a ped running a sequence with nested ones, each flattened task's step and nested step. */
  private readonly sequenceSteps=new Map<number,{outer:number;inner:number}[]>();
  /** The mission text block the script last asked for. */
@@ -1474,7 +1484,7 @@ export class ScmMission {
    pedIsWaitingForCollision:handle=>handle!==PLAYER_PED_HANDLE&&!!this.world.scriptPedWaitingForCollision?.(this.livePed(handle)),
    // m_bIsStaticWaitingForCollision: a mission car stands static until the world's collision is under it.
    vehicleIsWaitingForWorldCollision:handle=>this.world.scriptVehicleWaitingForCollision?.(this.liveVehicle(handle))??false,
-   damagePed:(handle,amount,damageArmour)=>{if(handle===PLAYER_PED_HANDLE)this.host('damagePlayer','DAMAGE_CHAR')(amount,damageArmour);else this.world.damageScriptPed(this.livePed(handle),amount);},
+   damagePed:(handle,amount,damageArmour)=>{if(handle===PLAYER_PED_HANDLE)this.host('damagePlayer','DAMAGE_CHAR')(amount,damageArmour);else this.world.damageScriptPed(this.livePed(handle),amount,damageArmour);},
    // CPedIntelligence::SetPedDecisionMakerType, and the fields the rest of this batch names.
    // SetCharDecisionMaker (reversed): the ped wears the slot CTheScripts::GetActualScriptThingIndex gives, -1 for none.
    setPedDecisionMaker:(handle,decisionMaker)=>{this.world.setScriptPedDecisionMaker(this.livePed(handle),this.runtime.game.decisionMakers.actualIndex(decisionMaker));},
@@ -2035,7 +2045,7 @@ export class ScmMission {
    // The freeze that also waits for collision: a ped the browser built stands on ground it has already
    // loaded, so there is nothing to wait for and it is the plain freeze.
    freezePedPositionAndWaitForCollision:(handle,freeze,missionCleanup)=>{const ped=this.livePed(handle);this.world.setScriptPedFrozen(ped,freeze);if(freeze&&missionCleanup)this.world.scriptPedWaitForCollision?.(ped);},
-   setPedCanBeShotInVehicle:(handle,canBeShot)=>{this.world.setScriptPedFlag(this.livePed(handle),'canBeShotInVehicle',canBeShot);},
+   setPedCanBeShotInVehicle:(handle,canBeShot)=>{if(handle===PLAYER_PED_HANDLE)this.playerCanBeShotInVehicle=canBeShot;else this.world.setScriptPedFlag(this.livePed(handle),'canBeShotInVehicle',canBeShot);},
    // The player's bDontDragMeOutCar is kept here: nothing in the browser drags the player out yet.
    setPedCantBeDraggedOut:(handle,cannot)=>{if(handle===PLAYER_PED_HANDLE)this.playerCantBeDraggedOut=cannot;else this.world.setScriptPedFlag(this.livePed(handle),'cantBeDraggedOut',cannot);},
    setPedLoadsCollision:(handle,loads)=>{this.world.setScriptPedFlag(this.livePed(handle),'loadsCollision',loads);},
@@ -2539,11 +2549,12 @@ export class ScmMission {
     const heading=this.world.playerPed().heading;if(heading===undefined)throw new UnsupportedScmCommand(-1,0,'GET_CHAR_HEADING','player heading');
     return heading;
    },
-   // A ped stands upright: its matrix is its heading's turn about the vertical, at its position. The player's comes
-   // from the host; one the host does not know is not guessed.
+   // Offset commands read the ped's actual seated matrix. The existing on-foot adapter supplies an upright
+   // heading frame when the host has no full matrix; coordinate/heading commands keep their separate shortcuts.
    pedMatrix:handle=>{
-    if(handle===PLAYER_PED_HANDLE){const player=this.world.playerPed();if(player.heading===undefined)throw new UnsupportedScmCommand(-1,0,'GET_OFFSET_FROM_CHAR_IN_WORLD_COORDS','player heading');
+    if(handle===PLAYER_PED_HANDLE){const player=this.world.playerPed(),matrix=player.matrix;if(matrix)return matrix;if(player.heading===undefined)throw new UnsupportedScmCommand(-1,0,'GET_OFFSET_FROM_CHAR_IN_WORLD_COORDS','player heading');
      return {...headingFrame(player.heading*Math.PI/180),position:player.position};}
+    const ped=this.peds.entity(handle),matrix=ped!==undefined?this.world.scriptPedMatrix?.(ped):undefined;if(matrix)return matrix;
     return {...headingFrame(this.peds.headingOf(handle)*Math.PI/180),position:this.ridingIn(handle)??this.peds.positionOf(handle)};
    },
    setPedCoordinates:(handle,x,y,z)=>{if(handle===PLAYER_PED_HANDLE)this.teleportPlayer(x,y,z,'SET_CHAR_COORDINATES');else this.peds.setPosition(handle,{x,y,z});},
@@ -3039,8 +3050,7 @@ export class ScmMission {
    // GET_DRIVER_OF_CAR: the player only from the driver's seat; riding as a passenger, the car's own driver or none.
    vehicleDriver:handle=>{const own=this.world.playerPed().vehicle;return handle===PLAYER_VEHICLE_HANDLE?(own&&!own.passenger?PLAYER_PED_HANDLE:-1):this.playerCarHandle()===handle&&!own?.passenger?PLAYER_PED_HANDLE:this.peds.driverOf(handle)??-1;},
    // ADD_ARMOUR_TO_CHAR: m_fArmour plus the amount, up to CPlayerInfo::m_nMaxArmour for the player and 100 for anyone
-   // else (the handler is unreversed; the armour pickup caps the player the same way). Script peds keep the figure,
-   // which the browser's ped damage does not yet spend.
+   // else (the handler is unreversed; the armour pickup caps the player the same way).
    addArmourToPed:(handle,amount)=>{
     if(handle===PLAYER_PED_HANDLE){
      if(!this.world.playerArmour||!this.world.setPlayerArmour)throw new UnsupportedScmCommand(-1,0,'ADD_ARMOUR_TO_CHAR','no host');
@@ -3208,6 +3218,8 @@ export class ScmMission {
    headingOf:ped=>this.world.scriptPedHeading(ped),
    healthOf:ped=>this.world.scriptPedHealth(ped),
    setHealth:(ped,health)=>{this.world.setScriptPedHealth(ped,health);},
+   armourOf:ped=>this.world.scriptPedArmour?.(ped),
+   setArmour:(ped,armour)=>{this.world.setScriptPedArmour?.(ped,armour);},
    kill:ped=>{this.world.killScriptPed(ped);},
    setAccuracy:(ped,accuracy)=>{this.world.setScriptPedAccuracy(ped,accuracy);},
    setShootingRate:(ped,rate)=>{this.world.setScriptPedShootingRate?.(ped,rate);},

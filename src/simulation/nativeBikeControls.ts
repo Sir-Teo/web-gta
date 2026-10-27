@@ -16,3 +16,7 @@ export function bikePedals(input:{accelerate:number;brake:number;forwardSpeed:nu
  if(fwd<0)return a<0?{gas:a,brake:0,burnout:false,handbrake:false}:{gas:0,brake:a,burnout:false,handbrake:false};
  return a<0?{gas:0,brake:-a,burnout:false,handbrake:false}:{gas:a,brake:0,burnout:false,handbrake:false};
 }
+
+/** CBike counts four suspension lines (selected iOS 0x1004528e0..0x1004529ac).
+ * The browser's paired front/rear supports each stand in for two native contact points. */
+export function bikeContactPointCount(front:boolean,rear:boolean){return 2*(Number(front)+Number(rear));}

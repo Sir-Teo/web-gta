@@ -1,0 +1,1656 @@
+{
+  "source": "Capture the actual native first-person ground lift and IsUpsideDown.\n\nSelected Process_1stPerson prefix optionally executes its reset-statistics\nbranch with a declared present vehicle RenderWare object. Camera mode entry,\ncall cadence, pause scheduling and full PC owner are outside this capture.\n",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "entries": {
+    "guard": "0x100217a90..0x100217af0",
+    "upsideDown": "0x100479678",
+    "resetPrefix": "0x10021769c..0x100217750"
+  },
+  "fixedCases": 180,
+  "cases": [
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": -1,
+        "sourceZ": -1000
+      },
+      "state": -0.07000000029802322,
+      "sourceZ": -1000.0700073242188
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": -1,
+        "sourceZ": 0
+      },
+      "state": -0.07000000029802322,
+      "sourceZ": -0.07000000029802322
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": -1,
+        "sourceZ": 13.3
+      },
+      "state": -0.07000000029802322,
+      "sourceZ": 13.230000495910645
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": -1,
+        "sourceZ": 10000
+      },
+      "state": -0.07000000029802322,
+      "sourceZ": 9999.9296875
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": -0.90000004,
+        "sourceZ": -1000
+      },
+      "state": -0.07000000029802322,
+      "sourceZ": -1000.0700073242188
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": -0.90000004,
+        "sourceZ": 0
+      },
+      "state": -0.07000000029802322,
+      "sourceZ": -0.07000000029802322
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": -0.90000004,
+        "sourceZ": 13.3
+      },
+      "state": -0.07000000029802322,
+      "sourceZ": 13.230000495910645
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": -0.90000004,
+        "sourceZ": 10000
+      },
+      "state": -0.07000000029802322,
+      "sourceZ": 9999.9296875
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": -0.9,
+        "sourceZ": -1000
+      },
+      "state": -0.07000000029802322,
+      "sourceZ": -1000.0700073242188
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": -0.9,
+        "sourceZ": 0
+      },
+      "state": -0.07000000029802322,
+      "sourceZ": -0.07000000029802322
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": -0.9,
+        "sourceZ": 13.3
+      },
+      "state": -0.07000000029802322,
+      "sourceZ": 13.230000495910645
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": -0.9,
+        "sourceZ": 10000
+      },
+      "state": -0.07000000029802322,
+      "sourceZ": 9999.9296875
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": -0.8999999,
+        "sourceZ": -1000
+      },
+      "state": -0.12999999523162842,
+      "sourceZ": -1000.1300048828125
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": -0.8999999,
+        "sourceZ": 0
+      },
+      "state": -0.12999999523162842,
+      "sourceZ": -0.12999999523162842
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": -0.8999999,
+        "sourceZ": 13.3
+      },
+      "state": -0.12999999523162842,
+      "sourceZ": 13.170000076293945
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": -0.8999999,
+        "sourceZ": 10000
+      },
+      "state": -0.12999999523162842,
+      "sourceZ": 9999.8701171875
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": 0,
+        "sourceZ": -1000
+      },
+      "state": -0.12999999523162842,
+      "sourceZ": -1000.1300048828125
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": 0,
+        "sourceZ": 0
+      },
+      "state": -0.12999999523162842,
+      "sourceZ": -0.12999999523162842
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": 0,
+        "sourceZ": 13.3
+      },
+      "state": -0.12999999523162842,
+      "sourceZ": 13.170000076293945
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": 0,
+        "sourceZ": 10000
+      },
+      "state": -0.12999999523162842,
+      "sourceZ": 9999.8701171875
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": 1,
+        "sourceZ": -1000
+      },
+      "state": -0.12999999523162842,
+      "sourceZ": -1000.1300048828125
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": 1,
+        "sourceZ": 0
+      },
+      "state": -0.12999999523162842,
+      "sourceZ": -0.12999999523162842
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": 1,
+        "sourceZ": 13.3
+      },
+      "state": -0.12999999523162842,
+      "sourceZ": 13.170000076293945
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": 1,
+        "sourceZ": 10000
+      },
+      "state": -0.12999999523162842,
+      "sourceZ": 9999.8701171875
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": -1,
+        "sourceZ": -1000
+      },
+      "state": 0.029999999329447746,
+      "sourceZ": -999.969970703125
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": -1,
+        "sourceZ": 0
+      },
+      "state": 0.029999999329447746,
+      "sourceZ": 0.029999999329447746
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": -1,
+        "sourceZ": 13.3
+      },
+      "state": 0.029999999329447746,
+      "sourceZ": 13.329999923706055
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": -1,
+        "sourceZ": 10000
+      },
+      "state": 0.029999999329447746,
+      "sourceZ": 10000.0302734375
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": -0.90000004,
+        "sourceZ": -1000
+      },
+      "state": 0.029999999329447746,
+      "sourceZ": -999.969970703125
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": -0.90000004,
+        "sourceZ": 0
+      },
+      "state": 0.029999999329447746,
+      "sourceZ": 0.029999999329447746
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": -0.90000004,
+        "sourceZ": 13.3
+      },
+      "state": 0.029999999329447746,
+      "sourceZ": 13.329999923706055
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": -0.90000004,
+        "sourceZ": 10000
+      },
+      "state": 0.029999999329447746,
+      "sourceZ": 10000.0302734375
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": -0.9,
+        "sourceZ": -1000
+      },
+      "state": 0.029999999329447746,
+      "sourceZ": -999.969970703125
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": -0.9,
+        "sourceZ": 0
+      },
+      "state": 0.029999999329447746,
+      "sourceZ": 0.029999999329447746
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": -0.9,
+        "sourceZ": 13.3
+      },
+      "state": 0.029999999329447746,
+      "sourceZ": 13.329999923706055
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": -0.9,
+        "sourceZ": 10000
+      },
+      "state": 0.029999999329447746,
+      "sourceZ": 10000.0302734375
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": -0.8999999,
+        "sourceZ": -1000
+      },
+      "state": 0.0,
+      "sourceZ": -1000.0
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": -0.8999999,
+        "sourceZ": 0
+      },
+      "state": 0.0,
+      "sourceZ": 0.0
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": -0.8999999,
+        "sourceZ": 13.3
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": -0.8999999,
+        "sourceZ": 10000
+      },
+      "state": 0.0,
+      "sourceZ": 10000.0
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": 0,
+        "sourceZ": -1000
+      },
+      "state": 0.0,
+      "sourceZ": -1000.0
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": 0,
+        "sourceZ": 0
+      },
+      "state": 0.0,
+      "sourceZ": 0.0
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": 0,
+        "sourceZ": 13.3
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": 0,
+        "sourceZ": 10000
+      },
+      "state": 0.0,
+      "sourceZ": 10000.0
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": 1,
+        "sourceZ": -1000
+      },
+      "state": 0.0,
+      "sourceZ": -1000.0
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": 1,
+        "sourceZ": 0
+      },
+      "state": 0.0,
+      "sourceZ": 0.0
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": 1,
+        "sourceZ": 13.3
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0,
+        "upZ": 1,
+        "sourceZ": 10000
+      },
+      "state": 0.0,
+      "sourceZ": 10000.0
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": -1,
+        "sourceZ": -1000
+      },
+      "state": 0.05999999865889549,
+      "sourceZ": -999.9400024414062
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": -1,
+        "sourceZ": 0
+      },
+      "state": 0.05999999865889549,
+      "sourceZ": 0.05999999865889549
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": -1,
+        "sourceZ": 13.3
+      },
+      "state": 0.05999999865889549,
+      "sourceZ": 13.360000610351562
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": -1,
+        "sourceZ": 10000
+      },
+      "state": 0.05999999865889549,
+      "sourceZ": 10000.0595703125
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": -0.90000004,
+        "sourceZ": -1000
+      },
+      "state": 0.05999999865889549,
+      "sourceZ": -999.9400024414062
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": -0.90000004,
+        "sourceZ": 0
+      },
+      "state": 0.05999999865889549,
+      "sourceZ": 0.05999999865889549
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": -0.90000004,
+        "sourceZ": 13.3
+      },
+      "state": 0.05999999865889549,
+      "sourceZ": 13.360000610351562
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": -0.90000004,
+        "sourceZ": 10000
+      },
+      "state": 0.05999999865889549,
+      "sourceZ": 10000.0595703125
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": -0.9,
+        "sourceZ": -1000
+      },
+      "state": 0.05999999865889549,
+      "sourceZ": -999.9400024414062
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": -0.9,
+        "sourceZ": 0
+      },
+      "state": 0.05999999865889549,
+      "sourceZ": 0.05999999865889549
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": -0.9,
+        "sourceZ": 13.3
+      },
+      "state": 0.05999999865889549,
+      "sourceZ": 13.360000610351562
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": -0.9,
+        "sourceZ": 10000
+      },
+      "state": 0.05999999865889549,
+      "sourceZ": 10000.0595703125
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": -0.8999999,
+        "sourceZ": -1000
+      },
+      "state": 0.0,
+      "sourceZ": -1000.0
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": -0.8999999,
+        "sourceZ": 0
+      },
+      "state": 0.0,
+      "sourceZ": 0.0
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": -0.8999999,
+        "sourceZ": 13.3
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": -0.8999999,
+        "sourceZ": 10000
+      },
+      "state": 0.0,
+      "sourceZ": 10000.0
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": 0,
+        "sourceZ": -1000
+      },
+      "state": 0.0,
+      "sourceZ": -1000.0
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": 0,
+        "sourceZ": 0
+      },
+      "state": 0.0,
+      "sourceZ": 0.0
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": 0,
+        "sourceZ": 13.3
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": 0,
+        "sourceZ": 10000
+      },
+      "state": 0.0,
+      "sourceZ": 10000.0
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": 1,
+        "sourceZ": -1000
+      },
+      "state": 0.0,
+      "sourceZ": -1000.0
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": 1,
+        "sourceZ": 0
+      },
+      "state": 0.0,
+      "sourceZ": 0.0
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": 1,
+        "sourceZ": 13.3
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.03,
+        "upZ": 1,
+        "sourceZ": 10000
+      },
+      "state": 0.0,
+      "sourceZ": 10000.0
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": -1,
+        "sourceZ": -1000
+      },
+      "state": 0.5,
+      "sourceZ": -999.5
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": -1,
+        "sourceZ": 0
+      },
+      "state": 0.5,
+      "sourceZ": 0.5
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": -1,
+        "sourceZ": 13.3
+      },
+      "state": 0.5,
+      "sourceZ": 13.800000190734863
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": -1,
+        "sourceZ": 10000
+      },
+      "state": 0.5,
+      "sourceZ": 10000.5
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": -0.90000004,
+        "sourceZ": -1000
+      },
+      "state": 0.5,
+      "sourceZ": -999.5
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": -0.90000004,
+        "sourceZ": 0
+      },
+      "state": 0.5,
+      "sourceZ": 0.5
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": -0.90000004,
+        "sourceZ": 13.3
+      },
+      "state": 0.5,
+      "sourceZ": 13.800000190734863
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": -0.90000004,
+        "sourceZ": 10000
+      },
+      "state": 0.5,
+      "sourceZ": 10000.5
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": -0.9,
+        "sourceZ": -1000
+      },
+      "state": 0.5,
+      "sourceZ": -999.5
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": -0.9,
+        "sourceZ": 0
+      },
+      "state": 0.5,
+      "sourceZ": 0.5
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": -0.9,
+        "sourceZ": 13.3
+      },
+      "state": 0.5,
+      "sourceZ": 13.800000190734863
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": -0.9,
+        "sourceZ": 10000
+      },
+      "state": 0.5,
+      "sourceZ": 10000.5
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": -0.8999999,
+        "sourceZ": -1000
+      },
+      "state": 0.0,
+      "sourceZ": -1000.0
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": -0.8999999,
+        "sourceZ": 0
+      },
+      "state": 0.0,
+      "sourceZ": 0.0
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": -0.8999999,
+        "sourceZ": 13.3
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": -0.8999999,
+        "sourceZ": 10000
+      },
+      "state": 0.0,
+      "sourceZ": 10000.0
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": 0,
+        "sourceZ": -1000
+      },
+      "state": 0.0,
+      "sourceZ": -1000.0
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": 0,
+        "sourceZ": 0
+      },
+      "state": 0.0,
+      "sourceZ": 0.0
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": 0,
+        "sourceZ": 13.3
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": 0,
+        "sourceZ": 10000
+      },
+      "state": 0.0,
+      "sourceZ": 10000.0
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": 1,
+        "sourceZ": -1000
+      },
+      "state": 0.0,
+      "sourceZ": -1000.0
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": 1,
+        "sourceZ": 0
+      },
+      "state": 0.0,
+      "sourceZ": 0.0
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": 1,
+        "sourceZ": 13.3
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.47,
+        "upZ": 1,
+        "sourceZ": 10000
+      },
+      "state": 0.0,
+      "sourceZ": 10000.0
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": -1,
+        "sourceZ": -1000
+      },
+      "state": 0.5199999809265137,
+      "sourceZ": -999.47998046875
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": -1,
+        "sourceZ": 0
+      },
+      "state": 0.5199999809265137,
+      "sourceZ": 0.5199999809265137
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": -1,
+        "sourceZ": 13.3
+      },
+      "state": 0.5199999809265137,
+      "sourceZ": 13.819999694824219
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": -1,
+        "sourceZ": 10000
+      },
+      "state": 0.5199999809265137,
+      "sourceZ": 10000.51953125
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": -0.90000004,
+        "sourceZ": -1000
+      },
+      "state": 0.5199999809265137,
+      "sourceZ": -999.47998046875
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": -0.90000004,
+        "sourceZ": 0
+      },
+      "state": 0.5199999809265137,
+      "sourceZ": 0.5199999809265137
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": -0.90000004,
+        "sourceZ": 13.3
+      },
+      "state": 0.5199999809265137,
+      "sourceZ": 13.819999694824219
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": -0.90000004,
+        "sourceZ": 10000
+      },
+      "state": 0.5199999809265137,
+      "sourceZ": 10000.51953125
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": -0.9,
+        "sourceZ": -1000
+      },
+      "state": 0.5199999809265137,
+      "sourceZ": -999.47998046875
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": -0.9,
+        "sourceZ": 0
+      },
+      "state": 0.5199999809265137,
+      "sourceZ": 0.5199999809265137
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": -0.9,
+        "sourceZ": 13.3
+      },
+      "state": 0.5199999809265137,
+      "sourceZ": 13.819999694824219
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": -0.9,
+        "sourceZ": 10000
+      },
+      "state": 0.5199999809265137,
+      "sourceZ": 10000.51953125
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": -0.8999999,
+        "sourceZ": -1000
+      },
+      "state": 0.0,
+      "sourceZ": -1000.0
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": -0.8999999,
+        "sourceZ": 0
+      },
+      "state": 0.0,
+      "sourceZ": 0.0
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": -0.8999999,
+        "sourceZ": 13.3
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": -0.8999999,
+        "sourceZ": 10000
+      },
+      "state": 0.0,
+      "sourceZ": 10000.0
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": 0,
+        "sourceZ": -1000
+      },
+      "state": 0.0,
+      "sourceZ": -1000.0
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": 0,
+        "sourceZ": 0
+      },
+      "state": 0.0,
+      "sourceZ": 0.0
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": 0,
+        "sourceZ": 13.3
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": 0,
+        "sourceZ": 10000
+      },
+      "state": 0.0,
+      "sourceZ": 10000.0
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": 1,
+        "sourceZ": -1000
+      },
+      "state": 0.0,
+      "sourceZ": -1000.0
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": 1,
+        "sourceZ": 0
+      },
+      "state": 0.0,
+      "sourceZ": 0.0
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": 1,
+        "sourceZ": 13.3
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": 1,
+        "sourceZ": 10000
+      },
+      "state": 0.0,
+      "sourceZ": 10000.0
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": -1,
+        "sourceZ": -1000
+      },
+      "state": 0.5,
+      "sourceZ": -999.5
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": -1,
+        "sourceZ": 0
+      },
+      "state": 0.5,
+      "sourceZ": 0.5
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": -1,
+        "sourceZ": 13.3
+      },
+      "state": 0.5,
+      "sourceZ": 13.800000190734863
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": -1,
+        "sourceZ": 10000
+      },
+      "state": 0.5,
+      "sourceZ": 10000.5
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": -0.90000004,
+        "sourceZ": -1000
+      },
+      "state": 0.5,
+      "sourceZ": -999.5
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": -0.90000004,
+        "sourceZ": 0
+      },
+      "state": 0.5,
+      "sourceZ": 0.5
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": -0.90000004,
+        "sourceZ": 13.3
+      },
+      "state": 0.5,
+      "sourceZ": 13.800000190734863
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": -0.90000004,
+        "sourceZ": 10000
+      },
+      "state": 0.5,
+      "sourceZ": 10000.5
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": -0.9,
+        "sourceZ": -1000
+      },
+      "state": 0.5,
+      "sourceZ": -999.5
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": -0.9,
+        "sourceZ": 0
+      },
+      "state": 0.5,
+      "sourceZ": 0.5
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": -0.9,
+        "sourceZ": 13.3
+      },
+      "state": 0.5,
+      "sourceZ": 13.800000190734863
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": -0.9,
+        "sourceZ": 10000
+      },
+      "state": 0.5,
+      "sourceZ": 10000.5
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": -0.8999999,
+        "sourceZ": -1000
+      },
+      "state": 0.0,
+      "sourceZ": -1000.0
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": -0.8999999,
+        "sourceZ": 0
+      },
+      "state": 0.0,
+      "sourceZ": 0.0
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": -0.8999999,
+        "sourceZ": 13.3
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": -0.8999999,
+        "sourceZ": 10000
+      },
+      "state": 0.0,
+      "sourceZ": 10000.0
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": 0,
+        "sourceZ": -1000
+      },
+      "state": 0.0,
+      "sourceZ": -1000.0
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": 0,
+        "sourceZ": 0
+      },
+      "state": 0.0,
+      "sourceZ": 0.0
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": 0,
+        "sourceZ": 13.3
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": 0,
+        "sourceZ": 10000
+      },
+      "state": 0.0,
+      "sourceZ": 10000.0
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": 1,
+        "sourceZ": -1000
+      },
+      "state": 0.0,
+      "sourceZ": -1000.0
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": 1,
+        "sourceZ": 0
+      },
+      "state": 0.0,
+      "sourceZ": 0.0
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": 1,
+        "sourceZ": 13.3
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.5,
+        "upZ": 1,
+        "sourceZ": 10000
+      },
+      "state": 0.0,
+      "sourceZ": 10000.0
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": -1,
+        "sourceZ": -1000
+      },
+      "state": 0.5,
+      "sourceZ": -999.5
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": -1,
+        "sourceZ": 0
+      },
+      "state": 0.5,
+      "sourceZ": 0.5
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": -1,
+        "sourceZ": 13.3
+      },
+      "state": 0.5,
+      "sourceZ": 13.800000190734863
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": -1,
+        "sourceZ": 10000
+      },
+      "state": 0.5,
+      "sourceZ": 10000.5
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": -0.90000004,
+        "sourceZ": -1000
+      },
+      "state": 0.5,
+      "sourceZ": -999.5
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": -0.90000004,
+        "sourceZ": 0
+      },
+      "state": 0.5,
+      "sourceZ": 0.5
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": -0.90000004,
+        "sourceZ": 13.3
+      },
+      "state": 0.5,
+      "sourceZ": 13.800000190734863
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": -0.90000004,
+        "sourceZ": 10000
+      },
+      "state": 0.5,
+      "sourceZ": 10000.5
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": -0.9,
+        "sourceZ": -1000
+      },
+      "state": 0.5,
+      "sourceZ": -999.5
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": -0.9,
+        "sourceZ": 0
+      },
+      "state": 0.5,
+      "sourceZ": 0.5
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": -0.9,
+        "sourceZ": 13.3
+      },
+      "state": 0.5,
+      "sourceZ": 13.800000190734863
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": -0.9,
+        "sourceZ": 10000
+      },
+      "state": 0.5,
+      "sourceZ": 10000.5
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": -0.8999999,
+        "sourceZ": -1000
+      },
+      "state": 0.0,
+      "sourceZ": -1000.0
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": -0.8999999,
+        "sourceZ": 0
+      },
+      "state": 0.0,
+      "sourceZ": 0.0
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": -0.8999999,
+        "sourceZ": 13.3
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": -0.8999999,
+        "sourceZ": 10000
+      },
+      "state": 0.0,
+      "sourceZ": 10000.0
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": 0,
+        "sourceZ": -1000
+      },
+      "state": 0.0,
+      "sourceZ": -1000.0
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": 0,
+        "sourceZ": 0
+      },
+      "state": 0.0,
+      "sourceZ": 0.0
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": 0,
+        "sourceZ": 13.3
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": 0,
+        "sourceZ": 10000
+      },
+      "state": 0.0,
+      "sourceZ": 10000.0
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": 1,
+        "sourceZ": -1000
+      },
+      "state": 0.0,
+      "sourceZ": -1000.0
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": 1,
+        "sourceZ": 0
+      },
+      "state": 0.0,
+      "sourceZ": 0.0
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": 1,
+        "sourceZ": 13.3
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": 1,
+        "sourceZ": 10000
+      },
+      "state": 0.0,
+      "sourceZ": 10000.0
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": -1,
+        "sourceZ": 13.3,
+        "prefix": true,
+        "reset": false
+      },
+      "state": -0.07000000029802322,
+      "sourceZ": 13.230000495910645
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": -1,
+        "sourceZ": 13.3,
+        "prefix": true,
+        "reset": true
+      },
+      "state": 0.029999999329447746,
+      "sourceZ": 13.329999923706055
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": 1,
+        "sourceZ": 13.3,
+        "prefix": true,
+        "reset": false
+      },
+      "state": -0.12999999523162842,
+      "sourceZ": 13.170000076293945
+    },
+    {
+      "input": {
+        "previous": -0.1,
+        "upZ": 1,
+        "sourceZ": 13.3,
+        "prefix": true,
+        "reset": true
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": -1,
+        "sourceZ": 13.3,
+        "prefix": true,
+        "reset": false
+      },
+      "state": 0.5199999809265137,
+      "sourceZ": 13.819999694824219
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": -1,
+        "sourceZ": 13.3,
+        "prefix": true,
+        "reset": true
+      },
+      "state": 0.029999999329447746,
+      "sourceZ": 13.329999923706055
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": 1,
+        "sourceZ": 13.3,
+        "prefix": true,
+        "reset": false
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.49,
+        "upZ": 1,
+        "sourceZ": 13.3,
+        "prefix": true,
+        "reset": true
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": -1,
+        "sourceZ": 13.3,
+        "prefix": true,
+        "reset": false
+      },
+      "state": 0.5,
+      "sourceZ": 13.800000190734863
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": -1,
+        "sourceZ": 13.3,
+        "prefix": true,
+        "reset": true
+      },
+      "state": 0.029999999329447746,
+      "sourceZ": 13.329999923706055
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": 1,
+        "sourceZ": 13.3,
+        "prefix": true,
+        "reset": false
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    },
+    {
+      "input": {
+        "previous": 0.51,
+        "upZ": 1,
+        "sourceZ": 13.3,
+        "prefix": true,
+        "reset": true
+      },
+      "state": 0.0,
+      "sourceZ": 13.300000190734863
+    }
+  ]
+}

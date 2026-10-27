@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 
 test('a foot cop sees and shoots CJ on the bike he rides, and a wall still hides him',async({page})=>{
  test.setTimeout(180000);await page.goto('/models.html');const result=await page.evaluate(async()=>{
-  const [{WorldPedestrians},{WantedSystem},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/simulation/WorldPedestrians.ts','/src/simulation/WantedSystem.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(/* @vite-ignore */ p)));
+  const [{WorldPedestrians},{WantedSystem},{Simulation},{playerBikeHit},{THREE,RAPIER}]=await Promise.all(['/src/simulation/WorldPedestrians.ts','/src/simulation/WantedSystem.ts','/src/simulation/Simulation.ts','/src/vehicle/playerSeatShot.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(/* @vite-ignore */ p)));
   await RAPIER.init();const sim=new Simulation(),scene=new THREE.Scene(),base=new URL('/play/world/',location.href).href;
   sim.world.createCollider(RAPIER.ColliderDesc.cuboid(200,.5,200).setTranslation(2490,12,1680));
   sim.respawn={x:2490,y:12.55,z:1670};sim.resetPlayer();sim.world.step();sim.player.grounded=true;
@@ -19,14 +19,20 @@ test('a foot cop sees and shoots CJ on the bike he rides, and a wall still hides
    const unhooked=see();crowd.playerRide=()=>({body:bike,bike:true});const riding=see();
    const wall=sim.world.createCollider(RAPIER.ColliderDesc.cuboid(3,3,.2).setTranslation(2490,14,1675));sim.world.step();
    const walled=see();sim.world.removeCollider(wall,false);sim.world.step();
+   // The production host supplies the animated rider query. This isolated visibility fixture supplies one torso
+   // sphere at its static target; original-model player driver/pillion geometry is checked in player-bike-shot.
+   let canBeShot=true;crowd.seatedShot=(from:any,direction:any,range:number,own:any,_body:any,first:any)=>{const hit=playerBikeHit({body:bike,canBeShot,spheres:()=>[{center:{...target,y:target.y+1},radius:.3,piece:3}]},from,direction,first?.distance??range,own);return hit?{...hit,direct:true,victim:sim.player,hit:(damage:number,weapon:number)=>first.playerHit(damage,weapon,hit.piece)}:undefined;};
    // CWorld::bIncludeBikers: the cop's rounds strike CJ on the bike though his collider is off.
    cop.gunAccuracy=100;const before=sim.player.health,spot=crowd.spotTarget(cop,target,[]);
    for(let i=0;i<120&&sim.player.health===before;i++)crowd.stepPedGun(cop,cop.weapon,spot.eye,spot.aim,spot.offset,[],1/30,true);
-   return {unhooked,riding,walled,shot:before-sim.player.health};
+   const shot=before-sim.player.health;canBeShot=false;const protectedHealth=sim.player.health;
+   for(let i=0;i<120;i++)crowd.stepPedGun(cop,cop.weapon,spot.eye,spot.aim,spot.offset,[],1/30,true);
+   return {unhooked,riding,walled,shot,protected:sim.player.health===protectedHealth};
   }finally{crowd.dispose?.();sim.dispose();}
  });
  expect(result.unhooked).toBe(false);
  expect(result.riding).toBe(true);
  expect(result.walled).toBe(false);
 expect(result.shot).toBeGreaterThan(0);
+expect(result.protected).toBe(true);
 });

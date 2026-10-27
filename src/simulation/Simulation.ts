@@ -1,4 +1,5 @@
 import { CHEATS, megaPunchBlow } from './nativeCheats';
+import {healthAfterFloat32,pedDamageFactor,scriptPedDamage,spendPedArmourFloat32} from '../ped/damage';
 import { characterMovement } from './characterMovement';
 import { currentShapeCast } from './currentShapeCast';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from './health';
@@ -6,8 +7,11 @@ import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/timecycle';
 import { PED_ORIGIN_HEIGHT, pedFloatDepth, swimResistance, swimRotationTowardSurface, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
 import { NativeJetPack } from './nativeJetPack';
 import {beginPlayerBreathFrame,handlePlayerBreath} from './playerBreath';
-import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, nativeJumpGroundSpeed, NATIVE_BLEND_WALK, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY, NATIVE_JUMP_MIN_FORWARD_SPEED, NATIVE_PED_AIR_RESISTANCE, NATIVE_BLEND_RUN_FULL } from './nativePlayerLocomotion';
-import { stepStamina, STAMINA_DRAIN, STAMINA_REGEN_IDLE } from '../locomotion/player';
+import {DEFAULT_LUNG_CAPACITY} from './nativeLungCapacity';
+import {DEFAULT_BODY_MOVEMENT_MODIFIER} from './nativeBodyMovement';
+import {nativeJumpStatLaunch} from './nativePlayerJump';
+import {controlNativeSprint,handleNativeSprintEnergy,nativeButtonSprintResult,DEFAULT_SPRINT_CAPACITY,SPRINT_MODE,type SprintMode} from './nativePlayerSprint';
+import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, NATIVE_BLEND_WALK, NATIVE_JUMP_GRAVITY, NATIVE_JUMP_MIN_FORWARD_SPEED, NATIVE_PED_AIR_RESISTANCE, NATIVE_BLEND_RUN_FULL } from './nativePlayerLocomotion';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { PED_SOLVER_GROUPS } from './solverGroups';
 import { physicalCanBeDamaged, type PhysicalProofs } from '../combat/nativePhysicalProofs';
@@ -33,10 +37,16 @@ export const NATIVE_CROUCH_WALK_SPEED = 3.74;
 const NATIVE_GRAVITY = 0.008;
 /** iOS CPedDamageResponseCalculator::AccountForPedDamageStats (0x10028a070): the player's damage factor times 0.33
  * (0x100593cb0) for every weapon, falls and drownings included, before armour; another ped's by its pedstats defend
- * weakness. PC reads STAT_PLAYER's 0.4 there. */
+ * weakness. PC's entry remains a retail delegate; STAT_PLAYER's 0.4 data row alone does not prove that branch. */
 export const NATIVE_PLAYER_DAMAGE_MULT = Math.fround(0.33);
 
 export interface Controls { x: number; y: number; sprint: boolean; walk?: boolean; jump: boolean;
+  /** Preserve the pad independently of an animation's selected move state. */
+  sprintInput?:boolean;sprintJustPressed?:boolean;
+  /** Ground-task eligibility, separate from the controller's native player-data flag. */
+  sprintDisabled?:boolean;playerSprintDisabled?:boolean;
+  /** Active native camera mode, when the host owns a scripted/stunt camera. SetRealMoveAnim reads MODE_FIXED. */
+  cameraMode?:number;
   /** CPad::GetJump (held) and CPad::GetExitVehicle (held), read by CTaskSimpleClimb. `jump` is the press. */
   jumpHeld?: boolean; exitVehicle?: boolean;
   /** The mobile ports' Auto Climb: the stick pushed forward past half climbs on as jumpHeld does (ClimbPad). */
@@ -74,10 +84,10 @@ export class Simulation {
   readonly character: RAPIER.KinematicCharacterController;
   cameraExcludedBody?:RAPIER.RigidBody;
   sunCollisionEligible?: (handle:number)=>boolean;
-  player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, sprintExhausted: false, phase: 0, crouched: false, health: 100, armour: 0,
+  player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: DEFAULT_SPRINT_CAPACITY, sprintButtonSpeed:0,sprintInputHeld:false,sprintExhausted: false, phase: 0, crouched: false, health: 100, armour: 0,
     /** CPlayerPedData::m_bAdrenaline: seconds left of an adrenaline pill (m_nAdrenalineEndTime), 0 when none. */
     adrenaline: 0,
-   swimming: false, swimState: 0, swimBlend: 0, breath: 100, requireHandleBreath:false, swimStopTime: 0, swimDiveTime: 0, swimDiveDuration: 1, swimPitch: 0, swimStateChanger: 0, swimVelY: 0, swimVel: { x: 0, z: 0 },
+   swimming: false, swimState: 0, swimBlend: 0, breath: DEFAULT_LUNG_CAPACITY, requireHandleBreath:false, drownClock:0, swimStopTime: 0, swimDiveTime: 0, swimDiveDuration: 1, swimPitch: 0, swimStateChanger: 0, swimVelY: 0, swimVel: { x: 0, z: 0 },
    /** Native m_fMoveBlendRatio (PlayerControlZelda) plus preserved jump momentum (CTaskSimpleJump::Launch). */
    moveBlend: 0, jumpMomentum: { x: 0, z: 0 },
    /** SET_CHAR_ROTATION's tilt under the heading (CMatrix::SetRotate's x and y, radians), until SetHeading clears it. */
@@ -143,7 +153,32 @@ export class Simulation {
     this.world.step();
   }
   /** Once per fixed frame, including frames spent in a vehicle. */
-  beginPlayerBreathFrame(dt:number){beginPlayerBreathFrame(this.player,dt*50);}
+  beginPlayerBreathFrame(dt:number){beginPlayerBreathFrame(this.player,dt*50,this.playerLungCapacity());}
+  /** CStats::GetFatAndMuscleModifier(STAT_MOD_AIR_IN_LUNG); the live host supplies current SCM stats. */
+  playerLungCapacity=()=>DEFAULT_LUNG_CAPACITY;
+  /** CStats mode 2. Jump animation start, physical launch and landing each read current body stats. */
+  playerBodyMovementModifier=()=>DEFAULT_BODY_MOVEMENT_MODIFIER;
+  /** CPlayerPed::ResetPlayerBreath (PC 0x60A8A0, selected iOS 0x100366508). */
+  resetPlayerBreath(){this.player.breath=this.playerLungCapacity();this.player.requireHandleBreath=false;this.player.drownClock=0;}
+  /** CStats mode 7, supplied from current stamina stat 22 by the live host. */
+  playerSprintCapacity=()=>DEFAULT_SPRINT_CAPACITY;
+  /** ResetSprintEnergy changes only m_fTimeCanRun; ordinary player reset also clears button memory. */
+  resetSprintEnergy(){this.player.stamina=this.playerSprintCapacity();this.player.sprintExhausted=false;}
+  /** Read-only preview lets state/animation selection see this frame without spending its energy twice. */
+  previewPlayerSprint(dt:number,controls:Controls,mode:SprintMode=SPRINT_MODE.ground){
+    const state={energy:this.player.stamina,buttonSpeed:this.player.sprintButtonSpeed},held=controls.sprintInput??controls.sprint;
+    if(mode===SPRINT_MODE.underwater&&state.energy<=0)state.energy=Math.fround(.1);
+    const blocked=mode===SPRINT_MODE.ground&&(controls.sprintDisabled||controls.gunMove&&!controls.gunMove.aimWithArm||this.player.crouched||controls.holdMove||controls.jump&&this.player.grounded||this.playerInAir&&!this.player.grounded||this.knockdown>0||this.hitHead>0||this.climbing);
+    const factor=blocked||this.player.health<=0?0:controlNativeSprint(state,mode,{held,justPressed:controls.sprintJustPressed??(held&&!this.player.sprintInputHeld),moving:Math.hypot(controls.x,controls.y)>0,neverTired:!!this.neverTired?.(),adrenaline:this.player.adrenaline>0,sprintDisabled:!!controls.playerSprintDisabled},dt*50);
+    return {...state,factor};
+  }
+  private applyPlayerSprint(dt:number,controls:Controls,mode:SprintMode){
+    const result=this.previewPlayerSprint(dt,controls,mode);this.player.stamina=result.energy;this.player.sprintButtonSpeed=result.buttonSpeed;return result.factor;
+  }
+  handlePlayerSprintEnergy(dt:number,sprint=false,multiplier=1){
+    const state={energy:this.player.stamina},allowed=handleNativeSprintEnergy(state,sprint,multiplier,dt*50,this.playerSprintCapacity(),!!this.neverTired?.(),this.player.adrenaline>0);
+    this.player.stamina=state.energy;this.player.sprintExhausted=state.energy<=0&&this.player.sprintButtonSpeed<=0;return allowed;
+  }
   /** Vehicle tasks share the same breath state as swimming. Drowning bypasses armour. */
   /** CPed::bDrownsInWater for the player (SET_CHAR_DROWNS_IN_WATER). */
   playerDrownsInWater=true;
@@ -200,12 +235,13 @@ export class Simulation {
     if(v.z>0)this.player.grounded=false;
   }
   handlePlayerBreath(dt:number,decrease=true,multiplier=1){
-    const result=handlePlayerBreath(this.player,decrease,multiplier,dt*50,undefined,undefined,this.playerDrownsInWater);
+    const result=handlePlayerBreath(this.player,decrease,multiplier,dt*50,this.playerLungCapacity(),undefined,this.playerDrownsInWater);
     // CEventDamage drops WEAPON_DROWNING damage to a ped that does not drown.
     if(result.damage>0&&this.playerDrownsInWater)this.damagePlayer(result.damage,true,{weapon:53});// WEAPON_DROWNING
     return result;
   }
   step(dt: number, controls: Controls) {
+    const sprintHeld=controls.sprintInput??controls.sprint;
     if(controls.reactionMotion&&(!Number.isFinite(controls.reactionMotion.x)||!Number.isFinite(controls.reactionMotion.z)))throw new Error('Reaction motion must be finite.');
     if (controls.animationMotion && (!Number.isFinite(controls.animationMotion.x) || !Number.isFinite(controls.animationMotion.z))) throw new Error('Animation motion must be finite.');
   if (controls.animationMotionY !== undefined && !Number.isFinite(controls.animationMotionY)) throw new Error('Animation vertical motion must be finite.');
@@ -246,6 +282,8 @@ export class Simulation {
     // 30 m under the last terrain window's spawn height, sent a player who jumped off a downtown rooftop or drove
     // down a hillside back up to where the window had found him standing.
     if (this.player.position.y <= WORLD_FLOOR_Y) this.removeFallenPlayer();
+    this.player.sprintInputHeld=sprintHeld;
+    if(this.player.adrenaline>0)this.player.adrenaline=Math.max(0,this.player.adrenaline-dt);
   }
   /** Fixed scenery uses the spatial index; teleported actors require current shape poses. */
   private shapeBlocked(position: Vec3, rotation: RAPIER.Rotation, shape: RAPIER.Shape, excluded: RAPIER.RigidBody) {
@@ -319,36 +357,45 @@ export class Simulation {
     /** CTaskSimplePlayerOnFire's ComputeFireDamage: health only, a CEventDamage only once it kills. */ burning?: boolean }) {
     // CEventDamage::AffectsPed rejects damage to a dead ped. Repeated hazards
     // must not re-arm the death timer while the player is waiting to respawn.
-    if(this.player.health<=0)return;
+    if(this.player.health<=0)return false;
     // CPlayerInfo::MakePlayerSafe clears CPlayerData::m_bCanBeDamaged and sets every physicalFlags proof, so
     // a safe player takes nothing from anything at all.
-    if(!this.playerCanBeDamaged)return;
+    if(!this.playerCanBeDamaged)return false;
     // CEventDamage::AffectsPed: MAKE_PLAYER_FIRE_PROOF turns molotov and flamethrower damage away; ComputeWillKillPed:
     // with CHEAT_INFINITE_HEALTH the player takes nothing from a weapon (types below WEAPON_LAST_WEAPON, 47).
-    if(event&&(event.weapon===18||event.weapon===37)&&this.playerFireProof?.())return;
+    if(event&&(event.weapon===18||event.weapon===37)&&this.playerFireProof?.())return false;
     // SET_CHAR_PROOFS on the player: CEventDamage::AffectsPed asks CPhysical::CanPhysicalBeDamaged by the weapon type
     // alone (a landing is WEAPON_FALL, collision-proofed); a knockdown blow is still its fist or nightstick.
-    if(event&&this.playerProofs&&!physicalCanBeDamaged(this.playerProofs,event.weapon))return;
-    if(event&&event.weapon<47&&this.playerWeaponProof?.())return;
-    amount *= NATIVE_PLAYER_DAMAGE_MULT;
+    if(event&&this.playerProofs&&!physicalCanBeDamaged(this.playerProofs,event.weapon))return false;
+    if(event&&event.weapon<47&&this.playerWeaponProof?.())return false;
+    amount = pedDamageFactor(amount,NATIVE_PLAYER_DAMAGE_MULT);
     // AccountForPedDamageStats again (0x10028a114..0x10028a144): from a ped CJ is friendly with, whatever the weapon, a
     // tenth of it and 12.5 at most.
-    if (event?.friendly) amount = Math.min(amount * Math.fround(.1), 12.5);
+    if (event?.friendly) amount = Math.min(pedDamageFactor(amount,.1), 12.5);
     let armour = 0;
-    if (!bypassArmour && this.player.armour > 0) { const absorbed = Math.min(this.player.armour, amount); this.player.armour -= absorbed; amount -= absorbed; armour = absorbed; }
-    if (event && megaPunchBlow(event.weapon)) amount = this.player.health;
+    if (!bypassArmour && this.player.armour > 0) { const response=spendPedArmourFloat32(amount,this.player.armour);this.player.armour=response.armour;amount=response.damageHealth;armour=response.damageArmour; }
+    if (event && megaPunchBlow(event.weapon)) amount = Math.fround(this.player.health);
     // iOS ComputeWillKillPed (0x10028a1b8): while intro1 (Big Smoke) heads the script list, CJ takes 0.77 of every hit
     // the damage calculator sees, a fall or a fire included.
-    if (this.headScriptName?.()?.toLowerCase() === 'intro1') amount *= Math.fround(.77);
+    if (this.headScriptName?.()?.toLowerCase() === 'intro1') amount = pedDamageFactor(amount,.77);
     // ComputeWillKillPed's ordinary branch kills below 1 HP, not just at zero.
     // CPed::m_nLastWeaponDamage: the weapon of a hit that took health (a landing is WEAPON_FALL, a car's knockdown
     // WEAPON_RAMMEDBYCAR), not one armour soaked up.
     if (event && amount > 0) this.lastWeaponDamage = event.weapon;
-    const before=this.player.health,remaining=before-amount;
-    this.player.health = remaining<1?0:remaining;
+    const before=Math.fround(this.player.health);
+    this.player.health = healthAfterFloat32(before,amount);
     if (this.player.health === 0) { this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0; }
-    if (event && (!event.burning || this.player.health === 0)) this.damageEvents.push({ ...event, armour, health: before - this.player.health, died: this.player.health === 0, inAirTask: !!this.playerInAirTask?.() });
+    // ComputeWillKillPed reports the remaining factor on survival, even when float field quantization hides HP loss.
+    // A fatal result reports the stored pre-hit health instead (PC 0x4B3210).
+    if (event && (!event.burning || this.player.health === 0)) this.damageEvents.push({ ...event, armour, health: this.player.health===0?before:amount, died: this.player.health === 0, inAirTask: !!this.playerInAirTask?.() });
     if (event) { const pain = playerPainContext(event.weapon, amount, this.player.health, !!event.burning); if (pain) this.onPlayerPain?.(pain); }
+    return true;
+  }
+  /** DAMAGE_CHAR writes the fields directly; only a zero result queues the existing scripted die bridge. */
+  damagePlayerFromScript(amount:number,damageArmour:boolean){
+    const result=scriptPedDamage(this.player.health,this.player.armour,amount,damageArmour);
+    this.player.armour=result.armour;
+    if(result.health<=0){this.killPlayer();this.player.health=0;}else this.player.health=result.health;
   }
   /** CPed::m_nLastWeaponDamage for the player: -1 until a weapon has taken his health, and after CLEAR_CHAR_LAST_WEAPON_DAMAGE. */
   lastWeaponDamage = -1;
@@ -474,12 +521,9 @@ export class Simulation {
   private moveCharacter(dt: number, controls: Controls) {
     const wasGrounded = this.player.grounded;
     const length = this.player.health > 0 ? Math.hypot(controls.x, controls.y) : 0;
-    // SA stamina: full sprint lasts ~14 s, full rest restores in ~4-5 s, walking
-    // restores slower. Exhausted players are forced to walk until 30% recovers
-    // (CTaskSimplePlayerOnFoot sprint gating is still the native authority).
-    if (this.player.stamina <= 0) this.player.sprintExhausted = true;
-    else if (this.player.stamina >= 30) this.player.sprintExhausted = false;
-    const sprinting = !this.player.swimming && !this.player.crouched && controls.sprint && length > 0 && !this.player.sprintExhausted;
+    const sprintFactor=this.player.swimming?0:this.applyPlayerSprint(dt,controls,SPRINT_MODE.ground);
+    // A native move association can still own WALK_START or a stop after the pad controller requests sprint.
+    const sprinting=!this.player.swimming&&sprintFactor>=1&&length>0&&(!controls.animationMotion||controls.sprint);
     // Native PlayerControlZelda blend targets (SetPlayerMoveBlendRatio: walk
     // 1.0 / run 1.8 / sprint 2.5) slewed at 0.07*TimeStep, then mapped through
     // the ped.ifp root-motion stops (walk 1.556 / run 5.706 / sprint 9.562).
@@ -498,9 +542,6 @@ export class Simulation {
     const speed = this.player.swimming ? 0 : length > 0 ? blendSpeed : 0;
     // Preserve the damped display speed for HUD/animation while the blend owns acceleration.
     this.player.speed += (speed - this.player.speed) * (1 - Math.exp(-18 * dt));
-    // Shared stamina tick (src/locomotion/player.ts): 7/s drain, 10/22 regen. CPlayerPed::HandleSprintEnergy spends none
-    // while adrenaline lasts.
-    if (this.player.adrenaline > 0) this.player.adrenaline = Math.max(0, this.player.adrenaline - dt);
     // HandleSprintEnergy: sprinting costs nothing with adrenaline or while the player never gets tired
     // (SET_PLAYER_NEVER_GETS_TIRED); running is PEDMOVE_RUN, past the walk blend and not walking.
     // PlayerControlZeldaWeapon (a gun not aimed with the arm, strafing on the GunMove clips) never changes the move state
@@ -508,8 +549,10 @@ export class Simulation {
     const zeldaWeapon = !!controls.gunMove && !controls.gunMove.aimWithArm;
     const running = length > 0 && !walking && !zeldaWeapon && this.player.moveBlend > NATIVE_BLEND_WALK;
     this.footMove = this.player.swimming ? 'still' : sprinting ? 'sprint' : running ? 'run' : 'still';
-    if (!this.player.swimming && !(sprinting && (this.player.adrenaline > 0 || this.neverTired?.()))) this.player.stamina = stepStamina(this.player.stamina, sprinting, running, dt);
-    if (this.player.stamina === 0) this.player.sprintExhausted = true;
+    // ProcessControl recovers after the movement task: run at 0.15 per native step, other non-sprint
+    // ground movement at 0.5. The jump/in-air task does not run this on-foot control path.
+    if(!this.player.swimming&&!sprinting&&!controls.holdMove&&!(this.playerInAir&&!this.player.grounded))this.handlePlayerSprintEnergy(dt,false,running?.3:1);
+    this.player.sprintExhausted=this.player.stamina<=0&&this.player.sprintButtonSpeed<=0;
     let dx = 0, dz = 0;
     // m_fAimingRotation: anything else that turned the player (an aimed facing, a teleport, a scripted heading, a car
     // exit) set it along with the heading, so a turn still pending from the stick is dropped.
@@ -545,10 +588,11 @@ export class Simulation {
         launched = true;
         // CTaskSimpleJump::StartLaunchAnim: m_fAimingRotation = m_fCurrentRotation, so no turn carries on after landing.
         this.turnTarget = undefined;
-        // CTaskSimpleJump::Launch: the mega jump cheat multiplies the player's jump force by 10.
-        this.player.verticalSpeed = NATIVE_JUMP_VERTICAL_VELOCITY * (CHEATS.isActive('megaJump') ? 10 : 1);
+        // Launch reads body stats again when the launch clip finishes; its animation speed was latched earlier.
+        const jump=nativeJumpStatLaunch({...(controls.moveAssociations??this.moveAssociations(sprinting)),modifier:this.playerBodyMovementModifier(),megaJump:CHEATS.isActive('megaJump'),climbJump:blocked==='climbJump'});
+        this.player.verticalSpeed=jump.upVelocity*50;
         // The ground speed goes along the heading; a climb jump goes straight up.
-        const speed = blocked === 'climbJump' ? 0 : nativeJumpGroundSpeed(controls.moveAssociations ?? this.moveAssociations(sprinting)) * 50;
+        const speed=jump.forwardSpeed*50;
         this.player.jumpMomentum = { x: Math.sin(this.player.heading) * speed, z: Math.cos(this.player.heading) * speed };
         // Off m_standingOnEntity the jump keeps that entity's move speed on top (not a climb jump's straight rise).
         const carry = blocked === 'climbJump' ? undefined : this.carrySpeed();
@@ -796,12 +840,14 @@ export class Simulation {
         if (this.startClimb(true, dt, controls)) { this.player.swimming = false; this.player.swimState = 0; this.swimJumpOut = false; return; }
       } else this.player.verticalSpeed -= NATIVE_JUMP_GRAVITY * (1 - .3) * dt;
     } else this.swimJumpOut = false;
-    // CTaskSimpleSwim::ProcessControlInput's tail: the breaststroke recovers through HandleSprintEnergy(false, 0.5), the
-    // crawl spends (ControlButtonSprint, unreversed: the on-foot sprint drain stands in, and like it HandleSprintEnergy
-    // spends nothing with adrenaline or for a player who never gets tired) and every other state recovers at the
-    // standing rate.
-    const swimState = this.player.swimState, tireless = this.player.adrenaline > 0 || !!this.neverTired?.();
-    this.player.stamina = clamp(this.player.stamina + (swimState === 2 ? (tireless ? 0 : -STAMINA_DRAIN) : swimState === 1 ? STAMINA_REGEN_IDLE * .5 : STAMINA_REGEN_IDLE) * dt, 0, 100);
+    // ProcessControlInput spends through its water/underwater sprint controller. The underwater
+    // zero-cost row also restores a non-positive budget to 0.1 before input, as the native task does.
+    const swimState=this.player.swimState;
+    if(swimState<=2||swimState===4){
+      const factor=this.applyPlayerSprint(dt,controls,swimState===4?SPRINT_MODE.underwater:SPRINT_MODE.water);
+      if(swimState<=2&&factor<1&&swimState===2)this.player.swimState=this.player.swimBlend>.5?1:0;
+    }
+    if(this.player.swimState!==2)this.handlePlayerSprintEnergy(dt,false,this.player.swimState===1?.5:1);
     let animationMotion = controls.animationMotion;
     if (animationMotion && controls.animationMotionSpace === 'actor') {
       const sin = Math.sin(this.player.heading), cos = Math.cos(this.player.heading);
@@ -815,7 +861,8 @@ export class Simulation {
       const mag = Math.hypot(controls.x, controls.y);
       if (mag > 0.01 && this.player.health > 0) {
         const state = this.player.swimState;
-        const speed = state === 1 ? 2.316 : state === 2 ? 2.783 : state === 4 ? 1.663 : state === 3 ? 0.5 : 1.0;
+        const pressure=nativeButtonSprintResult(this.player.sprintButtonSpeed,state===4?SPRINT_MODE.underwater:SPRINT_MODE.water);
+        const speed = state === 1 ? 2.316 : state === 2 ? 2.783*Math.max(1,pressure) : state === 4 ? (pressure>=1?1.663*Math.max(.7,pressure):0) : state === 3 ? 0.5 : 1.0;
         const nx = controls.x / mag, ny = controls.y / mag;
         const dx = nx * Math.cos(controls.cameraYaw) - ny * Math.sin(controls.cameraYaw);
         const dz = -nx * Math.sin(controls.cameraYaw) - ny * Math.cos(controls.cameraYaw);
@@ -997,7 +1044,7 @@ export class Simulation {
     this.fallLanding = undefined; this.fallLandingSound = false;
     this.flushPlayerTasks(); this.collisionShift = { x: 0, z: 0 };
 
-    this.player.health = 100; this.player.armour = 0; this.player.stamina = 100; this.player.sprintExhausted = false; this.player.adrenaline = 0; this.deathRemaining = 0;
+    this.player.health = 100; this.player.armour = 0; this.resetSprintEnergy(); this.player.sprintButtonSpeed=0;this.player.sprintInputHeld=false; this.player.adrenaline = 0; this.deathRemaining = 0;
     this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.6, 0.3));
     this.character.enableAutostep(0.32, 0.2, false);
     this.playerBody.setEnabled(true);
@@ -1007,7 +1054,7 @@ export class Simulation {
     this.playerCollider.setTranslation(this.playerBody.translation());
     this.player.position = { ...this.respawn }; this.player.previous = { ...this.respawn };
     this.player.speed = 0; this.player.verticalSpeed = 0; this.player.grounded = false; this.player.moveBlend = 0; this.player.jumpMomentum = { x: 0, z: 0 };
-    this.player.swimming = false; this.player.swimState = 0; this.player.swimBlend = 0; this.player.breath = 100; this.player.requireHandleBreath=false; this.player.swimStopTime = 0; this.player.swimDiveTime = 0; this.player.swimDiveDuration = 1; this.player.swimVel = { x: 0, z: 0 };
+    this.player.swimming = false; this.player.swimState = 0; this.player.swimBlend = 0; this.resetPlayerBreath(); this.player.swimStopTime = 0; this.player.swimDiveTime = 0; this.player.swimDiveDuration = 1; this.player.swimVel = { x: 0, z: 0 };
   }
   /** CCollision::BuildCacheOfCameraCollision's entity filter for this frame (peds, the car being entered, vehicles
    * moving too fast relative to the player's, objects while driving fast); set by the host. */

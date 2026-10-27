@@ -42,15 +42,14 @@ describe('the published cutscenes',()=>{
   expect(d.uncompressed).toEqual(['cssuitcase-1','cssuitcase-2','csplay','cstaxi92','csbogman']);
   expect(d.extraColour).toBe(2);
  });
- test('every clip the cast plays is in its package, compressed unless listed',()=>{
-  for(const name of Object.keys(manifest.cutscenes)){
+ // Time each package separately: the complete 147-bundle inventory is not one operation's deadline.
+ test.each(Object.keys(manifest.cutscenes))('%s cast clips are in their package, compressed unless listed',name=>{
    const f=files(name),d=readCutsceneFile(f.cut),pkg=readIfp(f.anp3);
    expect(pkg.format).toBe('ANP3');
    for(const member of d.cast){
     const clip=pkg.animations.find(a=>a.name.toLowerCase()===member.anim)!;expect(clip,`${name} ${member.anim}`).toBeDefined();
     expect(clip.tracks[0].frameType>=3,`${name} ${member.anim}`).toBe(compressedOnLoad(clip,d.uncompressed));
    }
-  }
  });
  test('a camera file is four paths: field of view and roll at four floats a key, source and target at ten',()=>{
   const p=readCutsceneCameraPaths(files('intro1a').dat);

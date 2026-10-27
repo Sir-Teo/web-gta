@@ -12,7 +12,7 @@ test('crouching preserves foot height, limits movement and prevents sprint/jump'
   sim.toggleCrouch(); advance(0.2);
   expect(sim.player.crouched).toBe(true); expect(Math.abs(sim.player.position.y - start.y)).toBeLessThan(0.025);
   advance(1, { ...idle, y: 1, sprint: true, jump: true });
-  expect(sim.player.speed).toBeCloseTo(3.74, 1); expect(sim.player.stamina).toBe(100);
+  expect(sim.player.speed).toBeCloseTo(3.74, 1); expect(sim.player.stamina).toBe(sim.playerSprintCapacity());
   // Walking crouched uses up the character controller's 0.025 skin above the floor, and a few millimetres more.
   expect(Math.abs(sim.player.position.y - start.y)).toBeLessThan(0.03); expect(sim.player.grounded).toBe(true);
   sim.toggleCrouch(); advance(0.2); expect(sim.player.crouched).toBe(false);

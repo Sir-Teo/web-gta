@@ -97,3 +97,77 @@ dogfight check covers AI guns and missiles after the shared-timer change.
 
 This does not establish a complete DESERT5 pass. The mounted-gun trace still inherits the port's collision,
 weapon spread and impact-force coverage; native `FireInstantHit` has not been completely reproduced by this work.
+
+## Enemy mounted guns and seated occupants (October 25)
+
+Enemy fixed-wing, helicopter and scripted Hunter-gun rounds now ask the shared
+NPC occupant query before applying bodywork damage. CJ's vehicle/head handoff
+and animated motorcycle/bicycle body can receive the hit while his physical
+collider is off. Script riders and street passengers also use this adapter.
+A nearer car tyre consumes the round; cover, own-body exclusion and shot
+protection retain their existing gates. The tracer ends at the actual recipient.
+The hit retains enemy attribution and adds neither player crime nor practice.
+
+PC [CVehicle::FirePlaneGuns, 0x6D4D30](https://github.com/gta-reversed/gta-reversed/blob/4281f82d8af83e14935ac84a69dfd1ceebb9f256/source/game_sa/Entity/Vehicle/Vehicle.cpp)
+constructs a fresh CWeapon and calls FireInstantHit with the vehicle as creator.
+It therefore uses CWorld's bullet collision and the occupant handoff rather
+than a bodywork-only gun ray. Script 0541 reaches the same gun family through
+CWeapon::Fire. The shared head/sphere evidence is in
+[PLAYER_VEHICLE_SHOTS.md](PLAYER_VEHICLE_SHOTS.md).
+
+Focused real-Rapier units fire the public Hunter-gun method through a car/head
+handoff and an exposed bike torso, check armour/piece and tracer endpoint, and
+cover wall, protection, nearer tyre and creator attribution. Existing timer,
+shell, aircraft and helicopter units pass alongside them. Player-owned mounted
+guns retain vehicle-creator attribution; the next section adds their occupant
+transfer. Complete impact FX, spread and multi-barrel equivalence remain open.
+
+Live original Greenwood driver/rear passenger, Burrito rear passenger and
+BMX/PCJ driver/pillion checks invoke the public Hunter-gun path along measured
+exposed lines. Native player armour scaling and body-piece IDs are retained;
+the player flag blocks the car-seat hit. Actual 0541 bytecode and a freely
+flying attacking Hunter also pass their existing shell, timer, gun, rocket and
+aircraft-damage requirements.
+
+## Player-controlled mounted guns and source-specific crime events
+
+Player-controlled aircraft and scripted Hunter guns now use the outgoing NPC
+roster's animated biker and vehicle/head queries. Direct body collision stops
+at cover or a nearer tyre. Head transfer still requires the target's vehicle
+as the first physical hit, and the shooter's own carrier remains excluded.
+The actual body piece controls ordinary versus critical NPC damage; vehicle
+creators do not receive the player-ped point-blank override. Accepted hits
+produce the native ped blood metadata instead of vehicle sparks, and tracers
+end at the selected sphere.
+
+The creator remains a vehicle. PC CWeapon::GenerateDamageEvent (0x73A530)
+reports DAMAGED_PED only for a player-ped creator, and DoBulletImpact
+(0x73B550) similarly gates its immediate impact crime and weapon practice.
+CEventDamage::IsCriminalEvent (0x4ADA90), however, also accepts a vehicle whose
+driver is FindPlayerPed. ReportCriminalEvent (0x4B3440) then queues the victim's
+ordinary or cop firearm crime. The host therefore queues this one event for
+a player-driven mounted shot, without adding the two immediate pedestrian
+reports or practice. A remotely controlled vehicle with no CJ driver still
+damages its victim but queues no damage criminal event. A surviving active
+drive-by retains GenerateDamageEvent's event-group exception.
+
+Sources at the pinned PC revision:
+[Weapon.cpp](https://github.com/gta-reversed/gta-reversed/blob/4281f82d8af83e14935ac84a69dfd1ceebb9f256/source/game_sa/Weapon.cpp),
+[EventDamage.cpp](https://github.com/gta-reversed/gta-reversed/blob/4281f82d8af83e14935ac84a69dfd1ceebb9f256/source/game_sa/Events/EventDamage.cpp).
+Geometry, damage, head/blood state and exact creator-specific crime units
+exercise the public Hunter-gun method, including cover, tyres, protection,
+own-car, cops, remote control and alive/fatal active drive-bys. Existing
+handheld/sniper crime behavior uses the original player-ped default.
+
+The live original-model check seats CJ in a Hunter and fires its actual aircraft
+gun method into a Greenwood civilian driver, rear-seat cop and a PCJ rider.
+Each takes the minigun's 140 damage with critical hits disabled, the car/bike
+bodywork remains at 1,000, the proper victim crime is queued once, and no
+practice callback runs. An RC Baron with no CJ driver similarly deals its M4's
+30 to the PCJ pillion, emits body-hit metadata and queues no victim crime.
+Existing incoming-player and civilian/cop/gang handheld crime cases also pass.
+
+This distinguishes damage-event crime from the host's existing player-input
+fire-weapon/explosion notifications. It does not establish complete native
+mounted weapon FX, barrel positions, spread, all kill/stat attribution or
+retail pursuit behavior.
