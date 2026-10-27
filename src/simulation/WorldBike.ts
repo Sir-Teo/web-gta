@@ -673,10 +673,10 @@ export class WorldBike {
     }
     if(this.pedals&&(this.occupied||WorldBike.hasDriverPed?.(this))){
      if(!this.motorbike){
-      const block=this.assets.vehicle.animation,duration=(id:number)=>WorldBike.riderClipSeconds?.(block,`${block}_${id===207?'pedal':id===208?'sprint':'bunnyhop'}`);
-      if(duration(207)&&duration(208)){
-       const clock=this.bicycleRider??=new NativeBicycleRider(id=>duration(id)!);
-       clock.step(dt,{model:this.modelId,speed:this.speed()/50,coefficient:this.pedalCoefficient,gear:this.gear,maxFlatVelocity:this.assets.handling.maxFlatVelocity,lean:this.lean,leanFwd:0,driveBy:this.riderDriveBy,gas:this.gasPedal,status:this.occupied?0:3},!!this.hopState?.animation);
+      const block=this.assets.vehicle.animation,duration=(id:number)=>WorldBike.riderClipSeconds?.(block,bikeRiderClipName(block,id));
+      if(this.bicycleRider||[194,195,196,197,198,199,200,206,207,208].every(id=>(duration(id)??0)>0)){
+       const clock=this.bicycleRider??=new NativeBicycleRider(id=>duration(id)!),full=Math.fround(Math.fround(this.assets.bike.fullAnimLean)*Math.fround(Math.PI/180));
+       clock.step(dt,{model:this.modelId,speed:this.speed()/50,coefficient:this.pedalCoefficient,gear:this.gear,maxFlatVelocity:this.assets.handling.maxFlatVelocity,maxReverseVelocity:this.assets.handling.maxReverseVelocity,fullAnimLean:full,lean:this.lean,leanFwd:0,driveBy:this.riderDriveBy,gas:this.gasPedal,brake:this.brakePedal,player:this.occupied,passenger:!!this.pillion||!!WorldBike.hasPassengerPed?.(this),status:this.occupied?0:3},!!this.hopState?.animation,this.crankAngle);
        this.rideTime=clock.time;
       }
      }
@@ -898,11 +898,11 @@ export class WorldBike {
   const prefix=this.assets.vehicle.animation,clipPrefix=prefix==='wayfarer'?'wf':prefix,bicycle=BICYCLES.has(prefix),speed=Math.abs(this.speed());
   const hop=this.hopState?.animation;
   // aQuadAnimations maps both BIKE_RIDE and BIKE_STILL to QUAD_ride; quad.ifp has no QUAD_still.
-  const partials=bicycle?this.bicycleRider?.associations.filter(a=>a.amount>0).map(a=>({clip:`${clipPrefix}_${a.identifier===207?'pedal':'sprint'}`,seconds:a.time,amount:a.amount})):this.riderAnimation?.associations.filter(a=>a.identifier!==194&&a.amount>0).map(a=>({clip:bikeRiderClipName(prefix,a.identifier),seconds:a.time,amount:a.amount}));
-  const riding=this.quad||this.riderAnimation||bicycle&&(partials?.length||hop||this.bicycleRider&&speed>.5);
+  const owner=bicycle?this.bicycleRider:this.riderAnimation,partials=owner?.associations.filter(a=>a.identifier!==194&&a.amount>0).map(a=>({clip:bikeRiderClipName(prefix,a.identifier),seconds:a.time,amount:a.amount}));
+  const riding=this.quad||owner||bicycle&&hop;
   const idle=riding?`${clipPrefix}_ride`:speed>.5?(bicycle?`${clipPrefix}_pedal`:`${clipPrefix}_ride`):`${clipPrefix}_still`;
   const lean=this.quad?this.riderLean:this.lean,amount=bikeRiderLean(lean,this.assets.bike.fullAnimLean),right=this.quad?lean>0:this.steer>0;
-  return {block:prefix,seat:this.seat(),time:this.rideTime,baseTime:this.riderAnimation?.time,idle:prefix?idle.toLowerCase():idle,partials,passenger:`${clipPrefix}_${bicycle?'ride':'passenger'}`.toLowerCase(),overlay:!this.riderAnimation&&amount>.05?{clip:`${clipPrefix}_${right?'right':'left'}`.toLowerCase(),amount}:undefined,hop:bicycle&&hop?{clip:`${clipPrefix}_bunnyhop`,seconds:hop.seconds,amount:hop.amount}:undefined};
+  return {block:prefix,seat:this.seat(),time:this.rideTime,baseTime:bicycle?this.bicycleRider?.baseTime:this.riderAnimation?.time,idle:prefix?idle.toLowerCase():idle,partials,passenger:`${clipPrefix}_${bicycle?'ride':'passenger'}`.toLowerCase(),overlay:!owner&&amount>.05?{clip:`${clipPrefix}_${right?'right':'left'}`.toLowerCase(),amount}:undefined,hop:bicycle&&hop?{clip:`${clipPrefix}_bunnyhop`,seconds:hop.seconds,amount:hop.amount}:undefined};
  }
  /** SetupLightingForEntity's multiplier, GetLightingFromCol(true) × 0.95 + 0.05: the object ambient's mean with a
   * contact brightness of 0.5 stands in (this vehicle keeps no contact lighting). */

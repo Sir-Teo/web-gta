@@ -1,7 +1,7 @@
 import {bicycleAssociationFlags,blendBicycleAssociation,newBicycleAssociation,stepBicycleAssociations,type BicycleAssociation} from './nativeBicycleBlend';
 import {bikeRiderReversePedalling,controlBikeRiderLean,filterBikeRiderLean} from './nativeBikeRiderLean';
 const f=Math.fround;
-const RIDER_ROLES:Readonly<Record<number,string>>={194:'ride',195:'still',196:'left',197:'right',198:'back',199:'fwd',200:'pushes'};
+const RIDER_ROLES:Readonly<Record<number,string>>={194:'ride',195:'still',196:'left',197:'right',198:'back',199:'fwd',200:'pushes',206:'bunnyhop',207:'pedal',208:'sprint'};
 export interface OrdinaryBikeRiderState {lean:number;forward:number}
 /** Ordinary flat/contact-neutral association path. Collision/task reactions and wheelie/stoppie overrides are separate. */
 export interface OrdinaryBikeRiderInput {
@@ -9,10 +9,10 @@ export interface OrdinaryBikeRiderInput {
  fullAnimLean:number;maxFlatVelocity:number;maxReverseVelocity:number;timeStep:number;unclippedTimeStep:number;
  quad?:boolean;
 }
-/** Standard ride-group slots; QUAD maps Still to Ride and Pushes to Reverse. */
+/** Ride-group slots; QUAD maps Still to Ride and Pushes to Reverse. */
 export function bikeRiderClipName(block:string,identifier:number){
  const role=block==='quad'&&identifier===195?'ride':block==='quad'&&identifier===200?'reverse':RIDER_ROLES[identifier];
- if(!role)throw new Error('Unsupported ordinary bike rider association.');
+ if(!role)throw new Error('Unsupported bike rider association.');
  return `${block==='wayfarer'?'wf':block}_${role}`;
 }
 /** CBike::ProcessRiderAnims through 0x100457f0c, ordinary association/filter stage.

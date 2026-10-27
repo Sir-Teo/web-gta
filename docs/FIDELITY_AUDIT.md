@@ -15290,3 +15290,21 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   bicycle articulation and limb-position regressions pass. Native key
   sampling and other root callback contexts remain separate. See
   [source, boundaries and evidence](research/VEHICLE_ROOT_POSE_BLEND.md).
+
+
+## Full bicycle rider fallback and crank transitions (October 27, 2026)
+
+- BMX, Chopper and Mountain Bike now use native ordinary fallback
+  associations over a held Ride base, replacing the legacy side overlay.
+  Still, side/fore-aft lean and reverse poses reach player and script riders.
+- Native retained-lean damping, fallback crank overrides/easing and pedal
+  phase initialization from existing lean poses now follow the captured
+  CBmx path. Hop retains its existing independent task/time/launch owner.
+- All 868 fixed native controller/clump cases pass. All 837 recorded game
+  frames, including 135 NPC frames, match native association/filter/crank
+  state exactly within the declared neutral geometry/asset/powf boundaries.
+- All-model rendered poses, freeze/repeated-update/remount, motorcycle/quad
+  regressions, real-key sprint energy, phone hop and scripted rider task
+  transitions pass. Full task scheduling, collision/wheelie/stoppie overrides,
+  hand IK and native key sampling remain separate. See
+  [capture boundaries and validation](research/BMX_RIDER_CONTROLLER.md).

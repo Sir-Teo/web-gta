@@ -1,5 +1,10 @@
 # Bicycle pedal and sprint associations
 
+The later [full BMX rider controller](BMX_RIDER_CONTROLLER.md) completes the
+ordinary fallback, crank overrides and lean-based phase initialization that
+this initial capture left open. Historical validation and boundaries below
+describe this narrower pedal/sprint integration.
+
 BMX, Chopper and Mountain Bike riders now use their loaded BIKE_RIDE base
 with BIKE_PEDAL (207) and BIKE_SPRINT (208) partial associations. The native
 controller requests, fades, playing flags, playback speeds, synchronization,

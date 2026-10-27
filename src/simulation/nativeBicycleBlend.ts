@@ -13,7 +13,7 @@ export function newBicycleAssociation(identifier:number,duration:number,group=3)
  return {identifier,group,timeStep:0,amount:0,delta:0,time:0,speed:1,duration:f(duration),flags:bicycleAssociationFlags(identifier)|1};
 }
 /** CAnimBlendAssociation::SetCurrentTime (selected iOS 0x100138f50), scalar time portion. */
-function setCurrentTime(a:BicycleAssociation,time:number){
+export function setBicycleAssociationTime(a:BicycleAssociation,time:number){
  a.time=f(time);
  if(a.time>=a.duration){
   if(a.flags&BICYCLE_ASSOC_FLAGS.looped)while(a.time>=a.duration)a.time=f(a.time-a.duration);
@@ -35,13 +35,13 @@ export function blendBicycleAssociation(associations:BicycleAssociation[],identi
  }
  if(running){
   running.delta=f(f(1-running.amount)*blend);
-  if(running.time===running.duration){running.flags|=BICYCLE_ASSOC_FLAGS.playing;setCurrentTime(running,0);}
+  if(running.time===running.duration){running.flags|=BICYCLE_ASSOC_FLAGS.playing;setBicycleAssociationTime(running,0);}
   return running;
  }
  const a=newBicycleAssociation(identifier,duration,group);
  a.flags=targetFlags|BICYCLE_ASSOC_FLAGS.playing;
- if(moving&&a.flags&BICYCLE_ASSOC_FLAGS.synced)setCurrentTime(a,f(f(moving.time/moving.duration)*a.duration));
- else setCurrentTime(a,0);
+ if(moving&&a.flags&BICYCLE_ASSOC_FLAGS.synced)setBicycleAssociationTime(a,f(f(moving.time/moving.duration)*a.duration));
+ else setBicycleAssociationTime(a,0);
  associations.unshift(a);
  if(fades||targetFlags&BICYCLE_ASSOC_FLAGS.partial){a.amount=0;a.delta=blend;}else a.amount=1;
  return a;
