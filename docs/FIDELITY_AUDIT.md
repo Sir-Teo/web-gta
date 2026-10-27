@@ -9,6 +9,18 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Selected native bumper side/rear looks (October 27, 2026)
+
+- Real Q/E and look-behind inputs now change the bumper camera's source,
+  direction, up and near clip, with separate car/quad, bike/bicycle and boat
+  rules. Releasing the look restores forward view; script clip priority stays.
+- All 432 fixed native cases and 54 real-key sources match selected native
+  output exactly. Displayed axes agree within 1.56e-7. All six representative
+  vehicle classes and existing height, ten-boat, car-control and culling checks
+  pass. The PC look routines remain unreversed; retail-PC equivalence and full
+  camera ownership remain open.
+  [Source, validation and limits](research/VEHICLE_BUMPER_LOOK.md).
+
 ## Forward bumper vehicle/body culling (October 27, 2026)
 
 - Forward bumper draws suppress the occupied vehicle and its seated bodies,

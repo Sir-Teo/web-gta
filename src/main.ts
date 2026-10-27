@@ -188,6 +188,7 @@ import {PLAYER_MOTION_CLIPS,playerMotionGroupToLoad} from './ped/playerMotionGro
 import {playerBodyRatios,type PlayerBodyRatios} from './assets/blendPlayerBody';
 import {vehicleLightsStatus} from './simulation/nativeVehicleLights';
 import {nativeBikeBumperCamera} from './render/nativeBikeBumperCamera';
+import {nativeVehicleBumperLook} from './render/nativeVehicleBumperLook';
 /** ProcessDrivingAnims: low first, standing boat set, then the original-PC car skill sets for a seated boat. */
 function boatRideAnims(boat:{modelFlags:number;body:{linvel():{x:number;y:number;z:number}}},drivingSkill:number){
  const v=boat.body.linvel();
@@ -396,7 +397,7 @@ import {heldPadActions,padStateFromActions} from './input/nativePadState';
 import {ScriptButtonReads,touchActionsForReads} from './input/scriptButtons';
 import {NativeHudBigMessages} from './ui/nativeHudBigMessages';
 import {ScriptCarRecordingStore} from './simulation/scriptCarRecordings';
-import {recordingVehicle} from './simulation/recordingBody';
+import {recordingVehicle,nativeMatrixOf} from './simulation/recordingBody';
 import {startPlaybackRecordedCar} from './engine/carRecordingPlayback';
 import {WorldTrain} from './simulation/WorldTrain';
 import {WorldBoat} from './simulation/WorldBoat';
@@ -4565,6 +4566,15 @@ async function boot() {
       }
       else if(boat){const seat=boat.seat(),b=frameOf(boat.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62});b.source.y+=.5;render.bumper=b;}
       else render.bumper=undefined;
+      const selected=car??bike??boat,bumper=render.bumper;
+      if(selected&&bumper){
+        const body=car?car.car.body:(bike??boat)!.body,type=boat?5:bike&&!bike.quad?9:0,appearance=type===5?4:type===9?2:1;
+        bumper.viewForCamera=(look,source)=>{
+          const neck=boat&&render.nativeCharacter?.inVehiclePose&&render.vehiclePose?.frame.vehicle===boat.root?render.nativeCharacter.bonePosition(4,scratchSpine):undefined;
+          const result=nativeVehicleBumperLook({vehicleType:type,appearance,behind:look==='behind',right:look==='right',driver:!!neck,neck:neck?[neck.x,-neck.z,neck.y]:[0,0,0],source:[source.x,-source.z,source.y],matrix:nativeMatrixOf(body.rotation(),body.translation())});
+          const point=(v:readonly number[])=>({x:v[0],y:v[2],z:-v[1]});return {source:point(result.source),front:point(result.front),up:point(result.up),near:result.near};
+        };
+      }
     }
     // The on-foot key hints (jump, crouch, enter car) do not apply in a vehicle.
     hud.element.classList.toggle('in-vehicle',remoteMode()||!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||playerPassenger));

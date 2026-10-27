@@ -70,7 +70,9 @@ export class GameRenderer {
   /** CCam::Process_1stPerson's source and the vehicle's frame for the bumper view, from the host each frame. */
   bumper?:{source:{x:number;y:number;z:number};quaternion:{x:number;y:number;z:number;w:number};vehicle?:THREE.Object3D;
     /** Sample a rider bone after this frame's vehicle pose has updated. */
-    sourceForCamera?:()=>{x:number;y:number;z:number}};
+    sourceForCamera?:()=>{x:number;y:number;z:number};
+    /** First-person look routines run after the normal source/pose calculation. */
+    viewForCamera?:(look:Exclude<CameraGlance,'none'>,source:{x:number;y:number;z:number})=>{source:{x:number;y:number;z:number};front:{x:number;y:number;z:number};up:{x:number;y:number;z:number};near:number}};
   /** TheCamera.m_bDisableFirstPersonInCar off. */
   bumperAllowed=true;
   get bumperView(){return this.vehicleView&&this.cameraSettings.vehicle==='bumper'&&!!this.bumper&&this.bumperAllowed;}
@@ -263,10 +265,16 @@ export class GameRenderer {
     this.distance = allowed < this.distance ? allowed : damp(this.distance, allowed, 5, dt);
     this.camera.position.copy(this.target).addScaledVector(direction, this.distance);this.followPosition.copy(this.camera.position);
     this.camera.lookAt(this.target);
+    let bumperNear:number|undefined;
     // CCam::Process_Fixed keeps the camera at m_vecCamFixedModeSource and faces the entity it took control of.
     if(this.fixedCamera){const up=this.fixedCamera.up;this.camera.position.copy(this.fixedCamera.position);if(up)this.camera.up.copy(up);this.camera.lookAt(this.fixedCamera.target());if(up)this.camera.up.set(0,1,0);if(this.fixedCamera.roll)this.camera.rotateZ(-this.fixedCamera.roll);}
     // CCam::Process_1stPerson: the source the host worked out, looking along the vehicle's own forward and up.
-    else if(this.bumperView){const b=this.bumper!;b.source=b.sourceForCamera?.()??b.source;this.camera.position.set(b.source.x,b.source.y,b.source.z);this.camera.quaternion.set(b.quaternion.x,b.quaternion.y,b.quaternion.z,b.quaternion.w);}
+    else if(this.bumperView){
+      const b=this.bumper!;b.source=b.sourceForCamera?.()??b.source;
+      const view=this.glance==='none'?undefined:b.viewForCamera?.(this.glance,b.source);
+      if(view){b.source=view.source;bumperNear=view.near;this.camera.position.set(b.source.x,b.source.y,b.source.z);this.camera.up.copy(view.up);this.camera.lookAt(b.source.x+view.front.x,b.source.y+view.front.y,b.source.z+view.front.z);this.camera.up.set(0,1,0);}
+      else{this.camera.position.set(b.source.x,b.source.y,b.source.z);this.camera.quaternion.set(b.quaternion.x,b.quaternion.y,b.quaternion.z,b.quaternion.w);}
+    }
     else if(fp){
       // Process_Rocket and the Vice City Process_Sniper: the head bone plus the mode's offset, looking along the angles.
       const head=this.nativeCharacter?.headPosition(this.head)??this.head.set(p.position.x,p.position.y+1.6-.5*this.crouchAmount,p.position.z);
@@ -283,7 +291,7 @@ export class GameRenderer {
     // Process_1stPerson in a vehicle sets FOV 60.
     const fov=this.fixedCamera?this.fixedCamera.fov??70:this.bumperView?60:fp?this.zoom.update(fp,dt*50,this.zoomInput.notch,this.zoomInput.held,input.pinch):this.aiming?52:GAME_CAMERA_FOV;this.zoomInput.notch=0;input.pinch=1;
     // Process_Rocket's near clip plane is 0.15.
-    const near=this.scriptNearClip??(fp&&isRocketMode(fp)?.15:.08);
+    const near=this.scriptNearClip??bumperNear??(fp&&isRocketMode(fp)?.15:.08);
     if(fov!==this.sourceFov||near!==this.camera.near){this.sourceFov=fov;this.camera.near=near;applyWindowedCameraProjection(this.camera,Math.max(1,this.renderer.getSize(this.drawSize).x),Math.max(1,this.drawSize.y),fov);}
     mark=clock();this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt,coronaLookMask(this.glance),this.sourceFov,!paused);lap('lighting');
     const contact = this.contactLighting !== undefined && this.lighting.nativeWorldAmbient ? nativeContactLightMultiplier(this.lighting.nativeWorldAmbient,nativeContactBrightness(this.contactLighting!,nativeDayNightBalance(this.sim.timeMinutes))) : 1;
