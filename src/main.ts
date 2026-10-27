@@ -1043,6 +1043,8 @@ async function boot() {
   /** A window the step waits for: a save point's, a restart's from indoors, or (`script`) the scene a script's teleport or
    * SET_AREA_VISIBLE took the player into, where he stays as the script put him. */
   let savedTransfer:{x:number;y:number;z:number;heading:number;quiet?:boolean;area?:number;enexStack?:number[];script?:boolean}|undefined,savedTransferInstalling=false,scriptAreaHold=false;
+  /** Body stats restore after INITIAL's default-setting pass, at the same INTRO boundary as saved-world return. */
+  let bodyStatsBound=false;
   /** Whether a loaded game has had the new game's INTRO ended for it. */
   let introSkipped=false;
   /** When the new game's opening black was put up (play pressed with no save), until INTRO or a failure takes it over. */
@@ -4831,6 +4833,9 @@ async function boot() {
       // CEventVehicleDied affects living occupants before the scripts read their health.
       for(const rider of scriptRiders)respondToVehicleDeath(rider);
       mission.step(gameTimeExact,scriptStepMs);
+      if(!bodyStatsBound&&(mission.stopped||mission.runtime.active.some(slot=>slot.thread.base>0&&slot.thread.name==='INTRO'))){
+        progression.bindBodyStats(mission.runtime.game.stats);bodyStatsBound=true;rebuildPlayerIfNeeded();
+      }
       // The script runtime stops at a command the port cannot run: say so once, with the command, rather than leave the
       // story silently frozen (the world and free roam go on).
       if(mission.stopped&&scriptStopReported!==mission.stopped){scriptStopReported=mission.stopped;console.error('The mission script stopped',mission.stopped);
@@ -7279,7 +7284,7 @@ async function boot() {
                 // the raw m_fHealth += value, is a retail stub; the port keeps health within the maximum, as the HUD
                 // bar does, and the rest goes to fat through STAT_CALORIES.
                 {const game=mission.runtime.game;game.stats.onUpdateMessage=displayStatUpdate;
-                 progression.bindTrainingStats(game.stats);
+                 progression.bindTrainingStats(game.stats,{deferBody:true});
                  sim.playerLungCapacity=()=>nativeLungCapacity(game.stats.get(225),game.stats.get(22));
                  sim.playerSprintCapacity=()=>nativeSprintCapacity(game.stats.get(22));
                  sim.playerBodyMovementModifier=()=>nativeBodyMovementModifier(game.stats.get(21),game.stats.get(23));

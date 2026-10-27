@@ -20,7 +20,7 @@ test('actual native swimming gains survive the versioned browser save and a new 
   training.swimStaminaCounter=180001;training.underwaterCounter=60001;training.swimming(1,true,false);
   expect([stats.get(22),stats.get(225)]).toEqual([150,50]);expect(progression.save()).toBe(true);
   const restored=f.load();expect([restored.stats.get(22),restored.stats.get(225)]).toEqual([150,50]);expect(nativeLungCapacity(restored.stats.get(225),restored.stats.get(22))).toBe(1300);
-  expect(f.read().trainingStats).toEqual({stamina:150,lungCapacity:50});
+  expect(f.read().trainingStats).toEqual({stamina:150,lungCapacity:50,fat:0,muscle:0});
   const newCounters=new NativeStatReactions(values,()=>{});expect([newCounters.swimStaminaCounter,newCounters.underwaterCounter]).toEqual([0,0]);
  }finally{f.sim.dispose();}
 });
@@ -28,7 +28,7 @@ for(const [stamina,lung] of [[123.456789,32768],[-1,-1],[1000,1000],[999.999,167
  const f=fixture();try{
   const {progression,stats}=f.load();stats.set(22,stamina);stats.set(225,lung);progression.save();const restored=f.load();
   expect(restored.stats.get(22)).toBe(Math.fround(stamina));expect(restored.stats.get(225)).toBe(Math.fround(lung));
-  expect(f.read().trainingStats).toEqual({stamina:Math.fround(stamina),lungCapacity:lung});
+  expect(f.read().trainingStats).toEqual({stamina:Math.fround(stamina),lungCapacity:lung,fat:0,muscle:0});
  }finally{f.sim.dispose();}
 });
 test('old saves retain native initial stats, and fresh New Game ignores saved training',()=>{

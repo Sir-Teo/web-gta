@@ -14957,3 +14957,35 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Production smoke passes saved-game return, movement, car entry,
   map/waypoint, pause/resume, takeoff and landing gear with no page errors or
   failed requests.
+
+## Saved body stats across MAIN initialization (October 26–27, 2026)
+
+- Fat/muscle stats 21/23 now share finite float32 values with the optional
+  version-1 training save, actual script SET/INCREMENT/DECREMENT_STAT,
+  body rebuild and captured jump/landing modifier. Native CStats::Save/Load
+  serialize these fields in the float stat array; this remains a subset of
+  the browser save rather than complete native binary/runtime save support.
+- The first live check found that native stat initialization's zeros are
+  followed by supplied MAIN's fat 200/muscle 50 defaults. Binding saved body
+  fields before that pass would overwrite them. Body binding now waits for
+  the same INTRO-start boundary used by saved-world return (or stopped
+  setup); stamina/lung binding retains its existing earlier capacity setup.
+  Saved body fields keep ownership while setup runs. Missing fields adopt
+  completed script defaults, independently for partially valid saves.
+  Early saves serialize only established body values.
+- Fifteen new checks cover valid float round trips, increments/decrements,
+  negative/above-cap script values, invalid independent fields, old saves,
+  New Game and both sides of deferred startup ownership. Ten expose lost
+  values before repair and two expose the early MAIN binding issue. All
+  518 focused save/stat/captured-movement checks pass.
+- The live check uses actual increments, ordinary pagehide and reload.
+  Stamina 150, lungs 50 and fat/muscle 500/500 restore. Breath initializes
+  to 1,300 with the proper HUD maximum, CJ's body rebuild completes, and a
+  real Space-key jump uses captured modifier 0.8776316046714783. No page
+  errors occur. Missing fields retain MAIN's fresh-game defaults.
+  [Stat ownership, startup boundary and reload evidence](research/TRAINING_STAT_PERSISTENCE.md#fat-and-muscle-extension).
+- All 8,575 unit tests pass (51 skipped). TypeScript validation, production
+  build and production smoke pass. The production check returns from an
+  older version-1 save and verifies movement, car entry, map/waypoint,
+  pause/resume, takeoff and landing gear without page errors or failed
+  requests.
