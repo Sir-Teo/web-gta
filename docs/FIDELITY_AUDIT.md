@@ -15308,3 +15308,19 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
   transitions pass. Full task scheduling, collision/wheelie/stoppie overrides,
   hand IK and native key sampling remain separate. See
   [capture boundaries and validation](research/BMX_RIDER_CONTROLLER.md).
+
+
+## Quad rider lean arithmetic and player ownership (October 27, 2026)
+
+- The quad rider's LeanAngle update now uses captured float32 arithmetic and
+  the steering angle shared with vehicle motion. Empty/NPC quads preserve
+  that vehicle-owned lean instead of continuing the player's filter.
+- All 396 fixed native arithmetic cases and all 214 recorded player updates
+  match exactly. A separate 96-case native entry capture confirms driver,
+  status and task gates; the host change covers player versus NPC/empty
+  ownership, without adding native arrest/slow-exit scheduling.
+- The subsequent ordinary rider stage matches all 2,704 recorded frames,
+  including 274 quad frames. Four browser checks cover loaded models,
+  retained lean, freeze, player pillions with NPC drivers and bicycle regressions.
+- Physical steering/air forces and full native task scheduling remain separate.
+  See [capture boundaries and evidence](research/QUAD_RIDER_LEAN.md).

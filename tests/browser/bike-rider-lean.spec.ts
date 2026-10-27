@@ -5,7 +5,13 @@ test('loaded motorcycle and quad riders sample native lean phase, preserve resid
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/models.html');
  const result=await page.evaluate(async()=>{
   const [{captureVehicleRootPose},{openStaticWorld},{openStaticWorldVehicles},{loadFixedWorldBike},{WorldBike},{Simulation},{THREE,RAPIER},{VehicleAnimationLibrary},{NativeBikeRiderController},{openWorldPedestrians},{NativeCharacter}]=await Promise.all(['/tests/fixtures/capture-vehicle-root.ts','/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/assets/fixedWorldBike.ts','/src/simulation/WorldBike.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts','/src/assets/vehicleAnimations.ts','/src/simulation/nativeBikeRiderController.ts','/src/assets/worldPedestrians.ts','/src/render/NativeCharacter.ts'].map(path=>import(path)));
-  await RAPIER.init();const base=new URL('/play/world/',location.href).href,catalog=await openStaticWorldVehicles(await openStaticWorld(base)),clips=new VehicleAnimationLibrary(base),pedestrians=await openWorldPedestrians(base),view=new NativeCharacter(pedestrians.models[1]),out:any[]=[],rows:any[]=[],rootCaptures:any[]=[],original=NativeBikeRiderController.prototype.step;
+  await RAPIER.init();const base=new URL('/play/world/',location.href).href,catalog=await openStaticWorldVehicles(await openStaticWorld(base)),clips=new VehicleAnimationLibrary(base),pedestrians=await openWorldPedestrians(base),view=new NativeCharacter(pedestrians.models[1]),out:any[]=[],rows:any[]=[],quadRows:any[]=[],rootCaptures:any[]=[],originalStep=WorldBike.prototype.beforeStep,original=NativeBikeRiderController.prototype.step;
+  WorldBike.prototype.beforeStep=function(this:any,dt:number,input:any){
+   const previous=this.riderLean,speed=this.speed(),result=originalStep.call(this,dt,input);
+   if(this.quad){const f=Math.fround,h=this.assets.handling.values,effLock=h.steeringLock*Math.PI/180*(1+(this.assets.bike.speedSteer-1)*Math.min(1,Math.abs(speed)/15)),nativeInput={current:f(previous),steerAngle:f(-Math.max(-1,Math.min(1,this.steer))*effLock),steerLock:f(h.steeringLock),fullAnimLean:f(f(this.assets.bike.fullAnimLean)*f(Math.PI/180)),desLean:f(this.assets.bike.desLean),timeStep:f(dt*50)};
+    quadRows.push({nativeInput,player:this.occupied,advanced:this.occupied&&this.wheelStepSeconds>0&&!this.frozen,lean:this.riderLean,previous});}
+   return result;
+  };
   WorldBike.riderClipSeconds=(block:string,clip:string)=>clips.peek(block,clip)?.duration;
   NativeBikeRiderController.prototype.step=function(this:any,dt:number,input:any){
    const previous={...this.state},associations=this.associations.map(({group,...a}:any)=>a),durations=Object.fromEntries([194,195,196,197,198,199,200].map(id=>[id,this.duration(id)]));
@@ -22,7 +28,7 @@ test('loaded motorcycle and quad riders sample native lean phase, preserve resid
      const block=await clips.block(assets.vehicle.animation);view.installVehicleClips(Object.fromEntries(block));
      const tick=(throttle=0,steer=0)=>{bike.beforeStep(1/60,{throttle,steer,brake:false});sim.world.step();bike.afterStep();bike.update(1);};
      const pose=()=>{const p=bike.riderPose();view.updateVehicle({vehicle:bike.root,local:p.seat!},{clip:p.idle,seconds:p.baseTime??p.time,partials:p.partials});const capture=captureVehicleRootPose(view,{clip:p.idle,seconds:p.baseTime??p.time,partials:p.partials});if(capture)rootCaptures.push({model:id,...capture});return p;};
-     for(let i=0;i<40;i++)tick();bike.finishEnter();for(let i=0;i<40;i++)tick();const idle=pose(),heldBase=(bike as any).riderAnimation.time;
+     for(let i=0;i<40;i++)tick();if(id===471)for(let i=0;i<8;i++)tick(0,1);const emptyLean=(bike as any).riderLean;bike.finishEnter();for(let i=0;i<40;i++)tick();const idle=pose(),heldBase=(bike as any).riderAnimation.time;
      for(let i=0;i<25;i++)tick(1);const accelerating=pose(),acceleratingForward=(bike as any).riderAnimation.state.forward;
      WorldBike.hasPassengerPed=(b:any)=>b===bike;for(let i=0;i<10;i++)tick(1);const passengerForward=(bike as any).riderAnimation.state.forward,passengerSeen=rows.at(-1).nativeInput.passenger;WorldBike.hasPassengerPed=undefined;
      for(let i=0;i<65;i++)tick(1);
@@ -35,7 +41,7 @@ test('loaded motorcycle and quad riders sample native lean phase, preserve resid
      const beforeFreeze=matrices();bike.frozen=true;tick(1,1);const frozen=pose(),frozenMatrices=matrices(),frozenFiltered=owner.filtered,frozenRows=rows.length;bike.frozen=false;
      bike.afterStep();pose();const repeated=matrices();
      bike.occupied=false;tick();const cleared=!(bike as any).riderAnimation;
-     WorldBike.hasDriverPed=(b:any)=>b===bike;for(let i=0;i<60;i++)tick(1,.25);const scripted=pose(),scriptGas=rows.at(-1).nativeInput.gas;WorldBike.hasDriverPed=undefined;
+     const beforeScriptLean=(bike as any).riderLean;WorldBike.hasDriverPed=(b:any)=>b===bike;for(let i=0;i<60;i++)tick(1,.25);const scripted=pose(),scriptGas=rows.at(-1).nativeInput.gas,scriptLean=(bike as any).riderLean;WorldBike.hasDriverPed=undefined;
      bike.occupied=true;const newOwner=(bike as any).riderAnimation,reverseStart=newOwner.filtered,forward=new THREE.Vector3(0,0,-1).applyQuaternion(new THREE.Quaternion().copy(bike.body.rotation())),reverseSpeed=(Math.fround(assets.handling.maxReverseVelocity)*1.5-.02)*50;
      bike.body.setLinvel({x:forward.x*reverseSpeed,y:forward.y*reverseSpeed,z:forward.z*reverseSpeed},true);tick();pose();const reverseEnd=newOwner.filtered,reverseActive=rows.at(-1).reverse;
      const beforeBrake=newOwner.state.forward;bike.body.setLinvel({x:forward.x*5,y:forward.y*5,z:forward.z*5},true);tick(-1);pose();const afterBrake=newOwner.state.forward,brakePedal=rows.at(-1).nativeInput.brake,brakeTarget=rows.at(-1).output.forwardTarget;
@@ -49,11 +55,11 @@ test('loaded motorcycle and quad riders sample native lean phase, preserve resid
 
 
 
-     out.push({id,idle,heldBase,accelerating,acceleratingForward,passengerForward,passengerSeen,beforeBrake,afterBrake,brakePedal,brakeTarget,quadReverse,right,filtered,reversed,reversedFiltered,reversedSteer,count,frozen,frozenFiltered,frozenRows,beforeFreeze,frozenMatrices,repeated,cleared,scripted,scriptGas,reverseStart,reverseEnd,reverseActive,visible:view.root.visible,durations:Object.fromEntries([...block].map(([name,clip]:any)=>[name,clip.duration]))});
+     out.push({id,emptyLean,beforeScriptLean,scriptLean,idle,heldBase,accelerating,acceleratingForward,passengerForward,passengerSeen,beforeBrake,afterBrake,brakePedal,brakeTarget,quadReverse,right,filtered,reversed,reversedFiltered,reversedSteer,count,frozen,frozenFiltered,frozenRows,beforeFreeze,frozenMatrices,repeated,cleared,scripted,scriptGas,reverseStart,reverseEnd,reverseActive,visible:view.root.visible,durations:Object.fromEntries([...block].map(([name,clip]:any)=>[name,clip.duration]))});
     }finally{bike.dispose();sim.dispose();}
    }
-  }finally{view.dispose();WorldBike.riderClipSeconds=undefined;WorldBike.hasDriverPed=undefined;WorldBike.hasPassengerPed=undefined;NativeBikeRiderController.prototype.step=original;}
-  return {models:out,rows,rootCaptures};
+  }finally{view.dispose();WorldBike.prototype.beforeStep=originalStep;WorldBike.riderClipSeconds=undefined;WorldBike.hasDriverPed=undefined;WorldBike.hasPassengerPed=undefined;NativeBikeRiderController.prototype.step=original;}
+  return {models:out,rows,rootCaptures,quadRows};
  });
  writeFileSync('artifacts/bike-rider-lean-live.json',JSON.stringify({result,errors},null,2));
  for(const r of result.models){
@@ -61,8 +67,9 @@ test('loaded motorcycle and quad riders sample native lean phase, preserve resid
   expect(r.right.partials?.[0].clip).toMatch(/_right$/);expect(r.reversed.partials?.[0].clip).toMatch(/_right$/);
   for(const layer of r.right.partials??[]){expect(layer.amount).toBeGreaterThan(0);expect(layer.amount).toBeLessThanOrEqual(1);expect(layer.seconds).toBeGreaterThan(0);expect(layer.seconds).toBeLessThan(r.durations[layer.clip]);}
   expect(r.frozenFiltered).toBe(r.reversedFiltered);expect(r.frozenRows).toBe(r.count+6);expect(r.frozen.partials).toEqual(r.reversed.partials);expect(r.frozenMatrices).toEqual(r.beforeFreeze);expect(r.repeated).toEqual(r.frozenMatrices);expect(r.cleared).toBe(true);expect(r.scripted.partials?.length).toBeGreaterThan(0);expect(r.scriptGas).toBe(1);expect(r.reverseActive).toBe(true);expect(r.reverseStart).toBeGreaterThan(0);expect(r.reverseEnd).toBeGreaterThan(0);expect(r.reverseEnd).toBeLessThan(r.reverseStart);
-  if(r.id===471){expect(r.quadReverse?.clip).toBe('quad_reverse');expect(r.quadReverse.flags&2).toBe(0);expect(r.quadReverse.flags&1).toBe(0);expect(r.quadReverse.time).toBe(r.quadReverse.duration);}
+  if(r.id===471){expect(r.emptyLean).toBe(0);expect(r.scriptLean).toBe(r.beforeScriptLean);expect(r.quadReverse?.clip).toBe('quad_reverse');expect(r.quadReverse.flags&2).toBe(0);expect(r.quadReverse.flags&1).toBe(0);expect(r.quadReverse.time).toBe(r.quadReverse.duration);}
   for(const matrix of r.frozenMatrices)expect(matrix.every(Number.isFinite)).toBe(true);
  }
+ expect(result.quadRows.filter((r:any)=>r.advanced).length).toBeGreaterThan(200);for(const row of result.quadRows.filter((r:any)=>!r.player))expect(row.lean).toBe(row.previous);
  expect(result.rootCaptures.length).toBeGreaterThanOrEqual(77);expect(errors).toEqual([]);
 });

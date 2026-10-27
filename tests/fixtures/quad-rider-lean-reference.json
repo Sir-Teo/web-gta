@@ -1,0 +1,7138 @@
+{
+  "source": "CQuadBike rider lean arithmetic only, declared prior lean/steering/handling/timestep and s8=1; imported host-libm powf boundary",
+  "sha256": "9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78",
+  "entry": "0x10046eda4",
+  "stop": "0x10046ee04",
+  "degreeRadiansNumerator": -3.1415927410125732,
+  "degreeRadiansDivisor": 180.0,
+  "cases": [
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.5
+      },
+      "lean": -0.3137972950935364,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.5,
+          "result": 0.7071067690849304
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.07164353132247925,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.8333333134651184,
+          "result": 0.5612310171127319
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 1.0
+      },
+      "lean": 0.029999971389770508,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 1.0,
+          "result": 0.5
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 2.0
+      },
+      "lean": 0.4449999928474426,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 2.0,
+          "result": 0.25
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 4.0
+      },
+      "lean": 0.7562499642372131,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 4.0,
+          "result": 0.0625
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": -0.6972180604934692,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.6322570443153381,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.8333333134651184,
+          "result": 0.8989500403404236
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": -0.6007999777793884,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 2.0
+      },
+      "lean": -0.42550402879714966,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 2.0,
+          "result": 0.774399995803833
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": -0.13549426198005676,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.5
+      },
+      "lean": -0.7579678297042847,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.5,
+          "result": 0.9746794104576111
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.7305393218994141,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.8333333134651184,
+          "result": 0.9581562280654907
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 1.0
+      },
+      "lean": -0.7170000076293945,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 1.0,
+          "result": 0.949999988079071
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 2.0
+      },
+      "lean": -0.6381499767303467,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 2.0,
+          "result": 0.9024999737739563
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 4.0
+      },
+      "lean": -0.4920803904533386,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 4.0,
+          "result": 0.8145062327384949
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.5
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.5,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.8333333134651184,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 1.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 1.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 2.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 2.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 4.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 4.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.5
+      },
+      "lean": -0.4577333629131317,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.5,
+          "result": 0.7071067690849304
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.28726711869239807,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.8333333134651184,
+          "result": 0.5612310171127319
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 1.0
+      },
+      "lean": -0.21571429073810577,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 1.0,
+          "result": 0.5
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 2.0
+      },
+      "lean": 0.07642857730388641,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 2.0,
+          "result": 0.25
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 4.0
+      },
+      "lean": 0.29553571343421936,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 4.0,
+          "result": 0.0625
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": -0.727645754814148,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.6819158792495728,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.8333333134651184,
+          "result": 0.8989500403404236
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": -0.6597714424133301,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 2.0
+      },
+      "lean": -0.5363702774047852,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 2.0,
+          "result": 0.774399995803833
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": -0.33221539855003357,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.5
+      },
+      "lean": -0.7704111337661743,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.5,
+          "result": 0.9746794104576111
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.7511025667190552,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.8333333134651184,
+          "result": 0.9581562280654907
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 1.0
+      },
+      "lean": -0.7415714263916016,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 1.0,
+          "result": 0.949999988079071
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 2.0
+      },
+      "lean": -0.6860643029212952,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 2.0,
+          "result": 0.9024999737739563
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 4.0
+      },
+      "lean": -0.5832372903823853,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 4.0,
+          "result": 0.8145062327384949
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.5
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.5,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.8333333134651184,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 1.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 1.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 2.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 2.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 4.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 4.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.5
+      },
+      "lean": -0.5656854510307312,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.5,
+          "result": 0.7071067690849304
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.448984831571579,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.8333333134651184,
+          "result": 0.5612310171127319
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 1.0
+      },
+      "lean": -0.4000000059604645,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 1.0,
+          "result": 0.5
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 2.0
+      },
+      "lean": -0.20000000298023224,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 2.0,
+          "result": 0.25
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 4.0
+      },
+      "lean": -0.05000000074505806,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 4.0,
+          "result": 0.0625
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": -0.750466525554657,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.7191600203514099,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.8333333134651184,
+          "result": 0.8989500403404236
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": -0.7039999961853027,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 2.0
+      },
+      "lean": -0.6195200085639954,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 2.0,
+          "result": 0.774399995803833
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": -0.47975626587867737,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.5
+      },
+      "lean": -0.7797435522079468,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.5,
+          "result": 0.9746794104576111
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.7665249705314636,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.8333333134651184,
+          "result": 0.9581562280654907
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 1.0
+      },
+      "lean": -0.7599999904632568,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 1.0,
+          "result": 0.949999988079071
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 2.0
+      },
+      "lean": -0.722000002861023,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 2.0,
+          "result": 0.9024999737739563
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 4.0
+      },
+      "lean": -0.6516050100326538,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 4.0,
+          "result": 0.8145062327384949
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.5
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.5,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.8333333134651184,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 1.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 1.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 2.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 2.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 4.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 4.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.5
+      },
+      "lean": -0.6736375093460083,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.5,
+          "result": 0.7071067690849304
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.6107025146484375,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.8333333134651184,
+          "result": 0.5612310171127319
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 1.0
+      },
+      "lean": -0.5842857360839844,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 1.0,
+          "result": 0.5
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 2.0
+      },
+      "lean": -0.4764285683631897,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 2.0,
+          "result": 0.25
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 4.0
+      },
+      "lean": -0.39553573727607727,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 4.0,
+          "result": 0.0625
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": -0.773287296295166,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.7564041614532471,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.8333333134651184,
+          "result": 0.8989500403404236
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": -0.7482285499572754,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 2.0
+      },
+      "lean": -0.7026697397232056,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 2.0,
+          "result": 0.774399995803833
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": -0.6272971630096436,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.5
+      },
+      "lean": -0.7890759706497192,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.5,
+          "result": 0.9746794104576111
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.7819473743438721,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.8333333134651184,
+          "result": 0.9581562280654907
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 1.0
+      },
+      "lean": -0.7784285545349121,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 1.0,
+          "result": 0.949999988079071
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 2.0
+      },
+      "lean": -0.7579357028007507,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 2.0,
+          "result": 0.9024999737739563
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 4.0
+      },
+      "lean": -0.7199727296829224,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 4.0,
+          "result": 0.8145062327384949
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.5
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.5,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.8333333134651184,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 1.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 1.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 2.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 2.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 4.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 4.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.5
+      },
+      "lean": -0.817573606967926,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.5,
+          "result": 0.7071067690849304
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.8263261318206787,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.8333333134651184,
+          "result": 0.5612310171127319
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 1.0
+      },
+      "lean": -0.8299999833106995,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 1.0,
+          "result": 0.5
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 2.0
+      },
+      "lean": -0.8449999690055847,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 2.0,
+          "result": 0.25
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 4.0
+      },
+      "lean": -0.856249988079071,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 4.0,
+          "result": 0.0625
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": -0.8037149906158447,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.8060629963874817,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.8333333134651184,
+          "result": 0.8989500403404236
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": -0.807200014591217,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 2.0
+      },
+      "lean": -0.8135359883308411,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 2.0,
+          "result": 0.774399995803833
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": -0.8240182399749756,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.5
+      },
+      "lean": -0.8015192747116089,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.5,
+          "result": 0.9746794104576111
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.8025106191635132,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.8333333134651184,
+          "result": 0.9581562280654907
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 1.0
+      },
+      "lean": -0.8029999732971191,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 1.0,
+          "result": 0.949999988079071
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 2.0
+      },
+      "lean": -0.8058500289916992,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 2.0,
+          "result": 0.9024999737739563
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 4.0
+      },
+      "lean": -0.811129629611969,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 4.0,
+          "result": 0.8145062327384949
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.5
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.5,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.8333333134651184,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 1.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 1.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 2.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 2.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": -0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 4.0
+      },
+      "lean": -0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 4.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.5
+      },
+      "lean": 0.2518881559371948,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.5,
+          "result": 0.7071067690849304
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.37734130024909973,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.8333333134651184,
+          "result": 0.5612310171127319
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 1.0
+      },
+      "lean": 0.429999977350235,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 1.0,
+          "result": 0.5
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 2.0
+      },
+      "lean": 0.6449999809265137,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 2.0,
+          "result": 0.25
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 4.0
+      },
+      "lean": 0.8062499761581421,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 4.0,
+          "result": 0.0625
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.05324846878647804,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.08690296113491058,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.8333333134651184,
+          "result": 0.8989500403404236
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.10319999605417252,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 2.0
+      },
+      "lean": 0.1940159946680069,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 2.0,
+          "result": 0.774399995803833
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": 0.3442620038986206,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.5
+      },
+      "lean": 0.021775705739855766,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.5,
+          "result": 0.9746794104576111
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.035985641181468964,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.8333333134651184,
+          "result": 0.9581562280654907
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 1.0
+      },
+      "lean": 0.043000008910894394,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 1.0,
+          "result": 0.949999988079071
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 2.0
+      },
+      "lean": 0.08385001868009567,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 2.0,
+          "result": 0.9024999737739563
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 4.0
+      },
+      "lean": 0.15952463448047638,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 4.0,
+          "result": 0.8145062327384949
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.5
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.5,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.8333333134651184,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 1.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 1.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 2.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 2.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 4.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 4.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.5
+      },
+      "lean": 0.10795208066701889,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.5,
+          "result": 0.7071067690849304
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.1617177128791809,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.8333333134651184,
+          "result": 0.5612310171127319
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 1.0
+      },
+      "lean": 0.1842857152223587,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 1.0,
+          "result": 0.5
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 2.0
+      },
+      "lean": 0.27642858028411865,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 2.0,
+          "result": 0.25
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 4.0
+      },
+      "lean": 0.3455357253551483,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 4.0,
+          "result": 0.0625
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.02282077446579933,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.03724412992596626,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.8333333134651184,
+          "result": 0.8989500403404236
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.04422857239842415,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 2.0
+      },
+      "lean": 0.08314971625804901,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 2.0,
+          "result": 0.774399995803833
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": 0.1475408673286438,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.5
+      },
+      "lean": 0.009332445450127125,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.5,
+          "result": 0.9746794104576111
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.015422418713569641,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.8333333134651184,
+          "result": 0.9581562280654907
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 1.0
+      },
+      "lean": 0.01842857524752617,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 1.0,
+          "result": 0.949999988079071
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 2.0
+      },
+      "lean": 0.035935722291469574,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 2.0,
+          "result": 0.9024999737739563
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 4.0
+      },
+      "lean": 0.06836770474910736,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 4.0,
+          "result": 0.8145062327384949
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.5
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.5,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.8333333134651184,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 1.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 1.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 2.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 2.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 4.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 4.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.5
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.5,
+          "result": 0.7071067690849304
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.8333333134651184,
+          "result": 0.5612310171127319
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 1.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 1.0,
+          "result": 0.5
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 2.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 2.0,
+          "result": 0.25
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 4.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 4.0,
+          "result": 0.0625
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.8333333134651184,
+          "result": 0.8989500403404236
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 2.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 2.0,
+          "result": 0.774399995803833
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.5
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.5,
+          "result": 0.9746794104576111
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.8333333134651184,
+          "result": 0.9581562280654907
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 1.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 1.0,
+          "result": 0.949999988079071
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 2.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 2.0,
+          "result": 0.9024999737739563
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 4.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 4.0,
+          "result": 0.8145062327384949
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.5
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.5,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.8333333134651184,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 1.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 1.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 2.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 2.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 4.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 4.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.5
+      },
+      "lean": -0.10795208066701889,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.5,
+          "result": 0.7071067690849304
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.1617177128791809,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.8333333134651184,
+          "result": 0.5612310171127319
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 1.0
+      },
+      "lean": -0.1842857152223587,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 1.0,
+          "result": 0.5
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 2.0
+      },
+      "lean": -0.27642858028411865,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 2.0,
+          "result": 0.25
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 4.0
+      },
+      "lean": -0.3455357253551483,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 4.0,
+          "result": 0.0625
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": -0.02282077446579933,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.03724412992596626,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.8333333134651184,
+          "result": 0.8989500403404236
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": -0.04422857239842415,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 2.0
+      },
+      "lean": -0.08314971625804901,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 2.0,
+          "result": 0.774399995803833
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": -0.1475408673286438,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.5
+      },
+      "lean": -0.009332445450127125,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.5,
+          "result": 0.9746794104576111
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.015422418713569641,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.8333333134651184,
+          "result": 0.9581562280654907
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 1.0
+      },
+      "lean": -0.01842857524752617,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 1.0,
+          "result": 0.949999988079071
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 2.0
+      },
+      "lean": -0.035935722291469574,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 2.0,
+          "result": 0.9024999737739563
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 4.0
+      },
+      "lean": -0.06836770474910736,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 4.0,
+          "result": 0.8145062327384949
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.5
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.5,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.8333333134651184,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 1.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 1.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 2.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 2.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 4.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 4.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.5
+      },
+      "lean": -0.2518881559371948,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.5,
+          "result": 0.7071067690849304
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.37734130024909973,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.8333333134651184,
+          "result": 0.5612310171127319
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 1.0
+      },
+      "lean": -0.429999977350235,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 1.0,
+          "result": 0.5
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 2.0
+      },
+      "lean": -0.6449999809265137,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 2.0,
+          "result": 0.25
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 4.0
+      },
+      "lean": -0.8062499761581421,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 4.0,
+          "result": 0.0625
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": -0.05324846878647804,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.08690296113491058,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.8333333134651184,
+          "result": 0.8989500403404236
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": -0.10319999605417252,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 2.0
+      },
+      "lean": -0.1940159946680069,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 2.0,
+          "result": 0.774399995803833
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": -0.3442620038986206,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.5
+      },
+      "lean": -0.021775705739855766,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.5,
+          "result": 0.9746794104576111
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": -0.035985641181468964,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.8333333134651184,
+          "result": 0.9581562280654907
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 1.0
+      },
+      "lean": -0.043000008910894394,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 1.0,
+          "result": 0.949999988079071
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 2.0
+      },
+      "lean": -0.08385001868009567,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 2.0,
+          "result": 0.9024999737739563
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 4.0
+      },
+      "lean": -0.15952463448047638,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 4.0,
+          "result": 0.8145062327384949
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.5
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.5,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.8333333134651184,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 1.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 1.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 2.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 2.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.0,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 4.0
+      },
+      "lean": 0.0,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 4.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.5
+      },
+      "lean": 0.817573606967926,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.5,
+          "result": 0.7071067690849304
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.8263261318206787,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.8333333134651184,
+          "result": 0.5612310171127319
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 1.0
+      },
+      "lean": 0.8299999833106995,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 1.0,
+          "result": 0.5
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 2.0
+      },
+      "lean": 0.8449999690055847,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 2.0,
+          "result": 0.25
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 4.0
+      },
+      "lean": 0.856249988079071,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 4.0,
+          "result": 0.0625
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.8037149906158447,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.8060629963874817,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.8333333134651184,
+          "result": 0.8989500403404236
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.807200014591217,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 2.0
+      },
+      "lean": 0.8135359883308411,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 2.0,
+          "result": 0.774399995803833
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": 0.8240182399749756,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.5
+      },
+      "lean": 0.8015192747116089,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.5,
+          "result": 0.9746794104576111
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.8025106191635132,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.8333333134651184,
+          "result": 0.9581562280654907
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 1.0
+      },
+      "lean": 0.8029999732971191,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 1.0,
+          "result": 0.949999988079071
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 2.0
+      },
+      "lean": 0.8058500289916992,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 2.0,
+          "result": 0.9024999737739563
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 4.0
+      },
+      "lean": 0.811129629611969,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 4.0,
+          "result": 0.8145062327384949
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.5
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.5,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.8333333134651184,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 1.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 1.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 2.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 2.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 4.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 4.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.5
+      },
+      "lean": 0.6736375093460083,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.5,
+          "result": 0.7071067690849304
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.6107025146484375,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.8333333134651184,
+          "result": 0.5612310171127319
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 1.0
+      },
+      "lean": 0.5842857360839844,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 1.0,
+          "result": 0.5
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 2.0
+      },
+      "lean": 0.4764285683631897,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 2.0,
+          "result": 0.25
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 4.0
+      },
+      "lean": 0.39553573727607727,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 4.0,
+          "result": 0.0625
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.773287296295166,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.7564041614532471,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.8333333134651184,
+          "result": 0.8989500403404236
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.7482285499572754,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 2.0
+      },
+      "lean": 0.7026697397232056,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 2.0,
+          "result": 0.774399995803833
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": 0.6272971630096436,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.5
+      },
+      "lean": 0.7890759706497192,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.5,
+          "result": 0.9746794104576111
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.7819473743438721,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.8333333134651184,
+          "result": 0.9581562280654907
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 1.0
+      },
+      "lean": 0.7784285545349121,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 1.0,
+          "result": 0.949999988079071
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 2.0
+      },
+      "lean": 0.7579357028007507,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 2.0,
+          "result": 0.9024999737739563
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 4.0
+      },
+      "lean": 0.7199727296829224,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 4.0,
+          "result": 0.8145062327384949
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.5
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.5,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.8333333134651184,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 1.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 1.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 2.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 2.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": -0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 4.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 4.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.5
+      },
+      "lean": 0.5656854510307312,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.5,
+          "result": 0.7071067690849304
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.448984831571579,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.8333333134651184,
+          "result": 0.5612310171127319
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 1.0
+      },
+      "lean": 0.4000000059604645,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 1.0,
+          "result": 0.5
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 2.0
+      },
+      "lean": 0.20000000298023224,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 2.0,
+          "result": 0.25
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 4.0
+      },
+      "lean": 0.05000000074505806,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 4.0,
+          "result": 0.0625
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.750466525554657,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.7191600203514099,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.8333333134651184,
+          "result": 0.8989500403404236
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.7039999961853027,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 2.0
+      },
+      "lean": 0.6195200085639954,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 2.0,
+          "result": 0.774399995803833
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": 0.47975626587867737,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.5
+      },
+      "lean": 0.7797435522079468,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.5,
+          "result": 0.9746794104576111
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.7665249705314636,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.8333333134651184,
+          "result": 0.9581562280654907
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 1.0
+      },
+      "lean": 0.7599999904632568,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 1.0,
+          "result": 0.949999988079071
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 2.0
+      },
+      "lean": 0.722000002861023,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 2.0,
+          "result": 0.9024999737739563
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 4.0
+      },
+      "lean": 0.6516050100326538,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 4.0,
+          "result": 0.8145062327384949
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.5
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.5,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.8333333134651184,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 1.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 1.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 2.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 2.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.0,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 4.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 4.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.5
+      },
+      "lean": 0.4577333629131317,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.5,
+          "result": 0.7071067690849304
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.28726711869239807,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.8333333134651184,
+          "result": 0.5612310171127319
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 1.0
+      },
+      "lean": 0.21571429073810577,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 1.0,
+          "result": 0.5
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 2.0
+      },
+      "lean": -0.07642857730388641,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 2.0,
+          "result": 0.25
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 4.0
+      },
+      "lean": -0.29553571343421936,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 4.0,
+          "result": 0.0625
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.727645754814148,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.6819158792495728,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.8333333134651184,
+          "result": 0.8989500403404236
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.6597714424133301,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 2.0
+      },
+      "lean": 0.5363702774047852,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 2.0,
+          "result": 0.774399995803833
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": 0.33221539855003357,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.5
+      },
+      "lean": 0.7704111337661743,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.5,
+          "result": 0.9746794104576111
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.7511025667190552,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.8333333134651184,
+          "result": 0.9581562280654907
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 1.0
+      },
+      "lean": 0.7415714263916016,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 1.0,
+          "result": 0.949999988079071
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 2.0
+      },
+      "lean": 0.6860643029212952,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 2.0,
+          "result": 0.9024999737739563
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 4.0
+      },
+      "lean": 0.5832372903823853,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 4.0,
+          "result": 0.8145062327384949
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.5
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.5,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.8333333134651184,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 1.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 1.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 2.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 2.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.30000001192092896,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 4.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 4.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.5
+      },
+      "lean": 0.3137972950935364,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.5,
+          "result": 0.7071067690849304
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.07164353132247925,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 0.8333333134651184,
+          "result": 0.5612310171127319
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 1.0
+      },
+      "lean": -0.029999971389770508,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 1.0,
+          "result": 0.5
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 2.0
+      },
+      "lean": -0.4449999928474426,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 2.0,
+          "result": 0.25
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.5,
+        "timeStep": 4.0
+      },
+      "lean": -0.7562499642372131,
+      "powerCalls": [
+        {
+          "base": 0.5,
+          "exponent": 4.0,
+          "result": 0.0625
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.6972180604934692,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.6322570443153381,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.8333333134651184,
+          "result": 0.8989500403404236
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.6007999777793884,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 2.0
+      },
+      "lean": 0.42550402879714966,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 2.0,
+          "result": 0.774399995803833
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": 0.13549426198005676,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.5
+      },
+      "lean": 0.7579678297042847,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.5,
+          "result": 0.9746794104576111
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.7305393218994141,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 0.8333333134651184,
+          "result": 0.9581562280654907
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 1.0
+      },
+      "lean": 0.7170000076293945,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 1.0,
+          "result": 0.949999988079071
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 2.0
+      },
+      "lean": 0.6381499767303467,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 2.0,
+          "result": 0.9024999737739563
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 0.949999988079071,
+        "timeStep": 4.0
+      },
+      "lean": 0.4920803904533386,
+      "powerCalls": [
+        {
+          "base": 0.949999988079071,
+          "exponent": 4.0,
+          "result": 0.8145062327384949
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.5
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.5,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 0.8333333134651184
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 0.8333333134651184,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 1.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 1.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 2.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 2.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.800000011920929,
+        "steerAngle": 0.699999988079071,
+        "steerLock": 35.0,
+        "fullAnimLean": 0.7504916191101074,
+        "desLean": 1.0,
+        "timeStep": 4.0
+      },
+      "lean": 0.800000011920929,
+      "powerCalls": [
+        {
+          "base": 1.0,
+          "exponent": 4.0,
+          "result": 1.0
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": -0.6000000238418579,
+        "steerLock": 20.0,
+        "fullAnimLean": 0.5235987901687622,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.524766743183136,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": -0.6000000238418579,
+        "steerLock": 20.0,
+        "fullAnimLean": 0.5235987901687622,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.5479999780654907,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": -0.6000000238418579,
+        "steerLock": 20.0,
+        "fullAnimLean": 0.5235987901687622,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": 0.6601218581199646,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.0,
+        "steerLock": 20.0,
+        "fullAnimLean": 0.5235987901687622,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.4690415859222412,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.0,
+        "steerLock": 20.0,
+        "fullAnimLean": 0.5235987901687622,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.4399999976158142,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.0,
+        "steerLock": 20.0,
+        "fullAnimLean": 0.5235987901687622,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": 0.29984766244888306,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.6000000238418579,
+        "steerLock": 20.0,
+        "fullAnimLean": 0.5235987901687622,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.41331642866134644,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.6000000238418579,
+        "steerLock": 20.0,
+        "fullAnimLean": 0.5235987901687622,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.3319999873638153,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.6000000238418579,
+        "steerLock": 20.0,
+        "fullAnimLean": 0.5235987901687622,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": -0.060426533222198486,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": -0.6000000238418579,
+        "steerLock": 20.0,
+        "fullAnimLean": 0.8999999761581421,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.5648260712623596,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": -0.6000000238418579,
+        "steerLock": 20.0,
+        "fullAnimLean": 0.8999999761581421,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.6256383061408997,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": -0.6000000238418579,
+        "steerLock": 20.0,
+        "fullAnimLean": 0.8999999761581421,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": 0.9191133975982666,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.0,
+        "steerLock": 20.0,
+        "fullAnimLean": 0.8999999761581421,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.4690415859222412,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.0,
+        "steerLock": 20.0,
+        "fullAnimLean": 0.8999999761581421,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.4399999976158142,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.0,
+        "steerLock": 20.0,
+        "fullAnimLean": 0.8999999761581421,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": 0.29984766244888306,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.6000000238418579,
+        "steerLock": 20.0,
+        "fullAnimLean": 0.8999999761581421,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.3732571303844452,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.6000000238418579,
+        "steerLock": 20.0,
+        "fullAnimLean": 0.8999999761581421,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.25436168909072876,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.6000000238418579,
+        "steerLock": 20.0,
+        "fullAnimLean": 0.8999999761581421,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": -0.3194180727005005,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": -0.6000000238418579,
+        "steerLock": 45.0,
+        "fullAnimLean": 0.5235987901687622,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.4938083291053772,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": -0.6000000238418579,
+        "steerLock": 45.0,
+        "fullAnimLean": 0.5235987901687622,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.4880000054836273,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": -0.6000000238418579,
+        "steerLock": 45.0,
+        "fullAnimLean": 0.5235987901687622,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": 0.45996952056884766,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.0,
+        "steerLock": 45.0,
+        "fullAnimLean": 0.5235987901687622,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.4690415859222412,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.0,
+        "steerLock": 45.0,
+        "fullAnimLean": 0.5235987901687622,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.4399999976158142,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.0,
+        "steerLock": 45.0,
+        "fullAnimLean": 0.5235987901687622,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": 0.29984766244888306,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.6000000238418579,
+        "steerLock": 45.0,
+        "fullAnimLean": 0.5235987901687622,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.4442748427391052,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.6000000238418579,
+        "steerLock": 45.0,
+        "fullAnimLean": 0.5235987901687622,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.3919999897480011,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.6000000238418579,
+        "steerLock": 45.0,
+        "fullAnimLean": 0.5235987901687622,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": 0.13972578942775726,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": -0.6000000238418579,
+        "steerLock": 45.0,
+        "fullAnimLean": 0.8999999761581421,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.5116124749183655,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": -0.6000000238418579,
+        "steerLock": 45.0,
+        "fullAnimLean": 0.8999999761581421,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.5225059390068054,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": -0.6000000238418579,
+        "steerLock": 45.0,
+        "fullAnimLean": 0.8999999761581421,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": 0.5750768780708313,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.0,
+        "steerLock": 45.0,
+        "fullAnimLean": 0.8999999761581421,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.4690415859222412,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.0,
+        "steerLock": 45.0,
+        "fullAnimLean": 0.8999999761581421,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.4399999976158142,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.0,
+        "steerLock": 45.0,
+        "fullAnimLean": 0.8999999761581421,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": 0.29984766244888306,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.6000000238418579,
+        "steerLock": 45.0,
+        "fullAnimLean": 0.8999999761581421,
+        "desLean": 0.8799999952316284,
+        "timeStep": 0.5
+      },
+      "lean": 0.42647069692611694,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 0.5,
+          "result": 0.9380831718444824
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.6000000238418579,
+        "steerLock": 45.0,
+        "fullAnimLean": 0.8999999761581421,
+        "desLean": 0.8799999952316284,
+        "timeStep": 1.0
+      },
+      "lean": 0.357494056224823,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 1.0,
+          "result": 0.8799999952316284
+        }
+      ]
+    },
+    {
+      "input": {
+        "current": 0.5,
+        "steerAngle": 0.6000000238418579,
+        "steerLock": 45.0,
+        "fullAnimLean": 0.8999999761581421,
+        "desLean": 0.8799999952316284,
+        "timeStep": 4.0
+      },
+      "lean": 0.024618446826934814,
+      "powerCalls": [
+        {
+          "base": 0.8799999952316284,
+          "exponent": 4.0,
+          "result": 0.5996953248977661
+        }
+      ]
+    }
+  ]
+}

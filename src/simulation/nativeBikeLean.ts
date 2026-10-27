@@ -26,10 +26,10 @@ export function bikeRiderLean(lean:number,fullAnimLeanDeg:number){
  requireAsset(Number.isFinite(lean)&&Number.isFinite(fullAnimLeanDeg)&&fullAnimLeanDeg>0,'Invalid rider lean input.');
  return Math.min(1,Math.abs(lean)/(fullAnimLeanDeg*Math.PI/180));
 }
-/** CQuadBike::ProcessAI's rider lean: LeanAngle = d^ts × LeanAngle − FullAnimLean × steer angle / steer lock × (1 − d^ts),
- * d being the bike handling's desLean and ts the timestep in 50 Hz frames. `steer` is the port's (+1 right); native
- * steering to the left is positive, so a right turn leans the rider right (positive). */
-export function quadRiderLean(current:number,steer:number,fullAnimLeanDeg:number,desLean:number,dt:number){
- const d=desLean**(dt*50);
- return d*current-fullAnimLeanDeg*Math.PI/180*-Math.max(-1,Math.min(1,steer))*(1-d);
+/** CQuadBike::ProcessAI 0x10046eda4: prepared rider lean, native steering angle
+ * (positive left), handling steering lock in degrees, FullAnimLean in radians,
+ * DesLean and timestep in 50-Hz frames. Player/task gating is caller work. */
+export function quadRiderLean(current:number,steerAngle:number,steerLock:number,fullAnimLean:number,desLean:number,timeStep:number){
+ const f=Math.fround,d=f(Math.pow(f(desLean),f(timeStep))),lock=f(f(f(steerLock)*f(-Math.PI))/180);
+ return f(f(d*f(current))+f(f(1-d)*f(f(f(fullAnimLean)*f(steerAngle))/lock)));
 }

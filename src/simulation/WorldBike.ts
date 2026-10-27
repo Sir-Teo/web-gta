@@ -460,7 +460,8 @@ export class WorldBike {
   const lock=h.steeringLock*Math.PI/180,speedF=Math.min(1,Math.abs(speed)/15);
   const effLock=lock*(1+(this.assets.bike.speedSteer-1)*speedF);
   // Positive steer (D) turns right, which is negative yaw about world up.
-  let yaw=-speed*Math.tan(Math.max(-1,Math.min(1,this.steer))*effLock)/WHEELBASE;
+  const steerAngle=-Math.max(-1,Math.min(1,this.steer))*effLock;
+  let yaw=speed*Math.tan(steerAngle)/WHEELBASE;
   yaw=Math.max(-2.5,Math.min(2.5,yaw));
   // With no wheel touching (CBike's four wheel ratios all 1) no tyre turns the bike: it keeps the spin it left the
   // ground with. A ridden CBmx spins with the stick (CBmx::ProcessAI, iOS 0x100458ddc): ApplyTurnForce(R × x/128 ×
@@ -491,7 +492,8 @@ export class WorldBike {
    const target=this.quad?0:bikeLeanTarget(this.steer,Math.abs(speed),this.assets.bike.maxLean);
    this.lean=approachBikeLean(this.lean,target,this.assets.bike.desLean,dt);
   }
-  if(this.quad)this.riderLean=quadRiderLean(this.riderLean,this.steer,this.assets.bike.fullAnimLean,this.assets.bike.desLean,dt);
+  // CQuadBike::ProcessAI leaves this vehicle-owned lean untouched for NPC/empty quads.
+  if(this.quad&&this.occupied){const f=Math.fround,full=f(f(this.assets.bike.fullAnimLean)*f(Math.PI/180));this.riderLean=quadRiderLean(this.riderLean,steerAngle,h.steeringLock,full,this.assets.bike.desLean,f(dt*50));}
   this.floatOnWater(dt);
   this.stepVelocity={...this.body.linvel()};this.stepTurn={...this.body.angvel()};
   this.mountTimer=Math.max(0,this.mountTimer-dt);
