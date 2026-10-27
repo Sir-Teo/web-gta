@@ -15258,3 +15258,21 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Existing physical lean, ride/still availability, forward input and full
   rider task/association lifecycle remain separate. See
   [capture boundaries and evidence](research/BIKE_RIDER_LEAN_POSES.md).
+
+
+## Ordinary motorcycle and quad rider associations (October 27, 2026)
+
+- Native Still/Pushes/lean association decisions now replace the binary
+  ride/still selector on eleven motorcycles/quads. Automatic acceleration,
+  braking and reverse fore/aft lean, passenger suppression and held base
+  clip time reach player and script-driver posing.
+- 755 independent controller-plus-clump cases and all 2,704 recorded live
+  frames match exactly within declared actor/neutral-geometry/asset/powf
+  boundaries. Quad Reverse uses its native non-looping descriptor and holds
+  its final frame; motorcycle Pushes remain looped.
+- Computed pedal state is now published independently of the audio tick,
+  fixing stale scripted-rider gas. Real keys, actual NPC passenger presence,
+  all-model assets, freeze/ownership and bicycle regressions pass.
+- Physical lean, wheelie/stoppie/contact/task reactions, full ownership and
+  native skeleton sampling remain separate. See
+  [capture boundaries and validation](research/BIKE_RIDER_ASSOCIATIONS.md).

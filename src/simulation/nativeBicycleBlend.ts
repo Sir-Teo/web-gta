@@ -22,8 +22,8 @@ function setCurrentTime(a:BicycleAssociation,time:number){
 }
 /** CAnimManager::BlendAnimation, selected iOS 0x10013d5dc. `associations` is clump order, newest first.
  * Allocating pose nodes and decompressing assets are caller work; native scalar blend/sync rules apply here. */
-export function blendBicycleAssociation(associations:BicycleAssociation[],identifier:number,duration:number,blend=4,group=3){
- blend=f(blend);const targetFlags=bicycleAssociationFlags(identifier);let running:BicycleAssociation|undefined,moving:BicycleAssociation|undefined,fades=false;
+export function blendBicycleAssociation(associations:BicycleAssociation[],identifier:number,duration:number,blend=4,group=3,descriptorFlags=bicycleAssociationFlags(identifier)){
+ blend=f(blend);const targetFlags=descriptorFlags;let running:BicycleAssociation|undefined,moving:BicycleAssociation|undefined,fades=false;
  for(const a of associations){
   if(targetFlags&BICYCLE_ASSOC_FLAGS.synced&&a.flags&BICYCLE_ASSOC_FLAGS.synced)moving=a;
   if(a.identifier===identifier&&a.group===group)running=a;
@@ -39,6 +39,7 @@ export function blendBicycleAssociation(associations:BicycleAssociation[],identi
   return running;
  }
  const a=newBicycleAssociation(identifier,duration,group);
+ a.flags=targetFlags|BICYCLE_ASSOC_FLAGS.playing;
  if(moving&&a.flags&BICYCLE_ASSOC_FLAGS.synced)setCurrentTime(a,f(f(moving.time/moving.duration)*a.duration));
  else setCurrentTime(a,0);
  associations.unshift(a);

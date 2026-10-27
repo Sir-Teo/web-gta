@@ -1,4 +1,4 @@
-import {BICYCLE_ASSOC_FLAGS,newBicycleAssociation,stepBicycleAssociations,type BicycleAssociation} from './nativeBicycleBlend';
+import {BICYCLE_ASSOC_FLAGS,type BicycleAssociation} from './nativeBicycleBlend';
 const f=Math.fround;
 export interface BikeRiderLeanInput {lean:number;forward:number;available:number;player:boolean}
 /** Ordinary reverse-pedalling sentinel at 0x100457b80; comparison is promoted to double after float field reads. */
@@ -28,15 +28,4 @@ export function controlBikeRiderLean(associations:readonly BicycleAssociation[],
  };
  if(input.player)pose(forward,forwardWeight,198,199);
  pose(lean,sideWeight,196,197);
-}
-/** Owns the selected lean pose stage; base ride/still choice and physical body lean remain caller work. */
-export class NativeBikeRiderLean {
- readonly associations:BicycleAssociation[];
- filtered=0;
- constructor(duration:(identifier:number)=>number){this.associations=[196,197,198,199].map(id=>newBicycleAssociation(id,duration(id)));}
- step(dt:number,lean:number,fullAnimLean:number,player:boolean,available:number,reverse=false){
-  this.filtered=filterBikeRiderLean(this.filtered,lean,fullAnimLean,f(dt*50),reverse).filtered;
-  controlBikeRiderLean(this.associations,{lean:this.filtered,forward:0,player,available});
-  stepBicycleAssociations(this.associations,dt);
- }
 }

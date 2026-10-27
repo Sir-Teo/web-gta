@@ -1,5 +1,10 @@
 # Native motorcycle and quad rider lean poses
 
+The subsequent [ordinary rider controller](BIKE_RIDER_ASSOCIATIONS.md) adds
+Still/Pushes availability, automatic fore/aft lean, passenger suppression and
+held base time. Its owner replaces the initial lean-only class documented
+here; the independent filter and pose fixtures remain applicable.
+
 The eleven supported motorcycles and quads now filter rider lean and sample
 the matching Left/Right clip at the captured native phase. Previously the
 host chose a side from steering and blended the clip's final frame by lean
