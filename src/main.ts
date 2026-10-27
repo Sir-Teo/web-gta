@@ -4546,7 +4546,7 @@ async function boot() {
       // CTimer input adapter: elapsed game time since the previous rendered frame, capped at three native steps.
       // Pauses/streaming holds advance no game time and therefore add no camera movement lead.
       const cameraStep=Math.fround(Math.min(3,Math.max(0,(gameTimeExact-bumperGameTime)/20)));bumperGameTime=gameTimeExact;
-      const car=worldCar?.occupied?worldCar:fleet?.occupied,bike=fleet?.occupiedBike,boat=fleet?.occupiedBoat;
+      const passenger=playerPassenger?.car,car=worldCar?.occupied?worldCar:fleet?.occupied??(isScriptCar(passenger)?passenger:undefined),bike=fleet?.occupiedBike??(isScriptBike(passenger)?passenger:undefined),boat=fleet?.occupiedBoat;
       const frameOf=(root:Object3D,local:{x:number;y:number;z:number})=>{const q=root.quaternion,w=new Vector3(local.x,local.z,-local.y).applyQuaternion(q);return {vehicle:root,source:{x:root.position.x+w.x,y:root.position.y+w.y,z:root.position.z+w.z},quaternion:{x:q.x,y:q.y,z:q.z,w:q.w}};};
       if(car){const seat=car.car.nativeFramePosition('ped_frontseat');render.bumper=frameOf(car.car.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62});}
       else if(bike){
@@ -4556,7 +4556,7 @@ async function boot() {
           // Process_1stPerson's visibility test uses the camera axes on entry, before it replaces the final basis.
           const front=render.camera.getWorldDirection(new Vector3()),up=new Vector3(0,1,0).applyQuaternion(render.camera.quaternion);
           render.bumper={...b,sourceForCamera:()=>{
-            const neck=render.nativeCharacter?.bonePosition(4,scratchSpine);if(!neck)return b.source;
+            const neck=bike===playerPassenger?.car?occupants.boneOf(`script:${bike.body.handle}:driver`,4,scratchSpine):render.nativeCharacter?.bonePosition(4,scratchSpine);if(!neck)return b.source;
             const v=bike.body.linvel(),p=bike.body.translation(),stage=nativeBikeBumperCamera({source:[b.source.x,-b.source.z,b.source.y],position:[p.x,-p.z,p.y],neck:[neck.x,-neck.z,neck.y],velocity:[v.x/50,-v.z/50,v.y/50],timeStep:cameraStep,front:[front.x,-front.z,front.y],up:[up.x,-up.z,up.y]});
             const from={x:stage.lineFrom[0],y:stage.lineFrom[2],z:-stage.lineFrom[1]},delta={x:stage.lineTo[0]-stage.lineFrom[0],y:stage.lineTo[2]-stage.lineFrom[2],z:-(stage.lineTo[1]-stage.lineFrom[1])},length=Math.hypot(delta.x,delta.y,delta.z);
             const blocked=length>0&&sim.world.castRay(new RAPIER.Ray(from,{x:delta.x/length,y:delta.y/length,z:delta.z/length}),length,true,RAPIER.QueryFilterFlags.ONLY_FIXED|RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,undefined,collider=>{const kind=importedScene?.sources.get(collider.handle)?.entityKind;return kind!=='dummy'&&kind!=='object';})!==null;

@@ -75,6 +75,8 @@ export class VehicleOccupants {
  }
  /** The head node of the occupant drawn under `key`, in the world (renderer axes), while it is drawn. */
  headOf(key:string){return this.views.get(key)?.view.headPosition();}
+ /** A seated NPC's current rendered bone, sampled after this frame's occupant pose update. */
+ boneOf(key:string,id:number,out?:Vector3){const view=this.views.get(key)?.view;return view?.inVehiclePose?view.bonePosition(id,out):undefined;}
  hitSpheresOf(key:string){const view=this.views.get(key)?.view;return view?.root.visible?view.hitSpheres():undefined;}
  positionOf(key:string){return this.views.get(key)?.view.root.getWorldPosition(new Vector3());}
  snapshot(){return {drivers:this.views.size,ready:!!this.catalog,error:this.error??null};}

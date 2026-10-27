@@ -9,6 +9,17 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Passenger bumper camera selection (October 27, 2026)
+
+- Real V now selects the bumper source for car and bike passengers, including
+  quads. Bike passengers use the current rendered NPC driver's neck; a bike
+  without a driver retains its base source. Q/E looks and forward-only seated
+  body culling use the same existing camera paths as driven vehicles.
+- All 84 browser observations pass. All 12 NPC-driver height sources match the
+  selected native stage exactly; 15 base-source samples agree within 0.12 mm.
+  Full retail-PC camera target/task ownership and aircraft bumper views remain
+  open. [Evidence and limits](research/PASSENGER_BUMPER_CAMERA.md).
+
 ## Bumper camera ground lift (October 27, 2026)
 
 - The bumper source now receives the captured world-height lift when physical
