@@ -1,5 +1,9 @@
 # Native bicycle cranks and pedals
 
+The later [association integration](BICYCLE_ASSOCIATION_BLENDING.md) replaces
+the initial speed-selected pedal clock described below with native
+pedal/sprint blending and wrapped phase before the clump time update.
+
 The BMX (481), Chopper (509) and Mountain Bike (510) now animate their imported
 `chainset`, `pedal_r` and `pedal_l` frames. Previously these frames stayed fixed
 while the rider's feet cycled through the native pedal clip.

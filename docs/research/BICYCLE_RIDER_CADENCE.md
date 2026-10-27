@@ -1,5 +1,10 @@
 # Captured bicycle rider cadence
 
+The initial clock integration documented here is superseded by
+[native bicycle association blending](BICYCLE_ASSOCIATION_BLENDING.md), which
+adds pedal/sprint pose selection, synchronization, lifetime and wrapped phase.
+The 370 decision captures remain applicable.
+
 The BMX, Chopper and Mountain Bike now advance the available pedal clip at
 the captured native cadence instead of a constant one second per second.
 Native lean, drive-by-association, coasting and status decisions determine whether that clock

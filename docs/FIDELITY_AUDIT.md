@@ -15227,3 +15227,19 @@ Missions 38 to 48 were swept with the bot for the first time (CAT3, which needs 
 - Final TypeScript validation, production build and production smoke pass;
   save resume, movement, car entry, map waypoint, pause/resume, takeoff and
   landing gear report no page errors or failed requests.
+
+
+## Bicycle pedal/sprint association blending (October 27, 2026)
+
+- BMX, Chopper and Mountain Bike now use synchronized native pedal/sprint
+  partial associations over their ride pose, with actual association blend
+  supplied to the BMX energy/input decision. Player and script riders share
+  the association clocks; render calls do not advance them.
+- Independent selected iOS execution covers 139 BlendAnimation cases, 111
+  scalar clump frames, 174 combined controller/frames and 67 static-key
+  skinned partial frames. All 468 recorded live controller steps replay
+  exactly for scalar association state and normal-path crank output.
+- Partial pose composition follows per-bone track coverage and weighted
+  quaternion sums. Ordinary CBike fallback/lean associations, fallback
+  crank behavior, full native scheduling and float32 pose-sampler parity
+  remain separate work. See [evidence and boundaries](research/BICYCLE_ASSOCIATION_BLENDING.md).

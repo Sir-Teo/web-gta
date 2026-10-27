@@ -16,7 +16,7 @@ test('all three native bicycles articulate their cranks with the rider and keep 
     const matrices=()=>frames.map((f:any)=>[...f.matrix.elements]),tick=(throttle=0,hop=false)=>{bike.beforeStep(1/60,{throttle,steer:0,brake:false,hop});sim.world.step();bike.afterStep();bike.update(1);};
     for(let i=0;i<40;i++)tick();bike.finishEnter();const before=matrices();
     for(let i=0;i<87;i++)tick(1);
-    const moving=matrices(),pose=bike.riderPose(),duration=clips.peek(pose.block,pose.idle)!.duration,angle=-Math.PI*2*(pose.time%duration)/duration;
+    const moving=matrices(),pose=bike.riderPose(),duration=clips.peek(pose.block,`${pose.block}_pedal`)!.duration,angle=(bike as any).bicycleRider?.crank;
     const level=frames.slice(1).map((f:any)=>new THREE.Matrix4().multiplyMatrices(frames[0].matrix,f.matrix).elements.slice(0,12));
     const last=matrices();bike.afterStep();bike.update(1);const noExtraStep=matrices();bike.update(.5);const half=matrices();bike.update(.5);const repeated=matrices();
     bike.frozen=true;tick(1);bike.update(0);const frozenStart=matrices();bike.update(1);const frozenEnd=matrices();bike.frozen=false;

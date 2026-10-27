@@ -16,9 +16,9 @@ test('riding a BMX updates native sprint energy and retained pedal input through
   g.sim.player.stamina=100;g.sim.player.sprintButtonSpeed=0;
   const t=(window as any).__bmxEnergy={original:WorldBike.prototype.beforeStep,afterOriginal:WorldBike.prototype.afterStep,pending:new WeakMap(),rows:[] as any[]};
   WorldBike.prototype.beforeStep=function(this:any,dt:number,input:any){
-   const p=g.sim.player,before=p.stamina,button=p.sprintButtonSpeed,time=this.rideTime;
+   const p=g.sim.player,before=p.stamina,button=p.sprintButtonSpeed,time=this.rideTime,fastBlend=this.bicycleRider?.fastBlend;
    const result=t.original.call(this,dt,input);
-   if(this.occupied){const row={dt,input,before,after:p.stamina,button,buttonAfter:p.sprintButtonSpeed,boost:this.playerBoost,gas:this.gasPedal,steer:this.steer,coefficient:this.pedalCoefficient,time,timeAfter:this.rideTime};t.rows.push(row);t.pending.set(this,row);}return result;
+   if(this.occupied){const row={dt,input,fastBlend,before,after:p.stamina,button,buttonAfter:p.sprintButtonSpeed,boost:this.playerBoost,gas:this.gasPedal,steer:this.steer,coefficient:this.pedalCoefficient,time,timeAfter:this.rideTime};t.rows.push(row);t.pending.set(this,row);}return result;
   };
   WorldBike.prototype.afterStep=function(this:any){const result=t.afterOriginal.call(this),row=t.pending.get(this);if(row){row.timeAfter=this.rideTime;t.pending.delete(this);}return result;};
  });
@@ -27,6 +27,7 @@ test('riding a BMX updates native sprint energy and retained pedal input through
   await page.waitForFunction(()=>(window as any).__bmxEnergy.rows.some((r:any)=>r.after>r.before),undefined,{timeout:15000});
   stage='accelerate';await page.keyboard.down('KeyW');
   await page.waitForFunction(()=>(window as any).__bmxEnergy.rows.some((r:any)=>r.input.throttle>0&&r.boost&&r.before===r.after),undefined,{timeout:15000});
+  await page.waitForFunction(()=>{const g=(window as any).__game,p=g.render().vehiclePose?.pose;return p?.clip==='bmx_ride'&&p.partials?.some((a:any)=>a.clip==='bmx_sprint'&&a.amount>.5)&&g.render().nativeCharacter.root.visible;},undefined,{timeout:15000});
   stage='turn';await page.keyboard.down('KeyD');
   await page.waitForFunction(()=>(window as any).__bmxEnergy.rows.some((r:any)=>r.input.throttle>0&&Math.abs(r.steer)>.1&&!r.boost&&r.after>r.before),undefined,{timeout:15000});
   stage='pedal';await page.keyboard.up('KeyW');await page.keyboard.up('KeyD');await page.keyboard.down('ShiftLeft');

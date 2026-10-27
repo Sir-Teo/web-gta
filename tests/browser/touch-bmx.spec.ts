@@ -21,9 +21,9 @@ test('a phone bunny-hops a BMX with the Bunny hop button where Fire stands',asyn
  await page.waitForTimeout(1000);
  // Held, the hop charges; let go, the bike leaves the ground.
  await press('pointerdown');await expect.poll(async()=>(await bike()).charge,{timeout:5000}).toBeGreaterThan(5);
- await expect.poll(()=>page.evaluate(()=>{const g=(window as any).__game,b=g.fleet().occupiedBike,p=g.render().vehiclePose?.pose,h=p?.overlays?.find((o:any)=>o.clip==='bmx_bunnyhop');return !!h&&h.amount>.5&&Math.abs(h.seconds-.2*b.controlJump/25)<.01&&g.render().nativeCharacter.root.visible;}),{timeout:5000}).toBe(true);
+ await expect.poll(()=>page.evaluate(()=>{const g=(window as any).__game,b=g.fleet().occupiedBike,p=g.render().vehiclePose?.pose,h=p?.partials?.find((o:any)=>o.clip==='bmx_bunnyhop');return !!h&&h.amount>.5&&Math.abs(h.seconds-.2*b.controlJump/25)<.01&&g.render().nativeCharacter.root.visible;}),{timeout:5000}).toBe(true);
  await page.screenshot({path:'artifacts/touch-bmx-charged.png'});
  await press('pointerup');await expect.poll(async()=>(await bike()).vy,{timeout:5000,intervals:[20]}).toBeGreaterThan(1);
- await expect.poll(()=>page.evaluate(()=>!(window as any).__game.render().vehiclePose?.pose.overlays?.some((o:any)=>o.clip==='bmx_bunnyhop')),{timeout:5000}).toBe(true);
+ await expect.poll(()=>page.evaluate(()=>!(window as any).__game.render().vehiclePose?.pose.partials?.some((o:any)=>o.clip==='bmx_bunnyhop')),{timeout:5000}).toBe(true);
  expect(errors).toEqual([]);
 });

@@ -1,3 +1,4 @@
+import {blendBicycleAssociation,stepBicycleAssociations,BICYCLE_ASSOC_FLAGS,type BicycleAssociation} from './nativeBicycleBlend';
 const f=Math.fround;
 export interface BicycleRiderInput {
  model:number;
@@ -21,14 +22,44 @@ export function nativeBicycleRiderDecision(input:BicycleRiderInput):BicycleRider
  const sprint=cadence<(mountain?2:2.5)&&coefficient>5;
  return {mode:sprint?'sprint':'pedal',cadence,playing:sprint||coefficient>0||f(input.gas)!==0||(input.status&31)===2};
 }
-/** The host's existing unbounded clip clock, now advanced at the captured playback rate.
- * Bunny hop owns the decision while present; the available base clip retains its prior playback.
- * Native animation-manager blending, synchronised associations and float32 phase wrapping remain separate. */
+/** Selected CBmx association writes, with ordinary CBike fallback and lean pose nodes owned by the caller.
+ * Durations are loaded IFP durations; associations are in native newest-first order. */
+export function controlBicycleAssociations(associations:BicycleAssociation[],input:BicycleRiderInput,duration:(identifier:number)=>number){
+ const decision=nativeBicycleRiderDecision(input),pedal=associations.find(a=>a.identifier===207),sprint=associations.find(a=>a.identifier===208);
+ if(decision.mode==='ride'){
+  const active=[pedal,sprint].some(a=>a&&a.delta>=0&&a.amount>0);
+  if(active)for(const a of [pedal,sprint])if(a){a.delta=-8;a.flags&=~BICYCLE_ASSOC_FLAGS.playing;}
+  return {decision,fallback:!active,crank:null};
+ }
+ const identifier=decision.mode==='sprint'?208:207;
+ let target=identifier===207?pedal:sprint;
+ if(!target||target.amount<1&&target.delta<=0)target=blendBicycleAssociation(associations,identifier,duration(identifier));
+ if(decision.playing){
+  target.flags|=BICYCLE_ASSOC_FLAGS.playing;
+  const clock=decision.mode==='sprint'&&pedal?pedal:target;
+  clock.flags|=BICYCLE_ASSOC_FLAGS.playing;clock.speed=decision.cadence!;
+ }else target.flags&=~BICYCLE_ASSOC_FLAGS.playing;
+ const phase=pedal??(identifier===207?target:sprint??target);
+ return {decision,fallback:false,crank:f(f(f(phase.time*f(-2*Math.PI))/phase.duration)+0)};
+}
+/** Bicycle pedal/sprint association owner. Hop time/launch remains owned by NativeBicycleHop. */
 export class NativeBicycleRider {
- time=0;decision?:BicycleRiderDecision;
+ readonly associations:BicycleAssociation[]=[];
+ decision?:BicycleRiderDecision;crank:number|null=null;
+ private hopping=false;
+ constructor(private duration:(identifier:number)=>number){}
+ get time(){return (this.associations.find(a=>a.identifier===207)??this.associations.find(a=>a.identifier===208))?.time??0;}
+ get fastBlend(){return this.associations.find(a=>a.identifier===208)?.amount;}
  step(dt:number,input:BicycleRiderInput,hopActive=false){
-  if(!hopActive)this.decision=nativeBicycleRiderDecision(input);
-  if(this.decision?.playing&&this.decision.cadence!==null)this.time+=dt*this.decision.cadence;
+  if(hopActive&&!this.hopping){
+   // The independently owned partial hop requests BlendAnimation(206, 8).
+   // Its unsynchronised time is advanced by the existing hop owner, once.
+   const hop=blendBicycleAssociation(this.associations,206,this.duration(206),8);
+   this.associations.splice(this.associations.indexOf(hop),1);
+  }
+  this.hopping=hopActive;this.crank=null;
+  if(!hopActive){const result=controlBicycleAssociations(this.associations,input,this.duration);this.decision=result.decision;this.crank=result.crank;}
+  stepBicycleAssociations(this.associations,dt);
   return this.decision;
  }
 }

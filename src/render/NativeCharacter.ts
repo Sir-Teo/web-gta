@@ -1,6 +1,7 @@
 import {characterShadowBounds} from './characterShadowBounds';
 import {PED_HIT_NODES,type PedHitSphere} from '../combat/nativePedHitSpheres';
 import {HEAD_EFFECTOR_OFFSET,LOOK_AT_SPEED,applyQuat,limitHead,moveHeadToTarget,slerpQuat,startLookAt,stepLookAt,type LookAtTask,type Quat} from '../simulation/nativeIkLookAt';
+import {PartialPose} from '../animation/PartialPose';
 import {playerMoveBlend} from '../animation/playerMoveBlend';
 import {nativeButtonSprintResult,SPRINT_MODE} from '../simulation/nativePlayerSprint';
 import {MODE_FIXED} from '../engine/ScmCamera';
@@ -808,6 +809,7 @@ export class NativeCharacter {
   private vehicleBindings=new Map<string,ReturnType<typeof bindAnimation>>();
   private vehicleClip?:string;
   private overlayTransition?:PoseTransition;
+  private vehiclePartialPose?:PartialPose;
   /** Car entry, exit and driving clips. Car tasks do not extract velocity, so the root translation stays in the pose;
    * clips named in `extracted` (CAR_rollout_*) remove root X/Y against the rest pose as the moving-shift source. */
   installVehicleClips(clips:Record<string,NativeAnimation>,extracted:readonly string[]=[]){
@@ -825,8 +827,8 @@ export class NativeCharacter {
   vehicleClipMotion(name:string,from:number,to:number){const motion=this.vehicleBindings.get(name)?.rootMotion;return motion?motion.delta(from,to,false,new Vector3()):new Vector3();}
   /** Samples a vehicle clip with the entity pinned in car space (`vehicle` + native-space `local`) or standing in the world.
    * `blend` fades from the previously rendered pose (BlendAnimation delta × time); `overlay` weights a partial clip's final
-   * frame, and `overlays` several partial clips at their own times. */
-  updateVehicle(frame:{vehicle?:Object3D;local?:{x:number;y:number;z:number};headingOffset?:number;position?:{x:number;y:number;z:number};heading?:number},pose:{clip:string;seconds:number;blend?:number;overlay?:{clip:string;amount:number};overlays?:readonly {clip:string;amount:number;seconds:number}[]}){
+   * frame, `overlays` layer sequentially, and `partials` sum simultaneous track-aware associations. */
+  updateVehicle(frame:{vehicle?:Object3D;local?:{x:number;y:number;z:number};headingOffset?:number;position?:{x:number;y:number;z:number};heading?:number},pose:{clip:string;seconds:number;blend?:number;overlay?:{clip:string;amount:number};overlays?:readonly {clip:string;amount:number;seconds:number}[];partials?:readonly {clip:string;amount:number;seconds:number}[]}){
     const binding=this.vehicleBindings.get(pose.clip);if(!binding){this.root.visible=false;return false;}
     if(frame.vehicle&&frame.local){this.root.position.copy(frame.vehicle.localToWorld(new Vector3(frame.local.x,frame.local.z,-frame.local.y)));this.root.quaternion.copy(frame.vehicle.getWorldQuaternion(new Quaternion()));if(frame.headingOffset)this.root.quaternion.multiply(new Quaternion().setFromAxisAngle(new Vector3(0,1,0),frame.headingOffset));this.root.visible=frame.vehicle.visible;this.worldPoseReady=true;}
     else if(frame.position){this.root.position.set(frame.position.x,frame.position.y,frame.position.z);this.root.rotation.set(0,(frame.heading??0)+this.headingOffset,0);this.root.visible=true;this.worldPoseReady=true;}
@@ -835,7 +837,12 @@ export class NativeCharacter {
       if(this.vehicleClip&&this.vehicleClip!==pose.clip)this.vehicleBindings.get(this.vehicleClip)?.restore();
       this.vehicleClip=pose.clip;
     }
-    this.transition.restoreTargets();binding.sample(pose.seconds,false,false);this.transition.apply(pose.blend??1);
+    this.transition.restoreTargets();
+    if(pose.partials?.length){
+      this.vehiclePartialPose??=new PartialPose();
+      this.vehiclePartialPose.sample(binding,pose.seconds,pose.partials.flatMap(layer=>{const binding=this.vehicleBindings.get(layer.clip);return binding?[{binding,seconds:layer.seconds,amount:layer.amount}]:[];}));
+    }else binding.sample(pose.seconds,false,false);
+    this.transition.apply(pose.blend??1);
     // The single `overlay` holds its final frame; `overlays` play each at its own time, laid on in turn.
     const layers=pose.overlays??(pose.overlay?[{...pose.overlay,seconds:Infinity}]:[]);
     for(const layer of layers){

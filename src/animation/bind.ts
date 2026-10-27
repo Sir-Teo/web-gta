@@ -5,6 +5,7 @@ import type { DffModel } from '../assets/dff';
 import type { NativeAnimation } from '../assets/ifp';
 import { animationTime, sampleTrack } from './sample';
 type RestFrame = { rest: Matrix4; position: Vector3; scale: Vector3 } | { error: string };
+export type LocalPoseVisitor=(target:Object3D,rotation:Quaternion,translation:Vector3|null,rest:Vector3,scale:Vector3)=>void;
 /** Per model, what binding a clip needs of its frames and never changes between instances: frames by HAnim bone ID
  * and by trimmed lower-cased name, and each frame's validated rest decomposition. A pedestrian binds a dozen or more
  * clips as it spawns; searching every frame by name per track and re-decomposing the rest pose was most of that. */
@@ -101,24 +102,34 @@ export function bindAnimation(model: DffModel, root: Object3D, clip: NativeAnima
       mesh.frustumCulled = animated ? false : culled;
     }
   };
+  const visitPose=(seconds:number,loop:boolean,visit:LocalPoseVisitor)=>{
+    const time=animationTime(clip,seconds,loop);
+    for(const b of bindings){
+      sampleTrack(b.track,time,b.pose);
+      if(motion&&b.track===motionTrack&&b.pose.translation){
+        motion.anchor(b.position,anchor);
+        for(const axis of motion.axes)b.pose.translation[axis]=anchor[axis];
+      }
+      visit(b.target,b.pose.rotation,b.pose.translation,b.position,b.scale);
+    }
+    return time;
+  };
   return {
     trackCount: bindings.length,
     duration: clip.duration,
     rootMotion: motion,
+    /** Matched nonempty tracks only, for per-bone partial association coverage. */
+    poseTargets:bindings.map(b=>b.target) as readonly Object3D[],
+    visitPose,
+    markAnimated(){refresh(true,false);},
     /** `updateWorld` false leaves world matrices to the caller, which layers several clips and updates once. */
     sample(seconds: number, loop = true, updateWorld = true) {
-      const time = animationTime(clip, seconds, loop);
-      for (const b of bindings) {
-        sampleTrack(b.track, time, b.pose);
-        if (motion && b.track === motionTrack && b.pose.translation) {
-          motion.anchor(b.position, anchor);
-          for (const axis of motion.axes) b.pose.translation[axis] = anchor[axis];
-        }
+      const time=visitPose(seconds,loop,(target,rotation,translation,position,scale)=>{
         // Native quaternion-to-matrix conventions match Three in source space.
         // Source translation is absolute local position; rotation-only tracks retain rest translation.
-        b.target.matrix.compose(b.pose.translation ?? b.position, b.pose.rotation, b.scale);
-        b.target.matrixWorldNeedsUpdate = true;
-      }
+        target.matrix.compose(translation??position,rotation,scale);
+        target.matrixWorldNeedsUpdate=true;
+      });
       refresh(true, updateWorld); return time;
     },
     updateBounds() { for (const { mesh } of meshes) { mesh.boundingSphere = null!; mesh.computeBoundingBox(); mesh.computeBoundingSphere(); } },

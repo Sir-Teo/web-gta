@@ -108,7 +108,7 @@ function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp'
   }
   if(!isScriptCar(rider.car)&&typeof bike.riderPose==='function'&&bike.car&&!rider.offset&&rider.seat==='driver'){
    const pose=bike.riderPose(),clip=pose.seat&&bikeClip?.(pose.block,pose.idle);
-   if(pose.seat&&(clip||played))add({key:`script:${bike.car.body.handle}:driver`,car:bike as import('./render/VehicleOccupants').OccupantVehicle,model:rider.model,local:pose.seat,...(played??{clip:pose.idle,seconds:clip!.duration>0?pose.time%clip!.duration:0,animation:clip!})});
+   if(pose.seat&&(clip||played))add({key:`script:${bike.car.body.handle}:driver`,car:bike as import('./render/VehicleOccupants').OccupantVehicle,model:rider.model,local:pose.seat,...(played??{clip:pose.idle,seconds:clip!.duration>0?pose.time%clip!.duration:0,animation:clip!,partials:pose.partials?.flatMap(layer=>{const animation=bikeClip?.(pose.block,layer.clip);return animation?[{...layer,animation}]:[];})})});
    continue;
   }
   // The pillion (pPassengers[0]) sits at the model's ped_backseat (SetPedPositionInCar), holding the ride group's
@@ -4776,12 +4776,13 @@ async function boot() {
         render.vehiclePose={frame:{vehicle:boat.root,local:seat},pose:{clip:ride.idle.toLowerCase(),seconds:idle.duration,blend:1,overlays:boat.driving.overlays()}};
       }else render.vehiclePose=undefined;
     }else if(fleet?.occupiedBike&&render.nativeCharacter){
-      // Riding pillion-style: the class IFP's ride/pedal idle with a lean overlay at the ped_frontseat dummy.
+      // Ride base with synchronized pedal/sprint partial associations at the saddle dummy.
       const bike=fleet.occupiedBike,pose=bike.riderPose(),seat=pose.seat;
       const idle=carEntry.clips.peek(pose.block,pose.idle),lean=pose.overlay?carEntry.clips.peek(pose.block,pose.overlay.clip):undefined,hop=pose.hop?carEntry.clips.peek(pose.block,pose.hop.clip):undefined;
       if(seat&&idle){
-        render.nativeCharacter.installVehicleClips(Object.fromEntries([[pose.idle,idle],...(lean&&pose.overlay?[[pose.overlay.clip,lean]]:[]),...(hop&&pose.hop?[[pose.hop.clip,hop]]:[])]));
-        render.vehiclePose={frame:{vehicle:bike.root,local:seat},pose:{clip:pose.idle,seconds:idle.duration>0?pose.time%idle.duration:0,blend:1,overlays:[...(lean&&pose.overlay?[{...pose.overlay,seconds:lean.duration}]:[]),...(hop&&pose.hop?[pose.hop]:[])]}};
+        const partials=[...(hop&&pose.hop?[pose.hop]:[]),...(pose.partials??[])],loaded=partials.flatMap(layer=>{const clip=carEntry.clips.peek(pose.block,layer.clip);return clip?[[layer.clip,clip] as const]:[];});
+        render.nativeCharacter.installVehicleClips(Object.fromEntries([[pose.idle,idle],...(lean&&pose.overlay?[[pose.overlay.clip,lean]]:[]),...loaded]));
+        render.vehiclePose={frame:{vehicle:bike.root,local:seat},pose:{clip:pose.idle,seconds:idle.duration>0?pose.time%idle.duration:0,blend:1,partials,overlays:lean&&pose.overlay?[{...pose.overlay,seconds:lean.duration}]:[]}};
       }else render.vehiclePose=undefined;
     }else render.vehiclePose=undefined;
     if(carEntry.error){hud.message(carEntry.error);carEntry.error=undefined;}
