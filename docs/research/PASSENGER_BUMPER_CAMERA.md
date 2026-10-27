@@ -54,8 +54,8 @@ does not substitute the passenger's neck.
 
 All 12 NPC-driver source samples match the actual native neck/velocity stage
 exactly. The 15 car/quad/driverless forward sources agree with the selected
-native base-source stage within 0.000120 metres. The existing host double
-transform is retained, so these base sources are not called bit-exact.
+native base-source stage within 0.000120 metres. This checkpoint retained the host
+double transform, so these base sources were not called bit-exact.
 The base replay declares the current rendered matrix position and dummy. The
 height replay separately declares the prior source, current driver neck and
 physical body position. Zero frozen velocity removes lead cadence from the
@@ -63,6 +63,8 @@ driver-height comparison. The existing bike render-origin adapter is retained;
 this check does not establish the complete native lean-matrix/body-origin owner.
 The later [bike body-origin correction](BIKE_BUMPER_ORIGIN.md) separately
 removes the lean translation from the camera's interpolated origin.
+A subsequent [source-precision correction](VEHICLE_BUMPER_SOURCE_PRECISION.md)
+uses the captured float32 source arithmetic.
 
 Evidence: `artifacts/passenger-bumper-camera-browser.log`,
 `artifacts/passenger-bumper-camera-live.json`,

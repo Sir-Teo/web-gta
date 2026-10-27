@@ -189,6 +189,7 @@ import {playerBodyRatios,type PlayerBodyRatios} from './assets/blendPlayerBody';
 import {vehicleLightsStatus} from './simulation/nativeVehicleLights';
 import {nativeBikeBumperCamera} from './render/nativeBikeBumperCamera';
 import {nativeVehicleBumperLook} from './render/nativeVehicleBumperLook';
+import {nativeVehicleBumperSource} from './render/nativeVehicleBumperSource';
 /** ProcessDrivingAnims: low first, standing boat set, then the original-PC car skill sets for a seated boat. */
 function boatRideAnims(boat:{modelFlags:number;body:{linvel():{x:number;y:number;z:number}}},drivingSkill:number){
  const v=boat.body.linvel();
@@ -4547,10 +4548,10 @@ async function boot() {
       // Pauses/streaming holds advance no game time and therefore add no camera movement lead.
       const cameraStep=Math.fround(Math.min(3,Math.max(0,(gameTimeExact-bumperGameTime)/20)));bumperGameTime=gameTimeExact;
       const passenger=playerPassenger?.car,car=worldCar?.occupied?worldCar:fleet?.occupied??(isScriptCar(passenger)?passenger:undefined),bike=fleet?.occupiedBike??(isScriptBike(passenger)?passenger:undefined),boat=fleet?.occupiedBoat;
-      const frameOf=(root:Object3D,local:{x:number;y:number;z:number},position=root.position)=>{const q=root.quaternion,w=new Vector3(local.x,local.z,-local.y).applyQuaternion(q);return {vehicle:root,source:{x:position.x+w.x,y:position.y+w.y,z:position.z+w.z},quaternion:{x:q.x,y:q.y,z:q.z,w:q.w}};};
-      if(car){const seat=car.car.nativeFramePosition('ped_frontseat');render.bumper=frameOf(car.car.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62});}
+      const frameOf=(root:Object3D,dummy:{x:number;y:number;z:number}|undefined,boat=false,position=root.position)=>{const q=root.quaternion,matrix=nativeMatrixOf(q,position),source=nativeVehicleBumperSource({boat,dummy:[dummy?.x??0,dummy?.y??0,dummy?.z??0],matrix,position:matrix.position});return {vehicle:root,source:{x:source[0],y:source[2],z:-source[1]},quaternion:{x:q.x,y:q.y,z:q.z,w:q.w}};};
+      if(car){render.bumper=frameOf(car.car.root,car.car.nativeFramePosition('ped_frontseat'));}
       else if(bike){
-        const seat=bike.seat(),b=frameOf(bike.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62},bike.renderBodyPosition);
+        const b=frameOf(bike.root,bike.seat(),false,bike.renderBodyPosition);
         if(bike.quad||render.cameraSettings.vehicle!=='bumper')render.bumper=b;
         else{
           // Process_1stPerson's visibility test uses the camera axes on entry, before it replaces the final basis.
@@ -4564,7 +4565,7 @@ async function boot() {
           }};
         }
       }
-      else if(boat){const seat=boat.seat(),b=frameOf(boat.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62});b.source.y+=.5;render.bumper=b;}
+      else if(boat){render.bumper=frameOf(boat.root,boat.seat(),true);}
       else render.bumper=undefined;
       const selected=car??bike??boat,bumper=render.bumper;
       if(selected&&bumper){

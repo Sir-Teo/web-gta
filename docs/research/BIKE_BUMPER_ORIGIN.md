@@ -73,7 +73,8 @@ pause/resume and aircraft takeoff/gear, with no browser errors or failed request
 
 Interpolation remains an explicit host adapter. The full original PC camera
 owner, render/physics cadence, lean-matrix selection and matched PC captures are
-outside these selected-stage checks. The host's existing quaternion/double base
-transform is retained and compared separately with actual native float32 output;
-full-source bit identity is not claimed. The normal bike neck/velocity/LOS stage
+outside these selected-stage checks. This checkpoint retained the quaternion/double
+base transform and compared it separately with native float32 output; full-source
+bit identity was not claimed. A later [source-precision correction](VEHICLE_BUMPER_SOURCE_PRECISION.md)
+closes that scalar difference for the declared inputs. The normal bike neck/velocity/LOS stage
 and the subsequent ground-lift/look routines retain their prior arithmetic.

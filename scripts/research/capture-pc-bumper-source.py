@@ -35,10 +35,10 @@ enum {DUMMY_LIGHT_FRONT_MAIN=0,DUMMY_SEAT_FRONT=4};
 struct Vehicle {
  struct Structure {CVector m_avDummyPos[5];} structure;
  struct Info {Structure* value;Structure* GetVehicleStruct(){return value;}} info{&structure};
- bool boat;Matrix matrix;
+ bool boat;Matrix matrix;CVector bodyPosition;
  bool IsBoat() const{return boat;}
  Info* GetVehicleModelInfo(){return &info;}
- CVector GetPosition() const{return matrix.position;}
+ CVector GetPosition() const{return bodyPosition;}
 };
 struct Camera {
  CVector m_vecSource;float m_fFOV;
@@ -47,10 +47,11 @@ struct Camera {
 footer=''' }
 };
 int main(){
- std::cout<<std::setprecision(10);int boat;float x,y,z;
+ std::cout<<std::setprecision(17);int boat;float x,y,z;
  while(std::cin>>boat){
   Vehicle v;v.boat=boat;
   for(auto* a:{&v.matrix.right,&v.matrix.forward,&v.matrix.up,&v.matrix.position})std::cin>>a->x>>a->y>>a->z;
+  std::cin>>v.bodyPosition.x>>v.bodyPosition.y>>v.bodyPosition.z;
   std::cin>>x>>y>>z;v.structure.m_avDummyPos[boat?0:4]={x,y,z};
   Camera c;c.process(&v);std::cout<<c.m_vecSource.x<<' '<<c.m_vecSource.y<<' '<<c.m_vecSource.z<<' '<<c.m_fFOV<<'\\n';
  }
@@ -58,7 +59,7 @@ int main(){
 '''
 rows=json.loads(args.profiles.read_text());rows=rows.get('rows',[]) if isinstance(rows,dict) else rows
 inputs=[row['sourceInput'] for row in rows]
-lines=[' '.join(map(str,[int(i['boat']),*(v for key in ['right','forward','up','position'] for v in i['matrix'][key]),*i['dummy']])) for i in inputs]
+lines=[' '.join(map(str,[int(i['boat']),*(v for key in ['right','forward','up','position'] for v in i['matrix'][key]),*i.get('position',i['matrix']['position']),*i['dummy']])) for i in inputs]
 cxx=os.environ.get('CXX','g++');flags=['-std=c++20','-O2','-ffp-contract=off']
 with tempfile.TemporaryDirectory(prefix='pc-bumper-source-') as directory:
  root=Path(directory);cpp=root/'camera.cpp';binary=root/'camera'

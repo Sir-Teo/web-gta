@@ -9,6 +9,18 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Vehicle bumper source precision (October 27, 2026)
+
+- Car, boat and bike bumper sources now use the captured float32 dummy,
+  transform, body-origin and boat-lift order. All 144 fixed cases agree with both
+  actual native output and the source-compiled PC fragment with declared scalar
+  primitives. All 274 live base sources across bikes/quads, ten boats and
+  passenger roles match both references exactly; 139 bike height-stage sources,
+  53 banked/moving camera sources and 12 NPC-driver sources also match native
+  output exactly. Quaternion-derived bases, interpolation, model/bone/query
+  services and complete retail-PC/FPU ownership remain explicit boundaries.
+  [Evidence and validation](research/VEHICLE_BUMPER_SOURCE_PRECISION.md).
+
 ## Bike bumper body origin (October 27, 2026)
 
 - Bike bumper sources now combine the selected lean orientation with the

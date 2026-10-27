@@ -39,8 +39,10 @@ a **source-compiled reference**, not a retail-PC executable capture. It does not
 establish original x87 settings, camera look handlers, wheelie/ground protection,
 the full camera task, or matched original-PC images.
 
-The host's existing quaternion/double transform remains; sub-millimetre differences
-from the float32 source reference are measured rather than called bit-exact.
+This checkpoint retained the host's quaternion/double transform; sub-millimetre
+differences from the float32 source reference were measured rather than called
+bit-exact. The later [source-precision correction](VEHICLE_BUMPER_SOURCE_PRECISION.md)
+uses the captured float32 order and validates live sources exactly.
 The boat's existing seat accessor supplies the model dummy; arbitrary nested
 dummy hierarchy equivalence is outside this change.
 

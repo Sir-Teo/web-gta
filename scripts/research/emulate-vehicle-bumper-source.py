@@ -15,7 +15,10 @@ from unicorn import Uc,UC_ARCH_ARM64,UC_MODE_ARM,UC_HOOK_CODE
 from unicorn.arm64_const import *
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--binary',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--profiles',type=Path);p.add_argument('--bike-height',action='store_true',help='Capture the neck/velocity/declared-LOS stage instead of the base fixed grid.')
-args=p.parse_args();b=args.binary.read_bytes();digest=hashlib.sha256(b).hexdigest()
+p.add_argument('--source-precision',action='store_true',help='Include distinct body/selected-matrix positions, scaled axes and float-rounding edge inputs.')
+args=p.parse_args()
+if args.bike_height and args.source_precision:raise ValueError('Choose one fixed grid')
+b=args.binary.read_bytes();digest=hashlib.sha256(b).hexdigest()
 if len(b)!=14226544 or digest!='9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78':raise ValueError('Not the pinned iOS binary')
 n=struct.unpack_from('>I',b,4)[0];off=next(struct.unpack_from('>I',b,8+i*20+8)[0] for i in range(n) if struct.unpack_from('>I',b,8+i*20)[0]==0x100000c);at=off+32;segments=[]
 for _ in range(struct.unpack_from('<I',b,off+16)[0]):
@@ -73,13 +76,17 @@ if args.bike_height:
  for neckZ,velocityZ,step,clear,angle in itertools.product([-1000,0,1.5,13.3,10000],[-.4,0,.125],[0,50/60,50/30,3],[False,True],[0,.7]):
   c,s=math.cos(angle),math.sin(angle);matrixInput={'right':[c,s,0],'forward':[-s*.8,c*.8,.6],'up':[s*.6,-c*.6,.8],'position':[100,-200,2]}
   profiles.append({'vehicleType':9,'dummy':[.7,-.35,.9],'matrix':matrixInput,'neck':[101,-199,neckZ],'velocity':[.1,-.2,velocityZ],'timeStep':step,'lineClear':clear,'front':matrixInput['forward'],'up':matrixInput['up']})
+if args.source_precision:
+ for kind,rows,position,dummy,offset in itertools.product([0,5,9],[[[.8,.6,0],[-.48,.64,.6],[.36,-.48,.8]],[[.7,-.2,.3],[.4,.9,-.6],[-.1,.5,1.2]]],[[0,0,0],[2493.123,-1683.456,13.3],[-4000.75,3999.875,-1000.125]],[[.7,-.35,.9],[-.6,.000001,.000001]],[0,33]):
+  profiles.append({'vehicleType':kind,'dummy':dummy,'vehiclePosition':position,'matrix':dict(zip(['right','forward','up','position'],[*rows,[position[0]+offset,position[1]-offset,position[2]+offset]]))})
 fixed=len(profiles)
 if args.profiles:
  rows=json.loads(args.profiles.read_text());rows=rows.get('rows',[]) if isinstance(rows,dict) else rows
  for r in rows:
   i=r.get('nativeInput')
   if i is None:
-   source=r['sourceInput'];i={'matrix':source['matrix'],'dummy':source['dummy'],'vehicleType':5 if source['boat'] else 0 if r.get('quad') else 9}
+   source=r['sourceInput'];i={'matrix':source['matrix'],'dummy':source['dummy'],'vehicleType':source.get('vehicleType',5 if source['boat'] else 0 if r.get('quad') else 9)}
+   if 'position' in source:i['vehiclePosition']=source['position']
   profiles.append(i)
 cases=[capture(i) for i in profiles]
 args.output.write_text(json.dumps({'source':__doc__,'sha256':digest,'entry':'0x100217890','transform':'0x1002cb268','fixedCases':fixed,'cases':cases},indent=2)+'\n');print(json.dumps({'fixed':fixed,'cases':len(cases)}))

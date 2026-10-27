@@ -64,8 +64,9 @@ upside-down source guard; wheelie camera and full original-PC scheduling remain
 open.
 The later [body-origin correction](BIKE_BUMPER_ORIGIN.md) separates the
 interpolated physical origin from the lean matrix's rendered translation.
-The host's double/quaternion transform is compared with a declared millimetre
-tolerance, not called bit-exact. Arbitrary nested dummy preprocessing and matched
+The checkpoint's double/quaternion transform was compared with a declared millimetre
+tolerance, not called bit-exact. A later [source-precision correction](VEHICLE_BUMPER_SOURCE_PRECISION.md)
+uses the captured float32 order. Arbitrary nested dummy preprocessing and matched
 original-PC screenshots remain acceptance boundaries.
 
 All 14 bike/quad models pass the corrected browser check. All **140 frames**

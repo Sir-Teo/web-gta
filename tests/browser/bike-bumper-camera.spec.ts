@@ -27,7 +27,7 @@ test('bike bumper views use the seat offset and quads keep the automobile camera
    if(b&&this.bumperView){
     const seat=b.seat(),expected=b.root.localToWorld(b.root.position.clone().set(0,seat.z+.62,-seat.y-.08)),camera=this.camera.position;
     if(query?.blocked){const p=b.body.translation();expected.x=p.x;expected.z=p.z;}
-    g.__bikeBumperRows.push({model:b.modelId,quad:b.quad,nativeInput,query,neckSample,neckAfter:this.nativeCharacter?.bonePosition(4,this.camera.position.clone())?.toArray(),sourceInput:{boat:false,dummy:[seat.x,seat.y,seat.z],matrix:nativeMatrixOf(b.root.quaternion,b.root.position)},camera:camera.toArray(),expected:expected.toArray(),horizontalError:Math.hypot(camera.x-expected.x,camera.z-expected.z),error:camera.distanceTo(expected),fov:this.fov});
+    g.__bikeBumperRows.push({model:b.modelId,quad:b.quad,nativeInput,query,neckSample,neckAfter:this.nativeCharacter?.bonePosition(4,this.camera.position.clone())?.toArray(),sourceInput:{boat:false,vehicleType:b.quad?0:9,position:[b.renderBodyPosition.x,-b.renderBodyPosition.z,b.renderBodyPosition.y],dummy:[seat.x,seat.y,seat.z],matrix:nativeMatrixOf(b.root.quaternion,b.root.position)},camera:camera.toArray(),expected:expected.toArray(),horizontalError:Math.hypot(camera.x-expected.x,camera.z-expected.z),error:camera.distanceTo(expected),fov:this.fov});
    }
    return result;
   };
@@ -55,5 +55,6 @@ test('bike bumper views use the seat offset and quads keep the automobile camera
   }
  }finally{await page.evaluate(()=>(window as any).__game.__restoreBikeBumper?.());writeFileSync('artifacts/bike-bumper-camera-live.json',JSON.stringify({rows,errors},null,2));}
  expect(rows.length).toBeGreaterThanOrEqual(148);expect(rows.some(r=>r.nativeInput?.lineClear===false)).toBe(true);expect(rows.some(r=>Math.abs(r.nativeInput?.velocity[2]??0)>.01)).toBe(true);
- for(const row of rows){expect(row.quad?row.error:row.horizontalError,JSON.stringify(row)).toBeLessThan(row.quad?1e-5:.001);expect(row.fov).toBe(60);if(!row.quad){expect(row.nativeInput).toBeDefined();expect([row.neckSample.x,row.neckSample.y,row.neckSample.z]).toEqual(row.neckAfter);}}expect(errors).toEqual([]);
+ // Geometric doubles bound the seat location; native fixtures/replay check the float32 source arithmetic exactly.
+ for(const row of rows){expect(row.quad?row.error:row.horizontalError,JSON.stringify(row)).toBeLessThan(.001);expect(row.fov).toBe(60);if(!row.quad){expect(row.nativeInput).toBeDefined();expect([row.neckSample.x,row.neckSample.y,row.neckSample.z]).toEqual(row.neckAfter);}}expect(errors).toEqual([]);
 });
