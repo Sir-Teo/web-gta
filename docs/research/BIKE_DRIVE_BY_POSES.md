@@ -73,9 +73,10 @@ onto the next; its final run passes. The original screenshot behind a hedge
 was replaced by an open-road setup, not a claimed before/after image pair.
 Motorcycle/quad rider, bicycle cadence and phone-hop regressions pass.
 
-Native weapon shot eligibility/timestamps, ballistics and muzzle-origin
-parity are not implemented by this pose change: firing keeps the existing
-host weapon timing. The external PC hop task remains separate; simultaneous
+Native weapon shot eligibility/timestamps are not implemented by this pose
+change: firing keeps the existing host weapon timing. The subsequent
+[muzzle and aim ray change](BIKE_DRIVE_BY_RAYS.md) captures and wires the
+selected pre-impact calculations. The external PC hop task remains separate; simultaneous
 hop/drive-by cross-fades, full ped task scheduling, hand IK and native key
 sampling are outside this slice. Model visibility while blending is the
 host integration policy, not a captured CPed weapon-render branch.

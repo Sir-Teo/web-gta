@@ -1,4 +1,7 @@
 import {hunterGunOrigin,vehicleGunReady,type HunterGunMatrix} from '../simulation/nativeHunterGun';
+import {nativeMatrixOf} from '../simulation/recordingBody';
+import {nativeBikeShot,type BikeShotInput} from './nativeBikeShot';
+import {driveByAutoAim,type DriveByAimTarget} from './nativeDriveByAim';
 import {NativeFixedMachineGuns,aimFixedMachineGun,type FixedGunAimTarget} from '../simulation/nativeFixedMachineGuns';
 import {planeGunPosition} from '../simulation/nativePlaneGunPosition';
 import {PLANE_GUN_SHAKE,ROCKET_SHAKE} from '../engine/nativePadShakes';
@@ -205,6 +208,10 @@ export class WeaponSystem {
  /** Twin pistols alternate hands; true when the next shot leaves the left gun. */
  leftHand=false;lastHand:'right'|'left'='right';
  muzzle?:(left?:boolean)=>Vec3|undefined;
+ /** Native hand rows and ped origin at the currently sampled rider pose. */
+ bikeFirePose?:()=>{handMatrix:readonly (readonly number[])[];owner:readonly number[]}|undefined;
+ /** Three CGeneral draw values per drive-by ray; engine-wide CRT lifetime is a caller boundary. */
+ driveByRandom=()=>Math.floor(Math.random()*32768);
  /** Ordinary player FireInstantHit ignores its unflagged occupied/attached vehicle. Drive-by fire supplies its
   * own unconditional exclusion, and sniper/projectile/area paths keep their separate native rules. */
  instantHitIgnoredBody?:()=>RAPIER.RigidBody|undefined;
@@ -383,7 +390,7 @@ export class WeaponSystem {
  npcShot(from:Vec3,to:Vec3,weapon=22,hit=true){this.tracer(from,to,'ped',.09);if(hit)this.effect('impact',to);this.fx?.gunshot(from,normalize(add(to,from,-1)),weapon,false);}
  /** Native FX (effects.fxp); the sphere effects remain as the fallback while it loads or when it is unavailable. */
  fx?:WeaponFxHost;
-  constructor(readonly sim:Simulation,private pedestrians:()=>({damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind?:DamageKind,hit?:{weapon?:number;point?:Vec3;piece?:number;noSource?:boolean;byPlayer?:boolean}):boolean|PedestrianVictim}&Pick<WorldPedestrians,'targets'|'frighten'>&Partial<Pick<WorldPedestrians,'stealthTarget'|'stealthKill'|'gunShot'|'pedPosition'|'bulletLine'|'bulletImpact'|'bodyHandles'|'trainsSkill'|'instantHitRound'>>)|undefined,private fleet:()=>(Pick<WorldFleet,'cars'|'boats'>&Partial<Pick<WorldFleet,'planes'|'bikes'|'trains'|'useDetonator'>>)|undefined){}
+  constructor(readonly sim:Simulation,private pedestrians:()=>({damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind?:DamageKind,hit?:{weapon?:number;point?:Vec3;piece?:number;noSource?:boolean;byPlayer?:boolean}):boolean|PedestrianVictim}&Pick<WorldPedestrians,'targets'|'frighten'>&Partial<Pick<WorldPedestrians,'stealthTarget'|'stealthKill'|'gunShot'|'pedPosition'|'bulletLine'|'bulletImpact'|'bodyHandles'|'trainsSkill'|'instantHitRound'|'driveByAimCandidates'>>)|undefined,private fleet:()=>(Pick<WorldFleet,'cars'|'boats'>&Partial<Pick<WorldFleet,'planes'|'bikes'|'trains'|'useDetonator'>>)|undefined){}
  installNative(data:NativeWeaponData){this.inventory.installNative(data);}
  get native(){return this.inventory.native;}
  /** CProjectileInfo::RemoveAllProjectiles: every grenade, rocket and satchel in flight or stuck is gone, unexploded. */
@@ -623,13 +630,35 @@ export class WeaponSystem {
   /** A rider's drive-by (the same SMG set): from the rider ahead of the bike, or out of the side he looks to. */
   fireDrivebyBike(bike:import('../simulation/WorldBike').WorldBike,camera:{origin:Vec3;direction:Vec3},look:'forward'|'left'|'right'){
    if(!bike.occupied||bike.wrecked)return false;
-   return this.drivebyShot({half:bike.assets.collision?.bounds.max[0]??.4,body:bike.body,position:bike.body.translation(),look},camera);
+   return this.drivebyShot({half:bike.assets.collision?.bounds.max[0]??.4,body:bike.body,position:bike.body.translation(),look,bike},camera);
   }
-  private drivebyShot(vehicle:{half:number;body:RAPIER.RigidBody;position:Vec3;look?:'forward'|'left'|'right'},camera:{origin:Vec3;direction:Vec3}){
+  /** CWorld query membership and ordering use the host's active ped/occupant pools. Native aim filters run afterward. */
+  private driveByAimQuery(start:readonly number[],end:readonly number[],own:import('../simulation/WorldBike').WorldBike){
+   const f=Math.fround,delta=end.map((v,i)=>f(v-start[i])),square=f(f(f(delta[0]*delta[0])+f(delta[1]*delta[1]))+f(delta[2]*delta[2])),radius=f(Math.sqrt(square)),radiusSq=f(radius*radius),out:DriveByAimTarget[]=[];
+   const append=(p:Vec3,state=0,sameVehicle=false)=>{
+    const position=[f(p.x),f(-p.z),f(p.y)],dx=f(position[0]-f(start[0])),dy=f(position[1]-f(start[1]));
+    if(out.length<16&&f(f(dx*dx)+f(dy*dy))<=radiusSq)out.push({position,state,sameVehicle});
+   };
+   const crowd=this.pedestrians(),peds=crowd?.driveByAimCandidates?.()??crowd?.targets(true).map(p=>({position:p.position,state:0}))??[];
+   for(const ped of peds)append(ped.position,ped.state);
+   for(const ped of this.seatedPeds?.()??[]){if(ped.car.disposed)continue;append(ped.hitOrigin?.()??seatWorldPoint(ped.car,ped.local),0,ped.car.car.body.handle===own.body.handle);}
+   return out;
+  }
+  private drivebyShot(vehicle:{half:number;body:RAPIER.RigidBody;position:Vec3;look?:'forward'|'left'|'right';bike?:import('../simulation/WorldBike').WorldBike},camera:{origin:Vec3;direction:Vec3}){
    const w=this.inventory.weapon;
    if(this.sim.player.health<=0||!DRIVEBY_WEAPONS.has(w.id))return false;
    if(!this.inventory.fire())return false;
+   this.lastHand='right';this.leftHand=false;
    this.onUse?.(w);
+   const bikePose=vehicle.bike&&this.bikeFirePose?.(),standard=vehicle.bike&&this.inventory.native&&nativeWeaponInfo(this.inventory.native,w.id,1),info=bikePose&&standard?standard:this.inventory.info();
+   if(vehicle.bike&&bikePose&&standard){
+    const bike=vehicle.bike,body=nativeMatrixOf(bike.body.rotation(),bike.body.translation()),v=bike.body.linvel(),left=vehicle.look==='left',right=vehicle.look==='right';
+    const input:BikeShotInput={vehicleMatrix:[body.right,body.forward,body.up,body.position],handMatrix:bikePose.handMatrix,velocity:[v.x/50,-v.z/50,v.y/50],fireOffset:standard.fireOffset,range:standard.weaponRange,timeStep:Math.fround(this.planeGunStepSeconds*50),left,right,vehicleType:bike.quad?0:9,random:[this.driveByRandom(),this.driveByRandom(),this.driveByRandom()]};
+    const seed=nativeBikeShot(input),peds=this.driveByAimQuery(seed.start,seed.end,bike),aim=driveByAutoAim({start:seed.start,end:seed.end,owner:bikePose.owner,vehicle:body.position,subtype:bike.quad?2:[481,509,510].includes(bike.modelId)?10:9,model:bike.modelId,hasOwner:true,aimVehicles:false,peds,vehicles:[]});
+    const source={x:seed.start[0],y:seed.start[2],z:-seed.start[1]},target={x:aim.end[0],y:aim.end[2],z:-aim.end[1]},direction=normalize(add(target,source,-1)),range=distance(target,source);
+    this.onSound?.('fire',w.id,{...vehicle.position});this.pedestrians()?.gunShot?.(source,false,undefined,target);this.onCrime?.(CRIME.fireWeapon,'player');
+    return this.fireInstantHit(w,this.inventory.info()??standard,source,direction,vehicle.body,range,false);
+   }
    const p=vehicle.position,q=vehicle.body.rotation(),quat=new Quaternion(q.x,q.y,q.z,q.w);
    const right=new Vector3(1,0,0).applyQuaternion(quat),dir=normalize(camera.direction);
    const side=vehicle.look==='left'?-1:vehicle.look==='right'?1:dir.x*right.x+dir.y*right.y+dir.z*right.z>=0?1:-1;
@@ -640,7 +669,6 @@ export class WeaponSystem {
    const resolved=normalize(add(target,source,-1));
    this.pedestrians()?.gunShot?.(source,false,undefined,target);
    this.onCrime?.(CRIME.fireWeapon,'player');
-  const info=this.inventory.info();
   if(info&&(w.kind==='bullet'||w.kind==='shotgun'))return this.fireInstantHit(w,info,source,resolved,vehicle.body);
   const hit=this.ray(source,resolved,range,vehicle.body),end=add(source,resolved,hit?.timeOfImpact??range);
   this.tracer(source,end,'player',.065);
@@ -1134,10 +1162,10 @@ export class WeaponSystem {
  }
  /** Instant hits (CWeapon::FireInstantHit port): weapon range, crosshair spread, WEAPON.DAT damage, the 150-point
   * point-blank player shot and SetUpPelletCol pellets counted against the first victim. */
- private fireInstantHit(w:WeaponDefinition,info:NativeWeaponInfo,source:Vec3,aim:Vec3,exclude?:RAPIER.RigidBody,reach=info.weaponRange){
+ private fireInstantHit(w:WeaponDefinition,info:NativeWeaponInfo,source:Vec3,aim:Vec3,exclude?:RAPIER.RigidBody,reach=info.weaponRange,spread=true){
   // The player's shot shakes his pad (StartShake_Distance at the player, 240 ms at 128).
   this.onPadShake?.(240,128,source);
-  const shotgun=w.id===25||w.id===26||w.id===27,direction=this.aimSpread(aim,info),hit=this.ray(source,direction,reach,exclude),end=add(source,direction,hit?.timeOfImpact??reach);
+  const shotgun=w.id===25||w.id===26||w.id===27,direction=spread?this.aimSpread(aim,info):aim,hit=this.ray(source,direction,reach,exclude),end=add(source,direction,hit?.timeOfImpact??reach);
   const biker=this.onSeatedShot?this.bikerHit(source,direction,hit?.timeOfImpact??reach,exclude):undefined;
   const tyre=this.tyreHit(source,direction,biker?.t??hit?.timeOfImpact??reach,exclude);
   if(tyre){

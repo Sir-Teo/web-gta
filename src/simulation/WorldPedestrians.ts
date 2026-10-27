@@ -1144,6 +1144,8 @@ export class WorldPedestrians {
   // bNeverEverTargetThisPed keeps a ped out of the lock-on the weapon system draws its targets from.
   /** Living peds for the weapons; `all` keeps those SET_CHAR_NEVER_TARGETTED hides from targeting. */
   targets(all=false){return this.people.filter(p=>p.health>0&&(all||!p.neverTargeted)).map(p=>({handle:p.collider.handle,id:p.id,fireProof:!!p.proofs?.fire,position:{...p.body.translation()},inAir:!!p.air||p.landing!==undefined,officer:pedTypeInfo(p).officer,armed:!!p.weapon,attacking:p.retaliate>0,down:p.down>0,noCriticalHits:!!p.noCriticalHits,crew:p.follow}));}
+ /** Drive-by world-query candidates retain dead entries until the native aim stage filters them. */
+ driveByAimCandidates(){return this.people.filter(p=>p.body.isEnabled()).map(p=>{const q=p.actor.player.position;return {position:{x:q.x,y:q.y+PED_ORIGIN_HEIGHT,z:q.z},state:p.health<=0?55:0};});}
  /** CPopulation::RemovePed by collider handle; false when the handle is not a ped. */
  removeCollider(handle:number){const p=this.people.find(p=>p.collider.handle===handle);if(!p)return false;this.remove(p);this.people.splice(this.people.indexOf(p),1);return true;}
  /** ClearSpaceForMissionEntity's removal: only a ped CPed::CanBeDeleted allows, which is neither one a mission made nor

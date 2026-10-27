@@ -9,6 +9,16 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 - Algorithm research: gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`, verified against the local checkout. Routines still calling the retail executable are not available implementations.
 - Original-game input traces and matched captures: **not established by this audit**.
 
+## Bike and quad drive-by rays (October 27, 2026)
+
+- Loaded player bike/quad shots now use the right hand, standard weapon offset,
+  vehicle-axis direction, movement lead, three native scatter draws and captured
+  pedestrian auto-aim scoring. Handheld spread is no longer added afterward.
+- All 1,100 independent fixed native cases and 50 real-game rays match selected
+  native output, including 12 accepted targets. Query membership/order, global
+  RNG, shot timing and full impact parity remain open.
+  [Source, validation and limits](research/BIKE_DRIVE_BY_RAYS.md).
+
 ## Bicycle rider cadence (October 27, 2026)
 
 - BMX, Chopper and Mountain Bike available pedal clips/cranks now follow

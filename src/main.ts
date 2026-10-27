@@ -1404,6 +1404,13 @@ async function boot() {
   // A bike drive-by exposes the right-hand model while its shooting association blends in or out.
   weaponView.visible=(left=false)=>!playerWeaponHiddenByScript&&!render.scriptPlayerHidden&&!phones.get('player')?.active&&!jetWeaponHidden&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&(!fleet?.occupiedBike||!left&&fleet.occupiedBike.riderDriveByActive)&&(!carEntry.active||carEntry.phase==='approach');
   weapons.muzzle=left=>weaponView.muzzle(left);
+  weapons.bikeFirePose=()=>{
+   const view=render.nativeCharacter;if(!view?.hasHitSpheres)return;
+   const hand=view.boneMatrix(24,new Matrix4());if(!hand)return;
+   const e=hand.elements,p=view.root.getWorldPosition(new Vector3());
+   // Bone local axes remain native; only the world rows change from (x,y,z) to (x,-z,y).
+   return {handMatrix:[[e[0],-e[2],e[1]],[e[4],-e[6],e[5]],[e[8],-e[10],e[9]],[e[12],-e[14],e[13]]],owner:[p.x,-p.z,p.y]};
+  };
   weapons.playerMove=()=>{const view=render.nativeCharacter;return view&&{blendRatio:view.moveBlendRatio,sprinting:view.sprinting};};
   const worldFx=new WorldFx(render.scene,sim,render.camera);
   const scriptShadows=new NativeScriptShadows(render.scene);
